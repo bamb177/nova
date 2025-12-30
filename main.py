@@ -10,7 +10,14 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 from requests.exceptions import SSLError
 from urllib3.exceptions import InsecureRequestWarning
-from flask import Flask, request, Response, jsonify, send_from_directory, abort
+from flask import Flask, request, Response, send_from_directory, abort
+
+# 선택 의존성(설치되면 사용)
+try:
+    from bs4 import BeautifulSoup  # type: ignore
+except Exception:
+    BeautifulSoup = None  # type: ignore
+
 
 # =========================
 # Flask
@@ -70,6 +77,7 @@ CACHE: Dict[str, Any] = {
         "remote_error": None,
         "remote_count": 0,
         "force_local_only": FORCE_LOCAL_ONLY,
+        "remote_bs4_available": bool(BeautifulSoup),
     }
 }
 
@@ -119,15 +127,13 @@ def http_get(url: str, timeout: int = 25) -> str:
         "Pragma": "no-cache",
     }
 
-    # 1) verify=True
     try:
-        r = requests.get(url, headers=headers, timeout=timeout, verify=True)
+        r = requests.get(url, headers=headers, timeout=timeout, verify=True, allow_redirects=True)
         r.raise_for_status()
         return r.text
     except SSLError:
-        # 2) verify=False fallback (일부 환경에서 필요)
         warnings.simplefilter("ignore", InsecureRequestWarning)
-        r = requests.get(url, headers=headers, timeout=timeout, verify=False)
+        r = requests.get(url, headers=headers, timeout=timeout, verify=False, allow_redirects=True)
         r.raise_for_status()
         return r.text
 
@@ -148,10 +154,143 @@ def html_to_text_lines(html: str) -> List[str]:
     return [ln for ln in lines if ln]
 
 
-def parse_remote_zone_nova_characters(html: str) -> List[Dict[str, Any]]:
+def parse_remote_zone_nova_characters_bs4(html: str) -> List[Dict[str, Any]]:
+    """
+    BeautifulSoup 기반 테이블 파서.
+    - 테이블 구조가 바뀌어도 th 텍스트로 컬럼 매핑
+    - row의 td를 컬럼 인덱스 기준으로 해석
+    """
+    if not BeautifulSoup:
+        return []
+
+    soup = BeautifulSoup(html, "html.parser")
+    tables = soup.find_all("table")
+    if not tables:
+        return []
+
+    def norm(s: str) -> str:
+        return re.sub(r"\s+", " ", (s or "").strip()).lower()
+
+    target = None
+    header_map = None
+
+    for t in tables:
+        thead = t.find("thead")
+        if not thead:
+            # thead가 없고 첫 행이 헤더인 경우도 있음
+            first_tr = t.find("tr")
+            if not first_tr:
+                continue
+            ths = first_tr.find_all(["th", "td"])
+        else:
+            ths = thead.find_all("th")
+            if not ths:
+                # thead가 비어있으면 첫 tr로
+                first_tr = t.find("tr")
+                if not first_tr:
+                    continue
+                ths = first_tr.find_all(["th", "td"])
+
+        headers = [norm(h.get_text(" ", strip=True)) for h in ths]
+        # 최소한 name/rarity/element/role/hp/attack/defense/crit 같은 게 있어야 함
+        needed = ["name", "rarity", "element", "role"]
+        if all(any(n in h for h in headers) for n in needed) and any("hp" in h for h in headers):
+            target = t
+            header_map = headers
+            break
+
+    if not target or not header_map:
+        return []
+
+    # 컬럼 인덱스 찾기(유연)
+    def find_col(keys: List[str]) -> Optional[int]:
+        for i, h in enumerate(header_map):
+            for k in keys:
+                if k in h:
+                    return i
+        return None
+
+    idx_name = find_col(["name"])
+    idx_rarity = find_col(["rarity"])
+    idx_element = find_col(["element"])
+    idx_role = find_col(["role"])
+    idx_class = find_col(["class"])
+    idx_faction = find_col(["faction"])
+    idx_hp = find_col(["hp"])
+    idx_atk = find_col(["attack", "atk"])
+    idx_def = find_col(["defense", "def"])
+    idx_crit = find_col(["crit"])
+
+    # 본문 행들
+    tbody = target.find("tbody")
+    rows = tbody.find_all("tr") if tbody else target.find_all("tr")[1:]  # header 다음부터
+
+    out: List[Dict[str, Any]] = []
+
+    for tr in rows:
+        tds = tr.find_all("td")
+        if not tds:
+            continue
+
+        def cell(i: Optional[int]) -> str:
+            if i is None:
+                return ""
+            if i < 0 or i >= len(tds):
+                return ""
+            return tds[i].get_text(" ", strip=True)
+
+        name = cell(idx_name)
+        rarity = cell(idx_rarity)
+        element = cell(idx_element)
+        role = cell(idx_role)
+        clazz = cell(idx_class)
+        faction = cell(idx_faction)
+
+        # 숫자 파싱
+        def to_int(s: str) -> Optional[int]:
+            s = (s or "").replace(",", "").strip()
+            if not s:
+                return None
+            m = re.search(r"\d+", s)
+            return int(m.group(0)) if m else None
+
+        def to_float(s: str) -> Optional[float]:
+            s = (s or "").replace(",", "").replace("%", "").strip()
+            if not s:
+                return None
+            m = re.search(r"\d+(\.\d+)?", s)
+            return float(m.group(0)) if m else None
+
+        hp = to_int(cell(idx_hp))
+        atk = to_int(cell(idx_atk))
+        df = to_int(cell(idx_def))
+        crit = to_float(cell(idx_crit))
+
+        # name이 비면 스킵
+        if not name:
+            continue
+
+        out.append({
+            "id": slugify(name),
+            "name": name,
+            "rarity": rarity or None,
+            "element": element or None,
+            "role": role or None,
+            "class": clazz or None,
+            "faction": faction or None,
+            "stats": {"hp": hp, "atk": atk, "def": df, "crit": crit},
+        })
+
+    uniq = {c["id"]: c for c in out}
+    return list(uniq.values())
+
+
+def parse_remote_zone_nova_characters_fallback(html: str) -> List[Dict[str, Any]]:
+    """
+    기존 텍스트 기반(정규식) fallback.
+    """
     lines = html_to_text_lines(html)
 
-    # 테이블 헤더 탐색(유연)
     start_idx = None
     for i, ln in enumerate(lines):
         if ("Name" in ln and "Rarity" in ln and "Element" in ln and "Role" in ln and "HP" in ln and "Attack" in ln):
@@ -159,7 +298,7 @@ def parse_remote_zone_nova_characters(html: str) -> List[Dict[str, Any]]:
                 start_idx = i + 1
                 break
     if start_idx is None:
-        raise ValueError("원격 테이블 헤더를 찾지 못했습니다(페이지 구조 변경 가능).")
+        return []
 
     rarity_pat = r"(SSR|SR|R)"
     element_pat = r"(Chaos|Fire|Holy|Ice|Wind)"
@@ -210,8 +349,7 @@ def parse_remote_zone_nova_characters(html: str) -> List[Dict[str, Any]]:
 def load_from_images(image_dir: str) -> Tuple[List[Dict[str, Any]], int]:
     files = []
     for fn in os.listdir(image_dir):
-        low = fn.lower()
-        if low.endswith((".jpg", ".jpeg", ".png", ".webp")):
+        if fn.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
             files.append(fn)
 
     chars: List[Dict[str, Any]] = []
@@ -219,8 +357,6 @@ def load_from_images(image_dir: str) -> Tuple[List[Dict[str, Any]], int]:
         stem = os.path.splitext(fn)[0]
         name = prettify_name_from_stem(stem)
         cid = slugify(name)
-
-        # 웹에서 요청하는 경로는 /images/... 로 통일
         rel_img = f"/images/games/zone-nova/characters/{fn}"
 
         chars.append({
@@ -252,7 +388,6 @@ def merge_image_and_remote(image_chars: List[Dict[str, Any]], remote_chars: List
                 ic[k] = rc.get(k)
             ic["stats"] = rc.get("stats") or ic.get("stats")
         else:
-            # 이미지 없는 원격 캐릭터(있으면 추가)
             rc2 = dict(rc)
             rc2["image"] = None
             by_id[rid] = rc2
@@ -274,15 +409,31 @@ def refresh_zone_nova_cache() -> Tuple[bool, str]:
         image_chars, img_count = load_from_images(image_dir)
 
         remote_ok = False
-        remote_err = None
+        remote_err: Optional[str] = None
         remote_chars: List[Dict[str, Any]] = []
 
         if not FORCE_LOCAL_ONLY:
             try:
                 html = http_get(ZONE_NOVA_DB_URL, timeout=25)
-                remote_chars = parse_remote_zone_nova_characters(html)
+
+                # 1) bs4 우선
+                remote_chars = parse_remote_zone_nova_characters_bs4(html)
+
+                # 2) 그래도 0이면 fallback 정규식 파서
+                if len(remote_chars) == 0:
+                    remote_chars = parse_remote_zone_nova_characters_fallback(html)
+
+                # 3) 0이면 원인은 “페이지 구조/표 형식 변화 또는 보호 페이지”일 확률이 높음
                 if len(remote_chars) >= 10:
                     remote_ok = True
+                else:
+                    remote_ok = False
+                    # 에러가 아니라 “파싱 결과 0~N” 상황이므로 명시적으로 원인 표시
+                    remote_err = (
+                        f"Fetched OK but parsed {len(remote_chars)} rows. "
+                        "Page layout may have changed or content is not a plain table."
+                    )
+
             except Exception as e:
                 remote_ok = False
                 remote_err = str(e)
@@ -304,6 +455,8 @@ def refresh_zone_nova_cache() -> Tuple[bool, str]:
         CACHE["zone_nova"]["remote_ok"] = remote_ok
         CACHE["zone_nova"]["remote_error"] = remote_err
         CACHE["zone_nova"]["remote_count"] = len(remote_chars)
+        CACHE["zone_nova"]["force_local_only"] = FORCE_LOCAL_ONLY
+        CACHE["zone_nova"]["remote_bs4_available"] = bool(BeautifulSoup)
 
         return True, f"ok: {CACHE['zone_nova']['count']} (source={CACHE['zone_nova']['source']})"
     except Exception as e:
@@ -319,51 +472,8 @@ def refresh_zone_nova_cache() -> Tuple[bool, str]:
 
 
 def ensure_cache_loaded() -> None:
-    # Gunicorn에서는 __main__이 안 돌아가므로, 최초 요청 시 자동 로드
     if CACHE["zone_nova"]["count"] == 0 and CACHE["zone_nova"]["last_refresh_iso"] is None:
         refresh_zone_nova_cache()
-
-
-def score_character(c: Dict[str, Any], mode: str) -> float:
-    st = c.get("stats") or {}
-    hp = st.get("hp") or 0
-    atk = st.get("atk") or 0
-    df = st.get("def") or 0
-    crit = st.get("crit") or 0.0
-
-    hp_s = float(hp) / 1000.0
-    atk_s = float(atk) / 100.0
-    df_s = float(df) / 100.0
-
-    if mode == "pvp":
-        base = 0.55 * df_s + 0.35 * hp_s + 0.10 * atk_s
-    elif mode == "boss":
-        base = 0.65 * atk_s + 0.20 * df_s + 0.15 * hp_s
-    else:
-        base = 0.60 * atk_s + 0.20 * hp_s + 0.20 * df_s
-
-    try:
-        base += float(crit) / 10.0
-    except Exception:
-        pass
-
-    role = (c.get("role") or "").lower()
-    role_adj = 0.0
-    if "tank" in role:
-        role_adj = 8.0
-    elif "healer" in role:
-        role_adj = 8.0
-    elif "dps" in role:
-        role_adj = 6.0
-    elif "debuff" in role:
-        role_adj = 4.0
-    elif "buff" in role:
-        role_adj = 4.0
-
-    rarity = (c.get("rarity") or "").upper()
-    rarity_adj = {"SSR": 20.0, "SR": 10.0, "R": 0.0}.get(rarity, 0.0)
-
-    return base + role_adj + rarity_adj
 
 
 # =========================
@@ -371,11 +481,9 @@ def score_character(c: Dict[str, Any], mode: str) -> float:
 # =========================
 @app.get("/images/<path:filename>")
 def serve_images(filename: str):
-    # filename 예: games/zone-nova/characters/Apep.jpg
     for base in IMAGES_BASE_CANDIDATES:
         full = os.path.join(base, filename)
         if os.path.isfile(full):
-            # send_from_directory는 base + filename을 조합해 제공
             return send_from_directory(base, filename)
     abort(404)
 
@@ -400,7 +508,6 @@ def home() -> Response:
     .box {{ border: 1px solid #ddd; padding: 16px; border-radius: 8px; max-width: 1100px; }}
     .row {{ margin: 8px 0; }}
     .err {{ color: #b00020; white-space: pre-wrap; }}
-    button {{ padding: 8px 12px; }}
     a {{ text-decoration: none; }}
   </style>
 </head>
@@ -412,10 +519,14 @@ def home() -> Response:
     <div class="row">Last refresh: <code>{zn.get("last_refresh_iso") or "N/A"}</code></div>
     <div class="row">Characters cached: <code>{zn.get("count")}</code></div>
     <div class="row">Source: <code>{zn.get("source") or "N/A"}</code></div>
+
     <div class="row">Remote scrape: <code>{zn.get("remote_ok")}</code> (remote_count=<code>{zn.get("remote_count")}</code>)</div>
+    <div class="row">BS4 available: <code>{zn.get("remote_bs4_available")}</code></div>
     <div class="row">FORCE_LOCAL_ONLY: <code>{zn.get("force_local_only")}</code></div>
+
     <div class="row">Remote error:</div>
     <div class="err">{zn.get("remote_error") or "None"}</div>
+
     <div class="row">Cache error:</div>
     <div class="err">{zn.get("error") or "None"}</div>
 
@@ -463,23 +574,56 @@ def zone_nova_characters() -> Response:
     return Response(json.dumps(payload, ensure_ascii=False), mimetype="application/json; charset=utf-8")
 
 
+# (간단) 추천 API - 현재 단계에서는 원격 메타데이터 유무 확인이 우선이라 최소 유지
+def score_character(c: Dict[str, Any], mode: str) -> float:
+    st = c.get("stats") or {}
+    hp = st.get("hp") or 0
+    atk = st.get("atk") or 0
+    df = st.get("def") or 0
+    crit = st.get("crit") or 0.0
+
+    hp_s = float(hp) / 1000.0
+    atk_s = float(atk) / 100.0
+    df_s = float(df) / 100.0
+
+    if mode == "pvp":
+        base = 0.55 * df_s + 0.35 * hp_s + 0.10 * atk_s
+    elif mode == "boss":
+        base = 0.65 * atk_s + 0.20 * df_s + 0.15 * hp_s
+    else:
+        base = 0.60 * atk_s + 0.20 * hp_s + 0.20 * df_s
+
+    try:
+        base += float(crit) / 10.0
+    except Exception:
+        pass
+
+    rarity = (c.get("rarity") or "").upper()
+    base += {"SSR": 20.0, "SR": 10.0, "R": 0.0}.get(rarity, 0.0)
+
+    role = (c.get("role") or "").lower()
+    if "tank" in role:
+        base += 8.0
+    elif "healer" in role:
+        base += 8.0
+    elif "dps" in role:
+        base += 6.0
+    elif "debuff" in role or "buff" in role:
+        base += 4.0
+
+    return base
+
+
 @app.get("/recommend")
 def recommend_help() -> Response:
     html = """
 <!doctype html>
 <html lang="ko">
-<head>
-  <meta charset="utf-8" />
-  <title>Recommend</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 24px; }
-    pre { background: #f5f5f5; padding: 12px; border-radius: 8px; }
-  </style>
-</head>
-<body>
+<head><meta charset="utf-8" /><title>Recommend</title></head>
+<body style="font-family: Arial, sans-serif; margin: 24px;">
   <h2>/recommend</h2>
   <p>POST로 추천 결과를 반환합니다(4인 고정).</p>
-  <pre>
+  <pre style="background:#f5f5f5;padding:12px;border-radius:8px;">
 POST /recommend
 Content-Type: application/json
 
@@ -488,8 +632,7 @@ Content-Type: application/json
   "owned": ["nina", "freya", "lavinia", "apep"]
 }
   </pre>
-</body>
-</html>
+</body></html>
 """
     return Response(html, mimetype="text/html; charset=utf-8")
 
@@ -504,11 +647,8 @@ def recommend() -> Response:
 
     owned = data.get("owned") or []
     if not isinstance(owned, list):
-        return Response(
-            json.dumps({"error": "owned는 배열이어야 합니다."}, ensure_ascii=False),
-            mimetype="application/json; charset=utf-8",
-            status=400,
-        )
+        return Response(json.dumps({"error": "owned는 배열이어야 합니다."}, ensure_ascii=False),
+                        mimetype="application/json; charset=utf-8", status=400)
 
     chars = CACHE["zone_nova"]["characters"]
     by_id = {c["id"].lower(): c for c in chars}
@@ -526,19 +666,15 @@ def recommend() -> Response:
     owned_chars = list(uniq.values())
 
     if len(owned_chars) < PARTY_SIZE:
-        return Response(
-            json.dumps({"error": f"최소 {PARTY_SIZE}명 필요", "count_owned": len(owned_chars)}, ensure_ascii=False),
-            mimetype="application/json; charset=utf-8",
-            status=400,
-        )
+        return Response(json.dumps({"error": f"최소 {PARTY_SIZE}명 필요", "count_owned": len(owned_chars)}, ensure_ascii=False),
+                        mimetype="application/json; charset=utf-8", status=400)
 
-    # (간단) 점수 상위 4명
     owned_chars.sort(key=lambda c: score_character(c, mode), reverse=True)
     party = owned_chars[:PARTY_SIZE]
 
-    out = []
-    for c in party:
-        out.append({
+    return Response(json.dumps({
+        "mode": mode,
+        "best_party": [{
             "id": c["id"],
             "name": c["name"],
             "rarity": c.get("rarity"),
@@ -548,18 +684,12 @@ def recommend() -> Response:
             "faction": c.get("faction"),
             "image": c.get("image"),
             "score": round(score_character(c, mode), 2),
-        })
-
-    result = {
-        "mode": mode,
-        "best_party": out,
+        } for c in party],
         "data_source": CACHE["zone_nova"]["source"],
         "remote_ok": CACHE["zone_nova"]["remote_ok"],
         "remote_count": CACHE["zone_nova"]["remote_count"],
         "remote_error": CACHE["zone_nova"]["remote_error"],
-        "error": CACHE["zone_nova"]["error"],
-    }
-    return Response(json.dumps(result, ensure_ascii=False), mimetype="application/json; charset=utf-8")
+    }, ensure_ascii=False), mimetype="application/json; charset=utf-8")
 
 
 @app.get("/ui/select")
@@ -586,16 +716,10 @@ def ui_select() -> Response:
 <head>
   <meta charset="utf-8" />
   <title>Select Characters</title>
-  <style>
-    body {{ font-family: Arial, sans-serif; margin: 24px; }}
-    .box {{ border: 1px solid #ddd; padding: 16px; border-radius: 8px; max-width: 1100px; }}
-    button {{ padding: 8px 12px; }}
-    pre {{ background: #f5f5f5; padding: 12px; border-radius: 8px; white-space: pre-wrap; }}
-  </style>
 </head>
-<body>
+<body style="font-family: Arial, sans-serif; margin: 24px;">
   <h2>내가 가진 캐릭터 선택</h2>
-  <div class="box">
+  <div style="border:1px solid #ddd;padding:16px;border-radius:8px;max-width:1100px;">
     <div style="margin-bottom:12px;">
       Mode:
       <select id="mode">
@@ -603,14 +727,16 @@ def ui_select() -> Response:
         <option value="boss">boss</option>
         <option value="pvp">pvp</option>
       </select>
-      <button onclick="submitRecommend()">추천</button>
+      <button onclick="submitRecommend()" style="padding:8px 12px;">추천</button>
       <a href="/" style="margin-left:12px;">홈</a>
     </div>
+
     <div style="max-height:520px;overflow:auto;border:1px solid #eee;padding:10px;border-radius:8px;">
       {''.join(items)}
     </div>
+
     <h3>결과</h3>
-    <pre id="out">(아직 없음)</pre>
+    <pre id="out" style="background:#f5f5f5;padding:12px;border-radius:8px;white-space:pre-wrap;">(아직 없음)</pre>
   </div>
 
 <script>
@@ -632,7 +758,6 @@ async function submitRecommend() {{
     return Response(html, mimetype="text/html; charset=utf-8")
 
 
-# 로컬 실행용
 if __name__ == "__main__":
     refresh_zone_nova_cache()
     port = int(os.environ.get("PORT", DEFAULT_PORT))
