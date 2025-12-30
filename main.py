@@ -2,36 +2,41 @@ import os
 import json
 import re
 from datetime import datetime, timezone
-from flask import Flask, request, Response, redirect, jsonify
+from flask import Flask, request, Response, redirect, jsonify, render_template
 
 APP_TITLE = os.getenv("APP_TITLE", "Nova")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# ✅ 레포에 커밋된 데이터만 사용
-CHAR_JSON = os.path.join(BASE_DIR, "public", "data", "zone-nova", "characters.json")
-ELEM_JSON = os.path.join(BASE_DIR, "public", "data", "zone-nova", "element_chart.json")
-BOSS_JSON = os.path.join(BASE_DIR, "public", "data", "zone-nova", "bosses.json")
+DATA_DIR = os.path.join(BASE_DIR, "public", "data", "zone-nova")
+IMG_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "characters")
 
-# ✅ 정적 파일은 public 폴더에서만 서빙 (이미지도 여기서만)
+# characters는 characters.json이 없으면 characters_meta.json을 읽도록 자동 처리
+CHAR_JSON_CANDIDATES = [
+    os.path.join(DATA_DIR, "characters.json"),
+    os.path.join(DATA_DIR, "characters_meta.json"),
+]
+
+ELEM_JSON = os.path.join(DATA_DIR, "element_chart.json")
+BOSS_JSON = os.path.join(DATA_DIR, "bosses.json")
+
 app = Flask(__name__, static_folder="public", static_url_path="")
 
 RARITY_SCORE = {"SSR": 30, "SR": 18, "R": 10, "-": 0}
+VALID_IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 
 CACHE = {
     "chars": [],
     "bosses": [],
     "element_adv": {"Fire": "Wind", "Wind": "Ice", "Ice": "Holy", "Holy": "Chaos", "Chaos": "Fire"},
     "last_refresh": None,
-    "source": {
-        "characters": "public/data/zone-nova/characters.json",
-        "element_chart": "public/data/zone-nova/element_chart.json",
-        "bosses": "public/data/zone-nova/bosses.json",
-    },
+    "source": {"characters": None, "element_chart": "public/data/zone-nova/element_chart.json", "bosses": "public/data/zone-nova/bosses.json"},
     "error": None,
 }
 
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+
 
 def slug_id(s: str) -> str:
     s = (s or "").strip().lower().replace("’", "'")
@@ -39,80 +44,176 @@ def slug_id(s: str) -> str:
     s = re.sub(r"[^a-z0-9_-]", "", s)
     return s
 
-def normalize_chars(chars: list[dict]) -> list[dict]:
+
+def read_json_file(path: str):
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def pick_char_json_path() -> str:
+    for p in CHAR_JSON_CANDIDATES:
+        if os.path.isfile(p):
+            return p
+    raise RuntimeError(f"캐릭터 JSON을 찾지 못했습니다: {', '.join(CHAR_JSON_CANDIDATES)}")
+
+
+def build_image_map() -> dict:
     """
-    - id/name 정리
-    - Jeanne D Arc / Joanof Arc 정규화(jeannedarc)
-    - 중복 제거
-    - image는 /images/... 경로만 인정 (없으면 None)
+    IMG_DIR를 스캔해서 실제 파일명을 기준으로 매핑.
+    - key: basename(lower) (확장자 제외)
+    - value: 실제 파일명 (대소문자 포함)
+    """
+    m = {}
+    if not os.path.isdir(IMG_DIR):
+        return m
+
+    for fn in os.listdir(IMG_DIR):
+        ext = os.path.splitext(fn)[1].lower()
+        if ext not in VALID_IMG_EXT:
+            continue
+        base = os.path.splitext(fn)[0].lower()
+        # 같은 base가 여러 확장자로 있으면 우선순위: jpg > png > webp
+        if base not in m:
+            m[base] = fn
+        else:
+            cur_ext = os.path.splitext(m[base])[1].lower()
+            pri = {".jpg": 3, ".jpeg": 3, ".png": 2, ".webp": 1}
+            if pri.get(ext, 0) > pri.get(cur_ext, 0):
+                m[base] = fn
+    return m
+
+
+def normalize_char_name(name: str) -> str:
+    name = (name or "").replace("’", "'").strip()
+    name = " ".join(name.split())
+    return name
+
+
+def candidate_image_bases(char_id: str, name: str) -> list[str]:
+    """
+    이미지 파일 basename 후보 생성
+    - Render/Linux는 대소문자/공백이 매우 중요하므로, 가능한 후보를 넓게 잡음
     """
     out = []
+    cid = (char_id or "").strip()
+    nm = (name or "").strip()
+
+    # 원본/변형 후보
+    for v in [nm, nm.replace(" ", ""), nm.replace("'", ""), nm.replace("’", ""), cid]:
+        v = v.strip()
+        if not v:
+            continue
+        out.append(v.lower())
+
+    # 특수 케이스: Jeanne D Arc (Joanof Arc로 잘못 들어오더라도 동일 처리)
+    if slug_id(nm) in {"jeannedarc", "joanofarc"} or slug_id(cid) in {"jeannedarc", "joanofarc"}:
+        out = ["jeanne d arc", "jeannedarc", "joanofarc", "joanof arc"]
+
+    # 중복 제거
+    seen, uniq = set(), []
+    for x in out:
+        if x not in seen:
+            seen.add(x)
+            uniq.append(x)
+    return uniq
+
+
+def normalize_chars(raw) -> list[dict]:
+    """
+    raw 포맷을 유연하게 처리:
+    - list면 그대로
+    - dict면 characters / characters_meta / data 등 키에서 list 추출
+    """
+    if isinstance(raw, list):
+        chars = raw
+    elif isinstance(raw, dict):
+        for k in ["characters", "characters_meta", "data", "items"]:
+            if isinstance(raw.get(k), list):
+                chars = raw[k]
+                break
+        else:
+            raise RuntimeError("캐릭터 JSON 포맷 오류: list 또는 {characters:[...]} 형태여야 합니다.")
+    else:
+        raise RuntimeError("캐릭터 JSON 포맷 오류: JSON 최상위 타입이 올바르지 않습니다.")
+
+    img_map = build_image_map()
+
+    out = []
     seen = set()
-
     for c in chars:
-        c = dict(c)
-        name = (c.get("name") or "").replace("’", "'").strip()
-        name = " ".join(name.split())
-        cid = (c.get("id") or "").strip()
+        if not isinstance(c, dict):
+            continue
 
+        name = normalize_char_name(c.get("name") or "")
+        cid = (c.get("id") or "").strip()
         if not cid:
             cid = slug_id(name)
 
+        # Jeanne D Arc 정규화
         if slug_id(name) in {"jeannedarc", "joanofarc"} or slug_id(cid) in {"jeannedarc", "joanofarc"}:
-            c["id"] = "jeannedarc"
-            c["name"] = "Jeanne D Arc"
-        else:
-            c["id"] = slug_id(cid)
-            c["name"] = name or cid
+            cid = "jeannedarc"
+            name = "Jeanne D Arc"
 
-        c["rarity"] = c.get("rarity") or "-"
-        c["element"] = c.get("element") or "-"
-        c["role"] = c.get("role") or "-"
-
-        img = c.get("image")
-        img_file = c.get("img_file")
-
-        if not img and img_file:
-            c["image"] = f"/images/games/zone-nova/characters/{img_file}"
-        elif isinstance(img, str) and img.startswith("/images/"):
-            c["image"] = img
-        else:
-            c["image"] = img if (isinstance(img, str) and img.startswith("/")) else None
-
-        key = c["id"]
-        if not key or key in seen:
+        cid = slug_id(cid)
+        if not cid or cid in seen:
             continue
-        seen.add(key)
-        out.append(c)
+        seen.add(cid)
+
+        rarity = c.get("rarity") or "-"
+        element = c.get("element") or "-"
+        role = c.get("role") or "-"
+
+        # image 매칭: JSON의 image/img_file이 있어도, 실제 파일 기준으로 재매칭
+        image_url = None
+        img_file = c.get("img_file")
+        if isinstance(img_file, str) and img_file:
+            base = os.path.splitext(img_file)[0].lower()
+            real = img_map.get(base)
+            if real:
+                image_url = f"/images/games/zone-nova/characters/{real}"
+
+        if not image_url:
+            # name/id 기반 후보로 매칭
+            for base in candidate_image_bases(cid, name):
+                real = img_map.get(base)
+                if real:
+                    image_url = f"/images/games/zone-nova/characters/{real}"
+                    break
+
+        out.append({
+            "id": cid,
+            "name": name or cid,
+            "rarity": rarity,
+            "element": element,
+            "role": role,
+            "image": image_url,  # 없으면 None
+        })
 
     return out
 
-def normalize_bosses(bosses: list[dict]) -> list[dict]:
-    out = []
-    seen = set()
-    for b in bosses or []:
+
+def normalize_bosses(raw) -> list[dict]:
+    if isinstance(raw, dict) and isinstance(raw.get("bosses"), list):
+        bosses = raw["bosses"]
+    else:
+        raise RuntimeError("bosses.json 포맷 오류: { bosses:[...] } 형태가 필요합니다.")
+
+    out, seen = [], set()
+    for b in bosses:
         if not isinstance(b, dict):
             continue
         bid = slug_id(b.get("id") or b.get("name") or "")
-        name = (b.get("name") or bid or "").strip()
-        if not bid:
-            continue
-        if bid in seen:
+        if not bid or bid in seen:
             continue
         seen.add(bid)
         out.append({
             "id": bid,
-            "name": name,
+            "name": (b.get("name") or bid).strip(),
             "weakness": b.get("weakness") or None,
             "enemy_element": b.get("enemy_element") or None,
         })
     return out
 
-def read_json_file(path: str):
-    if not os.path.isfile(path):
-        raise RuntimeError(f"필수 파일이 없습니다: {path}")
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
 
 def load_all(force: bool = False) -> None:
     if CACHE["chars"] and CACHE["bosses"] and not force:
@@ -120,32 +221,22 @@ def load_all(force: bool = False) -> None:
 
     CACHE["error"] = None
     try:
-        # characters
-        cdata = read_json_file(CHAR_JSON)
-        if isinstance(cdata, dict) and isinstance(cdata.get("characters"), list):
-            chars = cdata["characters"]
-        elif isinstance(cdata, list):
-            chars = cdata
-        else:
-            raise RuntimeError("characters.json 포맷 오류: characters 배열이 필요합니다.")
-        CACHE["chars"] = normalize_chars(chars)
+        char_path = pick_char_json_path()
+        CACHE["source"]["characters"] = f"public/data/zone-nova/{os.path.basename(char_path)}"
+        raw_chars = read_json_file(char_path)
+        CACHE["chars"] = normalize_chars(raw_chars)
 
-        # element_chart
         edata = read_json_file(ELEM_JSON)
         adv = edata.get("adv") if isinstance(edata, dict) else None
         if not (isinstance(adv, dict) and adv):
-            raise RuntimeError("element_chart.json 포맷 오류: { adv: {...} } 형태가 필요합니다.")
+            raise RuntimeError("element_chart.json 포맷 오류: { adv:{...} } 형태가 필요합니다.")
         for k in ["Fire", "Wind", "Ice", "Holy", "Chaos"]:
             if k not in adv:
                 raise RuntimeError(f"element_chart.json adv 누락: {k}")
         CACHE["element_adv"] = {str(k): str(v) for k, v in adv.items()}
 
-        # bosses
         bdata = read_json_file(BOSS_JSON)
-        bosses = bdata.get("bosses") if isinstance(bdata, dict) else None
-        if not isinstance(bosses, list):
-            raise RuntimeError("bosses.json 포맷 오류: { bosses: [...] } 형태가 필요합니다.")
-        CACHE["bosses"] = normalize_bosses(bosses)
+        CACHE["bosses"] = normalize_bosses(bdata)
 
         CACHE["last_refresh"] = now_iso()
 
@@ -154,6 +245,7 @@ def load_all(force: bool = False) -> None:
         CACHE["bosses"] = []
         CACHE["last_refresh"] = now_iso()
         CACHE["error"] = str(e)
+
 
 def resolve_ids(input_list: list[str], chars: list[dict]) -> list[str]:
     if not input_list:
@@ -175,28 +267,21 @@ def resolve_ids(input_list: list[str], chars: list[dict]) -> list[str]:
             uniq.append(v)
     return uniq
 
-def score_breakdown(c: dict, mode: str, enemy_element: str | None, boss_weakness: str | None,
-                    adv_map: dict, focus_set: set[str]) -> dict:
-    """
-    멤버별 점수 breakdown을 반환.
-    """
+
+def breakdown(c: dict, mode: str, enemy_element: str | None, boss_weakness: str | None, adv_map: dict) -> dict:
     rarity = c.get("rarity") or "-"
     element = c.get("element") or "-"
     role = (c.get("role") or "-").lower()
-    cid = c.get("id") or ""
 
     rarity_pts = RARITY_SCORE.get(rarity, 0)
-
     boss_bonus = 25 if (boss_weakness and element == boss_weakness) else 0
 
     adv_bonus = 0
     dis_penalty = 0
     if enemy_element:
-        # enemy를 이기는 속성(adv_map[x] == enemy)
         advantagers = [k for k, v in adv_map.items() if v == enemy_element]
         if element in advantagers:
             adv_bonus = 20
-        # enemy가 나를 이기면 감점(adv_map[enemy] == element)
         if adv_map.get(enemy_element) == element:
             dis_penalty = -10
 
@@ -206,25 +291,21 @@ def score_breakdown(c: dict, mode: str, enemy_element: str | None, boss_weakness
     if mode == "boss" and role in ("debuffer", "buffer"):
         role_bonus = 6
 
-    focus_bonus = 18 if cid in focus_set else 0
-
-    total = rarity_pts + boss_bonus + adv_bonus + dis_penalty + role_bonus + focus_bonus
-
+    total = rarity_pts + boss_bonus + adv_bonus + dis_penalty + role_bonus
     return {
         "rarity_pts": rarity_pts,
         "boss_bonus": boss_bonus,
         "adv_bonus": adv_bonus,
         "dis_penalty": dis_penalty,
         "role_bonus": role_bonus,
-        "focus_bonus": focus_bonus,
         "total": total,
     }
+
 
 def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
     mode = payload.get("mode") or "pve"
     owned = resolve_ids(payload.get("owned") or [], chars)
     required = resolve_ids(payload.get("required") or [], chars)
-    focus = set(resolve_ids(payload.get("focus") or [], chars))
     banned = set(resolve_ids(payload.get("banned") or [], chars))
     enemy_element = payload.get("enemy_element") or None
     boss_weakness = payload.get("boss_weakness") or None
@@ -242,10 +323,8 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
             issues.append(f"필수 포함 캐릭터({r})가 보유 목록에 없습니다.")
 
     def score(c: dict) -> int:
-        bd = score_breakdown(c, mode, enemy_element, boss_weakness, adv_map, focus)
-        return bd["total"]
+        return breakdown(c, mode, enemy_element, boss_weakness, adv_map)["total"]
 
-    # 4인 고정: required 먼저 채움
     party = []
     for rid in required:
         if rid in pool_ids and rid not in party:
@@ -261,10 +340,10 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
         c = by_id.get(pid)
         if not c:
             continue
-        bd = score_breakdown(c, mode, enemy_element, boss_weakness, adv_map, focus)
+        bd = breakdown(c, mode, enemy_element, boss_weakness, adv_map)
         members.append({
             "id": c["id"],
-            "name": c.get("name") or c["id"],  # 영어 유지
+            "name": c.get("name") or c["id"],
             "rarity": c.get("rarity") or "-",
             "element": c.get("element") or "-",
             "role": c.get("role") or "-",
@@ -281,7 +360,6 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
         "input": {
             "owned": owned,
             "required": required,
-            "focus": sorted(list(focus)),
             "banned": sorted(list(banned)),
             "enemy_element": enemy_element,
             "boss_weakness": boss_weakness,
@@ -294,31 +372,32 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
         }
     }
 
+
 @app.get("/")
 def home():
     return redirect("/ui/select")
+
 
 @app.get("/refresh")
 def refresh():
     load_all(force=True)
     return redirect("/ui/select")
 
+
 @app.get("/meta")
 def meta():
     load_all()
     return jsonify({
         "title": APP_TITLE,
-        "source": CACHE["source"],
         "characters_cached": len(CACHE["chars"]),
         "bosses_cached": len(CACHE["bosses"]),
         "last_refresh": CACHE["last_refresh"],
         "error": CACHE["error"],
-        "char_json": CACHE["source"]["characters"],
-        "boss_json": CACHE["source"]["bosses"],
-        "element_chart_json": CACHE["source"]["element_chart"],
-        "image_base": "/images/games/zone-nova/characters/",
-        "element_adv": CACHE["element_adv"],
+        "source": CACHE["source"],
+        "image_dir_exists": os.path.isdir(IMG_DIR),
+        "image_dir": IMG_DIR,
     })
+
 
 @app.get("/zones/zone-nova/characters")
 def api_chars():
@@ -331,6 +410,7 @@ def api_chars():
         "characters": CACHE["chars"],
     })
 
+
 @app.get("/zones/zone-nova/bosses")
 def api_bosses():
     load_all()
@@ -342,6 +422,7 @@ def api_bosses():
         "bosses": CACHE["bosses"],
     })
 
+
 @app.post("/recommend/v3")
 def api_recommend():
     load_all()
@@ -350,491 +431,22 @@ def api_recommend():
     return Response(json.dumps(res, ensure_ascii=False, indent=2),
                     mimetype="application/json; charset=utf-8")
 
+
 @app.get("/ui/select")
 def ui_select():
     load_all()
+    return render_template(
+        "select.html",
+        title=APP_TITLE,
+        cache_count=len(CACHE["chars"]),
+        boss_count=len(CACHE["bosses"]),
+        last_refresh=CACHE["last_refresh"] or "N/A",
+        error=CACHE["error"],
+        chars_json=json.dumps(CACHE["chars"], ensure_ascii=False),
+        bosses_json=json.dumps(CACHE["bosses"], ensure_ascii=False),
+        adv_json=json.dumps(CACHE["element_adv"], ensure_ascii=False),
+    )
 
-    chars_json = json.dumps(CACHE["chars"], ensure_ascii=False)
-    bosses_json = json.dumps(CACHE["bosses"], ensure_ascii=False)
-    adv_json = json.dumps(CACHE["element_adv"], ensure_ascii=False)
-
-    html = f"""<!doctype html>
-<html lang="ko"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>{APP_TITLE}</title>
-<style>
-body{{margin:0;font-family:system-ui,"Noto Sans KR","Malgun Gothic",sans-serif;background:#0b1020;color:#eaf0ff;}}
-a{{color:#86b6ff;text-decoration:none}} a:hover{{text-decoration:underline}}
-.top{{position:sticky;top:0;background:rgba(11,16,32,.92);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.12);}}
-.topIn{{max-width:1280px;margin:0 auto;padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}}
-.badge{{font-size:12px;color:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);padding:6px 10px;border-radius:999px;}}
-.wrap{{max-width:1280px;margin:0 auto;padding:14px 16px 24px;}}
-.grid{{display:grid;grid-template-columns:380px 1fr;gap:12px;align-items:start;}}
-@media(max-width:980px){{.grid{{grid-template-columns:1fr;}}}}
-.card{{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);border-radius:14px;overflow:hidden;}}
-.hd{{padding:12px 12px;border-bottom:1px solid rgba(255,255,255,.10);font-weight:800;font-size:13px;display:flex;justify-content:space-between;gap:10px;}}
-.bd{{padding:12px;}}
-.row{{display:flex;flex-wrap:wrap;gap:10px;align-items:end;}}
-label{{font-size:12px;color:rgba(255,255,255,.72);display:block;margin-bottom:6px;}}
-select,input{{width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#eaf0ff;outline:none;}}
-.btn{{padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#eaf0ff;font-weight:800;cursor:pointer;}}
-.btn:hover{{background:rgba(255,255,255,.12);}}
-.btnP{{border-color:rgba(134,182,255,.45);background:rgba(134,182,255,.18);}}
-.btnD{{border-color:rgba(255,93,108,.55);background:rgba(255,93,108,.12);}}
-.small{{font-size:12px;color:rgba(255,255,255,.70);line-height:1.5;}}
-.gridWrap{{margin-top:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);border-radius:14px;padding:10px;min-height:420px;max-height:calc(100vh - 260px);overflow:auto;}}
-.charGrid{{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}}
-@media(max-width:1100px){{.charGrid{{grid-template-columns:repeat(5,1fr);}}}}
-@media(max-width:980px){{.charGrid{{grid-template-columns:repeat(4,1fr);}} .gridWrap{{max-height:none;}}}}
-@media(max-width:680px){{.charGrid{{grid-template-columns:repeat(3,1fr);}}}}
-@media(max-width:520px){{.charGrid{{grid-template-columns:repeat(2,1fr);}}}}
-
-.item{{border:1px solid rgba(255,255,255,.12);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.16);position:relative;cursor:pointer;}}
-.item.sel{{border-color:rgba(134,182,255,.6);box-shadow:0 0 0 3px rgba(134,182,255,.12);}}
-.thumb{{width:100%;aspect-ratio:1/1;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.35);font-weight:900;}}
-.thumb img{{width:100%;height:100%;object-fit:cover;display:block;}}
-.ck{{position:absolute;top:8px;left:8px;width:22px;height:22px;border-radius:7px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;}}
-.ck input{{width:16px;height:16px;margin:0;accent-color:#86b6ff;}}
-.badges{{position:absolute;bottom:8px;left:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;}}
-.tag{{font-size:11px;padding:3px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.40);color:rgba(255,255,255,.86);}}
-.name{{padding:10px 10px;font-weight:900;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-top:1px solid rgba(255,255,255,.06);}}
-pre{{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:12px;}}
-hr{{border:none;border-top:1px solid rgba(255,255,255,.10);margin:10px 0;}}
-
-.tabs{{display:flex;gap:8px;align-items:center;}}
-.tab{{font-size:12px;padding:7px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);cursor:pointer;color:rgba(255,255,255,.85);}}
-.tab.on{{border-color:rgba(134,182,255,.55);background:rgba(134,182,255,.18);}}
-.copyBtn{{font-size:12px;padding:7px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);cursor:pointer;color:rgba(255,255,255,.88);}}
-.copyBtn:hover{{background:rgba(255,255,255,.12);}}
-
-.partyGrid{{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}}
-@media(max-width:980px){{.partyGrid{{grid-template-columns:repeat(2,1fr);}}}}
-@media(max-width:520px){{.partyGrid{{grid-template-columns:1fr;}}}}
-.pCard{{border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);border-radius:14px;overflow:hidden;}}
-.pThumb{{width:100%;aspect-ratio:16/10;background:rgba(255,255,255,.06);}}
-.pThumb img{{width:100%;height:100%;object-fit:cover;display:block;}}
-.pBody{{padding:10px;}}
-.pName{{font-weight:900;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}}
-.pMeta{{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;}}
-.pScore{{margin-top:8px;font-weight:900;}}
-.kv{{margin-top:8px;font-size:12px;color:rgba(255,255,255,.78);line-height:1.55;}}
-.kv b{{color:#eaf0ff;}}
-.warn{{color:#ffb4be;}}
-</style></head>
-<body>
-<div class="top"><div class="topIn">
-  <div style="font-weight:900;">{APP_TITLE}</div>
-  <span class="badge">캐시 {len(CACHE["chars"])} · 보스 {len(CACHE["bosses"])} · 갱신 {CACHE["last_refresh"] or "N/A"}</span>
-  <a class="badge" href="/refresh">새로고침</a>
-  <a class="badge" href="/meta">메타</a>
-  <a class="badge" href="/zones/zone-nova/characters">캐릭터 JSON</a>
-  <a class="badge" href="/zones/zone-nova/bosses">보스 JSON</a>
-</div></div>
-
-<div class="wrap">
-  <div class="grid">
-    <div class="card">
-      <div class="hd"><span>추천 옵션</span><span class="small">보스 선택 시 약점/속성 자동 반영</span></div>
-      <div class="bd">
-        <div class="row">
-          <div style="flex:1;min-width:140px;">
-            <label>모드</label>
-            <select id="mode">
-              <option value="pve">일반(PvE)</option>
-              <option value="boss">보스</option>
-              <option value="pvp">PvP</option>
-            </select>
-          </div>
-
-          <div style="flex:1;min-width:220px;">
-            <label>보스 선택</label>
-            <select id="boss_pick">
-              <option value="">(선택 안 함)</option>
-            </select>
-          </div>
-
-          <div style="flex:1;min-width:160px;">
-            <label>보스 약점 속성</label>
-            <select id="boss_weakness">
-              <option value="">(없음)</option><option>Fire</option><option>Ice</option><option>Wind</option><option>Holy</option><option>Chaos</option>
-            </select>
-          </div>
-
-          <div style="flex:1;min-width:160px;">
-            <label>상대(적) 속성</label>
-            <select id="enemy_element">
-              <option value="">(없음)</option><option>Fire</option><option>Ice</option><option>Wind</option><option>Holy</option><option>Chaos</option>
-            </select>
-          </div>
-        </div>
-
-        <div style="height:12px;"></div>
-        <div class="row">
-          <button class="btn" id="btnReq">선택 → 필수</button>
-          <button class="btn" id="btnFix">선택 → 고정</button>
-          <button class="btn" id="btnBan">선택 → 제외</button>
-        </div>
-
-        <div style="height:12px;"></div>
-        <div><label>필수 포함 (쉼표)</label><input id="required" placeholder="예) nina, freya"/></div>
-        <div style="height:10px;"></div>
-        <div><label>고정 포함 (쉼표)</label><input id="fixed" placeholder="예) lavinia"/></div>
-        <div style="height:10px;"></div>
-        <div><label>제외 (쉼표)</label><input id="banned" placeholder="예) apep"/></div>
-
-        <div style="height:12px;"></div>
-        <div class="row">
-          <button class="btn btnP" id="btnRun">추천 실행</button>
-          <button class="btn btnD" id="btnClear">초기화</button>
-        </div>
-
-        <div style="height:12px;"></div>
-        <div class="card" style="background:rgba(0,0,0,.18);">
-          <div class="hd" style="border-bottom:1px solid rgba(255,255,255,.08);">
-            <span>결과</span>
-            <div class="tabs">
-              <span class="tab on" id="tabTable">표 보기</span>
-              <span class="tab" id="tabJson">JSON 보기</span>
-              <button class="copyBtn" id="btnCopyJson">JSON 복사</button>
-              <span id="selCnt" class="small">선택 0</span>
-            </div>
-          </div>
-          <div class="bd">
-            <div id="outTable" class="small">(아직 없음)</div>
-            <div id="outJson" style="display:none;"><pre id="jsonPre">(아직 없음)</pre></div>
-          </div>
-        </div>
-
-        <div style="height:10px;" class="small">
-          상성표(adv): Fire→Wind→Ice→Holy→Chaos→Fire
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="hd"><span>보유 캐릭터 선택(이미지 체크)</span><span class="small" id="stat">선택 0</span></div>
-      <div class="bd">
-        <div class="row">
-          <button class="btn" id="btnAllOn">전체 선택</button>
-          <button class="btn" id="btnAllOff">전체 해제</button>
-          <button class="btn" id="btnVisOn">보이는 것만 선택</button>
-          <button class="btn" id="btnVisOff">보이는 것만 해제</button>
-        </div>
-
-        <div style="height:10px;"></div>
-        <div class="row">
-          <div style="flex:1;min-width:150px;">
-            <label>이름 필터(영어)</label>
-            <input id="q" placeholder="예) nina"/>
-          </div>
-        </div>
-
-        <div class="gridWrap">
-          <div class="charGrid" id="grid"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script type="application/json" id="chars">{chars_json}</script>
-<script type="application/json" id="bosses">{bosses_json}</script>
-<script type="application/json" id="adv">{adv_json}</script>
-
-<script>
-const CHARS = JSON.parse(document.getElementById('chars').textContent || "[]");
-const BOSSES = JSON.parse(document.getElementById('bosses').textContent || "[]");
-const ADV = JSON.parse(document.getElementById('adv').textContent || "{{}}");
-
-const E_ICON = {{ Fire:"🔥", Ice:"❄️", Wind:"🌪️", Holy:"✨", Chaos:"☯️", "-":"❔" }};
-const R_ICON = {{ tank:"🛡️", healer:"💚", dps:"⚔️", buffer:"📣", debuffer:"🧪", "-":"❔" }};
-
-let lastJsonText = "";
-
-function stat(){{
-  const n = document.querySelectorAll('.owned:checked').length;
-  document.getElementById('stat').textContent = '선택 ' + n;
-  document.getElementById('selCnt').textContent = '선택 ' + n;
-  document.querySelectorAll('.item').forEach(el=>{{
-    const cb=el.querySelector('input.owned');
-    if(cb && cb.checked) el.classList.add('sel'); else el.classList.remove('sel');
-  }});
-}}
-
-function csv(v){{ v=(v||'').trim(); if(!v) return []; return v.split(',').map(x=>x.trim()).filter(Boolean); }}
-function uniq(arr){{ const s=new Set(); const o=[]; for(const x of arr){{ if(x && !s.has(x)){{ s.add(x); o.push(x);}} }} return o; }}
-function checked(){{ return Array.from(document.querySelectorAll('.owned:checked')).map(x=>x.value); }}
-function addCheckedTo(id){{
-  const ids = checked();
-  if(!ids.length) return;
-  const cur = csv(document.getElementById(id).value);
-  document.getElementById(id).value = uniq(cur.concat(ids)).join(', ');
-}}
-
-function makeCard(c){{
-  const el=document.createElement('div');
-  el.className='item';
-  el.dataset.name=(c.name||'').toLowerCase();
-
-  const thumb=document.createElement('div');
-  thumb.className='thumb';
-
-  if(c.image){{
-    const img=document.createElement('img');
-    img.src=c.image;
-    img.onerror=()=>{{ thumb.textContent='NO IMAGE'; img.remove(); }};
-    thumb.appendChild(img);
-  }} else {{
-    thumb.textContent='NO IMAGE';
-  }}
-
-  const ck=document.createElement('div');
-  ck.className='ck';
-  const cb=document.createElement('input');
-  cb.type='checkbox';
-  cb.className='owned';
-  cb.value=c.id;
-  ck.appendChild(cb);
-
-  const badges=document.createElement('div');
-  badges.className='badges';
-  const elem = (c.element || "-");
-  const role = String(c.role || "-").toLowerCase();
-  const rar = (c.rarity || "-");
-  badges.innerHTML =
-    '<span class="tag">' + (E_ICON[elem] || "❔") + ' ' + elem + '</span>' +
-    '<span class="tag">' + (R_ICON[role] || "❔") + ' ' + role + '</span>' +
-    '<span class="tag">🏷️ ' + rar + '</span>';
-
-  const nm=document.createElement('div');
-  nm.className='name';
-  nm.textContent=c.name || c.id;
-
-  el.appendChild(thumb);
-  el.appendChild(ck);
-  el.appendChild(badges);
-  el.appendChild(nm);
-
-  el.addEventListener('click', (ev)=>{{
-    if(ev.target && ev.target.tagName==='INPUT') return;
-    cb.checked = !cb.checked;
-    stat();
-  }});
-  cb.addEventListener('change', stat);
-
-  return el;
-}}
-
-function render(list){{
-  const grid=document.getElementById('grid');
-  grid.innerHTML='';
-  list.forEach(c=>grid.appendChild(makeCard(c)));
-  stat();
-}}
-
-function applyFilter(){{
-  const q=(document.getElementById('q').value||'').trim().toLowerCase();
-  document.querySelectorAll('.item').forEach(el=>{{
-    if(!q) {{ el.style.display=''; return; }}
-    el.style.display = el.dataset.name.includes(q) ? '' : 'none';
-  }});
-}}
-
-function fillBossSelect(){{
-  const sel = document.getElementById('boss_pick');
-  for(const b of BOSSES){{
-    const opt = document.createElement('option');
-    opt.value = b.id;
-    opt.textContent = b.name || b.id;
-    sel.appendChild(opt);
-  }}
-}}
-
-function onBossPick(){{
-  const bid = document.getElementById('boss_pick').value;
-  const b = BOSSES.find(x => x.id === bid);
-  if(!b) return;
-
-  if(b.weakness) document.getElementById('boss_weakness').value = b.weakness;
-  if(b.enemy_element) document.getElementById('enemy_element').value = b.enemy_element;
-  document.getElementById('mode').value = 'boss';
-}}
-
-function setTab(which){{
-  const tabT = document.getElementById('tabTable');
-  const tabJ = document.getElementById('tabJson');
-  const outT = document.getElementById('outTable');
-  const outJ = document.getElementById('outJson');
-  if(which === 'json'){{
-    tabJ.classList.add('on'); tabT.classList.remove('on');
-    outJ.style.display = ''; outT.style.display = 'none';
-  }} else {{
-    tabT.classList.add('on'); tabJ.classList.remove('on');
-    outT.style.display = ''; outJ.style.display = 'none';
-  }}
-}}
-
-function safe(v){{
-  return String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
-}}
-
-function renderResultTable(json){{
-  const box = document.getElementById('outTable');
-
-  if(!json || !json.ok || !json.best_party){{
-    const issues = (json && json.issues) ? json.issues : (json && json.best_party && json.best_party.analysis) ? json.best_party.analysis : ["추천 결과가 없습니다."];
-    box.innerHTML = '<div class="warn">- ' + issues.map(safe).join('<br>- ') + '</div>';
-    return;
-  }}
-
-  const bp = json.best_party;
-  const members = bp.members || [];
-  const analysis = bp.analysis || [];
-
-  const header =
-    '<div class="small">팀 총점: <b>' + safe(bp.team_total) + '</b> · 구성: ' + safe(bp.party_size) + '인</div>' +
-    (analysis.length ? ('<div class="small" style="margin-top:6px;">' + analysis.map(safe).join(' · ') + '</div>') : '') +
-    '<hr/>';
-
-  let grid = '<div class="partyGrid">';
-  for(const m of members){{
-    const bd = m.breakdown || {{}};
-    const role = String(m.role || "-").toLowerCase();
-    const elem = m.element || "-";
-    const rar = m.rarity || "-";
-
-    const img = m.image ? ('<img src="' + safe(m.image) + '" alt=""/>') : '';
-    const thumb = '<div class="pThumb">' + img + '</div>';
-
-    const meta =
-      '<div class="pMeta">' +
-        '<span class="tag">' + safe((E_ICON[elem]||"❔") + " " + elem) + '</span>' +
-        '<span class="tag">' + safe((R_ICON[role]||"❔") + " " + role) + '</span>' +
-        '<span class="tag">🏷️ ' + safe(rar) + '</span>' +
-      '</div>';
-
-    const kv =
-      '<div class="kv">' +
-        '<div><b>희귀도</b>: ' + safe(bd.rarity_pts) + '</div>' +
-        '<div><b>보스 약점</b>: ' + safe(bd.boss_bonus) + '</div>' +
-        '<div><b>상성 유리</b>: ' + safe(bd.adv_bonus) + '</div>' +
-        '<div><b>상성 불리</b>: ' + safe(bd.dis_penalty) + '</div>' +
-        '<div><b>역할 보너스</b>: ' + safe(bd.role_bonus) + '</div>' +
-        '<div><b>고정 보너스</b>: ' + safe(bd.focus_bonus) + '</div>' +
-      '</div>';
-
-    grid +=
-      '<div class="pCard">' +
-        thumb +
-        '<div class="pBody">' +
-          '<div class="pName">' + safe(m.name) + '</div>' +
-          meta +
-          '<div class="pScore">총점: ' + safe(m.score) + '</div>' +
-          kv +
-        '</div>' +
-      '</div>';
-  }}
-  grid += '</div>';
-
-  box.innerHTML = header + grid;
-}}
-
-async function run(){{
-  const payload={{
-    mode: document.getElementById('mode').value,
-    owned: checked(),
-    required: csv(document.getElementById('required').value),
-    focus: csv(document.getElementById('fixed').value),
-    banned: csv(document.getElementById('banned').value),
-    boss_weakness: document.getElementById('boss_weakness').value || null,
-    enemy_element: document.getElementById('enemy_element').value || null
-  }};
-
-  if(payload.owned.length < 4){{
-    document.getElementById('outTable').innerHTML =
-      '<div class="warn">보유 캐릭터는 최소 4명 체크해야 합니다.</div>';
-    document.getElementById('jsonPre').textContent = '';
-    lastJsonText = '';
-    setTab('table');
-    return;
-  }}
-
-  document.getElementById('outTable').innerHTML = '<div class="small">계산 중...</div>';
-  document.getElementById('jsonPre').textContent = '';
-  lastJsonText = '';
-  setTab('table');
-
-  const res = await fetch('/recommend/v3',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify(payload)}});
-  const json = await res.json();
-
-  lastJsonText = JSON.stringify(json, null, 2);
-  document.getElementById('jsonPre').textContent = lastJsonText;
-
-  renderResultTable(json);
-}}
-
-function clearAll(){{
-  document.querySelectorAll('.owned').forEach(x=>x.checked=false);
-  ['required','fixed','banned','boss_weakness','enemy_element','q','boss_pick'].forEach(id=>{{
-    const el=document.getElementById(id);
-    if(!el) return;
-    if(el.tagName==='SELECT') el.value=''; else el.value='';
-  }});
-  document.getElementById('outTable').textContent='(아직 없음)';
-  document.getElementById('jsonPre').textContent='(아직 없음)';
-  lastJsonText = '';
-  stat(); applyFilter();
-  setTab('table');
-}}
-
-async function copyJson(){{
-  if(!lastJsonText) return;
-  try {{
-    await navigator.clipboard.writeText(lastJsonText);
-  }} catch(e) {{
-    // fallback: select text
-    const pre = document.getElementById('jsonPre');
-    const range = document.createRange();
-    range.selectNodeContents(pre);
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-    document.execCommand('copy');
-    sel.removeAllRanges();
-  }}
-}}
-
-document.addEventListener('DOMContentLoaded', ()=>{{
-  render(CHARS);
-  fillBossSelect();
-
-  document.getElementById('q').addEventListener('input', applyFilter);
-  document.getElementById('boss_pick').addEventListener('change', onBossPick);
-
-  document.getElementById('btnAllOn').onclick=()=>{{ document.querySelectorAll('.owned').forEach(x=>x.checked=true); stat(); }};
-  document.getElementById('btnAllOff').onclick=()=>{{ document.querySelectorAll('.owned').forEach(x=>x.checked=false); stat(); }};
-
-  const visibleItems=()=>Array.from(document.querySelectorAll('.item')).filter(el=>el.style.display!=='none');
-  document.getElementById('btnVisOn').onclick=()=>{{ visibleItems().forEach(el=>el.querySelector('.owned').checked=true); stat(); }};
-  document.getElementById('btnVisOff').onclick=()=>{{ visibleItems().forEach(el=>el.querySelector('.owned').checked=false); stat(); }};
-
-  document.getElementById('btnReq').onclick=()=>addCheckedTo('required');
-  document.getElementById('btnFix').onclick=()=>addCheckedTo('fixed');
-  document.getElementById('btnBan').onclick=()=>addCheckedTo('banned');
-
-  document.getElementById('btnRun').onclick=run;
-  document.getElementById('btnClear').onclick=clearAll;
-
-  document.getElementById('tabTable').onclick=()=>setTab('table');
-  document.getElementById('tabJson').onclick=()=>setTab('json');
-  document.getElementById('btnCopyJson').onclick=copyJson;
-
-  setTab('table');
-}});
-</script>
-</body></html>
-"""
-    return Response(html, mimetype="text/html; charset=utf-8")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "10000"))
