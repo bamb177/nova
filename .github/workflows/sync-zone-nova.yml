@@ -25,15 +25,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4 lxml
 
-      - name: Clone upstream gacha-wiki (only for extraction)
+      - name: Run sync (web -> save to repo)
         run: |
-          rm -rf ._upstream_gacha_wiki
-          git clone --depth 1 https://github.com/boring877/gacha-wiki.git ._upstream_gacha_wiki
-          ls -la ._upstream_gacha_wiki
-
-      - name: Run sync (extract from upstream repo)
-        run: |
-          python scripts/sync_zone_nova.py --write --upstream ._upstream_gacha_wiki
+          python scripts/sync_zone_nova.py --write
 
       - name: Commit & Push if changed
         run: |
