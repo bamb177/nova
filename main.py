@@ -132,12 +132,9 @@ def load_all(force: bool = False) -> None:
 
         # element_chart
         edata = read_json_file(ELEM_JSON)
-        adv = None
-        if isinstance(edata, dict):
-            adv = edata.get("adv")
+        adv = edata.get("adv") if isinstance(edata, dict) else None
         if not (isinstance(adv, dict) and adv):
             raise RuntimeError("element_chart.json 포맷 오류: { adv: {...} } 형태가 필요합니다.")
-        # 최소 키 검증
         for k in ["Fire", "Wind", "Ice", "Holy", "Chaos"]:
             if k not in adv:
                 raise RuntimeError(f"element_chart.json adv 누락: {k}")
@@ -145,9 +142,7 @@ def load_all(force: bool = False) -> None:
 
         # bosses
         bdata = read_json_file(BOSS_JSON)
-        bosses = None
-        if isinstance(bdata, dict):
-            bosses = bdata.get("bosses")
+        bosses = bdata.get("bosses") if isinstance(bdata, dict) else None
         if not isinstance(bosses, list):
             raise RuntimeError("bosses.json 포맷 오류: { bosses: [...] } 형태가 필요합니다.")
         CACHE["bosses"] = normalize_bosses(bosses)
@@ -180,24 +175,50 @@ def resolve_ids(input_list: list[str], chars: list[dict]) -> list[str]:
             uniq.append(v)
     return uniq
 
-def element_bonus(char_element: str, enemy_element: str | None, boss_weakness: str | None, adv_map: dict) -> int:
-    bonus = 0
-    ce = char_element or "-"
+def score_breakdown(c: dict, mode: str, enemy_element: str | None, boss_weakness: str | None,
+                    adv_map: dict, focus_set: set[str]) -> dict:
+    """
+    멤버별 점수 breakdown을 반환.
+    """
+    rarity = c.get("rarity") or "-"
+    element = c.get("element") or "-"
+    role = (c.get("role") or "-").lower()
+    cid = c.get("id") or ""
 
-    if boss_weakness and ce == boss_weakness:
-        bonus += 25
+    rarity_pts = RARITY_SCORE.get(rarity, 0)
 
+    boss_bonus = 25 if (boss_weakness and element == boss_weakness) else 0
+
+    adv_bonus = 0
+    dis_penalty = 0
     if enemy_element:
         # enemy를 이기는 속성(adv_map[x] == enemy)
         advantagers = [k for k, v in adv_map.items() if v == enemy_element]
-        if ce in advantagers:
-            bonus += 20
+        if element in advantagers:
+            adv_bonus = 20
+        # enemy가 나를 이기면 감점(adv_map[enemy] == element)
+        if adv_map.get(enemy_element) == element:
+            dis_penalty = -10
 
-        # enemy가 나를 이기면 감점(adv_map[enemy] == ce)
-        if adv_map.get(enemy_element) == ce:
-            bonus -= 10
+    role_bonus = 0
+    if mode == "pvp" and role in ("tank", "healer"):
+        role_bonus = 6
+    if mode == "boss" and role in ("debuffer", "buffer"):
+        role_bonus = 6
 
-    return bonus
+    focus_bonus = 18 if cid in focus_set else 0
+
+    total = rarity_pts + boss_bonus + adv_bonus + dis_penalty + role_bonus + focus_bonus
+
+    return {
+        "rarity_pts": rarity_pts,
+        "boss_bonus": boss_bonus,
+        "adv_bonus": adv_bonus,
+        "dis_penalty": dis_penalty,
+        "role_bonus": role_bonus,
+        "focus_bonus": focus_bonus,
+        "total": total,
+    }
 
 def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
     mode = payload.get("mode") or "pve"
@@ -221,18 +242,10 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
             issues.append(f"필수 포함 캐릭터({r})가 보유 목록에 없습니다.")
 
     def score(c: dict) -> int:
-        s = RARITY_SCORE.get(c.get("rarity") or "-", 0)
-        s += element_bonus(c.get("element") or "-", enemy_element, boss_weakness, adv_map)
+        bd = score_breakdown(c, mode, enemy_element, boss_weakness, adv_map, focus)
+        return bd["total"]
 
-        role = (c.get("role") or "-").lower()
-        if mode == "pvp" and role in ("tank", "healer"):
-            s += 6
-        if mode == "boss" and role in ("debuffer", "buffer"):
-            s += 6
-        if c["id"] in focus:
-            s += 18
-        return s
-
+    # 4인 고정: required 먼저 채움
     party = []
     for rid in required:
         if rid in pool_ids and rid not in party:
@@ -240,7 +253,6 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
 
     remain = [c for c in pool if c["id"] not in party]
     remain.sort(key=lambda c: score(c), reverse=True)
-
     while len(party) < 4 and remain:
         party.append(remain.pop(0)["id"])
 
@@ -249,14 +261,19 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
         c = by_id.get(pid)
         if not c:
             continue
+        bd = score_breakdown(c, mode, enemy_element, boss_weakness, adv_map, focus)
         members.append({
             "id": c["id"],
-            "name": c.get("name") or c["id"],  # 캐릭터명 영어 유지
+            "name": c.get("name") or c["id"],  # 영어 유지
             "rarity": c.get("rarity") or "-",
             "element": c.get("element") or "-",
             "role": c.get("role") or "-",
-            "score": score(c),
+            "image": c.get("image"),
+            "score": bd["total"],
+            "breakdown": bd,
         })
+
+    team_total = sum(m["score"] for m in members)
 
     return {
         "ok": True,
@@ -271,6 +288,7 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
         },
         "best_party": {
             "party_size": 4,
+            "team_total": team_total,
             "members": members,
             "analysis": issues if issues else ["조건 충족(4인 구성)"],
         }
@@ -295,9 +313,9 @@ def meta():
         "bosses_cached": len(CACHE["bosses"]),
         "last_refresh": CACHE["last_refresh"],
         "error": CACHE["error"],
-        "char_json": "public/data/zone-nova/characters.json",
-        "boss_json": "public/data/zone-nova/bosses.json",
-        "element_chart_json": "public/data/zone-nova/element_chart.json",
+        "char_json": CACHE["source"]["characters"],
+        "boss_json": CACHE["source"]["bosses"],
+        "element_chart_json": CACHE["source"]["element_chart"],
         "image_base": "/images/games/zone-nova/characters/",
         "element_adv": CACHE["element_adv"],
     })
@@ -381,6 +399,27 @@ select,input{{width:100%;padding:10px 12px;border-radius:12px;border:1px solid r
 .tag{{font-size:11px;padding:3px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.40);color:rgba(255,255,255,.86);}}
 .name{{padding:10px 10px;font-weight:900;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-top:1px solid rgba(255,255,255,.06);}}
 pre{{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:12px;}}
+hr{{border:none;border-top:1px solid rgba(255,255,255,.10);margin:10px 0;}}
+
+.tabs{{display:flex;gap:8px;align-items:center;}}
+.tab{{font-size:12px;padding:7px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);cursor:pointer;color:rgba(255,255,255,.85);}}
+.tab.on{{border-color:rgba(134,182,255,.55);background:rgba(134,182,255,.18);}}
+.copyBtn{{font-size:12px;padding:7px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);cursor:pointer;color:rgba(255,255,255,.88);}}
+.copyBtn:hover{{background:rgba(255,255,255,.12);}}
+
+.partyGrid{{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}}
+@media(max-width:980px){{.partyGrid{{grid-template-columns:repeat(2,1fr);}}}}
+@media(max-width:520px){{.partyGrid{{grid-template-columns:1fr;}}}}
+.pCard{{border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);border-radius:14px;overflow:hidden;}}
+.pThumb{{width:100%;aspect-ratio:16/10;background:rgba(255,255,255,.06);}}
+.pThumb img{{width:100%;height:100%;object-fit:cover;display:block;}}
+.pBody{{padding:10px;}}
+.pName{{font-weight:900;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}}
+.pMeta{{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;}}
+.pScore{{margin-top:8px;font-weight:900;}}
+.kv{{margin-top:8px;font-size:12px;color:rgba(255,255,255,.78);line-height:1.55;}}
+.kv b{{color:#eaf0ff;}}
+.warn{{color:#ffb4be;}}
 </style></head>
 <body>
 <div class="top"><div class="topIn">
@@ -452,13 +491,22 @@ pre{{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospac
         <div style="height:12px;"></div>
         <div class="card" style="background:rgba(0,0,0,.18);">
           <div class="hd" style="border-bottom:1px solid rgba(255,255,255,.08);">
-            <span>결과(JSON)</span><span id="selCnt" class="small">선택 0</span>
+            <span>결과</span>
+            <div class="tabs">
+              <span class="tab on" id="tabTable">표 보기</span>
+              <span class="tab" id="tabJson">JSON 보기</span>
+              <button class="copyBtn" id="btnCopyJson">JSON 복사</button>
+              <span id="selCnt" class="small">선택 0</span>
+            </div>
           </div>
-          <div class="bd"><div id="out" class="small">(아직 없음)</div></div>
+          <div class="bd">
+            <div id="outTable" class="small">(아직 없음)</div>
+            <div id="outJson" style="display:none;"><pre id="jsonPre">(아직 없음)</pre></div>
+          </div>
         </div>
 
         <div style="height:10px;" class="small">
-          상성표: Fire→Wind→Ice→Holy→Chaos→Fire (adv 기반)
+          상성표(adv): Fire→Wind→Ice→Holy→Chaos→Fire
         </div>
       </div>
     </div>
@@ -500,6 +548,8 @@ const ADV = JSON.parse(document.getElementById('adv').textContent || "{{}}");
 
 const E_ICON = {{ Fire:"🔥", Ice:"❄️", Wind:"🌪️", Holy:"✨", Chaos:"☯️", "-":"❔" }};
 const R_ICON = {{ tank:"🛡️", healer:"💚", dps:"⚔️", buffer:"📣", debuffer:"🧪", "-":"❔" }};
+
+let lastJsonText = "";
 
 function stat(){{
   const n = document.querySelectorAll('.owned:checked').length;
@@ -592,7 +642,6 @@ function applyFilter(){{
 
 function fillBossSelect(){{
   const sel = document.getElementById('boss_pick');
-  // 기존 옵션 유지(첫번째)
   for(const b of BOSSES){{
     const opt = document.createElement('option');
     opt.value = b.id;
@@ -606,12 +655,88 @@ function onBossPick(){{
   const b = BOSSES.find(x => x.id === bid);
   if(!b) return;
 
-  // 보스 선택 -> 약점/적속성 자동 반영 (값이 있으면)
   if(b.weakness) document.getElementById('boss_weakness').value = b.weakness;
   if(b.enemy_element) document.getElementById('enemy_element').value = b.enemy_element;
-
-  // 모드를 보스에 자동 전환(원하면 제거 가능)
   document.getElementById('mode').value = 'boss';
+}}
+
+function setTab(which){{
+  const tabT = document.getElementById('tabTable');
+  const tabJ = document.getElementById('tabJson');
+  const outT = document.getElementById('outTable');
+  const outJ = document.getElementById('outJson');
+  if(which === 'json'){{
+    tabJ.classList.add('on'); tabT.classList.remove('on');
+    outJ.style.display = ''; outT.style.display = 'none';
+  }} else {{
+    tabT.classList.add('on'); tabJ.classList.remove('on');
+    outT.style.display = ''; outJ.style.display = 'none';
+  }}
+}}
+
+function safe(v){{
+  return String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+}}
+
+function renderResultTable(json){{
+  const box = document.getElementById('outTable');
+
+  if(!json || !json.ok || !json.best_party){{
+    const issues = (json && json.issues) ? json.issues : (json && json.best_party && json.best_party.analysis) ? json.best_party.analysis : ["추천 결과가 없습니다."];
+    box.innerHTML = '<div class="warn">- ' + issues.map(safe).join('<br>- ') + '</div>';
+    return;
+  }}
+
+  const bp = json.best_party;
+  const members = bp.members || [];
+  const analysis = bp.analysis || [];
+
+  const header =
+    '<div class="small">팀 총점: <b>' + safe(bp.team_total) + '</b> · 구성: ' + safe(bp.party_size) + '인</div>' +
+    (analysis.length ? ('<div class="small" style="margin-top:6px;">' + analysis.map(safe).join(' · ') + '</div>') : '') +
+    '<hr/>';
+
+  let grid = '<div class="partyGrid">';
+  for(const m of members){{
+    const bd = m.breakdown || {{}};
+    const role = String(m.role || "-").toLowerCase();
+    const elem = m.element || "-";
+    const rar = m.rarity || "-";
+
+    const img = m.image ? ('<img src="' + safe(m.image) + '" alt=""/>') : '';
+    const thumb = '<div class="pThumb">' + img + '</div>';
+
+    const meta =
+      '<div class="pMeta">' +
+        '<span class="tag">' + safe((E_ICON[elem]||"❔") + " " + elem) + '</span>' +
+        '<span class="tag">' + safe((R_ICON[role]||"❔") + " " + role) + '</span>' +
+        '<span class="tag">🏷️ ' + safe(rar) + '</span>' +
+      '</div>';
+
+    const kv =
+      '<div class="kv">' +
+        '<div><b>희귀도</b>: ' + safe(bd.rarity_pts) + '</div>' +
+        '<div><b>보스 약점</b>: ' + safe(bd.boss_bonus) + '</div>' +
+        '<div><b>상성 유리</b>: ' + safe(bd.adv_bonus) + '</div>' +
+        '<div><b>상성 불리</b>: ' + safe(bd.dis_penalty) + '</div>' +
+        '<div><b>역할 보너스</b>: ' + safe(bd.role_bonus) + '</div>' +
+        '<div><b>고정 보너스</b>: ' + safe(bd.focus_bonus) + '</div>' +
+      '</div>';
+
+    grid +=
+      '<div class="pCard">' +
+        thumb +
+        '<div class="pBody">' +
+          '<div class="pName">' + safe(m.name) + '</div>' +
+          meta +
+          '<div class="pScore">총점: ' + safe(m.score) + '</div>' +
+          kv +
+        '</div>' +
+      '</div>';
+  }}
+  grid += '</div>';
+
+  box.innerHTML = header + grid;
 }}
 
 async function run(){{
@@ -624,14 +749,28 @@ async function run(){{
     boss_weakness: document.getElementById('boss_weakness').value || null,
     enemy_element: document.getElementById('enemy_element').value || null
   }};
+
   if(payload.owned.length < 4){{
-    document.getElementById('out').innerHTML='<div class="small">보유 캐릭터는 최소 4명 체크해야 합니다.</div>';
+    document.getElementById('outTable').innerHTML =
+      '<div class="warn">보유 캐릭터는 최소 4명 체크해야 합니다.</div>';
+    document.getElementById('jsonPre').textContent = '';
+    lastJsonText = '';
+    setTab('table');
     return;
   }}
-  document.getElementById('out').innerHTML='<div class="small">계산 중...</div>';
+
+  document.getElementById('outTable').innerHTML = '<div class="small">계산 중...</div>';
+  document.getElementById('jsonPre').textContent = '';
+  lastJsonText = '';
+  setTab('table');
+
   const res = await fetch('/recommend/v3',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify(payload)}});
   const json = await res.json();
-  document.getElementById('out').innerHTML='<pre>'+JSON.stringify(json,null,2)+'</pre>';
+
+  lastJsonText = JSON.stringify(json, null, 2);
+  document.getElementById('jsonPre').textContent = lastJsonText;
+
+  renderResultTable(json);
 }}
 
 function clearAll(){{
@@ -641,8 +780,28 @@ function clearAll(){{
     if(!el) return;
     if(el.tagName==='SELECT') el.value=''; else el.value='';
   }});
-  document.getElementById('out').textContent='(아직 없음)';
+  document.getElementById('outTable').textContent='(아직 없음)';
+  document.getElementById('jsonPre').textContent='(아직 없음)';
+  lastJsonText = '';
   stat(); applyFilter();
+  setTab('table');
+}}
+
+async function copyJson(){{
+  if(!lastJsonText) return;
+  try {{
+    await navigator.clipboard.writeText(lastJsonText);
+  }} catch(e) {{
+    // fallback: select text
+    const pre = document.getElementById('jsonPre');
+    const range = document.createRange();
+    range.selectNodeContents(pre);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    document.execCommand('copy');
+    sel.removeAllRanges();
+  }}
 }}
 
 document.addEventListener('DOMContentLoaded', ()=>{{
@@ -665,6 +824,12 @@ document.addEventListener('DOMContentLoaded', ()=>{{
 
   document.getElementById('btnRun').onclick=run;
   document.getElementById('btnClear').onclick=clearAll;
+
+  document.getElementById('tabTable').onclick=()=>setTab('table');
+  document.getElementById('tabJson').onclick=()=>setTab('json');
+  document.getElementById('btnCopyJson').onclick=copyJson;
+
+  setTab('table');
 }});
 </script>
 </body></html>
