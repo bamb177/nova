@@ -1,0 +1,6 @@
+{
+  "bosses": [
+    { "id": "boss1", "name": "Boss 1", "weakness": "Wind", "enemy_element": "Fire" },
+    { "id": "boss2", "name": "Boss 2", "weakness": "Holy", "enemy_element": "Ice" }
+  ]
+}
