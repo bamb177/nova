@@ -389,12 +389,14 @@ def ensure_cache_loaded() -> None:
 # =========================
 # Static images serving
 # =========================
+
 @app.get("/ui/select")
 def ui_select() -> Response:
     ensure_cache_loaded()
     chars = CACHE["zone_nova"]["characters"]
 
     chars_json = json.dumps(chars, ensure_ascii=False).replace("</", "<\\/")
+    adv_json = json.dumps(ELEMENT_ADVANTAGE, ensure_ascii=False).replace("</", "<\\/")
 
     advantage_line = " · ".join([f"{k}→{','.join(v)}" for k, v in ELEMENT_ADVANTAGE.items()])
 
@@ -504,6 +506,7 @@ def ui_select() -> Response:
       cursor: pointer;
       font-weight: 800;
       letter-spacing: .2px;
+      white-space: nowrap;
     }}
     .btn:hover {{ background: rgba(255,255,255,.10); }}
     .btnPrimary {{
@@ -529,7 +532,6 @@ def ui_select() -> Response:
     }}
     .stat b {{ color: var(--text); }}
 
-    /* === 이미지 카드 그리드 === */
     .charGrid {{ display:grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }}
     @media (max-width: 1100px) {{ .charGrid {{ grid-template-columns: repeat(5, 1fr); }} }}
     @media (max-width: 980px)  {{ .charGrid {{ grid-template-columns: repeat(4, 1fr); }} }}
@@ -610,7 +612,6 @@ def ui_select() -> Response:
     }}
     .charCard:hover .info {{ display:block; }}
 
-    /* === Required/Focus/Banned 미리보기 === */
     .bucket {{
       margin-top: 12px;
       border: 1px solid var(--border);
@@ -678,7 +679,6 @@ def ui_select() -> Response:
       color: #ffd7db;
     }}
 
-    /* 결과 */
     .resultArea {{ display: grid; grid-template-columns: 1fr; gap: 12px; }}
     .resultCard {{
       border: 1px solid var(--border);
@@ -817,6 +817,12 @@ def ui_select() -> Response:
             </div>
           </div>
 
+          <!-- ✅ 1번 기능: Focus 기반 자동 제안 버튼(1개) -->
+          <div style="height: 10px;"></div>
+          <div class="row">
+            <button class="btn btnGhost" id="btnSuggest">Auto Suggest (Focus)</button>
+          </div>
+
           <div style="height: 12px;"></div>
 
           <div class="row">
@@ -825,7 +831,6 @@ def ui_select() -> Response:
             <button class="btn btnGhost" id="btnBan">선택 → Banned</button>
           </div>
 
-          <!-- 기존 입력창은 유지 (API 호환 + 필요 시 직접 편집도 가능) -->
           <div style="height: 12px;"></div>
 
           <div class="field">
@@ -847,7 +852,6 @@ def ui_select() -> Response:
             <input id="banned" placeholder="ex) apep" />
           </div>
 
-          <!-- 미리보기 패널 -->
           <div class="bucket" style="margin-top: 12px;">
             <div class="bucketHead">
               <div class="bucketTitle">Required Preview</div>
@@ -881,7 +885,8 @@ def ui_select() -> Response:
 
           <div style="height: 12px;"></div>
           <div class="hint">
-            영어 입력 없이 이미지로 체크 후 버튼(Required/Focus/Banned)에 넣으면 미리보기로 관리됩니다. X로 제거 가능.
+            Auto Suggest는 Focus(없으면 Required) 캐릭터들의 속성(다수결)을 기준으로
+            <b>Boss Weakness</b>를 그 속성으로 세팅하고, 가능하면 상성표(ELEMENT_ADVANTAGE)로 <b>Enemy Element</b>도 자동 추천합니다.
           </div>
 
         </div>
@@ -975,6 +980,7 @@ def ui_select() -> Response:
 
 <script>
 const CHARS = {chars_json};
+const ADV = {adv_json}; // ✅ 서버의 ELEMENT_ADVANTAGE를 JS로 주입
 const BY_ID = Object.fromEntries(CHARS.map(c => [c.id, c]));
 
 let LAST_JSON = null;
@@ -1092,14 +1098,38 @@ function syncInputsFromBuckets() {{
   document.getElementById('banned').value = BAN.join(', ');
 }}
 
+function renderBucket(boxId, countId, arr, bucketKey) {{
+  const box = document.getElementById(boxId);
+  const cnt = document.getElementById(countId);
+  cnt.textContent = String(arr.length);
+
+  box.innerHTML = '';
+  if (!arr.length) {{
+    const e = document.createElement('span');
+    e.className = 'empty';
+    e.textContent = '비어있음';
+    box.appendChild(e);
+    return;
+  }}
+
+  arr.forEach(id => box.appendChild(pillFor(id, bucketKey)));
+}}
+
+function renderBuckets() {{
+  renderBucket('reqBox', 'reqCount', REQ, 'req');
+  renderBucket('focusBox', 'focusCount', FOCUS, 'focus');
+  renderBucket('banBox', 'banCount', BAN, 'ban');
+}}
+
 function rebuildBucketsFromInputs() {{
   REQ = uniq(csv(document.getElementById('required').value));
   FOCUS = uniq(csv(document.getElementById('focus').value));
   BAN = uniq(csv(document.getElementById('banned').value));
-  // 충돌정리: banned가 최우선
+
+  // 충돌정리: banned 최우선
   REQ = REQ.filter(x => !BAN.includes(x));
   FOCUS = FOCUS.filter(x => !BAN.includes(x));
-  // required와 focus는 겹칠 수 있게 둠(원하면 여기서 정리 가능)
+
   syncInputsFromBuckets();
   renderBuckets();
 }}
@@ -1172,28 +1202,52 @@ function pillFor(id, bucket) {{
   return wrap;
 }}
 
-function renderBucket(boxId, countId, arr, bucketKey) {{
-  const box = document.getElementById(boxId);
-  const cnt = document.getElementById(countId);
-  cnt.textContent = String(arr.length);
+function pickMajorityElement(ids) {{
+  const counts = new Map();
+  ids.forEach(id => {{
+    const c = BY_ID[id];
+    const el = c && c.element ? c.element : null;
+    if (!el) return;
+    counts.set(el, (counts.get(el) || 0) + 1);
+  }});
+  if (counts.size === 0) return null;
 
-  box.innerHTML = '';
-  if (!arr.length) {{
-    const e = document.createElement('span');
-    e.className = 'empty';
-    e.textContent = '비어있음';
-    box.appendChild(e);
+  // 다수결 (동률이면 알파벳순)
+  const arr = Array.from(counts.entries()).sort((a, b) => {{
+    if (b[1] !== a[1]) return b[1] - a[1];
+    return String(a[0]).localeCompare(String(b[0]));
+  }});
+  return arr[0][0];
+}}
+
+function autoSuggestFromFocus() {{
+  // 우선순위: Focus -> Required
+  let baseIds = (FOCUS && FOCUS.length) ? FOCUS : ((REQ && REQ.length) ? REQ : []);
+  if (!baseIds.length) {{
+    toast('Focus(또는 Required) 먼저 지정하세요.');
     return;
   }}
 
-  arr.forEach(id => box.appendChild(pillFor(id, bucketKey)));
-}}
+  const majorEl = pickMajorityElement(baseIds);
+  if (!majorEl) {{
+    toast('선택된 캐릭터에서 속성을 찾지 못했습니다.');
+    return;
+  }}
 
-function renderBuckets() {{
-  renderBucket('reqBox', 'reqCount', REQ, 'req');
-  renderBucket('focusBox', 'focusCount', FOCUS, 'focus');
-  renderBucket('banBox', 'banCount', BAN, 'ban');
-}}
+  // Boss Weakness: 다수결 속성으로 세팅
+  const bw = document.getElementById('boss_weakness');
+  bw.value = majorEl;
+
+  // Enemy Element: 상성표에서 majorEl이 유리한 상대(첫번째)를 추천
+  const advList = (ADV && ADV[majorEl]) ? ADV[majorEl] : [];
+  if (advList.length) {{
+    const ee = document.getElementById('enemy_element');
+    ee.value = advList[0];
+    toast('Auto Suggest 완료: Boss Weakness=' + majorEl + ', Enemy Element=' + advList[0]);
+  }} else {{
+    toast('Auto Suggest 완료: Boss Weakness=' + majorEl + ' (Enemy Element 추천 없음)');
+  }}
+}
 
 function clearAll() {{
   document.querySelectorAll('.owned').forEach(b => b.checked = false);
@@ -1259,7 +1313,7 @@ function renderResult(data) {{
       html += "<div class='mcard'>";
       html += "<div class='mimg'>";
       if (m.image) {{
-        html += "<img src='" + m.image + "' onerror='this.style.display=\"none\"' />";
+        html += "<img src='" + m.image + "' onerror='this.style.display=\\"none\\"' />";
       }}
       html += "</div>";
       html += "<div class='mtext'>";
@@ -1285,7 +1339,6 @@ function renderResult(data) {{
 }}
 
 async function run() {{
-  // 입력창을 직접 수정했을 수도 있으니 동기화
   rebuildBucketsFromInputs();
 
   const payload = {{
@@ -1414,11 +1467,13 @@ document.addEventListener('DOMContentLoaded', () => {{
   document.getElementById('btnFocus').addEventListener('click', () => addCheckedTo('focus'));
   document.getElementById('btnBan').addEventListener('click', () => addCheckedTo('ban'));
 
+  // ✅ Auto Suggest 버튼 핸들러
+  document.getElementById('btnSuggest').addEventListener('click', autoSuggestFromFocus);
+
   document.getElementById('btnRun').addEventListener('click', run);
   document.getElementById('btnClear').addEventListener('click', clearAll);
   document.getElementById('btnCopy').addEventListener('click', copyLast);
 
-  // 입력창을 직접 편집해도 미리보기로 반영되도록
   document.getElementById('required').addEventListener('change', rebuildBucketsFromInputs);
   document.getElementById('focus').addEventListener('change', rebuildBucketsFromInputs);
   document.getElementById('banned').addEventListener('change', rebuildBucketsFromInputs);
@@ -1427,7 +1482,6 @@ document.addEventListener('DOMContentLoaded', () => {{
   applyFilter();
   syncSelectedCards();
   syncSelectedStat();
-
   rebuildBucketsFromInputs();
 }});
 </script>
