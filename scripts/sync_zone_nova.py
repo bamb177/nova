@@ -1,11 +1,11 @@
 import os
 import re
 import json
+import time
 import argparse
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Optional, Dict, Any, List, Tuple
 
-# (fallback) 웹 파싱은 남겨두되, Actions에서는 기본적으로 GitHub 레포(업스트림)에서 추출하도록 구성
 import requests
 from bs4 import BeautifulSoup
 
@@ -13,7 +13,9 @@ from bs4 import BeautifulSoup
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_PATH = os.path.join(BASE_DIR, "public", "data", "zone-nova", "characters_meta.json")
 
-FALLBACK_WEB_URL = "https://gachawiki.info/guides/zone-nova/character-comparison-v2/"
+# 1차(일괄 파싱) / 2차(목록+개별페이지)
+URL_COMPARISON_V2 = "https://gachawiki.info/guides/zone-nova/character-comparison-v2/"
+URL_CHAR_INDEX = "https://gachawiki.info/guides/zone-nova/characters/"
 
 
 def now_iso() -> str:
@@ -48,160 +50,11 @@ def ensure_parent_dir(path: str):
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
 
-def safe_read_json(path: str) -> Optional[Any]:
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return None
-
-
-def extract_candidates(upstream_root: str) -> List[str]:
-    """
-    업스트림 레포에서 zone-nova 관련 JSON을 전부 찾아 후보로 수집.
-    우선순위:
-      1) public/data/zone-nova 아래 JSON
-      2) public/data/**/zone-nova 관련 JSON
-      3) 전체에서 zone-nova + characters 포함 JSON
-    """
-    cand: List[str] = []
-
-    def walk_collect(root: str):
-        for dirpath, _, filenames in os.walk(root):
-            for fn in filenames:
-                if not fn.lower().endswith(".json"):
-                    continue
-                full = os.path.join(dirpath, fn)
-                rel = os.path.relpath(full, upstream_root).replace("\\", "/")
-                cand.append(rel)
-
-    # 1) 가장 기대되는 위치
-    p1 = os.path.join(upstream_root, "public", "data", "zone-nova")
-    if os.path.isdir(p1):
-        walk_collect(p1)
-
-    # 2) public/data 전체
-    p2 = os.path.join(upstream_root, "public", "data")
-    if os.path.isdir(p2):
-        walk_collect(p2)
-
-    # 3) src(혹시 JSON이 src에 있을 수 있음)
-    p3 = os.path.join(upstream_root, "src")
-    if os.path.isdir(p3):
-        walk_collect(p3)
-
-    # 중복 제거
-    cand = sorted(list(dict.fromkeys(cand)))
-
-    # 필터링/정렬 우선순위 적용
-    def score(rel: str) -> Tuple[int, int, int]:
-        r = rel.lower()
-        s = 0
-        if r.startswith("public/data/zone-nova/"):
-            s += 300
-        if "zone-nova" in r:
-            s += 200
-        if "character" in r:
-            s += 150
-        if "characters" in r:
-            s += 150
-        if "meta" in r:
-            s += 50
-        # 짧을수록 우선
-        return (-s, len(r), 0)
-
-    cand.sort(key=score)
-    return cand
-
-
-def try_build_meta_from_obj(obj: Any) -> Optional[Dict[str, Dict[str, str]]]:
-    """
-    다양한 JSON 형태를 받아서:
-      {id: {...}} or {characters:[...]} or [...] 형태를 캐릭터 meta map으로 변환
-    결과:
-      { "nina": {"name":"Nina","rarity":"SSR","element":"Wind","role":"dps"}, ... }
-    """
-    items: List[Dict[str, Any]] = []
-
-    if isinstance(obj, list):
-        # list[character]
-        if obj and isinstance(obj[0], dict):
-            items = obj
-        else:
-            return None
-
-    elif isinstance(obj, dict):
-        # {characters:[...]} or {characters:{...}} or {id:{...}}
-        if "characters" in obj:
-            c = obj["characters"]
-            if isinstance(c, list) and c and isinstance(c[0], dict):
-                items = c
-            elif isinstance(c, dict):
-                # dict map 형태
-                items = []
-                for k, v in c.items():
-                    if isinstance(v, dict):
-                        vv = dict(v)
-                        vv["_id"] = k
-                        items.append(vv)
-            else:
-                return None
-        else:
-            # dict map 형태로 간주
-            items = []
-            for k, v in obj.items():
-                if isinstance(v, dict):
-                    vv = dict(v)
-                    vv["_id"] = k
-                    items.append(vv)
-
-    else:
-        return None
-
-    meta: Dict[str, Dict[str, str]] = {}
-
-    for it in items:
-        if not isinstance(it, dict):
-            continue
-
-        # 가능한 필드들 폭넓게 대응
-        name = (it.get("name") or it.get("title") or it.get("character") or it.get("displayName") or "").strip()
-        if not name:
-            # id 기반 이름이라도 없으면 패스
-            continue
-
-        rarity = (it.get("rarity") or it.get("grade") or it.get("rank") or "").strip()
-        element = (it.get("element") or it.get("attr") or it.get("attribute") or "").strip()
-        role = (it.get("role") or it.get("class") or it.get("type") or "").strip()
-
-        # 최소 요건: rarity/element는 있어야 “게임 데이터”로 쓸만함
-        if not rarity or not element:
-            continue
-
-        sid = slug_id(it.get("_id") or name)
-
-        # Jeanne D Arc 통일
-        sid_low = sid.lower()
-        if sid_low in {"joanofarc", "jeannedarc"} or "jeanne" in sid_low:
-            sid = "jeannedarc"
-            name = "Jeanne D Arc"
-
-        meta[sid] = {
-            "name": name,                       # UI는 영어 유지
-            "rarity": rarity.upper(),
-            "element": element,
-            "role": normalize_role(role),
-        }
-
-    # 정상이라면 40+ 기대. 너무 적으면 후보 파일이 아닌 것으로 간주
-    if len(meta) < 20:
-        return None
-
-    return meta
-
-
-def fetch_web(url: str, timeout: int = 30) -> str:
-    headers = {"User-Agent": "Mozilla/5.0 (compatible; NovaSync/1.0)"}
+def http_get(url: str, timeout: int = 35) -> str:
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; NovaSync/1.0; +https://github.com/)",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    }
     r = requests.get(url, headers=headers, timeout=timeout)
     r.raise_for_status()
     return r.text
@@ -215,12 +68,16 @@ def pick_value(lines: List[str], key: str) -> Optional[str]:
 
 
 def parse_from_web_comparison_v2(html: str) -> Dict[str, Dict[str, str]]:
+    """
+    character-comparison-v2 페이지는 대개 텍스트에
+    ### Name / Rarity / Element / Role 구조가 들어있음
+    """
     soup = BeautifulSoup(html, "lxml")
     text = soup.get_text("\n")
 
     chunks = text.split("\n### ")
     if len(chunks) < 2:
-        raise RuntimeError("웹 파싱 실패: '### 캐릭터명' 패턴을 찾지 못했습니다. (페이지 구조 변경/차단 가능)")
+        raise RuntimeError("comparison-v2 구조에서 '###' 패턴을 찾지 못했습니다(페이지 구조 변경/차단 가능).")
 
     result: Dict[str, Dict[str, str]] = {}
     for chunk in chunks[1:]:
@@ -235,6 +92,7 @@ def parse_from_web_comparison_v2(html: str) -> Dict[str, Dict[str, str]]:
             continue
 
         sid = slug_id(name)
+        # Jeanne D Arc 통일
         if sid in {"joanofarc", "jeannedarc"} or "jeanne" in sid:
             sid = "jeannedarc"
             name = "Jeanne D Arc"
@@ -247,127 +105,187 @@ def parse_from_web_comparison_v2(html: str) -> Dict[str, Dict[str, str]]:
         }
 
     if len(result) < 20:
-        raise RuntimeError(f"웹 파싱 결과가 너무 적습니다({len(result)}). 페이지 구조 변경/차단 가능성이 큽니다.")
+        raise RuntimeError(f"comparison-v2 파싱 결과가 너무 적습니다({len(result)}).")
     return result
 
 
-def build_from_upstream_repo(upstream_root: str) -> Tuple[Dict[str, Dict[str, str]], str]:
-    candidates = extract_candidates(upstream_root)
-
-    tried = 0
-    for rel in candidates:
-        if "zone-nova" not in rel.lower():
+def extract_dt_dd(soup: BeautifulSoup, key: str) -> Optional[str]:
+    """
+    DT/DD 구조에서 key에 해당하는 값을 찾음
+    """
+    dts = soup.find_all(["dt", "th"])
+    for dt in dts:
+        if not dt.get_text(strip=True):
             continue
-        # characters 관련 JSON 우선
-        if ("character" not in rel.lower()) and ("characters" not in rel.lower()):
+        if dt.get_text(strip=True).lower() == key.lower():
+            # dt 다음 dd 혹은 같은 row의 td
+            dd = dt.find_next_sibling(["dd", "td"])
+            if dd:
+                v = dd.get_text(" ", strip=True)
+                return v if v else None
+    return None
+
+
+def extract_from_table_rows(soup: BeautifulSoup, key: str) -> Optional[str]:
+    """
+    표(tr) 기반에서 th=key인 td를 찾음
+    """
+    for tr in soup.find_all("tr"):
+        th = tr.find("th")
+        td = tr.find("td")
+        if not th or not td:
             continue
+        if th.get_text(strip=True).lower() == key.lower():
+            v = td.get_text(" ", strip=True)
+            return v if v else None
+    return None
 
-        full = os.path.join(upstream_root, rel.replace("/", os.sep))
-        obj = safe_read_json(full)
-        if obj is None:
-            continue
 
-        tried += 1
-        meta = try_build_meta_from_obj(obj)
-        if meta:
-            return meta, rel
+def parse_character_detail(url: str) -> Optional[Tuple[str, str, str, str]]:
+    """
+    개별 캐릭터 페이지에서 (id, name, rarity, element, role)을 추출.
+    실패하면 None.
+    """
+    html = http_get(url)
+    soup = BeautifulSoup(html, "lxml")
 
-        # 너무 많은 시도를 할 필요는 없음
-        if tried >= 25:
-            break
+    # 이름: h1 우선
+    h1 = soup.find("h1")
+    name = h1.get_text(" ", strip=True) if h1 else ""
+    if not name:
+        # title fallback
+        title = soup.find("title")
+        name = title.get_text(" ", strip=True) if title else ""
+        name = name.replace(" - GachaWiki", "").strip()
 
-    # 2차: zone-nova가 포함된 JSON 전반에서 다시 탐색(확장)
-    tried = 0
-    for rel in candidates:
-        if "zone-nova" not in rel.lower():
-            continue
-        full = os.path.join(upstream_root, rel.replace("/", os.sep))
-        obj = safe_read_json(full)
-        if obj is None:
-            continue
-        tried += 1
-        meta = try_build_meta_from_obj(obj)
-        if meta:
-            return meta, rel
-        if tried >= 80:
-            break
+    name = name.replace("’", "'").strip()
+    if not name:
+        return None
 
-    # 실패 시 디버그 메시지
-    sample = "\n- " + "\n- ".join(candidates[:25])
-    raise RuntimeError(
-        "업스트림 레포에서 zone-nova 캐릭터 JSON을 자동 추출하지 못했습니다.\n"
-        "후보 JSON(일부):" + sample
+    rarity = (
+        extract_dt_dd(soup, "Rarity")
+        or extract_from_table_rows(soup, "Rarity")
     )
+    element = (
+        extract_dt_dd(soup, "Element")
+        or extract_from_table_rows(soup, "Element")
+    )
+    role = (
+        extract_dt_dd(soup, "Role")
+        or extract_from_table_rows(soup, "Role")
+        or extract_dt_dd(soup, "Class")
+        or extract_from_table_rows(soup, "Class")
+    )
+
+    if not (rarity and element):
+        # 텍스트 라인 기반 마지막 보정
+        txt = soup.get_text("\n")
+        lines = [x.strip() for x in txt.split("\n") if x.strip()]
+        rarity = rarity or pick_value(lines, "Rarity")
+        element = element or pick_value(lines, "Element")
+        role = role or pick_value(lines, "Role") or pick_value(lines, "Class")
+
+    if not (rarity and element and role):
+        return None
+
+    sid = slug_id(name)
+    if sid in {"joanofarc", "jeannedarc"} or "jeanne" in sid:
+        sid = "jeannedarc"
+        name = "Jeanne D Arc"
+
+    return sid, name, rarity.strip().upper(), element.strip(), normalize_role(role)
+
+
+def parse_from_char_index_and_details(index_html: str, max_sleep: float = 0.12) -> Dict[str, Dict[str, str]]:
+    """
+    characters/ 목록 페이지에서 캐릭터 링크를 수집하고,
+    각 캐릭터 페이지를 순회하며 rarity/element/role을 수집.
+    """
+    soup = BeautifulSoup(index_html, "lxml")
+
+    links = set()
+    for a in soup.find_all("a", href=True):
+        href = a["href"].strip()
+        # 절대/상대 모두 처리
+        if href.startswith("/"):
+            href = "https://gachawiki.info" + href
+        if not href.startswith("https://gachawiki.info/guides/zone-nova/characters/"):
+            continue
+        # 인덱스 자체 제외
+        if href.rstrip("/") == URL_CHAR_INDEX.rstrip("/"):
+            continue
+        links.add(href.rstrip("/") + "/")
+
+    links = sorted(links)
+    if len(links) < 10:
+        raise RuntimeError(f"characters 인덱스에서 링크를 충분히 수집하지 못했습니다({len(links)}).")
+
+    result: Dict[str, Dict[str, str]] = {}
+    fails: List[str] = []
+
+    for i, url in enumerate(links, start=1):
+        try:
+            parsed = parse_character_detail(url)
+            if not parsed:
+                fails.append(url)
+                continue
+            sid, name, rarity, element, role = parsed
+            result[sid] = {"name": name, "rarity": rarity, "element": element, "role": role}
+        except Exception:
+            fails.append(url)
+
+        # 과도한 요청 방지(가볍게)
+        time.sleep(max_sleep)
+
+    if len(result) < 20:
+        raise RuntimeError(f"개별 페이지 파싱 결과가 너무 적습니다({len(result)}). 실패 예시: {fails[:5]}")
+
+    return result
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--write", action="store_true", help="write characters_meta.json to repo")
-    ap.add_argument("--upstream", default="", help="path to cloned boring877/gacha-wiki repo")
-    ap.add_argument("--allow-web-fallback", action="store_true", help="if upstream fails, try web scrape fallback")
     args = ap.parse_args()
 
+    # 예시 데이터 생성은 절대 하지 않음.
+    # 항상 원문(웹)에서 파싱해 저장하는 방식만 사용.
+    meta: Dict[str, Dict[str, str]] = {}
+    source = ""
+
+    # 1차: comparison-v2
     try:
-        meta: Dict[str, Dict[str, str]] = {}
-        source = "unknown"
+        html = http_get(URL_COMPARISON_V2)
+        meta = parse_from_web_comparison_v2(html)
+        source = f"web:{URL_COMPARISON_V2}"
+        print(f"[OK] comparison-v2 parsed count={len(meta)}")
+    except Exception as e1:
+        print(f"[WARN] comparison-v2 failed: {e1}")
 
-        if args.upstream:
-            upstream_root = os.path.abspath(args.upstream)
-            if not os.path.isdir(upstream_root):
-                raise RuntimeError(f"--upstream 경로가 존재하지 않습니다: {upstream_root}")
-            meta, picked = build_from_upstream_repo(upstream_root)
-            source = f"upstream_repo:{picked}"
-        else:
-            raise RuntimeError("--upstream 경로가 필요합니다. (Actions에서 업스트림 레포를 clone하도록 워크플로우를 구성하세요.)")
+        # 2차: characters index + details
+        html = http_get(URL_CHAR_INDEX)
+        meta = parse_from_char_index_and_details(html)
+        source = f"web:{URL_CHAR_INDEX} (details)"
+        print(f"[OK] index+details parsed count={len(meta)}")
 
-        payload = {
-            "_meta": {
-                "game": "zone-nova",
-                "source": source,
-                "generated_at": now_iso(),
-                "count": len(meta),
-            },
-            "characters": meta,
-        }
+    payload = {
+        "_meta": {
+            "game": "zone-nova",
+            "source": source,
+            "generated_at": now_iso(),
+            "count": len(meta),
+        },
+        "characters": meta
+    }
 
-        if args.write:
-            ensure_parent_dir(OUT_PATH)
-            with open(OUT_PATH, "w", encoding="utf-8") as f:
-                json.dump(payload, f, ensure_ascii=False, indent=2, sort_keys=True)
-            print(f"[OK] wrote: {OUT_PATH}")
-            print(f"[OK] count={len(meta)} source={source}")
-        else:
-            print(json.dumps(payload, ensure_ascii=False, indent=2)[:4000])
-
-    except Exception as e:
-        # 웹 fallback 옵션이 켜져있고, upstream이 실패했을 때만 시도
-        if args.allow_web_fallback:
-            try:
-                print(f"[WARN] upstream failed: {e}")
-                html = fetch_web(FALLBACK_WEB_URL)
-                meta = parse_from_web_comparison_v2(html)
-                payload = {
-                    "_meta": {
-                        "game": "zone-nova",
-                        "source": f"web:{FALLBACK_WEB_URL}",
-                        "generated_at": now_iso(),
-                        "count": len(meta),
-                    },
-                    "characters": meta,
-                }
-                ensure_parent_dir(OUT_PATH)
-                with open(OUT_PATH, "w", encoding="utf-8") as f:
-                    json.dump(payload, f, ensure_ascii=False, indent=2, sort_keys=True)
-                print(f"[OK] wrote via web fallback: {OUT_PATH} (count={len(meta)})")
-                return
-            except Exception as e2:
-                print("[ERROR] upstream + web fallback 모두 실패")
-                print(f"upstream error: {e}")
-                print(f"web error: {e2}")
-                raise
-
-        print("[ERROR] sync failed:", str(e))
-        raise
+    if args.write:
+        ensure_parent_dir(OUT_PATH)
+        with open(OUT_PATH, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2, sort_keys=True)
+        print(f"[OK] wrote: {OUT_PATH}")
+        print(f"[OK] count={len(meta)} source={source}")
+    else:
+        print(json.dumps(payload, ensure_ascii=False, indent=2)[:4000])
 
 
 if __name__ == "__main__":
