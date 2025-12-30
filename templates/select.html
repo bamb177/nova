@@ -81,7 +81,7 @@
       font-size:12px; color:var(--muted); margin-top:6px;
     }
     label{font-size:12px; color:var(--muted); display:block; margin-bottom:6px}
-    select,input,textarea{
+    select,input{
       width:100%;
       border:1px solid rgba(255,255,255,.12);
       background:rgba(0,0,0,.25);
@@ -91,7 +91,6 @@
       outline:none;
     }
     .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-    .row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
     .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
     .resultBox{
       border:1px solid rgba(255,255,255,.10);
@@ -108,20 +107,18 @@
       word-break:break-word;
     }
 
-    /* grid */
     .gridTop{
       display:flex; align-items:center; justify-content:space-between; gap:10px;
       margin-bottom:10px;
     }
     .filters{
-      display:grid; grid-template-columns: 160px 160px 160px 160px;
+      display:grid; grid-template-columns: 160px 160px 160px 160px 160px;
       gap:10px;
     }
     @media (max-width: 980px){
       .filters{grid-template-columns: 1fr 1fr;}
     }
     .gridActions{display:flex; gap:10px; flex-wrap:wrap; margin:10px 0}
-    .count{font-size:12px; color:var(--muted)}
     .gridWrap{
       border:1px solid var(--line);
       border-radius: var(--radius);
@@ -226,7 +223,6 @@
   </div>
 
   <div class="wrap">
-    <!-- left -->
     <div class="card">
       <div class="title">추천 옵션</div>
       {% if error %}
@@ -276,13 +272,8 @@
         </div>
         <div class="mono" id="resultText">(아직 없음)</div>
       </div>
-
-      <div class="sub" style="margin-top:10px">
-        선택된 캐릭터는 오른쪽 카드에서 체크 → 추천 실행을 누르세요.
-      </div>
     </div>
 
-    <!-- right -->
     <div class="card">
       <div class="gridTop">
         <div class="title" style="margin:0">보유 캐릭터 선택(이미지 체크)</div>
@@ -298,10 +289,20 @@
           </select>
         </div>
         <div>
-          <label>직업</label>
+          <label>클래스(7)</label>
+          <select id="fClass">
+            <option value="">전체</option>
+          </select>
+        </div>
+        <div>
+          <label>역할(5)</label>
           <select id="fRole">
             <option value="">전체</option>
-            <!-- 7개든 그 이상이든, 데이터에 있는 role 기준으로 필터 추가됨 -->
+            <option value="buffer">buffer</option>
+            <option value="dps">dps</option>
+            <option value="debuffer">debuffer</option>
+            <option value="healer">healer</option>
+            <option value="tank">tank</option>
           </select>
         </div>
         <div>
@@ -317,7 +318,8 @@
             <option value="name">이름</option>
             <option value="rarity">등급</option>
             <option value="element">속성</option>
-            <option value="role">직업</option>
+            <option value="class">클래스</option>
+            <option value="role">역할</option>
           </select>
         </div>
       </div>
@@ -346,10 +348,11 @@
       filteredIds: [],
     };
 
-    function uniqueRoles(chars){
+    function uniqueClasses(chars){
       const s = new Set();
       for (const c of chars){
-        if (c.role && c.role !== "-") s.add(String(c.role).toLowerCase());
+        const v = (c.class || "").toString().toLowerCase();
+        if (v && v !== "-") s.add(v);
       }
       return Array.from(s).sort();
     }
@@ -373,15 +376,13 @@
       });
     }
 
-    function renderRoleFilter(){
-      const sel = $("fRole");
-      const roles = uniqueRoles(CHARS);
-      // 기존 옵션(전체) 유지하고 나머지 재생성
+    function renderClassFilter(){
+      const sel = $("fClass");
       while (sel.options.length > 1) sel.remove(1);
-      for (const r of roles){
+      for (const c of uniqueClasses(CHARS)){
         const opt = document.createElement("option");
-        opt.value = r;
-        opt.textContent = r; // 직업명은 영문 유지(요청대로 캐릭터 정보는 영어 유지)
+        opt.value = c;
+        opt.textContent = c; // 클래스명은 영문 유지
         sel.appendChild(opt);
       }
     }
@@ -396,6 +397,7 @@
 
     function applyFilter(){
       const fe = $("fElement").value;
+      const fcls = $("fClass").value;
       const fr = $("fRole").value;
       const frar = $("fRarity").value;
       const sortKey = $("fSort").value;
@@ -403,6 +405,7 @@
       let list = CHARS.slice();
 
       if (fe) list = list.filter(c => c.element === fe);
+      if (fcls) list = list.filter(c => String(c.class || "").toLowerCase() === fcls);
       if (fr) list = list.filter(c => String(c.role || "").toLowerCase() === fr);
       if (frar) list = list.filter(c => c.rarity === frar);
 
@@ -466,26 +469,32 @@
       }
       b1.appendChild(document.createTextNode(c.element || "-"));
 
-      // role badge (직업 7개든 그 이상이든 아이콘 있으면 자동 표시)
+      // class badge (7) - 아이콘은 classes 폴더 사용
       const b2 = document.createElement("div");
       b2.className = "badge";
-      if (c.role_icon){
+      if (c.class_icon){
         const ico = document.createElement("img");
         ico.className = "ico";
-        ico.src = c.role_icon;
-        ico.alt = c.role;
+        ico.src = c.class_icon;
+        ico.alt = c.class;
         b2.appendChild(ico);
       }
-      b2.appendChild(document.createTextNode(c.role || "-"));
+      b2.appendChild(document.createTextNode(c.class || "-"));
+
+      // role badge (5) - 텍스트로만(겹침/가독성 최우선)
+      const b3 = document.createElement("div");
+      b3.className = "badge";
+      b3.textContent = c.role || "-";
 
       // rarity badge
-      const b3 = document.createElement("div");
-      b3.className = "badge rarity";
-      b3.textContent = c.rarity || "-";
+      const b4 = document.createElement("div");
+      b4.className = "badge rarity";
+      b4.textContent = c.rarity || "-";
 
       badges.appendChild(b1);
       badges.appendChild(b2);
       badges.appendChild(b3);
+      badges.appendChild(b4);
 
       meta.appendChild(name);
       meta.appendChild(badges);
@@ -494,7 +503,6 @@
       div.appendChild(thumb);
       div.appendChild(meta);
 
-      // 카드 클릭으로 토글(체크박스 외 영역)
       div.addEventListener("click", (e) => {
         if (e.target === chk) return;
         if (e.target?.classList?.contains("ico")) return;
@@ -564,8 +572,8 @@
       navigator.clipboard.writeText(txt).catch(()=>{});
     }
 
-    // wire
     $("fElement").addEventListener("change", applyFilter);
+    $("fClass").addEventListener("change", applyFilter);
     $("fRole").addEventListener("change", applyFilter);
     $("fRarity").addEventListener("change", applyFilter);
     $("fSort").addEventListener("change", applyFilter);
@@ -579,9 +587,8 @@
     $("clearBtn").addEventListener("click", () => { state.selected.clear(); applyFilter(); $("resultText").textContent="(아직 없음)"; });
     $("copyBtn").addEventListener("click", copyResult);
 
-    // init
     renderBosses();
-    renderRoleFilter();
+    renderClassFilter();
     applyFilter();
   </script>
 </body>
