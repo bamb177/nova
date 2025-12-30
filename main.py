@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import re
 import json
-import time
 import warnings
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Tuple
@@ -11,10 +10,10 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 from requests.exceptions import SSLError
 from urllib3.exceptions import InsecureRequestWarning
-from flask import Flask, request, Response, jsonify
+from flask import Flask, request, Response, jsonify, send_from_directory, abort
 
 # =========================
-# App
+# Flask
 # =========================
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
@@ -28,7 +27,7 @@ DEFAULT_PORT = 40000
 PARTY_SIZE = 4
 
 # =========================
-# Remote Source (Render에서 성공 가능)
+# Remote (Render에서 성공 기대)
 # =========================
 ZONE_NOVA_DB_URL = "https://gachawiki.info/guides/zone-nova/characters/"
 UA = (
@@ -36,32 +35,27 @@ UA = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/120.0.0.0 Safari/537.36"
 )
-
-# 회사망에서 원격 스크랩을 확실히 끄고 싶으면:
-# setx FORCE_LOCAL_ONLY 1
 FORCE_LOCAL_ONLY = os.environ.get("FORCE_LOCAL_ONLY", "").strip() in {"1", "true", "TRUE", "yes", "YES"}
 
 # =========================
-# Repo Path (local clone)
+# Paths (Render/Local 공통)
 # =========================
-def find_repo_path() -> str:
-    env = os.environ.get("GACHA_WIKI_REPO")
-    if env and os.path.isdir(env):
-        return env
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-    # 사용자 케이스 우선
-    if os.path.isdir(r"C:\nova\gacha-wiki"):
-        return r"C:\nova\gacha-wiki"
+# 이미지 폴더 후보: 둘 중 하나만 있어도 동작
+IMAGE_DIR_CANDIDATES = [
+    os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "characters"),
+    os.path.join(BASE_DIR, "gacha-wiki", "public", "images", "games", "zone-nova", "characters"),
+]
 
-    cwd = os.getcwd()
-    p = os.path.join(cwd, "gacha-wiki")
-    return p
-
-REPO_PATH = find_repo_path()
-ZONE_NOVA_IMAGE_DIR = os.path.join(REPO_PATH, "public", "images", "games", "zone-nova", "characters")
+# /images/ 파일 제공용 base 후보(폴더 자체)
+IMAGES_BASE_CANDIDATES = [
+    os.path.join(BASE_DIR, "public", "images"),
+    os.path.join(BASE_DIR, "gacha-wiki", "public", "images"),
+]
 
 # =========================
-# Cache (메모리만)
+# In-memory cache
 # =========================
 CACHE: Dict[str, Any] = {
     "zone_nova": {
@@ -69,12 +63,13 @@ CACHE: Dict[str, Any] = {
         "count": 0,
         "last_refresh_iso": None,
         "error": None,
-        "repo_path": REPO_PATH,
-        "image_dir": ZONE_NOVA_IMAGE_DIR,
         "source": None,              # images_only | images+remote
+        "image_dir": None,           # 실제 사용한 이미지 디렉터리
+        "image_count": 0,            # 이미지 파일 수
         "remote_ok": False,
         "remote_error": None,
         "remote_count": 0,
+        "force_local_only": FORCE_LOCAL_ONLY,
     }
 }
 
@@ -108,11 +103,14 @@ def prettify_name_from_stem(stem: str) -> str:
     return s
 
 
+def pick_existing_dir(candidates: List[str]) -> Optional[str]:
+    for p in candidates:
+        if os.path.isdir(p):
+            return p
+    return None
+
+
 def http_get(url: str, timeout: int = 25) -> str:
-    """
-    Render 환경에서는 대체로 정상, 회사망에서는 SSL/프록시로 실패할 수 있음.
-    실패 시 예외를 올려서 상위에서 remote_error에 기록.
-    """
     headers = {
         "User-Agent": UA,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -121,13 +119,13 @@ def http_get(url: str, timeout: int = 25) -> str:
         "Pragma": "no-cache",
     }
 
-    # 1) verify=True 시도
+    # 1) verify=True
     try:
         r = requests.get(url, headers=headers, timeout=timeout, verify=True)
         r.raise_for_status()
         return r.text
-    except SSLError as e:
-        # 2) 진단/개발용 fallback (회사망에서는 이것도 막힐 수 있음)
+    except SSLError:
+        # 2) verify=False fallback (일부 환경에서 필요)
         warnings.simplefilter("ignore", InsecureRequestWarning)
         r = requests.get(url, headers=headers, timeout=timeout, verify=False)
         r.raise_for_status()
@@ -151,13 +149,9 @@ def html_to_text_lines(html: str) -> List[str]:
 
 
 def parse_remote_zone_nova_characters(html: str) -> List[Dict[str, Any]]:
-    """
-    gachawiki Zone Nova Character Database 페이지의 테이블 텍스트를 파싱.
-    - 의존성 최소화를 위해 bs4 없이 line 기반으로 파싱
-    """
     lines = html_to_text_lines(html)
 
-    # 테이블 헤더 찾기 (페이지 텍스트가 약간 바뀔 수 있어 유연하게)
+    # 테이블 헤더 탐색(유연)
     start_idx = None
     for i, ln in enumerate(lines):
         if ("Name" in ln and "Rarity" in ln and "Element" in ln and "Role" in ln and "HP" in ln and "Attack" in ln):
@@ -167,27 +161,18 @@ def parse_remote_zone_nova_characters(html: str) -> List[Dict[str, Any]]:
     if start_idx is None:
         raise ValueError("원격 테이블 헤더를 찾지 못했습니다(페이지 구조 변경 가능).")
 
-    # faction은 공백 포함 가능하므로 자주 쓰는 패턴을 폭넓게 허용(끝에서 stats로 끊기)
-    # name (가변) + rarity + element + role + class + faction(가변) + hp + atk + def + crit
-    # 여기서 faction은 숫자 토큰 나오기 전까지를 전부 흡수
     rarity_pat = r"(SSR|SR|R)"
     element_pat = r"(Chaos|Fire|Holy|Ice|Wind)"
     role_pat = r"(Buffer|DPS|Debuffer|Healer|Tank)"
     class_pat = r"(Buffer|Debuffer|Guardian|Healer|Mage|Rogue|Warrior)"
-    num_pat = r"([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d.]+)"  # hp atk def crit
+    num_pat = r"([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d.]+)"
 
     pattern = re.compile(
         rf"^(?P<name>.+?)\s+{rarity_pat}\s+{element_pat}\s+{role_pat}\s+{class_pat}\s+(?P<faction>.+?)\s+{num_pat}$"
     )
 
     out: List[Dict[str, Any]] = []
-
     for ln in lines[start_idx:]:
-        if re.fullmatch(r"\d+", ln):
-            continue
-        if ln.startswith("Image:"):
-            continue
-
         cleaned = re.sub(r"\bImage:\s*[A-Za-z0-9\-_]+\b", "", ln).strip()
         cleaned = re.sub(r"\s+", " ", cleaned).strip()
 
@@ -196,7 +181,7 @@ def parse_remote_zone_nova_characters(html: str) -> List[Dict[str, Any]]:
             continue
 
         name = m.group("name").strip()
-        rarity = m.group(2)  # SSR/SR/R
+        rarity = m.group(2)
         element = m.group(3)
         role = m.group(4)
         clazz = m.group(5)
@@ -216,31 +201,26 @@ def parse_remote_zone_nova_characters(html: str) -> List[Dict[str, Any]]:
             "class": clazz,
             "faction": faction,
             "stats": {"hp": hp, "atk": atk, "def": df, "crit": crit},
-            "source": {"type": "remote_scrape", "url": ZONE_NOVA_DB_URL},
         })
 
-    # 중복 제거
     uniq = {c["id"]: c for c in out}
     return list(uniq.values())
 
 
-def load_from_images() -> List[Dict[str, Any]]:
-    """
-    public/images/games/zone-nova/characters 폴더에서 항상 성공하는 46명 목록 생성
-    """
-    if not os.path.isdir(ZONE_NOVA_IMAGE_DIR):
-        raise FileNotFoundError(f"Zone Nova 캐릭터 이미지 폴더가 없습니다: {ZONE_NOVA_IMAGE_DIR}")
+def load_from_images(image_dir: str) -> Tuple[List[Dict[str, Any]], int]:
+    files = []
+    for fn in os.listdir(image_dir):
+        low = fn.lower()
+        if low.endswith((".jpg", ".jpeg", ".png", ".webp")):
+            files.append(fn)
 
     chars: List[Dict[str, Any]] = []
-    for fn in os.listdir(ZONE_NOVA_IMAGE_DIR):
-        low = fn.lower()
-        if not (low.endswith(".jpg") or low.endswith(".jpeg") or low.endswith(".png") or low.endswith(".webp")):
-            continue
-
+    for fn in files:
         stem = os.path.splitext(fn)[0]
         name = prettify_name_from_stem(stem)
         cid = slugify(name)
 
+        # 웹에서 요청하는 경로는 /images/... 로 통일
         rel_img = f"/images/games/zone-nova/characters/{fn}"
 
         chars.append({
@@ -253,34 +233,26 @@ def load_from_images() -> List[Dict[str, Any]]:
             "faction": None,
             "stats": {"hp": None, "atk": None, "def": None, "crit": None},
             "image": rel_img,
-            "source": {"type": "image_index", "path": ZONE_NOVA_IMAGE_DIR},
         })
 
     uniq = {c["id"]: c for c in chars}
     out = list(uniq.values())
     out.sort(key=lambda x: x["name"].lower())
-    return out
+    return out, len(files)
 
 
 def merge_image_and_remote(image_chars: List[Dict[str, Any]], remote_chars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    id(=slugified name) 기준으로 merge.
-    - 이미지가 제공하는 image 경로는 유지
-    - 원격이 제공하는 rarity/element/role/class/faction/stats를 덮어씀
-    """
     by_id = {c["id"]: c for c in image_chars}
 
     for rc in remote_chars:
         rid = rc["id"]
         if rid in by_id:
             ic = by_id[rid]
-            # 원격 메타 덮어쓰기
             for k in ["rarity", "element", "role", "class", "faction"]:
                 ic[k] = rc.get(k)
             ic["stats"] = rc.get("stats") or ic.get("stats")
-            ic["source"] = {"type": "images+remote", "image": ic["source"], "remote": rc.get("source")}
         else:
-            # 원격에만 있는 캐릭터가 있으면 추가(이미지는 없을 수 있음)
+            # 이미지 없는 원격 캐릭터(있으면 추가)
             rc2 = dict(rc)
             rc2["image"] = None
             by_id[rid] = rc2
@@ -290,19 +262,21 @@ def merge_image_and_remote(image_chars: List[Dict[str, Any]], remote_chars: List
     return out
 
 
-# =========================
-# Refresh
-# =========================
 def refresh_zone_nova_cache() -> Tuple[bool, str]:
     try:
-        # 1) 이미지 기반 목록은 항상 로드 (회사망에서도 성공)
-        image_chars = load_from_images()
+        image_dir = pick_existing_dir(IMAGE_DIR_CANDIDATES)
+        if not image_dir:
+            raise FileNotFoundError(
+                "Zone Nova 캐릭터 이미지 폴더를 찾지 못했습니다.\n"
+                + "\n".join([f"- {p}" for p in IMAGE_DIR_CANDIDATES])
+            )
+
+        image_chars, img_count = load_from_images(image_dir)
 
         remote_ok = False
         remote_err = None
         remote_chars: List[Dict[str, Any]] = []
 
-        # 2) 원격 스크랩은 가능한 환경(Render 등)에서만 성공할 것
         if not FORCE_LOCAL_ONLY:
             try:
                 html = http_get(ZONE_NOVA_DB_URL, timeout=25)
@@ -313,7 +287,6 @@ def refresh_zone_nova_cache() -> Tuple[bool, str]:
                 remote_ok = False
                 remote_err = str(e)
 
-        # 3) merge
         if remote_ok:
             merged = merge_image_and_remote(image_chars, remote_chars)
             CACHE["zone_nova"]["characters"] = merged
@@ -326,13 +299,13 @@ def refresh_zone_nova_cache() -> Tuple[bool, str]:
 
         CACHE["zone_nova"]["last_refresh_iso"] = now_iso_kst()
         CACHE["zone_nova"]["error"] = None
-        CACHE["zone_nova"]["repo_path"] = REPO_PATH
-        CACHE["zone_nova"]["image_dir"] = ZONE_NOVA_IMAGE_DIR
+        CACHE["zone_nova"]["image_dir"] = image_dir
+        CACHE["zone_nova"]["image_count"] = img_count
         CACHE["zone_nova"]["remote_ok"] = remote_ok
         CACHE["zone_nova"]["remote_error"] = remote_err
         CACHE["zone_nova"]["remote_count"] = len(remote_chars)
 
-        return True, f"ok: {CACHE['zone_nova']['count']} characters (source={CACHE['zone_nova']['source']})"
+        return True, f"ok: {CACHE['zone_nova']['count']} (source={CACHE['zone_nova']['source']})"
     except Exception as e:
         CACHE["zone_nova"]["characters"] = []
         CACHE["zone_nova"]["count"] = 0
@@ -345,28 +318,13 @@ def refresh_zone_nova_cache() -> Tuple[bool, str]:
         return False, f"error: {e}"
 
 
-def get_zone_nova_characters() -> List[Dict[str, Any]]:
-    if CACHE["zone_nova"]["characters"]:
-        return CACHE["zone_nova"]["characters"]
-    refresh_zone_nova_cache()
-    return CACHE["zone_nova"]["characters"]
-
-
-# =========================
-# Recommend (4인 고정: Tank+Healer 우선)
-# =========================
-def rarity_bonus(r: Optional[str]) -> float:
-    if not r:
-        return 0.0
-    r = r.upper()
-    return {"SSR": 20.0, "SR": 10.0, "R": 0.0}.get(r, 0.0)
+def ensure_cache_loaded() -> None:
+    # Gunicorn에서는 __main__이 안 돌아가므로, 최초 요청 시 자동 로드
+    if CACHE["zone_nova"]["count"] == 0 and CACHE["zone_nova"]["last_refresh_iso"] is None:
+        refresh_zone_nova_cache()
 
 
 def score_character(c: Dict[str, Any], mode: str) -> float:
-    """
-    - 원격 메타가 있으면 stats 기반으로 점수가 의미있어짐
-    - 로컬만(이미지)인 경우도 rarity/role이 없으므로 큰 차이는 없음(그래도 동작)
-    """
     st = c.get("stats") or {}
     hp = st.get("hp") or 0
     atk = st.get("atk") or 0
@@ -384,7 +342,10 @@ def score_character(c: Dict[str, Any], mode: str) -> float:
     else:
         base = 0.60 * atk_s + 0.20 * hp_s + 0.20 * df_s
 
-    base += (float(crit) / 10.0) if isinstance(crit, (int, float)) else 0.0
+    try:
+        base += float(crit) / 10.0
+    except Exception:
+        pass
 
     role = (c.get("role") or "").lower()
     role_adj = 0.0
@@ -399,98 +360,24 @@ def score_character(c: Dict[str, Any], mode: str) -> float:
     elif "buff" in role:
         role_adj = 4.0
 
-    return base + role_adj + rarity_bonus(c.get("rarity"))
+    rarity = (c.get("rarity") or "").upper()
+    rarity_adj = {"SSR": 20.0, "SR": 10.0, "R": 0.0}.get(rarity, 0.0)
+
+    return base + role_adj + rarity_adj
 
 
-def recommend_party(owned_ids_or_names: List[str], mode: str) -> Dict[str, Any]:
-    chars = get_zone_nova_characters()
-    by_id = {c["id"].lower(): c for c in chars}
-    by_name = {c["name"].lower(): c for c in chars}
-
-    owned: List[Dict[str, Any]] = []
-    for x in owned_ids_or_names:
-        k = (x or "").strip().lower()
-        if not k:
-            continue
-        if k in by_id:
-            owned.append(by_id[k])
-        elif k in by_name:
-            owned.append(by_name[k])
-
-    uniq = {c["id"]: c for c in owned}
-    owned = list(uniq.values())
-
-    if not owned:
-        return {"error": "owned 배열이 비어 있습니다.", "mode": mode}
-
-    tanks = [c for c in owned if (c.get("role") or "").lower() == "tank"]
-    healers = [c for c in owned if (c.get("role") or "").lower() == "healer"]
-    others = [c for c in owned if c not in tanks and c not in healers]
-
-    tanks.sort(key=lambda c: score_character(c, mode), reverse=True)
-    healers.sort(key=lambda c: score_character(c, mode), reverse=True)
-    others.sort(key=lambda c: score_character(c, mode), reverse=True)
-
-    party: List[Dict[str, Any]] = []
-    issues: List[str] = []
-
-    if tanks:
-        party.append(tanks[0])
-    else:
-        issues.append("탱커 없음")
-
-    if healers:
-        party.append(healers[0])
-    else:
-        issues.append("힐러 없음")
-
-    used = {c["id"] for c in party}
-    for c in others:
-        if c["id"] in used:
-            continue
-        party.append(c)
-        used.add(c["id"])
-        if len(party) == PARTY_SIZE:
-            break
-
-    # 부족하면 남은 탱/힐로 보충
-    if len(party) < PARTY_SIZE:
-        pool = tanks[1:] + healers[1:]
-        pool.sort(key=lambda c: score_character(c, mode), reverse=True)
-        for c in pool:
-            if c["id"] in used:
-                continue
-            party.append(c)
-            used.add(c["id"])
-            if len(party) == PARTY_SIZE:
-                break
-
-    if len(party) < PARTY_SIZE:
-        issues.append(f"보유 풀 부족: {len(party)}명만 구성")
-
-    out_party = []
-    for c in party:
-        out_party.append({
-            "id": c["id"],
-            "name": c["name"],
-            "rarity": c.get("rarity"),
-            "element": c.get("element"),
-            "role": c.get("role"),
-            "class": c.get("class"),
-            "faction": c.get("faction"),
-            "image": c.get("image"),
-            "score": round(score_character(c, mode), 2),
-        })
-
-    return {
-        "mode": mode,
-        "best_party": out_party,
-        "issues": issues,
-        "data_source": CACHE["zone_nova"]["source"],
-        "remote_ok": CACHE["zone_nova"]["remote_ok"],
-        "remote_count": CACHE["zone_nova"]["remote_count"],
-        "remote_error": CACHE["zone_nova"]["remote_error"],
-    }
+# =========================
+# Static images serving
+# =========================
+@app.get("/images/<path:filename>")
+def serve_images(filename: str):
+    # filename 예: games/zone-nova/characters/Apep.jpg
+    for base in IMAGES_BASE_CANDIDATES:
+        full = os.path.join(base, filename)
+        if os.path.isfile(full):
+            # send_from_directory는 base + filename을 조합해 제공
+            return send_from_directory(base, filename)
+    abort(404)
 
 
 # =========================
@@ -498,6 +385,7 @@ def recommend_party(owned_ids_or_names: List[str], mode: str) -> Dict[str, Any]:
 # =========================
 @app.get("/")
 def home() -> Response:
+    ensure_cache_loaded()
     zn = CACHE["zone_nova"]
 
     html = f"""
@@ -514,31 +402,27 @@ def home() -> Response:
     .err {{ color: #b00020; white-space: pre-wrap; }}
     button {{ padding: 8px 12px; }}
     a {{ text-decoration: none; }}
-    .small {{ font-size: 12px; color: #555; }}
   </style>
 </head>
 <body>
   <h1>Zone Nova Meta</h1>
   <div class="box">
-    <div class="row">Repo path: <code>{zn.get("repo_path")}</code></div>
-    <div class="row">Image dir: <code>{zn.get("image_dir")}</code></div>
+    <div class="row">Image dir: <code>{zn.get("image_dir") or "N/A"}</code></div>
+    <div class="row">Image files: <code>{zn.get("image_count")}</code></div>
     <div class="row">Last refresh: <code>{zn.get("last_refresh_iso") or "N/A"}</code></div>
     <div class="row">Characters cached: <code>{zn.get("count")}</code></div>
     <div class="row">Source: <code>{zn.get("source") or "N/A"}</code></div>
     <div class="row">Remote scrape: <code>{zn.get("remote_ok")}</code> (remote_count=<code>{zn.get("remote_count")}</code>)</div>
-    <div class="row small">FORCE_LOCAL_ONLY: <code>{FORCE_LOCAL_ONLY}</code></div>
+    <div class="row">FORCE_LOCAL_ONLY: <code>{zn.get("force_local_only")}</code></div>
     <div class="row">Remote error:</div>
     <div class="err">{zn.get("remote_error") or "None"}</div>
+    <div class="row">Cache error:</div>
+    <div class="err">{zn.get("error") or "None"}</div>
 
     <div class="row" style="margin-top: 12px;">
-      <form method="post" action="/refresh" style="display:inline;">
-        <button type="submit">Refresh</button>
-      </form>
-      &nbsp;
-      <a href="/zones/zone-nova/characters">/zones/zone-nova/characters</a>
-      &nbsp;|&nbsp;
-      <a href="/ui/select">/ui/select</a>
-      &nbsp;|&nbsp;
+      <a href="/refresh" style="margin-right:10px;">Refresh</a>
+      <a href="/zones/zone-nova/characters" style="margin-right:10px;">/zones/zone-nova/characters</a>
+      <a href="/ui/select" style="margin-right:10px;">/ui/select</a>
       <a href="/recommend">/recommend</a>
     </div>
   </div>
@@ -548,25 +432,33 @@ def home() -> Response:
     return Response(html, mimetype="text/html; charset=utf-8")
 
 
+@app.get("/refresh")
 @app.post("/refresh")
 def refresh() -> Response:
     ok, msg = refresh_zone_nova_cache()
     status = 200 if ok else 500
-    return jsonify({"ok": ok, "message": msg, "zone_nova": CACHE["zone_nova"]}), status
+    return Response(
+        json.dumps({"ok": ok, "message": msg, "zone_nova": CACHE["zone_nova"]}, ensure_ascii=False),
+        mimetype="application/json; charset=utf-8",
+        status=status,
+    )
 
 
 @app.get("/zones/zone-nova/characters")
 def zone_nova_characters() -> Response:
-    chars = get_zone_nova_characters()
+    ensure_cache_loaded()
     payload = {
         "game": "zone-nova",
-        "count": len(chars),
+        "count": CACHE["zone_nova"]["count"],
         "last_refresh": CACHE["zone_nova"]["last_refresh_iso"],
         "source": CACHE["zone_nova"]["source"],
+        "image_dir": CACHE["zone_nova"]["image_dir"],
+        "image_count": CACHE["zone_nova"]["image_count"],
         "remote_ok": CACHE["zone_nova"]["remote_ok"],
         "remote_count": CACHE["zone_nova"]["remote_count"],
         "remote_error": CACHE["zone_nova"]["remote_error"],
-        "characters": chars,
+        "error": CACHE["zone_nova"]["error"],
+        "characters": CACHE["zone_nova"]["characters"],
     }
     return Response(json.dumps(payload, ensure_ascii=False), mimetype="application/json; charset=utf-8")
 
@@ -586,13 +478,13 @@ def recommend_help() -> Response:
 </head>
 <body>
   <h2>/recommend</h2>
-  <p>POST로 추천 결과를 반환합니다(4인 고정: Tank+Healer 우선).</p>
+  <p>POST로 추천 결과를 반환합니다(4인 고정).</p>
   <pre>
 POST /recommend
 Content-Type: application/json
 
 {
-  "mode": "pve",   // pve | boss | pvp
+  "mode": "pve",
   "owned": ["nina", "freya", "lavinia", "apep"]
 }
   </pre>
@@ -604,6 +496,7 @@ Content-Type: application/json
 
 @app.post("/recommend")
 def recommend() -> Response:
+    ensure_cache_loaded()
     data = request.get_json(silent=True) or {}
     mode = (data.get("mode") or "pve").strip().lower()
     if mode not in {"pve", "boss", "pvp"}:
@@ -611,22 +504,73 @@ def recommend() -> Response:
 
     owned = data.get("owned") or []
     if not isinstance(owned, list):
-        return Response(json.dumps({"error": "owned는 배열이어야 합니다."}, ensure_ascii=False),
-                        mimetype="application/json; charset=utf-8", status=400)
+        return Response(
+            json.dumps({"error": "owned는 배열이어야 합니다."}, ensure_ascii=False),
+            mimetype="application/json; charset=utf-8",
+            status=400,
+        )
 
-    result = recommend_party([str(x) for x in owned], mode)
+    chars = CACHE["zone_nova"]["characters"]
+    by_id = {c["id"].lower(): c for c in chars}
+    by_name = {c["name"].lower(): c for c in chars}
+
+    owned_chars = []
+    for x in owned:
+        k = str(x).strip().lower()
+        if k in by_id:
+            owned_chars.append(by_id[k])
+        elif k in by_name:
+            owned_chars.append(by_name[k])
+
+    uniq = {c["id"]: c for c in owned_chars}
+    owned_chars = list(uniq.values())
+
+    if len(owned_chars) < PARTY_SIZE:
+        return Response(
+            json.dumps({"error": f"최소 {PARTY_SIZE}명 필요", "count_owned": len(owned_chars)}, ensure_ascii=False),
+            mimetype="application/json; charset=utf-8",
+            status=400,
+        )
+
+    # (간단) 점수 상위 4명
+    owned_chars.sort(key=lambda c: score_character(c, mode), reverse=True)
+    party = owned_chars[:PARTY_SIZE]
+
+    out = []
+    for c in party:
+        out.append({
+            "id": c["id"],
+            "name": c["name"],
+            "rarity": c.get("rarity"),
+            "element": c.get("element"),
+            "role": c.get("role"),
+            "class": c.get("class"),
+            "faction": c.get("faction"),
+            "image": c.get("image"),
+            "score": round(score_character(c, mode), 2),
+        })
+
+    result = {
+        "mode": mode,
+        "best_party": out,
+        "data_source": CACHE["zone_nova"]["source"],
+        "remote_ok": CACHE["zone_nova"]["remote_ok"],
+        "remote_count": CACHE["zone_nova"]["remote_count"],
+        "remote_error": CACHE["zone_nova"]["remote_error"],
+        "error": CACHE["zone_nova"]["error"],
+    }
     return Response(json.dumps(result, ensure_ascii=False), mimetype="application/json; charset=utf-8")
 
 
-# 간단 UI: 캐릭터 체크 → 추천 호출
 @app.get("/ui/select")
 def ui_select() -> Response:
-    chars = get_zone_nova_characters()
-    # 간단 목록(이미지 + 이름)
+    ensure_cache_loaded()
+    chars = CACHE["zone_nova"]["characters"]
+
     items = []
     for c in chars:
         img = c.get("image")
-        img_tag = f'<img src="{img}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;margin-right:8px;" />' if img else ""
+        img_tag = f'<img src="{img}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;margin-right:8px;" />' if img else ""
         items.append(f"""
           <label style="display:flex;align-items:center;gap:8px;padding:6px 0;">
             <input type="checkbox" name="owned" value="{c['id']}" />
@@ -688,9 +632,7 @@ async function submitRecommend() {{
     return Response(html, mimetype="text/html; charset=utf-8")
 
 
-# =========================
-# Boot
-# =========================
+# 로컬 실행용
 if __name__ == "__main__":
     refresh_zone_nova_cache()
     port = int(os.environ.get("PORT", DEFAULT_PORT))
