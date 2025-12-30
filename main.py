@@ -58,11 +58,10 @@ IMAGES_BASE_CANDIDATES = [
 ]
 
 # =========================
-# Element advantage / weakness weights (customizable)
+# Element advantage / weakness weights
 # =========================
 ALL_ELEMENTS = ["Fire", "Ice", "Wind", "Holy", "Chaos"]
 
-# attacker -> [defender it is strong against]
 ELEMENT_ADVANTAGE = {
     "Fire": ["Wind"],
     "Wind": ["Ice"],
@@ -71,9 +70,9 @@ ELEMENT_ADVANTAGE = {
     "Chaos": ["Fire"],
 }
 
-WEIGHT_MATCH_WEAKNESS = 8.0         # party member element == boss_weakness
-WEIGHT_ADV_OVER_ENEMY = 5.0         # party member element strong vs enemy_element
-WEIGHT_FOCUS_INCLUDED = 6.0         # focus character included bonus (per focus member)
+WEIGHT_MATCH_WEAKNESS = 8.0
+WEIGHT_ADV_OVER_ENEMY = 5.0
+WEIGHT_FOCUS_INCLUDED = 6.0
 
 # =========================
 # In-memory cache
@@ -84,7 +83,7 @@ CACHE: Dict[str, Any] = {
         "count": 0,
         "last_refresh_iso": None,
         "error": None,
-        "source": None,              # images_only | images+remote
+        "source": None,
         "image_dir": None,
         "image_count": 0,
         "remote_ok": False,
@@ -408,12 +407,12 @@ def rarity_bonus(r: Optional[str]) -> float:
 
 
 def role_bonus(role: Optional[str], mode: str) -> float:
-    r = (role or "").strip().lower()
+    rr = (role or "").strip().lower()
     if mode == "boss":
-        return {"dps": 12.0, "debuffer": 9.0, "buffer": 6.0, "tank": 3.0, "healer": 3.0}.get(r, 0.0)
+        return {"dps": 12.0, "debuffer": 9.0, "buffer": 6.0, "tank": 3.0, "healer": 3.0}.get(rr, 0.0)
     if mode == "pvp":
-        return {"tank": 12.0, "healer": 12.0, "debuffer": 8.0, "buffer": 7.0, "dps": 5.0}.get(r, 0.0)
-    return {"tank": 10.0, "healer": 10.0, "dps": 9.0, "debuffer": 7.0, "buffer": 7.0}.get(r, 0.0)
+        return {"tank": 12.0, "healer": 12.0, "debuffer": 8.0, "buffer": 7.0, "dps": 5.0}.get(rr, 0.0)
+    return {"tank": 10.0, "healer": 10.0, "dps": 9.0, "debuffer": 7.0, "buffer": 7.0}.get(rr, 0.0)
 
 
 def score_character(c: Dict[str, Any], mode: str) -> float:
@@ -755,43 +754,15 @@ def recommend_v3() -> Response:
 
 
 # =========================
-# UI (Upgraded)
+# UI (JSON -> JS render 방식: 문법오류 방지)
 # =========================
 @app.get("/ui/select")
 def ui_select() -> Response:
     ensure_cache_loaded()
     chars = CACHE["zone_nova"]["characters"]
 
-    # pre-render list items with data-* attributes for filtering/sorting
-    items_html: List[str] = []
-    for c in chars:
-        cid = c["id"]
-        name = c.get("name") or cid
-        rarity = c.get("rarity") or "-"
-        element = c.get("element") or "-"
-        role = c.get("role") or "-"
-        img = c.get("image") or ""
-        items_html.append(f"""
-          <div class="charCard" data-id="{cid}" data-name="{(name or '').lower()}" data-rarity="{rarity}" data-element="{element}" data-role="{role}">
-            <label class="charInner">
-              <input type="checkbox" class="owned" value="{cid}" />
-              <div class="avatarWrap">
-                {'<img src="' + img + '" class="avatar" onerror="this.style.display=\\'none\\'"/>' if img else '<div class="avatarFallback"></div>'}
-              </div>
-              <div class="charText">
-                <div class="charTop">
-                  <div class="charName">{name}</div>
-                  <div class="chipRow">
-                    <span class="chip chipRarity">{rarity}</span>
-                    <span class="chip chipElem">{element}</span>
-                    <span class="chip chipRole">{role}</span>
-                  </div>
-                </div>
-                <div class="charSub mono">{cid}</div>
-              </div>
-            </label>
-          </div>
-        """)
+    # JS에 주입할 JSON(스크립트 종료 태그 방지)
+    chars_json = json.dumps(chars, ensure_ascii=False).replace("</", "<\\/")
 
     advantage_line = " · ".join([f"{k}→{','.join(v)}" for k, v in ELEMENT_ADVANTAGE.items()])
 
@@ -841,15 +812,9 @@ def ui_select() -> Response:
       padding: 16px 18px;
       display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
     }}
-    .title {{
-      display:flex; align-items:baseline; gap:10px; margin-right:auto;
-    }}
-    .title h1 {{
-      font-size: 18px; margin: 0; letter-spacing: .2px;
-    }}
-    .meta {{
-      font-size: 12px; color: var(--muted);
-    }}
+    .title {{ display:flex; align-items:baseline; gap:10px; margin-right:auto; }}
+    .title h1 {{ font-size: 18px; margin: 0; letter-spacing: .2px; }}
+    .meta {{ font-size: 12px; color: var(--muted); }}
     .pill {{
       display:inline-flex; align-items:center; gap:6px;
       padding: 6px 10px; border: 1px solid var(--border);
@@ -860,21 +825,9 @@ def ui_select() -> Response:
       background: var(--ok);
       box-shadow: 0 0 0 3px rgba(61,220,151,.18);
     }}
-
-    .wrap {{
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 16px 18px 34px;
-    }}
-    .grid {{
-      display: grid;
-      grid-template-columns: 420px 1fr;
-      gap: 14px;
-      align-items: start;
-    }}
-    @media (max-width: 980px) {{
-      .grid {{ grid-template-columns: 1fr; }}
-    }}
+    .wrap {{ max-width: 1280px; margin: 0 auto; padding: 16px 18px 34px; }}
+    .grid {{ display: grid; grid-template-columns: 420px 1fr; gap: 14px; align-items: start; }}
+    @media (max-width: 980px) {{ .grid {{ grid-template-columns: 1fr; }} }}
     .card {{
       background: var(--panel);
       border: 1px solid var(--border);
@@ -887,22 +840,12 @@ def ui_select() -> Response:
       border-bottom: 1px solid var(--border);
       display:flex; align-items:center; justify-content: space-between; gap: 12px;
     }}
-    .cardTitle {{
-      font-size: 13px; font-weight: 800; letter-spacing: .2px;
-    }}
-    .cardBody {{
-      padding: 14px;
-    }}
+    .cardTitle {{ font-size: 13px; font-weight: 800; letter-spacing: .2px; }}
+    .cardBody {{ padding: 14px; }}
 
-    .row {{
-      display:flex; flex-wrap: wrap; gap: 10px; align-items: center;
-    }}
-    .field {{
-      display:flex; flex-direction: column; gap: 6px;
-    }}
-    .label {{
-      font-size: 12px; color: var(--muted);
-    }}
+    .row {{ display:flex; flex-wrap: wrap; gap: 10px; align-items: center; }}
+    .field {{ display:flex; flex-direction: column; gap: 6px; }}
+    .label {{ font-size: 12px; color: var(--muted); }}
     select, input {{
       width: 100%;
       padding: 10px 12px;
@@ -916,7 +859,6 @@ def ui_select() -> Response:
       border-color: rgba(110,168,255,.55);
       box-shadow: 0 0 0 4px rgba(110,168,255,.14);
     }}
-
     .btn {{
       padding: 10px 12px;
       border-radius: 12px;
@@ -937,18 +879,9 @@ def ui_select() -> Response:
       background: rgba(255,93,108,.10);
       color: #ffd7db;
     }}
-    .btnGhost {{
-      background: transparent;
-      border: 1px solid var(--border);
-    }}
-
-    .hint {{
-      font-size: 12px; color: var(--muted);
-      line-height: 1.55;
-    }}
-    .mono {{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }}
+    .btnGhost {{ background: transparent; border: 1px solid var(--border); }}
+    .hint {{ font-size: 12px; color: var(--muted); line-height: 1.55; }}
+    .mono {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }}
 
     .listTools {{
       display:flex; gap: 10px; flex-wrap: wrap; align-items: center;
@@ -964,17 +897,9 @@ def ui_select() -> Response:
     }}
     .stat b {{ color: var(--text); }}
 
-    .charGrid {{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }}
-    @media (max-width: 980px) {{
-      .charGrid {{ grid-template-columns: repeat(2, 1fr); }}
-    }}
-    @media (max-width: 520px) {{
-      .charGrid {{ grid-template-columns: 1fr; }}
-    }}
+    .charGrid {{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }}
+    @media (max-width: 980px) {{ .charGrid {{ grid-template-columns: repeat(2, 1fr); }} }}
+    @media (max-width: 520px) {{ .charGrid {{ grid-template-columns: 1fr; }} }}
 
     .charCard {{
       border: 1px solid var(--border);
@@ -989,15 +914,8 @@ def ui_select() -> Response:
       background: rgba(0,0,0,.24);
       border-color: rgba(110,168,255,.32);
     }}
-    .charInner {{
-      display:flex; align-items:center; gap: 10px;
-      padding: 10px;
-    }}
-    .charInner input {{
-      width: 16px; height: 16px;
-      accent-color: var(--brand);
-      cursor: pointer;
-    }}
+    .charInner {{ display:flex; align-items:center; gap: 10px; padding: 10px; }}
+    .charInner input {{ width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }}
     .avatarWrap {{
       width: 46px; height: 46px;
       border-radius: 14px;
@@ -1006,11 +924,7 @@ def ui_select() -> Response:
       border: 1px solid rgba(255,255,255,.10);
       flex: 0 0 auto;
     }}
-    .avatar {{
-      width: 100%; height: 100%;
-      object-fit: cover;
-      display:block;
-    }}
+    .avatar {{ width: 100%; height: 100%; object-fit: cover; display:block; }}
     .avatarFallback {{
       width:100%; height:100%;
       background: linear-gradient(135deg, rgba(110,168,255,.25), rgba(124,92,255,.20));
@@ -1018,45 +932,29 @@ def ui_select() -> Response:
     .charText {{ min-width: 0; width: 100%; }}
     .charTop {{ display:flex; align-items:flex-start; justify-content: space-between; gap: 10px; }}
     .charName {{
-      font-weight: 900;
-      font-size: 13px;
-      letter-spacing: .2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 200px;
+      font-weight: 900; font-size: 13px; letter-spacing: .2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;
     }}
     .chipRow {{ display:flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }}
     .chip {{
-      font-size: 11px;
-      padding: 4px 8px;
-      border-radius: 999px;
+      font-size: 11px; padding: 4px 8px; border-radius: 999px;
       border: 1px solid var(--border);
       background: rgba(255,255,255,.06);
       color: var(--muted);
       white-space: nowrap;
     }}
-    .chipRarity {{ color: rgba(255,255,255,.82); }}
     .chipElem {{ color: rgba(110,168,255,.92); border-color: rgba(110,168,255,.25); }}
     .chipRole {{ color: rgba(61,220,151,.92); border-color: rgba(61,220,151,.22); }}
     .charSub {{
-      margin-top: 6px;
-      font-size: 12px;
-      color: var(--muted2);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      margin-top: 6px; font-size: 12px; color: var(--muted2);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }}
     .charCard.selected {{
       border-color: rgba(110,168,255,.55);
       box-shadow: 0 0 0 4px rgba(110,168,255,.12);
     }}
 
-    .resultArea {{
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }}
+    .resultArea {{ display: grid; grid-template-columns: 1fr; gap: 12px; }}
     .resultCard {{
       border: 1px solid var(--border);
       background: rgba(0,0,0,.20);
@@ -1068,9 +966,7 @@ def ui_select() -> Response:
       padding: 12px 12px;
       border-bottom: 1px solid var(--border);
     }}
-    .rank {{
-      display:flex; align-items:center; gap: 10px;
-    }}
+    .rank {{ display:flex; align-items:center; gap: 10px; }}
     .badge {{
       width: 34px; height: 34px; border-radius: 12px;
       display:flex; align-items:center; justify-content:center;
@@ -1078,29 +974,12 @@ def ui_select() -> Response:
       border: 1px solid rgba(110,168,255,.30);
       font-weight: 900;
     }}
-    .score {{
-      font-weight: 900;
-      font-size: 14px;
-      letter-spacing: .2px;
-    }}
-    .scoreSub {{
-      font-size: 12px; color: var(--muted);
-      margin-top: 2px;
-    }}
-    .resultBody {{
-      padding: 12px;
-    }}
-    .members {{
-      display:grid;
-      grid-template-columns: repeat(4, minmax(180px, 1fr));
-      gap: 10px;
-    }}
-    @media (max-width: 980px) {{
-      .members {{ grid-template-columns: repeat(2, minmax(160px, 1fr)); }}
-    }}
-    @media (max-width: 520px) {{
-      .members {{ grid-template-columns: 1fr; }}
-    }}
+    .score {{ font-weight: 900; font-size: 14px; letter-spacing: .2px; }}
+    .scoreSub {{ font-size: 12px; color: var(--muted); margin-top: 2px; }}
+    .resultBody {{ padding: 12px; }}
+    .members {{ display:grid; grid-template-columns: repeat(4, minmax(180px, 1fr)); gap: 10px; }}
+    @media (max-width: 980px) {{ .members {{ grid-template-columns: repeat(2, minmax(160px, 1fr)); }} }}
+    @media (max-width: 520px) {{ .members {{ grid-template-columns: 1fr; }} }}
     .mcard {{
       display:flex; gap: 10px; align-items:center;
       padding: 10px;
@@ -1167,7 +1046,6 @@ def ui_select() -> Response:
   <div class="wrap">
     <div class="grid">
 
-      <!-- Left: Options -->
       <div class="card">
         <div class="cardHeader">
           <div class="cardTitle">추천 옵션</div>
@@ -1216,9 +1094,9 @@ def ui_select() -> Response:
           <div style="height: 12px;"></div>
 
           <div class="row">
-            <button class="btn btnGhost" onclick="pushTo('required')">선택 → Required</button>
-            <button class="btn btnGhost" onclick="pushTo('focus')">선택 → Focus</button>
-            <button class="btn btnGhost" onclick="pushTo('banned')">선택 → Banned</button>
+            <button class="btn btnGhost" id="btnReq">선택 → Required</button>
+            <button class="btn btnGhost" id="btnFocus">선택 → Focus</button>
+            <button class="btn btnGhost" id="btnBan">선택 → Banned</button>
           </div>
 
           <div style="height: 12px;"></div>
@@ -1245,19 +1123,18 @@ def ui_select() -> Response:
           <div style="height: 14px;"></div>
 
           <div class="row">
-            <button class="btn btnPrimary" onclick="run()">Recommend</button>
-            <button class="btn btnDanger" onclick="clearAll()">Clear</button>
+            <button class="btn btnPrimary" id="btnRun">Recommend</button>
+            <button class="btn btnDanger" id="btnClear">Clear</button>
           </div>
 
           <div style="height: 12px;"></div>
           <div class="hint">
-            팁: <b>검색/필터</b>로 캐릭을 좁힌 뒤 “현재 필터된 항목만 선택”을 쓰면 빠릅니다.
+            팁: 검색/필터로 좁힌 뒤 “필터된 항목만 선택”을 쓰면 빠릅니다.
           </div>
 
         </div>
       </div>
 
-      <!-- Right: Owned + Result -->
       <div class="card">
         <div class="cardHeader">
           <div class="cardTitle">Owned 선택</div>
@@ -1271,12 +1148,12 @@ def ui_select() -> Response:
           <div class="listTools">
             <div class="field" style="flex: 1; min-width: 180px;">
               <div class="label">Search</div>
-              <input id="q" placeholder="name 또는 id 검색" oninput="applyFilter()" />
+              <input id="q" placeholder="name 또는 id 검색" />
             </div>
 
             <div class="field" style="width: 140px;">
               <div class="label">Element</div>
-              <select id="f_element" onchange="applyFilter()">
+              <select id="f_element">
                 <option value="">All</option>
                 {''.join([f'<option value="{e}">{e}</option>' for e in ALL_ELEMENTS])}
                 <option value="-">-</option>
@@ -1285,7 +1162,7 @@ def ui_select() -> Response:
 
             <div class="field" style="width: 140px;">
               <div class="label">Role</div>
-              <select id="f_role" onchange="applyFilter()">
+              <select id="f_role">
                 <option value="">All</option>
                 <option value="tank">tank</option>
                 <option value="healer">healer</option>
@@ -1298,7 +1175,7 @@ def ui_select() -> Response:
 
             <div class="field" style="width: 120px;">
               <div class="label">Rarity</div>
-              <select id="f_rarity" onchange="applyFilter()">
+              <select id="f_rarity">
                 <option value="">All</option>
                 <option value="SSR">SSR</option>
                 <option value="SR">SR</option>
@@ -1309,7 +1186,7 @@ def ui_select() -> Response:
 
             <div class="field" style="width: 160px;">
               <div class="label">Sort</div>
-              <select id="sort" onchange="applySort()">
+              <select id="sort">
                 <option value="name" selected>Name</option>
                 <option value="rarity">Rarity</option>
                 <option value="element">Element</option>
@@ -1319,15 +1196,13 @@ def ui_select() -> Response:
           </div>
 
           <div class="row" style="margin-bottom: 12px;">
-            <button class="btn" onclick="selectAll(true)">전체 선택</button>
-            <button class="btn" onclick="selectAll(false)">전체 해제</button>
-            <button class="btn" onclick="selectVisible(true)">필터된 항목만 선택</button>
-            <button class="btn" onclick="selectVisible(false)">필터된 항목만 해제</button>
+            <button class="btn" id="btnAllOn">전체 선택</button>
+            <button class="btn" id="btnAllOff">전체 해제</button>
+            <button class="btn" id="btnVisOn">필터된 항목만 선택</button>
+            <button class="btn" id="btnVisOff">필터된 항목만 해제</button>
           </div>
 
-          <div class="charGrid" id="charGrid">
-            {''.join(items_html)}
-          </div>
+          <div class="charGrid" id="charGrid"></div>
 
           <div style="height: 16px;"></div>
 
@@ -1335,7 +1210,7 @@ def ui_select() -> Response:
             <div class="cardHeader" style="border-bottom: 1px solid var(--border);">
               <div class="cardTitle">Result</div>
               <div class="row" style="margin-left:auto;">
-                <button class="btn btnGhost" onclick="copyLast()">Copy JSON</button>
+                <button class="btn btnGhost" id="btnCopy">Copy JSON</button>
               </div>
             </div>
             <div class="cardBody">
@@ -1352,6 +1227,8 @@ def ui_select() -> Response:
   <div class="toast" id="toast"></div>
 
 <script>
+const CHARS = {chars_json};
+
 let LAST_JSON = null;
 
 function toast(msg) {{
@@ -1359,12 +1236,12 @@ function toast(msg) {{
   t.textContent = msg;
   t.style.display = "block";
   clearTimeout(window.__toastTimer);
-  window.__toastTimer = setTimeout(()=>{{ t.style.display="none"; }}, 1600);
+  window.__toastTimer = setTimeout(() => {{ t.style.display = "none"; }}, 1600);
 }}
 
 function csv(v) {{
-  v = (v||"").trim();
-  if(!v) return [];
+  v = (v || "").trim();
+  if (!v) return [];
   return v.split(",").map(x => x.trim()).filter(Boolean);
 }}
 function uniq(arr) {{
@@ -1372,24 +1249,68 @@ function uniq(arr) {{
   arr.forEach(x => s.add(x));
   return Array.from(s);
 }}
-function checkedOwned() {{
-  return Array.from(document.querySelectorAll('.owned:checked')).map(x => x.value);
-}}
-function pushTo(target) {{
-  const owned = checkedOwned();
-  if(owned.length === 0) {{
-    toast("먼저 Owned 체크하세요.");
-    return;
-  }}
-  const el = document.getElementById(target);
-  const cur = csv(el.value);
-  el.value = uniq(cur.concat(owned)).join(", ");
-  toast(target + "에 추가됨 (" + owned.length + ")");
-}}
 
 function setSelectedStat() {{
-  const n = checkedOwned().length;
+  const n = document.querySelectorAll(".owned:checked").length;
   document.getElementById("selectedStat").innerHTML = "Selected <b>" + n + "</b>";
+}}
+
+function applyFilter() {{
+  const q = (document.getElementById("q").value || "").trim().toLowerCase();
+  const fe = document.getElementById("f_element").value;
+  const fr = (document.getElementById("f_role").value || "").toLowerCase();
+  const frr = document.getElementById("f_rarity").value;
+
+  document.querySelectorAll(".charCard").forEach(card => {{
+    const id = card.dataset.id || "";
+    const name = card.dataset.name || "";
+    const el = card.dataset.element || "-";
+    const role = (card.dataset.role || "-").toLowerCase();
+    const rar = card.dataset.rarity || "-";
+
+    let ok = true;
+    if (q) ok = (id.includes(q) || name.includes(q));
+    if (ok && fe) ok = (el === fe);
+    if (ok && fr) ok = (role === fr);
+    if (ok && frr) ok = (rar === frr);
+
+    card.style.display = ok ? "" : "none";
+  }});
+}}
+
+function applySort() {{
+  const sortKey = document.getElementById("sort").value;
+  const grid = document.getElementById("charGrid");
+  const cards = Array.from(grid.children);
+
+  const rarityOrder = {{ "SSR": 1, "SR": 2, "R": 3, "-": 9 }};
+  const roleOrder = {{ "tank": 1, "healer": 2, "dps": 3, "debuffer": 4, "buffer": 5, "-": 9 }};
+  const elemOrder = {{ "Fire": 1, "Ice": 2, "Wind": 3, "Holy": 4, "Chaos": 5, "-": 9 }};
+
+  function key(card) {{
+    if (sortKey === "rarity") return rarityOrder[card.dataset.rarity] || 9;
+    if (sortKey === "role") return roleOrder[(card.dataset.role || "-").toLowerCase()] || 9;
+    if (sortKey === "element") return elemOrder[card.dataset.element] || 9;
+    return (card.dataset.name || "");
+  }}
+
+  cards.sort((a, b) => {{
+    const ka = key(a);
+    const kb = key(b);
+    if (typeof ka === "number" && typeof kb === "number") return ka - kb;
+    return String(ka).localeCompare(String(kb));
+  }});
+
+  cards.forEach(c => grid.appendChild(c));
+  applyFilter();
+}}
+
+function syncSelectedCards() {{
+  document.querySelectorAll(".charCard").forEach(card => {{
+    const cb = card.querySelector(".owned");
+    if (cb && cb.checked) card.classList.add("selected");
+    else card.classList.remove("selected");
+  }});
 }}
 
 function selectAll(flag) {{
@@ -1410,69 +1331,25 @@ function selectVisible(flag) {{
   setSelectedStat();
 }}
 
-function syncSelectedCards() {{
-  document.querySelectorAll(".charCard").forEach(card => {{
-    const cb = card.querySelector(".owned");
-    if(cb.checked) card.classList.add("selected");
-    else card.classList.remove("selected");
-  }});
+function checkedOwned() {{
+  return Array.from(document.querySelectorAll(".owned:checked")).map(x => x.value);
 }}
 
-function applyFilter() {{
-  const q = (document.getElementById("q").value||"").trim().toLowerCase();
-  const fe = document.getElementById("f_element").value;
-  const fr = document.getElementById("f_role").value.toLowerCase();
-  const frr = document.getElementById("f_rarity").value;
-
-  document.querySelectorAll(".charCard").forEach(card => {{
-    const id = card.dataset.id || "";
-    const name = card.dataset.name || "";
-    const el = card.dataset.element || "-";
-    const role = (card.dataset.role || "-").toLowerCase();
-    const rar = card.dataset.rarity || "-";
-
-    let ok = true;
-    if(q) {{
-      ok = (id.includes(q) || name.includes(q));
-    }}
-    if(ok && fe) ok = (el === fe);
-    if(ok && fr) ok = (role === fr);
-    if(ok && frr) ok = (rar === frr);
-
-    card.style.display = ok ? "" : "none";
-  }});
-}}
-
-function applySort() {{
-  const sortKey = document.getElementById("sort").value;
-  const grid = document.getElementById("charGrid");
-  const cards = Array.from(grid.children);
-
-  const rarityOrder = {{ "SSR": 1, "SR": 2, "R": 3, "-": 9 }};
-  const roleOrder = {{ "tank": 1, "healer": 2, "dps": 3, "debuffer": 4, "buffer": 5, "-": 9 }};
-  const elemOrder = {{ "Fire": 1, "Ice": 2, "Wind": 3, "Holy": 4, "Chaos": 5, "-": 9 }};
-
-  function key(card) {{
-    if(sortKey === "rarity") return rarityOrder[card.dataset.rarity] || 9;
-    if(sortKey === "role") return roleOrder[(card.dataset.role||"-").toLowerCase()] || 9;
-    if(sortKey === "element") return elemOrder[card.dataset.element] || 9;
-    return (card.dataset.name || "");
+function pushTo(target) {{
+  const owned = checkedOwned();
+  if (owned.length === 0) {{
+    toast("먼저 Owned 체크하세요.");
+    return;
   }}
-
-  cards.sort((a,b)=> {{
-    const ka = key(a);
-    const kb = key(b);
-    if(typeof ka === "number" && typeof kb === "number") return ka - kb;
-    return String(ka).localeCompare(String(kb));
-  }});
-
-  cards.forEach(c => grid.appendChild(c));
-  applyFilter();
+  const el = document.getElementById(target);
+  const cur = csv(el.value);
+  el.value = uniq(cur.concat(owned)).join(", ");
+  toast(target + "에 추가됨 (" + owned.length + ")");
 }}
 
 function clearAll() {{
   document.querySelectorAll(".owned").forEach(b => b.checked = false);
-  ["required","focus","banned"].forEach(id => document.getElementById(id).value = "");
+  ["required", "focus", "banned"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("boss_weakness").value = "";
   document.getElementById("enemy_element").value = "";
   document.getElementById("q").value = "";
@@ -1489,20 +1366,22 @@ function clearAll() {{
 function renderResult(data) {{
   LAST_JSON = data;
 
-  if(!data.ok) {{
-    document.getElementById("out").innerHTML = "<pre class='mono' style='white-space:pre-wrap;'>" + JSON.stringify(data, null, 2) + "</pre>";
+  if (!data.ok) {{
+    document.getElementById("out").innerHTML =
+      "<pre class='mono' style='white-space:pre-wrap;'>" + JSON.stringify(data, null, 2) + "</pre>";
     return;
   }}
 
   const parties = data.parties || [];
-  if(parties.length === 0) {{
+  if (parties.length === 0) {{
     document.getElementById("out").innerHTML = "<div class='hint'>조건을 만족하는 파티가 없습니다.</div>";
     return;
   }}
 
   let html = "";
-  if((data.issues||[]).length) {{
-    html += "<div class='hint' style='margin-bottom:10px; color: rgba(255,93,108,.9);'>issues: " + data.issues.join(" / ") + "</div>";
+  if ((data.issues || []).length) {{
+    html += "<div class='hint' style='margin-bottom:10px; color: rgba(255,93,108,.9);'>issues: "
+         + data.issues.join(" / ") + "</div>";
   }}
 
   html += "<div class='hint mono' style='margin-bottom:12px;'>inputs: " + JSON.stringify(data.inputs) + "</div>";
@@ -1512,21 +1391,22 @@ function renderResult(data) {{
     html += "<div class='resultCard'>";
     html += "<div class='resultHead'>";
     html += "<div class='rank'>";
-    html += "<div class='badge'>#" + (idx+1) + "</div>";
+    html += "<div class='badge'>#" + (idx + 1) + "</div>";
     html += "<div>";
     html += "<div class='score'>Score " + p.score + "</div>";
     html += "<div class='scoreSub'>members 4 · mode " + data.mode + "</div>";
-    html += "</div>";
-    html += "</div>";
+    html += "</div></div>";
     html += "<div class='pill'>Top " + data.top_k + "</div>";
     html += "</div>";
 
     html += "<div class='resultBody'>";
     html += "<div class='members'>";
-    (p.members||[]).forEach(m => {{
+    (p.members || []).forEach(m => {{
       html += "<div class='mcard'>";
       html += "<div class='mimg'>";
-      if(m.image) html += "<img src='" + m.image + "' onerror=\\"this.style.display='none'\\"/>";
+      if (m.image) {{
+        html += "<img src='" + m.image + "' onerror='this.style.display=\"none\"' />";
+      }}
       html += "</div>";
       html += "<div class='mtext'>";
       html += "<div class='mname'>" + (m.name || m.id) + "</div>";
@@ -1535,21 +1415,15 @@ function renderResult(data) {{
       html += "<span>" + (m.element || "-") + "</span>";
       html += "<span>" + (m.role || "-") + "</span>";
       html += "<span>score " + (m.score ?? "-") + "</span>";
-      html += "</div>";
-      html += "</div>";
-      html += "</div>";
+      html += "</div></div></div>";
     }});
     html += "</div>";
 
-    html += "<div class='reasons'>";
-    html += "<b>Analysis</b>";
-    html += "<ul>";
-    (p.reasons||[]).forEach(r => html += "<li>" + r + "</li>");
-    html += "</ul>";
-    html += "</div>";
+    html += "<div class='reasons'><b>Analysis</b><ul>";
+    (p.reasons || []).forEach(r => html += "<li>" + r + "</li>");
+    html += "</ul></div>";
 
-    html += "</div>";
-    html += "</div>";
+    html += "</div></div>";
   }});
 
   html += "</div>";
@@ -1568,7 +1442,7 @@ async function run() {{
     enemy_element: document.getElementById("enemy_element").value || null
   }};
 
-  if((payload.owned||[]).length < 4) {{
+  if ((payload.owned || []).length < 4) {{
     toast("Owned는 최소 4명 필요합니다.");
     return;
   }}
@@ -1576,7 +1450,7 @@ async function run() {{
   document.getElementById("out").innerHTML = "<div class='hint'>계산 중...</div>";
   const res = await fetch("/recommend/v3", {{
     method: "POST",
-    headers: {{ "Content-Type":"application/json" }},
+    headers: {{ "Content-Type": "application/json" }},
     body: JSON.stringify(payload)
   }});
 
@@ -1586,38 +1460,132 @@ async function run() {{
 }}
 
 async function copyLast() {{
-  if(!LAST_JSON) {{
+  if (!LAST_JSON) {{
     toast("복사할 결과가 없습니다.");
     return;
   }}
   try {{
     await navigator.clipboard.writeText(JSON.stringify(LAST_JSON, null, 2));
     toast("JSON 복사 완료");
-  }} catch(e) {{
+  }} catch (e) {{
     toast("복사 실패(브라우저 권한 확인)");
   }}
 }}
 
-document.addEventListener("DOMContentLoaded", () => {{
-  // 카드 클릭하면 체크 토글 (체크박스/링크 제외)
-  document.querySelectorAll(".charCard").forEach(card => {{
-    card.addEventListener("click", (ev) => {{
-      const t = ev.target;
-      if(t && (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "BUTTON" || t.tagName === "A")) return;
-      const cb = card.querySelector(".owned");
-      cb.checked = !cb.checked;
-      syncSelectedCards();
-      setSelectedStat();
-    }});
+function buildCard(c) {{
+  const id = c.id || "";
+  const name = c.name || id;
+  const rarity = c.rarity || "-";
+  const element = c.element || "-";
+  const role = c.role || "-";
+  const img = c.image || "";
+
+  const card = document.createElement("div");
+  card.className = "charCard";
+  card.dataset.id = id;
+  card.dataset.name = String(name).toLowerCase();
+  card.dataset.rarity = rarity;
+  card.dataset.element = element;
+  card.dataset.role = role;
+
+  const label = document.createElement("label");
+  label.className = "charInner";
+
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.className = "owned";
+  cb.value = id;
+
+  const avatarWrap = document.createElement("div");
+  avatarWrap.className = "avatarWrap";
+
+  if (img) {{
+    const im = document.createElement("img");
+    im.className = "avatar";
+    im.src = img;
+    im.onerror = () => {{ im.style.display = "none"; }};
+    avatarWrap.appendChild(im);
+  }} else {{
+    const fb = document.createElement("div");
+    fb.className = "avatarFallback";
+    avatarWrap.appendChild(fb);
+  }}
+
+  const text = document.createElement("div");
+  text.className = "charText";
+
+  const top = document.createElement("div");
+  top.className = "charTop";
+
+  const nm = document.createElement("div");
+  nm.className = "charName";
+  nm.textContent = name;
+
+  const chipRow = document.createElement("div");
+  chipRow.className = "chipRow";
+  chipRow.innerHTML =
+    "<span class='chip'>" + rarity + "</span>" +
+    "<span class='chip chipElem'>" + element + "</span>" +
+    "<span class='chip chipRole'>" + role + "</span>";
+
+  top.appendChild(nm);
+  top.appendChild(chipRow);
+
+  const sub = document.createElement("div");
+  sub.className = "charSub mono";
+  sub.textContent = id;
+
+  text.appendChild(top);
+  text.appendChild(sub);
+
+  label.appendChild(cb);
+  label.appendChild(avatarWrap);
+  label.appendChild(text);
+
+  card.appendChild(label);
+
+  // 클릭 토글(체크박스는 그대로)
+  card.addEventListener("click", (ev) => {{
+    if (ev.target && ev.target.tagName === "INPUT") return;
+    cb.checked = !cb.checked;
+    syncSelectedCards();
+    setSelectedStat();
+  }});
+  cb.addEventListener("change", () => {{
+    syncSelectedCards();
+    setSelectedStat();
   }});
 
-  // 체크박스 직접 클릭도 selected class 반영
-  document.querySelectorAll(".owned").forEach(cb => {{
-    cb.addEventListener("change", () => {{
-      syncSelectedCards();
-      setSelectedStat();
-    }});
-  }});
+  return card;
+}}
+
+function renderChars() {{
+  const grid = document.getElementById("charGrid");
+  grid.innerHTML = "";
+  CHARS.forEach(c => grid.appendChild(buildCard(c)));
+}}
+
+document.addEventListener("DOMContentLoaded", () => {{
+  renderChars();
+
+  document.getElementById("q").addEventListener("input", applyFilter);
+  document.getElementById("f_element").addEventListener("change", applyFilter);
+  document.getElementById("f_role").addEventListener("change", applyFilter);
+  document.getElementById("f_rarity").addEventListener("change", applyFilter);
+  document.getElementById("sort").addEventListener("change", applySort);
+
+  document.getElementById("btnAllOn").addEventListener("click", () => selectAll(true));
+  document.getElementById("btnAllOff").addEventListener("click", () => selectAll(false));
+  document.getElementById("btnVisOn").addEventListener("click", () => selectVisible(true));
+  document.getElementById("btnVisOff").addEventListener("click", () => selectVisible(false));
+
+  document.getElementById("btnReq").addEventListener("click", () => pushTo("required"));
+  document.getElementById("btnFocus").addEventListener("click", () => pushTo("focus"));
+  document.getElementById("btnBan").addEventListener("click", () => pushTo("banned"));
+
+  document.getElementById("btnRun").addEventListener("click", run);
+  document.getElementById("btnClear").addEventListener("click", clearAll);
+  document.getElementById("btnCopy").addEventListener("click", copyLast);
 
   applySort();
   applyFilter();
