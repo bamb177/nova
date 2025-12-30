@@ -1,0 +1,9 @@
+{
+  "nina":   { "rarity": "SSR", "element": "Wind",  "role": "dps" },
+  "freya":  { "rarity": "SSR", "element": "Chaos", "role": "dps" },
+  "lavinia":{ "rarity": "SSR", "element": "Holy",  "role": "healer" },
+
+  "apep":   { "rarity": "SSR", "element": "Fire",  "role": "tank" },
+
+  "jeannedarc": { "rarity": "SSR", "element": "Wind", "role": "healer" }
+}
