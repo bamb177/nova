@@ -1,424 +1,131 @@
-from __future__ import annotations
-
 import os
 import re
 import json
-import warnings
-import itertools
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timezone
 
-import requests
-from requests.exceptions import SSLError
-from urllib3.exceptions import InsecureRequestWarning
-from flask import Flask, request, Response, send_from_directory, abort
-
-from bs4 import BeautifulSoup  # requirements.txt: beautifulsoup4
+from flask import Flask, jsonify, request, Response, redirect
 
 
 # =========================
-# Flask
+# App / Config
 # =========================
 app = Flask(__name__)
-app.config["JSON_AS_ASCII"] = False
-try:
-    app.json.ensure_ascii = False
-except Exception:
-    pass
+APP_TITLE = os.getenv("APP_TITLE", "Nova")
 
-KST = timezone(timedelta(hours=9))
-DEFAULT_PORT = 40000
-PARTY_SIZE = 4
-APP_TITLE = "Nova"
+# GitHub 이미지 소스 (Render에서 /images 404를 피하기 위해 GitHub에서 직접 로드)
+GITHUB_OWNER = os.getenv("GITHUB_OWNER", "boring877")
+GITHUB_REPO = os.getenv("GITHUB_REPO", "gacha-wiki")
+GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "main")
 
-# =========================
-# Remote
-# =========================
-ZONE_NOVA_DB_URL = "https://gachawiki.info/guides/zone-nova/characters/"
-UA = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/120.0.0.0 Safari/537.36"
+JSDELIVR_BASE = f"https://cdn.jsdelivr.net/gh/{GITHUB_OWNER}/{GITHUB_REPO}@{GITHUB_BRANCH}/public/images/games/zone-nova/characters/"
+RAW_BASE = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/public/images/games/zone-nova/characters/"
+
+# (선택) 로컬 리포 스캔용 - 데이터가 없을 때 최소 캐릭터 리스트 생성
+DEFAULT_REPO_PATH = os.getenv("REPO_PATH", os.path.join(os.getcwd(), "gacha-wiki"))
+DEFAULT_IMAGE_DIR = os.getenv(
+    "IMAGE_DIR",
+    os.path.join(DEFAULT_REPO_PATH, "public", "images", "games", "zone-nova", "characters")
 )
-FORCE_LOCAL_ONLY = os.environ.get("FORCE_LOCAL_ONLY", "").strip() in {"1", "true", "TRUE", "yes", "YES"}
 
-# =========================
-# Paths (Render/Local)
-# =========================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-IMAGE_DIR_CANDIDATES = [
-    os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "characters"),
-    os.path.join(BASE_DIR, "gacha-wiki", "public", "images", "games", "zone-nova", "characters"),
-]
-
-IMAGES_BASE_CANDIDATES = [
-    os.path.join(BASE_DIR, "public", "images"),
-    os.path.join(BASE_DIR, "gacha-wiki", "public", "images"),
-]
-
-# =========================
-# Element advantage / weakness weights
-# =========================
-ALL_ELEMENTS = ["Fire", "Ice", "Wind", "Holy", "Chaos"]
-
+# 속성 상성 (A -> B : A가 B에 유리)
 ELEMENT_ADVANTAGE = {
-    "Fire": ["Wind"],
-    "Wind": ["Ice"],
-    "Ice": ["Holy"],
-    "Holy": ["Chaos"],
-    "Chaos": ["Fire"],
+    "Fire": "Wind",
+    "Wind": "Ice",
+    "Ice": "Holy",
+    "Holy": "Chaos",
+    "Chaos": "Fire",
 }
 
-WEIGHT_MATCH_WEAKNESS = 8.0
-WEIGHT_ADV_OVER_ENEMY = 5.0
-WEIGHT_FOCUS_INCLUDED = 6.0
+RARITY_SCORE = {"SSR": 30, "SR": 18, "R": 10, "-": 0}
+ROLE_NEED_ORDER = ["tank", "healer"]  # 최소 요구
 
-# =========================
-# In-memory cache
-# =========================
-CACHE: Dict[str, Any] = {
+CACHE = {
     "zone_nova": {
         "characters": [],
-        "count": 0,
         "last_refresh_iso": None,
-        "error": None,
         "source": None,
-        "image_dir": None,
-        "image_count": 0,
-        "remote_ok": False,
-        "remote_error": None,
-        "remote_count": 0,
-        "force_local_only": FORCE_LOCAL_ONLY,
-        "remote_bs4_available": True,
+        "cache_error": None,
     }
 }
 
 
 # =========================
-# Utils
+# Helpers
 # =========================
-def now_iso_kst() -> str:
-    return datetime.now(tz=KST).isoformat(timespec="seconds")
+def now_iso() -> str:
+    return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
 
-def slugify(s: str) -> str:
-    s = (s or "").strip()
-    s = s.replace("’", "").replace("'", "")
-    s = re.sub(r"[^A-Za-z0-9\s\-_]", "", s)
-    s = s.strip().lower()
-    s = re.sub(r"\s+", "-", s)
-    s = re.sub(r"-+", "-", s)
-    return s.strip("-")
+def safe_json(obj) -> Response:
+    return Response(json.dumps(obj, ensure_ascii=False, indent=2), mimetype="application/json; charset=utf-8")
 
 
-def prettify_name_from_stem(stem: str) -> str:
-    s = (stem or "").strip()
-    s = re.sub(r"[_\-]+", " ", s)
-    s = re.sub(r"([a-z])([A-Z])", r"\1 \2", s)
-    s = s.strip()
-    if not s:
-        return stem
-    if s.islower():
-        s = s.title()
+def slug_id(s: str) -> str:
+    s = (s or "").strip().lower()
+    s = s.replace("’", "'")
+    s = re.sub(r"[\s'\"`]+", "", s)  # 공백/따옴표 제거
+    s = re.sub(r"[^a-z0-9_-]", "", s)
     return s
 
 
-def pick_existing_dir(candidates: List[str]) -> Optional[str]:
-    for p in candidates:
-        if os.path.isdir(p):
-            return p
-    return None
-
-
-def http_get(url: str, timeout: int = 25) -> str:
-    headers = {
-        "User-Agent": UA,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9,ko;q=0.8",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-    }
-    try:
-        r = requests.get(url, headers=headers, timeout=timeout, verify=True, allow_redirects=True)
-        r.raise_for_status()
-        return r.text
-    except SSLError:
-        warnings.simplefilter("ignore", InsecureRequestWarning)
-        r = requests.get(url, headers=headers, timeout=timeout, verify=False, allow_redirects=True)
-        r.raise_for_status()
-        return r.text
-
-
-# =========================
-# Remote parse (bs4 table)
-# =========================
-def parse_remote_zone_nova_characters_bs4(html: str) -> List[Dict[str, Any]]:
-    soup = BeautifulSoup(html, "html.parser")
-    tables = soup.find_all("table")
-    if not tables:
-        return []
-
-    def norm(s: str) -> str:
-        return re.sub(r"\s+", " ", (s or "").strip()).lower()
-
-    target = None
-    headers: List[str] = []
-
-    for t in tables:
-        thead = t.find("thead")
-        if thead and thead.find_all("th"):
-            headers = [norm(th.get_text(" ", strip=True)) for th in thead.find_all("th")]
-        else:
-            first_tr = t.find("tr")
-            if not first_tr:
-                continue
-            headers = [norm(x.get_text(" ", strip=True)) for x in first_tr.find_all(["th", "td"])]
-
-        if not headers:
-            continue
-
-        if (
-            any("name" in h for h in headers)
-            and any("rarity" in h for h in headers)
-            and any("element" in h for h in headers)
-            and any("role" in h for h in headers)
-        ):
-            target = t
-            break
-
-    if not target or not headers:
-        return []
-
-    def find_col(keys: List[str]) -> int:
-        for i, h in enumerate(headers):
-            for k in keys:
-                if k in h:
-                    return i
-        return -1
-
-    idx_name = find_col(["name"])
-    idx_rarity = find_col(["rarity"])
-    idx_element = find_col(["element"])
-    idx_role = find_col(["role"])
-    idx_class = find_col(["class"])
-    idx_faction = find_col(["faction"])
-    idx_hp = find_col(["hp"])
-    idx_atk = find_col(["attack", "atk"])
-    idx_def = find_col(["defense", "def"])
-    idx_crit = find_col(["crit"])
-
-    tbody = target.find("tbody")
-    rows = tbody.find_all("tr") if tbody else target.find_all("tr")[1:]
-
-    def pick(tds, idx: int) -> str:
-        if idx < 0 or idx >= len(tds):
-            return ""
-        return tds[idx].get_text(" ", strip=True)
-
-    def to_int(s: str) -> Optional[int]:
-        s = (s or "").replace(",", "").strip()
-        if not s:
-            return None
-        m = re.search(r"\d+", s)
-        return int(m.group(0)) if m else None
-
-    def to_float(s: str) -> Optional[float]:
-        s = (s or "").replace(",", "").replace("%", "").strip()
-        if not s:
-            return None
-        m = re.search(r"\d+(\.\d+)?", s)
-        return float(m.group(0)) if m else None
-
-    out: List[Dict[str, Any]] = []
-    for tr in rows:
-        tds = tr.find_all("td")
-        if not tds:
-            continue
-
-        name = pick(tds, idx_name)
-        if not name:
-            continue
-
-        rarity = pick(tds, idx_rarity) or None
-        element = pick(tds, idx_element) or None
-        role = pick(tds, idx_role) or None
-        clazz = pick(tds, idx_class) or None
-        faction = pick(tds, idx_faction) or None
-
-        hp = to_int(pick(tds, idx_hp))
-        atk = to_int(pick(tds, idx_atk))
-        df = to_int(pick(tds, idx_def))
-        crit = to_float(pick(tds, idx_crit))
-
-        out.append({
-            "id": slugify(name),
-            "name": name,
-            "rarity": rarity,
-            "element": element,
-            "role": role,
-            "class": clazz,
-            "faction": faction,
-            "stats": {"hp": hp, "atk": atk, "def": df, "crit": crit},
-        })
-
-    uniq = {c["id"]: c for c in out}
-    return list(uniq.values())
-
-
-# =========================
-# Local images -> characters
-# =========================
-def load_from_images(image_dir: str) -> Tuple[List[Dict[str, Any]], int]:
-    files = [fn for fn in os.listdir(image_dir) if fn.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))]
-    chars: List[Dict[str, Any]] = []
-
-    for fn in files:
-        stem = os.path.splitext(fn)[0]
-        name = prettify_name_from_stem(stem)
-        cid = slugify(name)
-        rel_img = f"/images/games/zone-nova/characters/{fn}"
-
-        chars.append({
-            "id": cid,
-            "name": name,
-            "rarity": None,
-            "element": None,
-            "role": None,
-            "class": None,
-            "faction": None,
-            "stats": {"hp": None, "atk": None, "def": None, "crit": None},
-            "image": rel_img,
-        })
-
-    uniq = {c["id"]: c for c in chars}
-    out = list(uniq.values())
-    out.sort(key=lambda x: x["name"].lower())
-    return out, len(files)
-
-
-def merge_image_and_remote(image_chars: List[Dict[str, Any]], remote_chars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    by_id = {c["id"]: c for c in image_chars}
-
-    for rc in remote_chars:
-        rid = rc["id"]
-        if rid in by_id:
-            ic = by_id[rid]
-            for k in ["rarity", "element", "role", "class", "faction"]:
-                ic[k] = rc.get(k)
-            ic["stats"] = rc.get("stats") or ic.get("stats")
-        else:
-            rc2 = dict(rc)
-            rc2["image"] = None
-            by_id[rid] = rc2
-
-    out = list(by_id.values())
-    out.sort(key=lambda x: x["name"].lower())
-    return out
-
-
-# =========================
-# Refresh cache
-# =========================
-def refresh_zone_nova_cache() -> Tuple[bool, str]:
-    try:
-        image_dir = pick_existing_dir(IMAGE_DIR_CANDIDATES)
-        if not image_dir:
-            raise FileNotFoundError(
-                "Zone Nova 캐릭터 이미지 폴더를 찾지 못했습니다.\n" +
-                "\n".join([f"- {p}" for p in IMAGE_DIR_CANDIDATES])
-            )
-
-        image_chars, img_count = load_from_images(image_dir)
-
-        remote_ok = False
-        remote_err: Optional[str] = None
-        remote_chars: List[Dict[str, Any]] = []
-
-        if not FORCE_LOCAL_ONLY:
-            try:
-                html = http_get(ZONE_NOVA_DB_URL, timeout=25)
-                remote_chars = parse_remote_zone_nova_characters_bs4(html)
-                if len(remote_chars) >= 10:
-                    remote_ok = True
-                else:
-                    remote_ok = False
-                    remote_err = f"Fetched OK but parsed {len(remote_chars)} rows."
-            except Exception as e:
-                remote_ok = False
-                remote_err = str(e)
-
-        if remote_ok:
-            merged = merge_image_and_remote(image_chars, remote_chars)
-            CACHE["zone_nova"]["characters"] = merged
-            CACHE["zone_nova"]["count"] = len(merged)
-            CACHE["zone_nova"]["source"] = "images+remote"
-        else:
-            CACHE["zone_nova"]["characters"] = image_chars
-            CACHE["zone_nova"]["count"] = len(image_chars)
-            CACHE["zone_nova"]["source"] = "images_only"
-
-        CACHE["zone_nova"]["last_refresh_iso"] = now_iso_kst()
-        CACHE["zone_nova"]["error"] = None
-        CACHE["zone_nova"]["image_dir"] = image_dir
-        CACHE["zone_nova"]["image_count"] = img_count
-        CACHE["zone_nova"]["remote_ok"] = remote_ok
-        CACHE["zone_nova"]["remote_error"] = remote_err
-        CACHE["zone_nova"]["remote_count"] = len(remote_chars)
-        CACHE["zone_nova"]["force_local_only"] = FORCE_LOCAL_ONLY
-
-        return True, f"ok: {CACHE['zone_nova']['count']} (source={CACHE['zone_nova']['source']})"
-
-    except Exception as e:
-        CACHE["zone_nova"]["characters"] = []
-        CACHE["zone_nova"]["count"] = 0
-        CACHE["zone_nova"]["last_refresh_iso"] = None
-        CACHE["zone_nova"]["error"] = str(e)
-        CACHE["zone_nova"]["source"] = None
-        CACHE["zone_nova"]["remote_ok"] = False
-        CACHE["zone_nova"]["remote_error"] = None
-        CACHE["zone_nova"]["remote_count"] = 0
-        return False, f"error: {e}"
-
-
-def ensure_cache_loaded() -> None:
-    if CACHE["zone_nova"]["count"] == 0 and CACHE["zone_nova"]["last_refresh_iso"] is None:
-        refresh_zone_nova_cache()
-
 def normalize_char_names(chars: list[dict]) -> list[dict]:
     """
-    캐릭터 이름 표기 흔들림을 표준화하고, 이미지 탐색용 aliases를 부여.
+    캐릭터 이름 표기 흔들림 표준화 + 이미지 탐색용 aliases 부여 + 중복 제거
+    - Jeanne D Arc / Joanof Arc 등은 Jeanne D Arc로 통일
     """
-    out = []
-    seen_key = set()
+    out: list[dict] = []
+    seen_key: set[str] = set()
+
+    arc_variants = {
+        "jeanne darc", "jeanne d arc", "jeanne d'arc",
+        "joanofarc", "joanof arc", "joan of arc", "joanof  arc",
+        "jeannedarc",
+    }
 
     for c in chars:
         c = dict(c)
-
         name = (c.get("name") or "").replace("’", "'").strip()
-        name = " ".join(name.split())  # 연속 공백 정리
+        name = " ".join(name.split())
         cid = (c.get("id") or "").strip()
 
         aliases = set(c.get("aliases") or [])
 
-        # ✅ Arc 캐릭터 표준화
-        arc_variants = {
-            "jeanne d arc", "jeanne d'arc", "jeanne d arc", "jeanne d arc ",
-            "joanof arc", "joan of arc", "joanofarc", "joanof  arc",
-        }
-        if name.lower() in arc_variants or cid.lower() in arc_variants:
-            name = "Jeanne D Arc"
+        # Arc 계열 표준화
+        name_key = slug_id(name)
+        id_key = slug_id(cid)
+        if name_key in arc_variants or id_key in arc_variants:
+            # 표준명
+            std_name = "Jeanne D Arc"
+            std_id = "jeannedarc"
+
+            # 기존 표기 모두 aliases에 보관
+            if name:
+                aliases.add(name)
+            if cid:
+                aliases.add(cid)
+
             aliases.update([
-                "Jeanne D Arc", "Jeanne D arc", "Jeanne D'Arc",
-                "Joanof Arc", "Joan of Arc", "JoanofArc",
-                "Jeanne D Arc",  # 혹시 파일명 케이스 흔들릴 때 대비
+                "Jeanne D Arc",
+                "Jeanne D arc",
+                "Jeanne D'Arc",
+                "Joanof Arc",
+                "Joan of Arc",
+                "JoanofArc",
+                "JeanneDArc",
             ])
 
-        c["name"] = name
-        c["aliases"] = sorted(aliases)
+            c["name"] = std_name
+            c["id"] = std_id
+        else:
+            c["name"] = name or cid
+            c["id"] = cid or slug_id(name)
 
-        # 중복 제거 키(이름 기준). 같은 캐릭이 2번 들어오면 1개만 유지
-        key = name.lower()
+        c["aliases"] = sorted({a.strip() for a in aliases if isinstance(a, str) and a.strip()})
+
+        # 중복 제거는 "표준 name" 기준
+        key = (c["name"] or "").strip().lower()
+        if not key:
+            continue
         if key in seen_key:
             continue
         seen_key.add(key)
@@ -427,9 +134,302 @@ def normalize_char_names(chars: list[dict]) -> list[dict]:
 
     return out
 
+
+def scan_local_images(image_dir: str) -> list[dict]:
+    """
+    로컬 리포의 characters 폴더에서 파일명을 기반으로 최소 캐릭터 리스트 생성.
+    (이미지는 GitHub에서 로드하지만, 데이터가 비었을 때 캐릭터 목록 확보용)
+    """
+    chars: list[dict] = []
+    if not image_dir or not os.path.isdir(image_dir):
+        return chars
+
+    exts = (".png", ".jpg", ".jpeg", ".webp")
+    for fn in os.listdir(image_dir):
+        if not fn.lower().endswith(exts):
+            continue
+        stem = os.path.splitext(fn)[0]
+        # 파일명 그대로 name로
+        name = stem
+        cid = slug_id(stem)
+        # 최소 정보
+        chars.append({
+            "id": cid,
+            "name": name,
+            "rarity": "-",   # 추후 보강 가능
+            "element": "-",
+            "role": "-",
+            "aliases": [name, cid],
+            # image는 굳이 넣지 않아도 UI에서 GitHub base로 후보를 만듦
+        })
+    return chars
+
+
+def ensure_cache_loaded(force: bool = False) -> None:
+    if CACHE["zone_nova"]["characters"] and not force:
+        return
+
+    CACHE["zone_nova"]["cache_error"] = None
+
+    try:
+        # 1) 로컬 이미지 폴더 스캔(최소 캐릭터 확보)
+        chars = scan_local_images(DEFAULT_IMAGE_DIR)
+
+        # 2) normalize (Arc 표준화/중복 제거 포함)
+        chars = normalize_char_names(chars)
+
+        CACHE["zone_nova"]["characters"] = chars
+        CACHE["zone_nova"]["last_refresh_iso"] = now_iso()
+        CACHE["zone_nova"]["source"] = "local_image_scan(normalized)"
+
+    except Exception as e:
+        CACHE["zone_nova"]["characters"] = []
+        CACHE["zone_nova"]["last_refresh_iso"] = now_iso()
+        CACHE["zone_nova"]["source"] = "error"
+        CACHE["zone_nova"]["cache_error"] = str(e)
+
+
+def resolve_ids(input_list: list[str], chars: list[dict]) -> list[str]:
+    """
+    입력이 id 또는 name 일 수 있으므로 chars를 기준으로 id로 정규화.
+    """
+    if not input_list:
+        return []
+    by_id = {c["id"].lower(): c["id"] for c in chars if c.get("id")}
+    by_name = { (c.get("name") or "").lower(): c["id"] for c in chars if c.get("id")}
+    # aliases도 name 매핑에 포함
+    for c in chars:
+        cid = c.get("id")
+        for a in c.get("aliases") or []:
+            if isinstance(a, str) and a.strip():
+                by_name[a.strip().lower()] = cid
+
+    out = []
+    for x in input_list:
+        if not x:
+            continue
+        k = x.strip().lower()
+        if k in by_id:
+            out.append(by_id[k])
+        elif k in by_name:
+            out.append(by_name[k])
+        else:
+            # 알 수 없는 값은 slug로라도 넣어둠(사용자 입력 방어)
+            out.append(slug_id(x))
+    # 중복 제거(순서 유지)
+    seen = set()
+    uniq = []
+    for v in out:
+        if v and v not in seen:
+            seen.add(v)
+            uniq.append(v)
+    return uniq
+
+
+def element_bonus(char_element: str, enemy_element: str | None, boss_weakness: str | None) -> int:
+    bonus = 0
+    ce = (char_element or "-")
+    if boss_weakness and ce == boss_weakness:
+        bonus += 25
+    if enemy_element:
+        # enemy를 이기는 요소를 찾는다: ELEMENT_ADVANTAGE[x] == enemy_element 인 x가 유리
+        advantagers = [k for k, v in ELEMENT_ADVANTAGE.items() if v == enemy_element]
+        if ce in advantagers:
+            bonus += 20
+        # 불리(내가 enemy에게 먹힘)
+        if ELEMENT_ADVANTAGE.get(enemy_element) == ce:
+            bonus -= 10
+    return bonus
+
+
+def recommend_party(payload: dict, chars: list[dict]) -> dict:
+    """
+    간단/안정형 추천(초대형 조합 전수 탐색 대신 휴리스틱)
+    - 4인 고정
+    - required는 반드시 포함
+    - banned 제외
+    - tank/healer 우선 확보
+    - 나머지는 점수 상위로 채움
+    """
+    mode = payload.get("mode") or "pve"
+    top_k = int(payload.get("top_k") or 5)
+
+    owned_in = payload.get("owned") or []
+    required_in = payload.get("required") or []
+    focus_in = payload.get("focus") or []
+    banned_in = payload.get("banned") or []
+
+    enemy_element = payload.get("enemy_element") or None
+    boss_weakness = payload.get("boss_weakness") or None
+
+    owned = resolve_ids(owned_in, chars)
+    required = resolve_ids(required_in, chars)
+    focus = set(resolve_ids(focus_in, chars))
+    banned = set(resolve_ids(banned_in, chars))
+
+    by_id = {c["id"]: c for c in chars if c.get("id")}
+
+    # owned에서만 후보
+    pool = [by_id[i] for i in owned if i in by_id and i not in banned]
+
+    issues = []
+    if len(pool) < 4:
+        issues.append("보유(Owned) 선택 인원이 4명 미만입니다.")
+        return {"ok": False, "issues": issues, "best_party": None}
+
+    # required가 pool에 있는지 확인
+    for rid in required:
+        if rid not in {c["id"] for c in pool}:
+            issues.append(f"필수 포함 캐릭터({rid})가 보유 목록에 없습니다.")
+
+    # 점수 계산
+    def score(c: dict) -> int:
+        s = 0
+        s += RARITY_SCORE.get(c.get("rarity") or "-", 0)
+        s += element_bonus(c.get("element") or "-", enemy_element, boss_weakness)
+
+        role = (c.get("role") or "-").lower()
+        # 모드별 약간 가중치
+        if mode == "pvp":
+            if role in ("tank", "healer"):
+                s += 6
+        elif mode == "boss":
+            if role in ("debuffer", "buffer"):
+                s += 6
+
+        if c["id"] in focus:
+            s += 18
+
+        return s
+
+    # required 먼저 담기
+    party_ids: list[str] = []
+    for rid in required:
+        if rid in by_id and rid not in banned and rid in {c["id"] for c in pool}:
+            if rid not in party_ids:
+                party_ids.append(rid)
+
+    # 역할 충족(탱/힐) 우선
+    def pick_best(filter_role: str) -> str | None:
+        best_id = None
+        best_sc = -10**9
+        for c in pool:
+            cid = c["id"]
+            if cid in party_ids:
+                continue
+            if (c.get("role") or "-").lower() != filter_role:
+                continue
+            sc = score(c)
+            if sc > best_sc:
+                best_sc = sc
+                best_id = cid
+        return best_id
+
+    current_roles = {(by_id[i].get("role") or "-").lower() for i in party_ids if i in by_id}
+
+    for needed in ROLE_NEED_ORDER:
+        if needed in current_roles:
+            continue
+        picked = pick_best(needed)
+        if picked:
+            party_ids.append(picked)
+            current_roles.add(needed)
+
+    # 남은 자리: 점수 상위
+    remain = [c for c in pool if c["id"] not in party_ids]
+    remain.sort(key=lambda c: score(c), reverse=True)
+
+    while len(party_ids) < 4 and remain:
+        party_ids.append(remain.pop(0)["id"])
+
+    if len(party_ids) < 4:
+        issues.append("조건(필수/제외/역할) 때문에 4인 구성이 불가능합니다.")
+        return {"ok": False, "issues": issues, "best_party": None}
+
+    # 결과 구성
+    party = []
+    role_count = {"tank": 0, "healer": 0, "dps": 0, "buffer": 0, "debuffer": 0, "-": 0}
+    for pid in party_ids[:4]:
+        c = by_id.get(pid)
+        if not c:
+            continue
+        role = (c.get("role") or "-").lower()
+        role_count[role] = role_count.get(role, 0) + 1
+        party.append({
+            "id": c["id"],
+            "name": c.get("name") or c["id"],
+            "rarity": c.get("rarity") or "-",
+            "element": c.get("element") or "-",
+            "role": c.get("role") or "-",
+            "score": score(c),
+        })
+
+    # 안정성 코멘트
+    if role_count.get("tank", 0) == 0:
+        issues.append("탱커가 없습니다.")
+    if role_count.get("healer", 0) == 0:
+        issues.append("힐러가 없습니다.")
+
+    return {
+        "ok": True,
+        "mode": mode,
+        "input": {
+            "owned": owned,
+            "required": required,
+            "focus": sorted(list(focus)),
+            "banned": sorted(list(banned)),
+            "enemy_element": enemy_element,
+            "boss_weakness": boss_weakness,
+            "top_k": top_k,
+        },
+        "best_party": {
+            "party_size": 4,
+            "members": party,
+            "roles": role_count,
+            "analysis": issues if issues else ["조건 충족(4인 구성)"],
+        }
+    }
+
+
 # =========================
-# Static images serving
+# Routes
 # =========================
+@app.get("/")
+def home():
+    # 루트 Not Found 방지
+    return redirect("/ui/select")
+
+
+@app.get("/refresh")
+def refresh():
+    ensure_cache_loaded(force=True)
+    return redirect("/ui/select")
+
+
+@app.get("/zones/zone-nova/characters")
+def zone_nova_characters():
+    ensure_cache_loaded()
+    return jsonify({
+        "game": "zone-nova",
+        "count": len(CACHE["zone_nova"]["characters"]),
+        "last_refresh": CACHE["zone_nova"]["last_refresh_iso"],
+        "source": CACHE["zone_nova"]["source"],
+        "cache_error": CACHE["zone_nova"]["cache_error"],
+        "characters": CACHE["zone_nova"]["characters"],
+    })
+
+
+@app.post("/recommend/v3")
+def recommend_v3():
+    ensure_cache_loaded()
+    try:
+        payload = request.get_json(force=True) or {}
+    except Exception:
+        payload = {}
+
+    result = recommend_party(payload, CACHE["zone_nova"]["characters"])
+    return safe_json(result)
+
 
 @app.get("/ui/select")
 def ui_select() -> Response:
@@ -443,14 +443,8 @@ def ui_select() -> Response:
     source = CACHE["zone_nova"]["source"] or "N/A"
     cached_n = len(chars)
 
-    # ✅ GitHub 이미지 소스 설정 (여기만 맞게 고치면 됨)
-    GITHUB_OWNER = "boring877"
-    GITHUB_REPO = "gacha-wiki"
-    GITHUB_BRANCH = "main"  # main이 아니면 master 등으로 바꾸세요.
-
-    # jsDelivr + rawgithub 둘 다 준비(하나 막혀도 다른 걸로 뜨게)
-    JSDELIVR_BASE = f"https://cdn.jsdelivr.net/gh/{GITHUB_OWNER}/{GITHUB_REPO}@{GITHUB_BRANCH}/public/images/games/zone-nova/characters/"
-    RAW_BASE      = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/public/images/games/zone-nova/characters/"
+    # 이미지 베이스는 GitHub만 사용(로컬 서빙 제거)
+    img_bases = json.dumps([JSDELIVR_BASE, RAW_BASE], ensure_ascii=False)
 
     html = r"""<!doctype html>
 <html lang="ko">
@@ -659,7 +653,7 @@ def ui_select() -> Response:
       캐시 <b>__CACHED_N__</b> · 갱신 <span class="mono">__REFRESHED__</span> · 소스 <b>__SOURCE__</b>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
-      <a class="pill" href="/">메타</a>
+      <a class="pill" href="/">메인</a>
       <a class="pill" href="/refresh">새로고침</a>
       <a class="pill" href="/zones/zone-nova/characters">JSON</a>
       <span class="pill mono">IMG: __IMG_BASE_SHORT__</span>
@@ -1020,20 +1014,25 @@ def ui_select() -> Response:
     }
   }
 
-  // ✅ GitHub 이미지 후보 생성: base(여러개) + (name/id) + (png/jpg) 조합
+  // ✅ GitHub 이미지 후보 생성: base(여러개) + (name/id/aliases) + (png/jpg/jpeg) 조합
   function imageCandidates(c){
-    const name = (c.name || '').trim();  // 캐릭터명(영어)
+    const name = (c.name || '').trim();     // 캐릭터명(영어)
     const id = (c.id || '').trim();
+    const aliases = Array.isArray(c.aliases) ? c.aliases : [];
 
     const names = [];
     if(name) names.push(name);
     if(id) names.push(id);
     if(id) names.push(id[0].toUpperCase() + id.slice(1));
+    for(const a of aliases){
+      if(a && typeof a === 'string'){
+        const t = a.trim();
+        if(t) names.push(t);
+      }
+    }
 
-    // 파일명이 공백 포함 가능 -> encodeURIComponent 사용
     const exts = ['.png', '.jpg', '.jpeg'];
     const cand = [];
-
     for(const base of IMG_BASES){
       for(const n of names){
         const enc = encodeURIComponent(n);
@@ -1043,7 +1042,6 @@ def ui_select() -> Response:
       }
     }
 
-    // 중복 제거
     const seen = new Set();
     return cand.filter(u => (!seen.has(u) && seen.add(u)));
   }
@@ -1169,15 +1167,15 @@ def ui_select() -> Response:
     html = html.replace("__SOURCE__", str(source))
     html = html.replace("__CHARS_JSON__", chars_json)
     html = html.replace("__ADV_JSON__", adv_json)
-
-    img_bases = json.dumps([JSDELIVR_BASE, RAW_BASE], ensure_ascii=False)
     html = html.replace("__IMG_BASES__", img_bases)
     html = html.replace("__IMG_BASE_SHORT__", f"{GITHUB_OWNER}/{GITHUB_REPO}@{GITHUB_BRANCH}")
 
     return Response(html, mimetype="text/html; charset=utf-8")
 
 
+# =========================
+# Local run
+# =========================
 if __name__ == "__main__":
-    refresh_zone_nova_cache()
-    port = int(os.environ.get("PORT", DEFAULT_PORT))
+    port = int(os.getenv("PORT", "40000"))
     app.run(host="0.0.0.0", port=port, debug=True)
