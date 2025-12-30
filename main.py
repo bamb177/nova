@@ -777,10 +777,8 @@ def ui_select() -> Response:
     :root {{
       --bg: #0b1020;
       --panel: rgba(255,255,255,.06);
-      --panel2: rgba(255,255,255,.08);
       --border: rgba(255,255,255,.10);
       --muted: rgba(255,255,255,.65);
-      --muted2: rgba(255,255,255,.50);
       --text: rgba(255,255,255,.92);
       --brand: #6ea8ff;
       --brand2: #7c5cff;
@@ -793,9 +791,10 @@ def ui_select() -> Response:
     body {{
       margin: 0;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", Arial;
-      background: radial-gradient(1200px 600px at 10% 0%, rgba(110,168,255,.18), transparent 55%),
-                  radial-gradient(800px 500px at 90% 10%, rgba(124,92,255,.16), transparent 60%),
-                  var(--bg);
+      background:
+        radial-gradient(1200px 600px at 10% 0%, rgba(110,168,255,.18), transparent 55%),
+        radial-gradient(800px 500px at 90% 10%, rgba(124,92,255,.16), transparent 60%),
+        var(--bg);
       color: var(--text);
     }}
     a {{ color: var(--brand); text-decoration: none; }}
@@ -814,7 +813,6 @@ def ui_select() -> Response:
     }}
     .title {{ display:flex; align-items:baseline; gap:10px; margin-right:auto; }}
     .title h1 {{ font-size: 18px; margin: 0; letter-spacing: .2px; }}
-    .meta {{ font-size: 12px; color: var(--muted); }}
     .pill {{
       display:inline-flex; align-items:center; gap:6px;
       padding: 6px 10px; border: 1px solid var(--border);
@@ -825,9 +823,13 @@ def ui_select() -> Response:
       background: var(--ok);
       box-shadow: 0 0 0 3px rgba(61,220,151,.18);
     }}
+    .meta {{ font-size: 12px; color: var(--muted); }}
+    .mono {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }}
+
     .wrap {{ max-width: 1280px; margin: 0 auto; padding: 16px 18px 34px; }}
     .grid {{ display: grid; grid-template-columns: 420px 1fr; gap: 14px; align-items: start; }}
     @media (max-width: 980px) {{ .grid {{ grid-template-columns: 1fr; }} }}
+
     .card {{
       background: var(--panel);
       border: 1px solid var(--border);
@@ -846,6 +848,7 @@ def ui_select() -> Response:
     .row {{ display:flex; flex-wrap: wrap; gap: 10px; align-items: center; }}
     .field {{ display:flex; flex-direction: column; gap: 6px; }}
     .label {{ font-size: 12px; color: var(--muted); }}
+
     select, input {{
       width: 100%;
       padding: 10px 12px;
@@ -859,6 +862,7 @@ def ui_select() -> Response:
       border-color: rgba(110,168,255,.55);
       box-shadow: 0 0 0 4px rgba(110,168,255,.14);
     }}
+
     .btn {{
       padding: 10px 12px;
       border-radius: 12px;
@@ -880,11 +884,11 @@ def ui_select() -> Response:
       color: #ffd7db;
     }}
     .btnGhost {{ background: transparent; border: 1px solid var(--border); }}
+
     .hint {{ font-size: 12px; color: var(--muted); line-height: 1.55; }}
-    .mono {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }}
 
     .listTools {{
-      display:flex; gap: 10px; flex-wrap: wrap; align-items: center;
+      display:flex; gap: 10px; flex-wrap: wrap; align-items: end;
       margin-bottom: 12px;
     }}
     .stat {{
@@ -897,63 +901,94 @@ def ui_select() -> Response:
     }}
     .stat b {{ color: var(--text); }}
 
-    .charGrid {{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }}
-    @media (max-width: 980px) {{ .charGrid {{ grid-template-columns: repeat(2, 1fr); }} }}
-    @media (max-width: 520px) {{ .charGrid {{ grid-template-columns: 1fr; }} }}
+    /* === 이미지 중심 카드 === */
+    .charGrid {{ display:grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }}
+    @media (max-width: 1100px) {{ .charGrid {{ grid-template-columns: repeat(5, 1fr); }} }}
+    @media (max-width: 980px)  {{ .charGrid {{ grid-template-columns: repeat(4, 1fr); }} }}
+    @media (max-width: 680px)  {{ .charGrid {{ grid-template-columns: repeat(3, 1fr); }} }}
+    @media (max-width: 520px)  {{ .charGrid {{ grid-template-columns: repeat(2, 1fr); }} }}
 
     .charCard {{
       border: 1px solid var(--border);
       background: rgba(0,0,0,.18);
       border-radius: 14px;
       overflow: hidden;
-      transition: transform .08s ease, background .12s ease, border-color .12s ease;
       cursor: pointer;
+      transition: transform .08s ease, background .12s ease, border-color .12s ease;
+      position: relative;
     }}
     .charCard:hover {{
       transform: translateY(-1px);
       background: rgba(0,0,0,.24);
       border-color: rgba(110,168,255,.32);
     }}
-    .charInner {{ display:flex; align-items:center; gap: 10px; padding: 10px; }}
-    .charInner input {{ width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }}
-    .avatarWrap {{
-      width: 46px; height: 46px;
-      border-radius: 14px;
-      overflow: hidden;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.10);
-      flex: 0 0 auto;
-    }}
-    .avatar {{ width: 100%; height: 100%; object-fit: cover; display:block; }}
-    .avatarFallback {{
-      width:100%; height:100%;
-      background: linear-gradient(135deg, rgba(110,168,255,.25), rgba(124,92,255,.20));
-    }}
-    .charText {{ min-width: 0; width: 100%; }}
-    .charTop {{ display:flex; align-items:flex-start; justify-content: space-between; gap: 10px; }}
-    .charName {{
-      font-weight: 900; font-size: 13px; letter-spacing: .2px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;
-    }}
-    .chipRow {{ display:flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }}
-    .chip {{
-      font-size: 11px; padding: 4px 8px; border-radius: 999px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.06);
-      color: var(--muted);
-      white-space: nowrap;
-    }}
-    .chipElem {{ color: rgba(110,168,255,.92); border-color: rgba(110,168,255,.25); }}
-    .chipRole {{ color: rgba(61,220,151,.92); border-color: rgba(61,220,151,.22); }}
-    .charSub {{
-      margin-top: 6px; font-size: 12px; color: var(--muted2);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }}
     .charCard.selected {{
       border-color: rgba(110,168,255,.55);
       box-shadow: 0 0 0 4px rgba(110,168,255,.12);
     }}
 
+    .thumb {{
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: rgba(255,255,255,.06);
+      display:flex; align-items:center; justify-content:center;
+      overflow:hidden;
+    }}
+    .thumb img {{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display:block;
+    }}
+
+    .check {{
+      position: absolute;
+      top: 8px; left: 8px;
+      width: 18px; height: 18px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.35);
+      display:flex; align-items:center; justify-content:center;
+    }}
+    .check input {{
+      width: 16px; height: 16px;
+      margin: 0;
+      accent-color: var(--brand);
+      cursor: pointer;
+    }}
+
+    .chips {{
+      position: absolute;
+      bottom: 8px; left: 8px; right: 8px;
+      display:flex; gap: 6px; flex-wrap: wrap;
+      pointer-events: none;
+    }}
+    .chip {{
+      font-size: 11px; padding: 4px 8px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.35);
+      color: rgba(255,255,255,.78);
+      white-space: nowrap;
+    }}
+    .chipElem {{ border-color: rgba(110,168,255,.28); color: rgba(110,168,255,.95); }}
+    .chipRole {{ border-color: rgba(61,220,151,.22); color: rgba(61,220,151,.92); }}
+
+    /* 이름/ID는 영어라 기본 숨김 → hover시에만 툴팁처럼 표시 */
+    .info {{
+      position:absolute;
+      top: 8px; right: 8px;
+      max-width: 70%;
+      background: rgba(0,0,0,.55);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      padding: 6px 8px;
+      font-size: 12px;
+      color: rgba(255,255,255,.86);
+      display:none;
+    }}
+    .charCard:hover .info {{ display:block; }}
+
+    /* 결과 영역 */
     .resultArea {{ display: grid; grid-template-columns: 1fr; gap: 12px; }}
     .resultCard {{
       border: 1px solid var(--border);
@@ -1011,6 +1046,7 @@ def ui_select() -> Response:
       line-height: 1.6;
     }}
     .reasons ul {{ margin: 0; padding-left: 18px; }}
+
     .toast {{
       position: fixed; right: 16px; bottom: 16px; z-index: 50;
       background: rgba(0,0,0,.65);
@@ -1129,7 +1165,7 @@ def ui_select() -> Response:
 
           <div style="height: 12px;"></div>
           <div class="hint">
-            팁: 검색/필터로 좁힌 뒤 “필터된 항목만 선택”을 쓰면 빠릅니다.
+            영어 입력 없이 이미지로 선택하세요. (캐릭터명/ID는 카드 hover 시만 표시됩니다.)
           </div>
 
         </div>
@@ -1137,7 +1173,7 @@ def ui_select() -> Response:
 
       <div class="card">
         <div class="cardHeader">
-          <div class="cardTitle">Owned 선택</div>
+          <div class="cardTitle">Owned 선택 (이미지 체크)</div>
           <div class="row" style="margin-left:auto;">
             <div class="stat" id="selectedStat">Selected <b>0</b></div>
           </div>
@@ -1146,12 +1182,7 @@ def ui_select() -> Response:
         <div class="cardBody">
 
           <div class="listTools">
-            <div class="field" style="flex: 1; min-width: 180px;">
-              <div class="label">Search</div>
-              <input id="q" placeholder="name 또는 id 검색" />
-            </div>
-
-            <div class="field" style="width: 140px;">
+            <div class="field" style="width: 160px;">
               <div class="label">Element</div>
               <select id="f_element">
                 <option value="">All</option>
@@ -1160,7 +1191,7 @@ def ui_select() -> Response:
               </select>
             </div>
 
-            <div class="field" style="width: 140px;">
+            <div class="field" style="width: 160px;">
               <div class="label">Role</div>
               <select id="f_role">
                 <option value="">All</option>
@@ -1173,7 +1204,7 @@ def ui_select() -> Response:
               </select>
             </div>
 
-            <div class="field" style="width: 120px;">
+            <div class="field" style="width: 140px;">
               <div class="label">Rarity</div>
               <select id="f_rarity">
                 <option value="">All</option>
@@ -1228,7 +1259,6 @@ def ui_select() -> Response:
 
 <script>
 const CHARS = {chars_json};
-
 let LAST_JSON = null;
 
 function toast(msg) {{
@@ -1256,21 +1286,17 @@ function setSelectedStat() {{
 }}
 
 function applyFilter() {{
-  const q = (document.getElementById("q").value || "").trim().toLowerCase();
   const fe = document.getElementById("f_element").value;
   const fr = (document.getElementById("f_role").value || "").toLowerCase();
   const frr = document.getElementById("f_rarity").value;
 
   document.querySelectorAll(".charCard").forEach(card => {{
-    const id = card.dataset.id || "";
-    const name = card.dataset.name || "";
     const el = card.dataset.element || "-";
     const role = (card.dataset.role || "-").toLowerCase();
     const rar = card.dataset.rarity || "-";
 
     let ok = true;
-    if (q) ok = (id.includes(q) || name.includes(q));
-    if (ok && fe) ok = (el === fe);
+    if (fe) ok = (el === fe);
     if (ok && fr) ok = (role === fr);
     if (ok && frr) ok = (rar === frr);
 
@@ -1352,7 +1378,6 @@ function clearAll() {{
   ["required", "focus", "banned"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("boss_weakness").value = "";
   document.getElementById("enemy_element").value = "";
-  document.getElementById("q").value = "";
   document.getElementById("f_element").value = "";
   document.getElementById("f_role").value = "";
   document.getElementById("f_rarity").value = "";
@@ -1488,63 +1513,39 @@ function buildCard(c) {{
   card.dataset.element = element;
   card.dataset.role = role;
 
-  const label = document.createElement("label");
-  label.className = "charInner";
-
+  const check = document.createElement("div");
+  check.className = "check";
   const cb = document.createElement("input");
   cb.type = "checkbox";
   cb.className = "owned";
   cb.value = id;
+  check.appendChild(cb);
 
-  const avatarWrap = document.createElement("div");
-  avatarWrap.className = "avatarWrap";
-
+  const thumb = document.createElement("div");
+  thumb.className = "thumb";
   if (img) {{
     const im = document.createElement("img");
-    im.className = "avatar";
     im.src = img;
     im.onerror = () => {{ im.style.display = "none"; }};
-    avatarWrap.appendChild(im);
-  }} else {{
-    const fb = document.createElement("div");
-    fb.className = "avatarFallback";
-    avatarWrap.appendChild(fb);
+    thumb.appendChild(im);
   }}
 
-  const text = document.createElement("div");
-  text.className = "charText";
-
-  const top = document.createElement("div");
-  top.className = "charTop";
-
-  const nm = document.createElement("div");
-  nm.className = "charName";
-  nm.textContent = name;
-
-  const chipRow = document.createElement("div");
-  chipRow.className = "chipRow";
-  chipRow.innerHTML =
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  chips.innerHTML =
     "<span class='chip'>" + rarity + "</span>" +
     "<span class='chip chipElem'>" + element + "</span>" +
     "<span class='chip chipRole'>" + role + "</span>";
 
-  top.appendChild(nm);
-  top.appendChild(chipRow);
+  const info = document.createElement("div");
+  info.className = "info mono";
+  info.textContent = name + " (" + id + ")";
 
-  const sub = document.createElement("div");
-  sub.className = "charSub mono";
-  sub.textContent = id;
+  card.appendChild(thumb);
+  card.appendChild(check);
+  card.appendChild(info);
+  card.appendChild(chips);
 
-  text.appendChild(top);
-  text.appendChild(sub);
-
-  label.appendChild(cb);
-  label.appendChild(avatarWrap);
-  label.appendChild(text);
-
-  card.appendChild(label);
-
-  // 클릭 토글(체크박스는 그대로)
   card.addEventListener("click", (ev) => {{
     if (ev.target && ev.target.tagName === "INPUT") return;
     cb.checked = !cb.checked;
@@ -1568,7 +1569,6 @@ function renderChars() {{
 document.addEventListener("DOMContentLoaded", () => {{
   renderChars();
 
-  document.getElementById("q").addEventListener("input", applyFilter);
   document.getElementById("f_element").addEventListener("change", applyFilter);
   document.getElementById("f_role").addEventListener("change", applyFilter);
   document.getElementById("f_rarity").addEventListener("change", applyFilter);
@@ -1598,7 +1598,6 @@ document.addEventListener("DOMContentLoaded", () => {{
 </html>
 """
     return Response(html, mimetype="text/html; charset=utf-8")
-
 
 if __name__ == "__main__":
     refresh_zone_nova_cache()
