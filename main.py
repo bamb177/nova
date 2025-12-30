@@ -9,18 +9,24 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ✅ 레포에 커밋된 데이터만 사용
 CHAR_JSON = os.path.join(BASE_DIR, "public", "data", "zone-nova", "characters.json")
+ELEM_JSON = os.path.join(BASE_DIR, "public", "data", "zone-nova", "element_chart.json")
+BOSS_JSON = os.path.join(BASE_DIR, "public", "data", "zone-nova", "bosses.json")
 
 # ✅ 정적 파일은 public 폴더에서만 서빙 (이미지도 여기서만)
 app = Flask(__name__, static_folder="public", static_url_path="")
 
-# 기본 상성표(다음 단계에서 public/data로 분리 가능)
-ELEMENT_ADV = {"Fire": "Wind", "Wind": "Ice", "Ice": "Holy", "Holy": "Chaos", "Chaos": "Fire"}
 RARITY_SCORE = {"SSR": 30, "SR": 18, "R": 10, "-": 0}
 
 CACHE = {
     "chars": [],
+    "bosses": [],
+    "element_adv": {"Fire": "Wind", "Wind": "Ice", "Ice": "Holy", "Holy": "Chaos", "Chaos": "Fire"},
     "last_refresh": None,
-    "source": "public/data/zone-nova/characters.json",
+    "source": {
+        "characters": "public/data/zone-nova/characters.json",
+        "element_chart": "public/data/zone-nova/element_chart.json",
+        "bosses": "public/data/zone-nova/bosses.json",
+    },
     "error": None,
 }
 
@@ -38,6 +44,7 @@ def normalize_chars(chars: list[dict]) -> list[dict]:
     - id/name 정리
     - Jeanne D Arc / Joanof Arc 정규화(jeannedarc)
     - 중복 제거
+    - image는 /images/... 경로만 인정 (없으면 None)
     """
     out = []
     seen = set()
@@ -48,11 +55,9 @@ def normalize_chars(chars: list[dict]) -> list[dict]:
         name = " ".join(name.split())
         cid = (c.get("id") or "").strip()
 
-        # id가 없으면 name 기반으로 생성
         if not cid:
             cid = slug_id(name)
 
-        # Jeanne D Arc 정규화
         if slug_id(name) in {"jeannedarc", "joanofarc"} or slug_id(cid) in {"jeannedarc", "joanofarc"}:
             c["id"] = "jeannedarc"
             c["name"] = "Jeanne D Arc"
@@ -60,21 +65,18 @@ def normalize_chars(chars: list[dict]) -> list[dict]:
             c["id"] = slug_id(cid)
             c["name"] = name or cid
 
-        # 필수 필드 채우기
         c["rarity"] = c.get("rarity") or "-"
         c["element"] = c.get("element") or "-"
         c["role"] = c.get("role") or "-"
 
-        # image는 반드시 /images/... 형태면 그대로 사용
-        # 동기화 스크립트가 image를 안 넣었다면, img_file이 있으면 만들어줌
         img = c.get("image")
         img_file = c.get("img_file")
+
         if not img and img_file:
             c["image"] = f"/images/games/zone-nova/characters/{img_file}"
         elif isinstance(img, str) and img.startswith("/images/"):
             c["image"] = img
         else:
-            # image가 없거나 다른 형태면 None 처리(UI에서 placeholder)
             c["image"] = img if (isinstance(img, str) and img.startswith("/")) else None
 
         key = c["id"]
@@ -85,31 +87,76 @@ def normalize_chars(chars: list[dict]) -> list[dict]:
 
     return out
 
-def load_characters(force: bool = False) -> None:
-    if CACHE["chars"] and not force:
+def normalize_bosses(bosses: list[dict]) -> list[dict]:
+    out = []
+    seen = set()
+    for b in bosses or []:
+        if not isinstance(b, dict):
+            continue
+        bid = slug_id(b.get("id") or b.get("name") or "")
+        name = (b.get("name") or bid or "").strip()
+        if not bid:
+            continue
+        if bid in seen:
+            continue
+        seen.add(bid)
+        out.append({
+            "id": bid,
+            "name": name,
+            "weakness": b.get("weakness") or None,
+            "enemy_element": b.get("enemy_element") or None,
+        })
+    return out
+
+def read_json_file(path: str):
+    if not os.path.isfile(path):
+        raise RuntimeError(f"필수 파일이 없습니다: {path}")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def load_all(force: bool = False) -> None:
+    if CACHE["chars"] and CACHE["bosses"] and not force:
         return
 
     CACHE["error"] = None
     try:
-        if not os.path.isfile(CHAR_JSON):
-            raise RuntimeError(f"characters.json 파일이 없습니다: {CHAR_JSON}")
-
-        with open(CHAR_JSON, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        # 동기화 결과가 {count, characters} 형태이거나, 리스트일 수도 있으니 유연하게
-        if isinstance(data, dict) and isinstance(data.get("characters"), list):
-            chars = data["characters"]
-        elif isinstance(data, list):
-            chars = data
+        # characters
+        cdata = read_json_file(CHAR_JSON)
+        if isinstance(cdata, dict) and isinstance(cdata.get("characters"), list):
+            chars = cdata["characters"]
+        elif isinstance(cdata, list):
+            chars = cdata
         else:
-            raise RuntimeError("characters.json 포맷이 올바르지 않습니다. (characters 배열이 필요)")
-
+            raise RuntimeError("characters.json 포맷 오류: characters 배열이 필요합니다.")
         CACHE["chars"] = normalize_chars(chars)
+
+        # element_chart
+        edata = read_json_file(ELEM_JSON)
+        adv = None
+        if isinstance(edata, dict):
+            adv = edata.get("adv")
+        if not (isinstance(adv, dict) and adv):
+            raise RuntimeError("element_chart.json 포맷 오류: { adv: {...} } 형태가 필요합니다.")
+        # 최소 키 검증
+        for k in ["Fire", "Wind", "Ice", "Holy", "Chaos"]:
+            if k not in adv:
+                raise RuntimeError(f"element_chart.json adv 누락: {k}")
+        CACHE["element_adv"] = {str(k): str(v) for k, v in adv.items()}
+
+        # bosses
+        bdata = read_json_file(BOSS_JSON)
+        bosses = None
+        if isinstance(bdata, dict):
+            bosses = bdata.get("bosses")
+        if not isinstance(bosses, list):
+            raise RuntimeError("bosses.json 포맷 오류: { bosses: [...] } 형태가 필요합니다.")
+        CACHE["bosses"] = normalize_bosses(bosses)
+
         CACHE["last_refresh"] = now_iso()
 
     except Exception as e:
         CACHE["chars"] = []
+        CACHE["bosses"] = []
         CACHE["last_refresh"] = now_iso()
         CACHE["error"] = str(e)
 
@@ -126,7 +173,6 @@ def resolve_ids(input_list: list[str], chars: list[dict]) -> list[str]:
             continue
         out.append(by_id.get(k) or by_name.get(k) or slug_id(x))
 
-    # unique preserve order
     seen, uniq = set(), []
     for v in out:
         if v and v not in seen:
@@ -134,20 +180,26 @@ def resolve_ids(input_list: list[str], chars: list[dict]) -> list[str]:
             uniq.append(v)
     return uniq
 
-def element_bonus(char_element: str, enemy_element: str | None, boss_weakness: str | None) -> int:
+def element_bonus(char_element: str, enemy_element: str | None, boss_weakness: str | None, adv_map: dict) -> int:
     bonus = 0
     ce = char_element or "-"
+
     if boss_weakness and ce == boss_weakness:
         bonus += 25
+
     if enemy_element:
-        advantagers = [k for k, v in ELEMENT_ADV.items() if v == enemy_element]
+        # enemy를 이기는 속성(adv_map[x] == enemy)
+        advantagers = [k for k, v in adv_map.items() if v == enemy_element]
         if ce in advantagers:
             bonus += 20
-        if ELEMENT_ADV.get(enemy_element) == ce:
+
+        # enemy가 나를 이기면 감점(adv_map[enemy] == ce)
+        if adv_map.get(enemy_element) == ce:
             bonus -= 10
+
     return bonus
 
-def recommend_party(payload: dict, chars: list[dict]) -> dict:
+def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
     mode = payload.get("mode") or "pve"
     owned = resolve_ids(payload.get("owned") or [], chars)
     required = resolve_ids(payload.get("required") or [], chars)
@@ -170,7 +222,7 @@ def recommend_party(payload: dict, chars: list[dict]) -> dict:
 
     def score(c: dict) -> int:
         s = RARITY_SCORE.get(c.get("rarity") or "-", 0)
-        s += element_bonus(c.get("element") or "-", enemy_element, boss_weakness)
+        s += element_bonus(c.get("element") or "-", enemy_element, boss_weakness, adv_map)
 
         role = (c.get("role") or "-").lower()
         if mode == "pvp" and role in ("tank", "healer"):
@@ -181,7 +233,6 @@ def recommend_party(payload: dict, chars: list[dict]) -> dict:
             s += 18
         return s
 
-    # 4인 고정
     party = []
     for rid in required:
         if rid in pool_ids and rid not in party:
@@ -189,6 +240,7 @@ def recommend_party(payload: dict, chars: list[dict]) -> dict:
 
     remain = [c for c in pool if c["id"] not in party]
     remain.sort(key=lambda c: score(c), reverse=True)
+
     while len(party) < 4 and remain:
         party.append(remain.pop(0)["id"])
 
@@ -199,7 +251,7 @@ def recommend_party(payload: dict, chars: list[dict]) -> dict:
             continue
         members.append({
             "id": c["id"],
-            "name": c.get("name") or c["id"],   # 캐릭터명 영어 유지
+            "name": c.get("name") or c["id"],  # 캐릭터명 영어 유지
             "rarity": c.get("rarity") or "-",
             "element": c.get("element") or "-",
             "role": c.get("role") or "-",
@@ -226,51 +278,67 @@ def recommend_party(payload: dict, chars: list[dict]) -> dict:
 
 @app.get("/")
 def home():
-    # ✅ Not Found 방지
     return redirect("/ui/select")
 
 @app.get("/refresh")
 def refresh():
-    load_characters(force=True)
+    load_all(force=True)
     return redirect("/ui/select")
 
 @app.get("/meta")
 def meta():
-    load_characters()
+    load_all()
     return jsonify({
         "title": APP_TITLE,
         "source": CACHE["source"],
         "characters_cached": len(CACHE["chars"]),
+        "bosses_cached": len(CACHE["bosses"]),
         "last_refresh": CACHE["last_refresh"],
         "error": CACHE["error"],
         "char_json": "public/data/zone-nova/characters.json",
+        "boss_json": "public/data/zone-nova/bosses.json",
+        "element_chart_json": "public/data/zone-nova/element_chart.json",
         "image_base": "/images/games/zone-nova/characters/",
+        "element_adv": CACHE["element_adv"],
     })
 
 @app.get("/zones/zone-nova/characters")
 def api_chars():
-    load_characters()
+    load_all()
     return jsonify({
         "count": len(CACHE["chars"]),
         "last_refresh": CACHE["last_refresh"],
-        "source": CACHE["source"],
+        "source": CACHE["source"]["characters"],
         "error": CACHE["error"],
         "characters": CACHE["chars"],
     })
 
+@app.get("/zones/zone-nova/bosses")
+def api_bosses():
+    load_all()
+    return jsonify({
+        "count": len(CACHE["bosses"]),
+        "last_refresh": CACHE["last_refresh"],
+        "source": CACHE["source"]["bosses"],
+        "error": CACHE["error"],
+        "bosses": CACHE["bosses"],
+    })
+
 @app.post("/recommend/v3")
 def api_recommend():
-    load_characters()
+    load_all()
     payload = request.get_json(force=True) or {}
-    res = recommend_party(payload, CACHE["chars"])
+    res = recommend_party(payload, CACHE["chars"], CACHE["element_adv"])
     return Response(json.dumps(res, ensure_ascii=False, indent=2),
                     mimetype="application/json; charset=utf-8")
 
 @app.get("/ui/select")
 def ui_select():
-    load_characters()
+    load_all()
 
     chars_json = json.dumps(CACHE["chars"], ensure_ascii=False)
+    bosses_json = json.dumps(CACHE["bosses"], ensure_ascii=False)
+    adv_json = json.dumps(CACHE["element_adv"], ensure_ascii=False)
 
     html = f"""<!doctype html>
 <html lang="ko"><head>
@@ -317,16 +385,17 @@ pre{{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospac
 <body>
 <div class="top"><div class="topIn">
   <div style="font-weight:900;">{APP_TITLE}</div>
-  <span class="badge">캐시 {len(CACHE["chars"])} · 갱신 {CACHE["last_refresh"] or "N/A"}</span>
+  <span class="badge">캐시 {len(CACHE["chars"])} · 보스 {len(CACHE["bosses"])} · 갱신 {CACHE["last_refresh"] or "N/A"}</span>
   <a class="badge" href="/refresh">새로고침</a>
   <a class="badge" href="/meta">메타</a>
-  <a class="badge" href="/zones/zone-nova/characters">JSON</a>
+  <a class="badge" href="/zones/zone-nova/characters">캐릭터 JSON</a>
+  <a class="badge" href="/zones/zone-nova/bosses">보스 JSON</a>
 </div></div>
 
 <div class="wrap">
   <div class="grid">
     <div class="card">
-      <div class="hd"><span>추천 옵션</span><span class="small">캐릭터 이름은 영어 유지</span></div>
+      <div class="hd"><span>추천 옵션</span><span class="small">보스 선택 시 약점/속성 자동 반영</span></div>
       <div class="bd">
         <div class="row">
           <div style="flex:1;min-width:140px;">
@@ -337,12 +406,21 @@ pre{{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospac
               <option value="pvp">PvP</option>
             </select>
           </div>
+
+          <div style="flex:1;min-width:220px;">
+            <label>보스 선택</label>
+            <select id="boss_pick">
+              <option value="">(선택 안 함)</option>
+            </select>
+          </div>
+
           <div style="flex:1;min-width:160px;">
             <label>보스 약점 속성</label>
             <select id="boss_weakness">
               <option value="">(없음)</option><option>Fire</option><option>Ice</option><option>Wind</option><option>Holy</option><option>Chaos</option>
             </select>
           </div>
+
           <div style="flex:1;min-width:160px;">
             <label>상대(적) 속성</label>
             <select id="enemy_element">
@@ -378,6 +456,10 @@ pre{{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospac
           </div>
           <div class="bd"><div id="out" class="small">(아직 없음)</div></div>
         </div>
+
+        <div style="height:10px;" class="small">
+          상성표: Fire→Wind→Ice→Holy→Chaos→Fire (adv 기반)
+        </div>
       </div>
     </div>
 
@@ -408,8 +490,14 @@ pre{{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospac
 </div>
 
 <script type="application/json" id="chars">{chars_json}</script>
+<script type="application/json" id="bosses">{bosses_json}</script>
+<script type="application/json" id="adv">{adv_json}</script>
+
 <script>
 const CHARS = JSON.parse(document.getElementById('chars').textContent || "[]");
+const BOSSES = JSON.parse(document.getElementById('bosses').textContent || "[]");
+const ADV = JSON.parse(document.getElementById('adv').textContent || "{{}}");
+
 const E_ICON = {{ Fire:"🔥", Ice:"❄️", Wind:"🌪️", Holy:"✨", Chaos:"☯️", "-":"❔" }};
 const R_ICON = {{ tank:"🛡️", healer:"💚", dps:"⚔️", buffer:"📣", debuffer:"🧪", "-":"❔" }};
 
@@ -502,6 +590,30 @@ function applyFilter(){{
   }});
 }}
 
+function fillBossSelect(){{
+  const sel = document.getElementById('boss_pick');
+  // 기존 옵션 유지(첫번째)
+  for(const b of BOSSES){{
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = b.name || b.id;
+    sel.appendChild(opt);
+  }}
+}}
+
+function onBossPick(){{
+  const bid = document.getElementById('boss_pick').value;
+  const b = BOSSES.find(x => x.id === bid);
+  if(!b) return;
+
+  // 보스 선택 -> 약점/적속성 자동 반영 (값이 있으면)
+  if(b.weakness) document.getElementById('boss_weakness').value = b.weakness;
+  if(b.enemy_element) document.getElementById('enemy_element').value = b.enemy_element;
+
+  // 모드를 보스에 자동 전환(원하면 제거 가능)
+  document.getElementById('mode').value = 'boss';
+}}
+
 async function run(){{
   const payload={{
     mode: document.getElementById('mode').value,
@@ -524,7 +636,7 @@ async function run(){{
 
 function clearAll(){{
   document.querySelectorAll('.owned').forEach(x=>x.checked=false);
-  ['required','fixed','banned','boss_weakness','enemy_element','q'].forEach(id=>{{
+  ['required','fixed','banned','boss_weakness','enemy_element','q','boss_pick'].forEach(id=>{{
     const el=document.getElementById(id);
     if(!el) return;
     if(el.tagName==='SELECT') el.value=''; else el.value='';
@@ -535,7 +647,10 @@ function clearAll(){{
 
 document.addEventListener('DOMContentLoaded', ()=>{{
   render(CHARS);
+  fillBossSelect();
+
   document.getElementById('q').addEventListener('input', applyFilter);
+  document.getElementById('boss_pick').addEventListener('change', onBossPick);
 
   document.getElementById('btnAllOn').onclick=()=>{{ document.querySelectorAll('.owned').forEach(x=>x.checked=true); stat(); }};
   document.getElementById('btnAllOff').onclick=()=>{{ document.querySelectorAll('.owned').forEach(x=>x.checked=false); stat(); }};
