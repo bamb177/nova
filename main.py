@@ -12,11 +12,7 @@ from requests.exceptions import SSLError
 from urllib3.exceptions import InsecureRequestWarning
 from flask import Flask, request, Response, send_from_directory, abort
 
-# 선택 의존성(설치되면 사용)
-try:
-    from bs4 import BeautifulSoup  # type: ignore
-except Exception:
-    BeautifulSoup = None  # type: ignore
+from bs4 import BeautifulSoup  # requirements.txt에 beautifulsoup4 필요
 
 
 # =========================
@@ -25,7 +21,7 @@ except Exception:
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 try:
-    app.json.ensure_ascii = False  # Flask 2.3+
+    app.json.ensure_ascii = False
 except Exception:
     pass
 
@@ -33,8 +29,10 @@ KST = timezone(timedelta(hours=9))
 DEFAULT_PORT = 40000
 PARTY_SIZE = 4
 
+APP_TITLE = "Nova"
+
 # =========================
-# Remote (Render에서 성공 기대)
+# Remote
 # =========================
 ZONE_NOVA_DB_URL = "https://gachawiki.info/guides/zone-nova/characters/"
 UA = (
@@ -45,17 +43,15 @@ UA = (
 FORCE_LOCAL_ONLY = os.environ.get("FORCE_LOCAL_ONLY", "").strip() in {"1", "true", "TRUE", "yes", "YES"}
 
 # =========================
-# Paths (Render/Local 공통)
+# Paths (Render/Local)
 # =========================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# 이미지 폴더 후보: 둘 중 하나만 있어도 동작
 IMAGE_DIR_CANDIDATES = [
     os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "characters"),
     os.path.join(BASE_DIR, "gacha-wiki", "public", "images", "games", "zone-nova", "characters"),
 ]
 
-# /images/ 파일 제공용 base 후보(폴더 자체)
 IMAGES_BASE_CANDIDATES = [
     os.path.join(BASE_DIR, "public", "images"),
     os.path.join(BASE_DIR, "gacha-wiki", "public", "images"),
@@ -71,13 +67,13 @@ CACHE: Dict[str, Any] = {
         "last_refresh_iso": None,
         "error": None,
         "source": None,              # images_only | images+remote
-        "image_dir": None,           # 실제 사용한 이미지 디렉터리
-        "image_count": 0,            # 이미지 파일 수
+        "image_dir": None,
+        "image_count": 0,
         "remote_ok": False,
         "remote_error": None,
         "remote_count": 0,
         "force_local_only": FORCE_LOCAL_ONLY,
-        "remote_bs4_available": bool(BeautifulSoup),
+        "remote_bs4_available": True,
     }
 }
 
@@ -90,7 +86,7 @@ def now_iso_kst() -> str:
 
 
 def slugify(s: str) -> str:
-    s = s.strip()
+    s = (s or "").strip()
     s = s.replace("’", "").replace("'", "")
     s = re.sub(r"[^A-Za-z0-9\s\-_]", "", s)
     s = s.strip().lower()
@@ -100,9 +96,9 @@ def slugify(s: str) -> str:
 
 
 def prettify_name_from_stem(stem: str) -> str:
-    s = stem.strip()
+    s = (stem or "").strip()
     s = re.sub(r"[_\-]+", " ", s)
-    s = re.sub(r"([a-z])([A-Z])", r"\1 \2", s)  # CamelCase split
+    s = re.sub(r"([a-z])([A-Z])", r"\1 \2", s)
     s = s.strip()
     if not s:
         return stem
@@ -138,31 +134,7 @@ def http_get(url: str, timeout: int = 25) -> str:
         return r.text
 
 
-def html_to_text_lines(html: str) -> List[str]:
-    html = re.sub(r"(?is)<script.*?>.*?</script>", " ", html)
-    html = re.sub(r"(?is)<style.*?>.*?</style>", " ", html)
-    txt = re.sub(r"(?is)<[^>]+>", " ", html)
-    txt = (
-        txt.replace("&nbsp;", " ")
-           .replace("&amp;", "&")
-           .replace("&quot;", '"')
-           .replace("&#39;", "'")
-    )
-    txt = re.sub(r"[ \t\r\f\v]+", " ", txt)
-    txt = re.sub(r"\n+", "\n", txt)
-    lines = [ln.strip() for ln in txt.split("\n")]
-    return [ln for ln in lines if ln]
-
-
 def parse_remote_zone_nova_characters_bs4(html: str) -> List[Dict[str, Any]]:
-    """
-    BeautifulSoup 기반 테이블 파서.
-    - 테이블 구조가 바뀌어도 th 텍스트로 컬럼 매핑
-    - row의 td를 컬럼 인덱스 기준으로 해석
-    """
-    if not BeautifulSoup:
-        return []
-
     soup = BeautifulSoup(html, "html.parser")
     tables = soup.find_all("table")
     if not tables:
@@ -172,43 +144,41 @@ def parse_remote_zone_nova_characters_bs4(html: str) -> List[Dict[str, Any]]:
         return re.sub(r"\s+", " ", (s or "").strip()).lower()
 
     target = None
-    header_map = None
+    headers: List[str] = []
 
+    # "Name/Rarity/Element/Role/HP" 조합을 가진 테이블 찾기
     for t in tables:
         thead = t.find("thead")
-        if not thead:
-            # thead가 없고 첫 행이 헤더인 경우도 있음
+        if thead and thead.find_all("th"):
+            headers = [norm(th.get_text(" ", strip=True)) for th in thead.find_all("th")]
+        else:
             first_tr = t.find("tr")
             if not first_tr:
                 continue
-            ths = first_tr.find_all(["th", "td"])
-        else:
-            ths = thead.find_all("th")
-            if not ths:
-                # thead가 비어있으면 첫 tr로
-                first_tr = t.find("tr")
-                if not first_tr:
-                    continue
-                ths = first_tr.find_all(["th", "td"])
+            headers = [norm(x.get_text(" ", strip=True)) for x in first_tr.find_all(["th", "td"])]
 
-        headers = [norm(h.get_text(" ", strip=True)) for h in ths]
-        # 최소한 name/rarity/element/role/hp/attack/defense/crit 같은 게 있어야 함
-        needed = ["name", "rarity", "element", "role"]
-        if all(any(n in h for h in headers) for n in needed) and any("hp" in h for h in headers):
+        if not headers:
+            continue
+
+        if (
+            any("name" in h for h in headers)
+            and any("rarity" in h for h in headers)
+            and any("element" in h for h in headers)
+            and any("role" in h for h in headers)
+            and any("hp" in h for h in headers)
+        ):
             target = t
-            header_map = headers
             break
 
-    if not target or not header_map:
+    if not target or not headers:
         return []
 
-    # 컬럼 인덱스 찾기(유연)
-    def find_col(keys: List[str]) -> Optional[int]:
-        for i, h in enumerate(header_map):
+    def find_col(keys: List[str]) -> int:
+        for i, h in enumerate(headers):
             for k in keys:
                 if k in h:
                     return i
-        return None
+        return -1
 
     idx_name = find_col(["name"])
     idx_rarity = find_col(["rarity"])
@@ -221,115 +191,48 @@ def parse_remote_zone_nova_characters_bs4(html: str) -> List[Dict[str, Any]]:
     idx_def = find_col(["defense", "def"])
     idx_crit = find_col(["crit"])
 
-    # 본문 행들
     tbody = target.find("tbody")
-    rows = tbody.find_all("tr") if tbody else target.find_all("tr")[1:]  # header 다음부터
+    rows = tbody.find_all("tr") if tbody else target.find_all("tr")[1:]
+
+    def pick(tds, idx: int) -> str:
+        if idx < 0 or idx >= len(tds):
+            return ""
+        return tds[idx].get_text(" ", strip=True)
+
+    def to_int(s: str) -> Optional[int]:
+        s = (s or "").replace(",", "").strip()
+        if not s:
+            return None
+        m = re.search(r"\d+", s)
+        return int(m.group(0)) if m else None
+
+    def to_float(s: str) -> Optional[float]:
+        s = (s or "").replace(",", "").replace("%", "").strip()
+        if not s:
+            return None
+        m = re.search(r"\d+(\.\d+)?", s)
+        return float(m.group(0)) if m else None
 
     out: List[Dict[str, Any]] = []
-
     for tr in rows:
         tds = tr.find_all("td")
         if not tds:
             continue
 
-        def cell(i: Optional[int]) -> str:
-            if i is None:
-                return ""
-            if i < 0 or i >= len(tds):
-                return ""
-            return tds[i].get_text(" ", strip=True)
-
-        name = cell(idx_name)
-        rarity = cell(idx_rarity)
-        element = cell(idx_element)
-        role = cell(idx_role)
-        clazz = cell(idx_class)
-        faction = cell(idx_faction)
-
-        # 숫자 파싱
-        def to_int(s: str) -> Optional[int]:
-            s = (s or "").replace(",", "").strip()
-            if not s:
-                return None
-            m = re.search(r"\d+", s)
-            return int(m.group(0)) if m else None
-
-        def to_float(s: str) -> Optional[float]:
-            s = (s or "").replace(",", "").replace("%", "").strip()
-            if not s:
-                return None
-            m = re.search(r"\d+(\.\d+)?", s)
-            return float(m.group(0)) if m else None
-
-        hp = to_int(cell(idx_hp))
-        atk = to_int(cell(idx_atk))
-        df = to_int(cell(idx_def))
-        crit = to_float(cell(idx_crit))
-
-        # name이 비면 스킵
+        name = pick(tds, idx_name)
         if not name:
             continue
 
-        out.append({
-            "id": slugify(name),
-            "name": name,
-            "rarity": rarity or None,
-            "element": element or None,
-            "role": role or None,
-            "class": clazz or None,
-            "faction": faction or None,
-            "stats": {"hp": hp, "atk": atk, "def": df, "crit": crit},
-        })
+        rarity = pick(tds, idx_rarity) or None
+        element = pick(tds, idx_element) or None
+        role = pick(tds, idx_role) or None
+        clazz = pick(tds, idx_class) or None
+        faction = pick(tds, idx_faction) or None
 
-    uniq = {c["id"]: c for c in out}
-    return list(uniq.values())
-
-
-def parse_remote_zone_nova_characters_fallback(html: str) -> List[Dict[str, Any]]:
-    """
-    기존 텍스트 기반(정규식) fallback.
-    """
-    lines = html_to_text_lines(html)
-
-    start_idx = None
-    for i, ln in enumerate(lines):
-        if ("Name" in ln and "Rarity" in ln and "Element" in ln and "Role" in ln and "HP" in ln and "Attack" in ln):
-            if "Defense" in ln or "DEF" in ln:
-                start_idx = i + 1
-                break
-    if start_idx is None:
-        return []
-
-    rarity_pat = r"(SSR|SR|R)"
-    element_pat = r"(Chaos|Fire|Holy|Ice|Wind)"
-    role_pat = r"(Buffer|DPS|Debuffer|Healer|Tank)"
-    class_pat = r"(Buffer|Debuffer|Guardian|Healer|Mage|Rogue|Warrior)"
-    num_pat = r"([\d,]+)\s+([\d,]+)\s+([\d,]+)\s+([\d.]+)"
-
-    pattern = re.compile(
-        rf"^(?P<name>.+?)\s+{rarity_pat}\s+{element_pat}\s+{role_pat}\s+{class_pat}\s+(?P<faction>.+?)\s+{num_pat}$"
-    )
-
-    out: List[Dict[str, Any]] = []
-    for ln in lines[start_idx:]:
-        cleaned = re.sub(r"\bImage:\s*[A-Za-z0-9\-_]+\b", "", ln).strip()
-        cleaned = re.sub(r"\s+", " ", cleaned).strip()
-
-        m = pattern.match(cleaned)
-        if not m:
-            continue
-
-        name = m.group("name").strip()
-        rarity = m.group(2)
-        element = m.group(3)
-        role = m.group(4)
-        clazz = m.group(5)
-        faction = m.group("faction").strip()
-
-        hp = int(m.group(6).replace(",", ""))
-        atk = int(m.group(7).replace(",", ""))
-        df = int(m.group(8).replace(",", ""))
-        crit = float(m.group(9))
+        hp = to_int(pick(tds, idx_hp))
+        atk = to_int(pick(tds, idx_atk))
+        df = to_int(pick(tds, idx_def))
+        crit = to_float(pick(tds, idx_crit))
 
         out.append({
             "id": slugify(name),
@@ -347,12 +250,9 @@ def parse_remote_zone_nova_characters_fallback(html: str) -> List[Dict[str, Any]
 
 
 def load_from_images(image_dir: str) -> Tuple[List[Dict[str, Any]], int]:
-    files = []
-    for fn in os.listdir(image_dir):
-        if fn.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
-            files.append(fn)
-
+    files = [fn for fn in os.listdir(image_dir) if fn.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))]
     chars: List[Dict[str, Any]] = []
+
     for fn in files:
         stem = os.path.splitext(fn)[0]
         name = prettify_name_from_stem(stem)
@@ -388,6 +288,7 @@ def merge_image_and_remote(image_chars: List[Dict[str, Any]], remote_chars: List
                 ic[k] = rc.get(k)
             ic["stats"] = rc.get("stats") or ic.get("stats")
         else:
+            # 원격에만 있는 캐릭터(이미지 없음)도 포함
             rc2 = dict(rc)
             rc2["image"] = None
             by_id[rid] = rc2
@@ -402,8 +303,8 @@ def refresh_zone_nova_cache() -> Tuple[bool, str]:
         image_dir = pick_existing_dir(IMAGE_DIR_CANDIDATES)
         if not image_dir:
             raise FileNotFoundError(
-                "Zone Nova 캐릭터 이미지 폴더를 찾지 못했습니다.\n"
-                + "\n".join([f"- {p}" for p in IMAGE_DIR_CANDIDATES])
+                "Zone Nova 캐릭터 이미지 폴더를 찾지 못했습니다.\n" +
+                "\n".join([f"- {p}" for p in IMAGE_DIR_CANDIDATES])
             )
 
         image_chars, img_count = load_from_images(image_dir)
@@ -415,25 +316,13 @@ def refresh_zone_nova_cache() -> Tuple[bool, str]:
         if not FORCE_LOCAL_ONLY:
             try:
                 html = http_get(ZONE_NOVA_DB_URL, timeout=25)
-
-                # 1) bs4 우선
                 remote_chars = parse_remote_zone_nova_characters_bs4(html)
 
-                # 2) 그래도 0이면 fallback 정규식 파서
-                if len(remote_chars) == 0:
-                    remote_chars = parse_remote_zone_nova_characters_fallback(html)
-
-                # 3) 0이면 원인은 “페이지 구조/표 형식 변화 또는 보호 페이지”일 확률이 높음
                 if len(remote_chars) >= 10:
                     remote_ok = True
                 else:
                     remote_ok = False
-                    # 에러가 아니라 “파싱 결과 0~N” 상황이므로 명시적으로 원인 표시
-                    remote_err = (
-                        f"Fetched OK but parsed {len(remote_chars)} rows. "
-                        "Page layout may have changed or content is not a plain table."
-                    )
-
+                    remote_err = f"Fetched OK but parsed {len(remote_chars)} rows."
             except Exception as e:
                 remote_ok = False
                 remote_err = str(e)
@@ -456,9 +345,9 @@ def refresh_zone_nova_cache() -> Tuple[bool, str]:
         CACHE["zone_nova"]["remote_error"] = remote_err
         CACHE["zone_nova"]["remote_count"] = len(remote_chars)
         CACHE["zone_nova"]["force_local_only"] = FORCE_LOCAL_ONLY
-        CACHE["zone_nova"]["remote_bs4_available"] = bool(BeautifulSoup)
 
         return True, f"ok: {CACHE['zone_nova']['count']} (source={CACHE['zone_nova']['source']})"
+
     except Exception as e:
         CACHE["zone_nova"]["characters"] = []
         CACHE["zone_nova"]["count"] = 0
@@ -472,8 +361,150 @@ def refresh_zone_nova_cache() -> Tuple[bool, str]:
 
 
 def ensure_cache_loaded() -> None:
+    # gunicorn 환경에서 최초 요청 시 자동 로드
     if CACHE["zone_nova"]["count"] == 0 and CACHE["zone_nova"]["last_refresh_iso"] is None:
         refresh_zone_nova_cache()
+
+
+# =========================
+# Scoring / Recommend
+# =========================
+def rarity_bonus(r: Optional[str]) -> float:
+    r = (r or "").upper().strip()
+    return {"SSR": 20.0, "SR": 10.0, "R": 0.0}.get(r, 0.0)
+
+
+def role_bonus(role: Optional[str], mode: str) -> float:
+    r = (role or "").strip().lower()
+
+    # 모드별 역할 선호
+    if mode == "boss":
+        # 보스전: 딜/디버프 우선
+        if r == "dps":
+            return 12.0
+        if r == "debuffer":
+            return 9.0
+        if r == "buffer":
+            return 6.0
+        if r == "tank":
+            return 3.0
+        if r == "healer":
+            return 3.0
+        return 0.0
+
+    if mode == "pvp":
+        # PVP: 생존(탱/힐) 우선
+        if r == "tank":
+            return 12.0
+        if r == "healer":
+            return 12.0
+        if r == "debuffer":
+            return 8.0
+        if r == "buffer":
+            return 7.0
+        if r == "dps":
+            return 5.0
+        return 0.0
+
+    # pve(기본): 밸런스
+    if r == "tank":
+        return 10.0
+    if r == "healer":
+        return 10.0
+    if r == "dps":
+        return 9.0
+    if r == "debuffer":
+        return 7.0
+    if r == "buffer":
+        return 7.0
+    return 0.0
+
+
+def score_character(c: Dict[str, Any], mode: str) -> float:
+    st = c.get("stats") or {}
+    hp = st.get("hp") or 0
+    atk = st.get("atk") or 0
+    df = st.get("def") or 0
+    crit = st.get("crit") or 0.0
+
+    hp_s = float(hp) / 1000.0
+    atk_s = float(atk) / 100.0
+    df_s = float(df) / 100.0
+
+    # 모드별 스탯 비중
+    if mode == "boss":
+        base = 0.75 * atk_s + 0.10 * df_s + 0.15 * hp_s
+    elif mode == "pvp":
+        base = 0.20 * atk_s + 0.45 * df_s + 0.35 * hp_s
+    else:  # pve
+        base = 0.55 * atk_s + 0.20 * df_s + 0.25 * hp_s
+
+    try:
+        base += float(crit) / 10.0
+    except Exception:
+        pass
+
+    base += rarity_bonus(c.get("rarity"))
+    base += role_bonus(c.get("role"), mode)
+    return base
+
+
+def build_party(owned_chars: List[Dict[str, Any]], mode: str) -> Tuple[List[Dict[str, Any]], List[str], List[Dict[str, Any]]]:
+    """
+    4인 고정, 탱 1 + 힐 1 우선.
+    반환: (party, issues, alternatives_top3)
+    """
+    issues: List[str] = []
+
+    tanks = [c for c in owned_chars if (c.get("role") or "").strip().lower() == "tank"]
+    healers = [c for c in owned_chars if (c.get("role") or "").strip().lower() == "healer"]
+    others = [c for c in owned_chars if c not in tanks and c not in healers]
+
+    tanks.sort(key=lambda c: score_character(c, mode), reverse=True)
+    healers.sort(key=lambda c: score_character(c, mode), reverse=True)
+    others.sort(key=lambda c: score_character(c, mode), reverse=True)
+
+    party: List[Dict[str, Any]] = []
+    used: set[str] = set()
+
+    if tanks:
+        party.append(tanks[0]); used.add(tanks[0]["id"])
+    else:
+        issues.append("탱커 없음")
+
+    if healers:
+        if healers[0]["id"] not in used:
+            party.append(healers[0]); used.add(healers[0]["id"])
+    else:
+        issues.append("힐러 없음")
+
+    # 나머지 2자리(모드 점수순)
+    for c in others:
+        if c["id"] in used:
+            continue
+        party.append(c); used.add(c["id"])
+        if len(party) == PARTY_SIZE:
+            break
+
+    # 부족하면 남은 탱/힐로 채움
+    if len(party) < PARTY_SIZE:
+        pool = tanks[1:] + healers[1:]
+        pool.sort(key=lambda c: score_character(c, mode), reverse=True)
+        for c in pool:
+            if c["id"] in used:
+                continue
+            party.append(c); used.add(c["id"])
+            if len(party) == PARTY_SIZE:
+                break
+
+    if len(party) < PARTY_SIZE:
+        issues.append(f"보유 풀 부족: {len(party)}명만 구성")
+
+    remaining = [c for c in owned_chars if c["id"] not in used]
+    remaining.sort(key=lambda c: score_character(c, mode), reverse=True)
+    alternatives = remaining[:3]
+
+    return party, issues, alternatives
 
 
 # =========================
@@ -501,7 +532,7 @@ def home() -> Response:
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <title>Nova</title>
+  <title>{APP_TITLE}</title>
   <style>
     body {{ font-family: Arial, sans-serif; margin: 24px; }}
     code {{ background: #f5f5f5; padding: 2px 6px; }}
@@ -512,7 +543,7 @@ def home() -> Response:
   </style>
 </head>
 <body>
-  <h1>Nova</h1>
+  <h1>{APP_TITLE}</h1>
   <div class="box">
     <div class="row">Image dir: <code>{zn.get("image_dir") or "N/A"}</code></div>
     <div class="row">Image files: <code>{zn.get("image_count")}</code></div>
@@ -574,63 +605,23 @@ def zone_nova_characters() -> Response:
     return Response(json.dumps(payload, ensure_ascii=False), mimetype="application/json; charset=utf-8")
 
 
-# (간단) 추천 API - 현재 단계에서는 원격 메타데이터 유무 확인이 우선이라 최소 유지
-def score_character(c: Dict[str, Any], mode: str) -> float:
-    st = c.get("stats") or {}
-    hp = st.get("hp") or 0
-    atk = st.get("atk") or 0
-    df = st.get("def") or 0
-    crit = st.get("crit") or 0.0
-
-    hp_s = float(hp) / 1000.0
-    atk_s = float(atk) / 100.0
-    df_s = float(df) / 100.0
-
-    if mode == "pvp":
-        base = 0.55 * df_s + 0.35 * hp_s + 0.10 * atk_s
-    elif mode == "boss":
-        base = 0.65 * atk_s + 0.20 * df_s + 0.15 * hp_s
-    else:
-        base = 0.60 * atk_s + 0.20 * hp_s + 0.20 * df_s
-
-    try:
-        base += float(crit) / 10.0
-    except Exception:
-        pass
-
-    rarity = (c.get("rarity") or "").upper()
-    base += {"SSR": 20.0, "SR": 10.0, "R": 0.0}.get(rarity, 0.0)
-
-    role = (c.get("role") or "").lower()
-    if "tank" in role:
-        base += 8.0
-    elif "healer" in role:
-        base += 8.0
-    elif "dps" in role:
-        base += 6.0
-    elif "debuff" in role or "buff" in role:
-        base += 4.0
-
-    return base
-
-
 @app.get("/recommend")
 def recommend_help() -> Response:
-    html = """
+    html = f"""
 <!doctype html>
 <html lang="ko">
-<head><meta charset="utf-8" /><title>Recommend</title></head>
+<head><meta charset="utf-8" /><title>{APP_TITLE}</title></head>
 <body style="font-family: Arial, sans-serif; margin: 24px;">
-  <h2>/recommend</h2>
-  <p>POST로 추천 결과를 반환합니다(4인 고정).</p>
+  <h2>{APP_TITLE} /recommend</h2>
+  <p>POST로 추천 결과를 반환합니다(4인 고정, 탱커/힐러 우선).</p>
   <pre style="background:#f5f5f5;padding:12px;border-radius:8px;">
 POST /recommend
 Content-Type: application/json
 
-{
-  "mode": "pve",
+{{
+  "mode": "pve",   // pve | boss | pvp
   "owned": ["nina", "freya", "lavinia", "apep"]
-}
+}}
   </pre>
 </body></html>
 """
@@ -647,34 +638,40 @@ def recommend() -> Response:
 
     owned = data.get("owned") or []
     if not isinstance(owned, list):
-        return Response(json.dumps({"error": "owned는 배열이어야 합니다."}, ensure_ascii=False),
-                        mimetype="application/json; charset=utf-8", status=400)
+        return Response(
+            json.dumps({"error": "owned는 배열이어야 합니다."}, ensure_ascii=False),
+            mimetype="application/json; charset=utf-8",
+            status=400,
+        )
 
     chars = CACHE["zone_nova"]["characters"]
     by_id = {c["id"].lower(): c for c in chars}
     by_name = {c["name"].lower(): c for c in chars}
 
-    owned_chars = []
+    owned_chars: List[Dict[str, Any]] = []
     for x in owned:
         k = str(x).strip().lower()
+        if not k:
+            continue
         if k in by_id:
             owned_chars.append(by_id[k])
         elif k in by_name:
             owned_chars.append(by_name[k])
 
-    uniq = {c["id"]: c for c in owned_chars}
-    owned_chars = list(uniq.values())
+    # 중복 제거
+    owned_chars = list({c["id"]: c for c in owned_chars}.values())
 
-    if len(owned_chars) < PARTY_SIZE:
-        return Response(json.dumps({"error": f"최소 {PARTY_SIZE}명 필요", "count_owned": len(owned_chars)}, ensure_ascii=False),
-                        mimetype="application/json; charset=utf-8", status=400)
+    if not owned_chars:
+        return Response(
+            json.dumps({"error": "owned에서 유효한 캐릭터를 찾지 못했습니다."}, ensure_ascii=False),
+            mimetype="application/json; charset=utf-8",
+            status=400,
+        )
 
-    owned_chars.sort(key=lambda c: score_character(c, mode), reverse=True)
-    party = owned_chars[:PARTY_SIZE]
+    party, issues, alternatives = build_party(owned_chars, mode)
 
-    return Response(json.dumps({
-        "mode": mode,
-        "best_party": [{
+    def pack(c: Dict[str, Any]) -> Dict[str, Any]:
+        return {
             "id": c["id"],
             "name": c["name"],
             "rarity": c.get("rarity"),
@@ -684,12 +681,20 @@ def recommend() -> Response:
             "faction": c.get("faction"),
             "image": c.get("image"),
             "score": round(score_character(c, mode), 2),
-        } for c in party],
+        }
+
+    result = {
+        "mode": mode,
+        "best_party": [pack(c) for c in party],
+        "issues": issues,
+        "alternatives": [pack(c) for c in alternatives],
         "data_source": CACHE["zone_nova"]["source"],
         "remote_ok": CACHE["zone_nova"]["remote_ok"],
         "remote_count": CACHE["zone_nova"]["remote_count"],
         "remote_error": CACHE["zone_nova"]["remote_error"],
-    }, ensure_ascii=False), mimetype="application/json; charset=utf-8")
+    }
+
+    return Response(json.dumps(result, ensure_ascii=False), mimetype="application/json; charset=utf-8")
 
 
 @app.get("/ui/select")
@@ -700,13 +705,18 @@ def ui_select() -> Response:
     items = []
     for c in chars:
         img = c.get("image")
-        img_tag = f'<img src="{img}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;margin-right:8px;" />' if img else ""
+        img_tag = (
+            f'<img src="{img}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;margin-right:8px;" />'
+            if img else ""
+        )
         items.append(f"""
           <label style="display:flex;align-items:center;gap:8px;padding:6px 0;">
             <input type="checkbox" name="owned" value="{c['id']}" />
             {img_tag}
             <span>{c['name']}</span>
-            <span style="color:#777;font-size:12px;">({c.get('rarity') or '-'} / {c.get('element') or '-'} / {c.get('role') or '-'})</span>
+            <span style="color:#777;font-size:12px;">
+              ({c.get('rarity') or '-'} / {c.get('element') or '-'} / {c.get('role') or '-'})
+            </span>
           </label>
         """)
 
@@ -715,10 +725,10 @@ def ui_select() -> Response:
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <title>Select Characters</title>
+  <title>{APP_TITLE}</title>
 </head>
 <body style="font-family: Arial, sans-serif; margin: 24px;">
-  <h2>내가 가진 캐릭터 선택</h2>
+  <h2>{APP_TITLE} - 캐릭터 선택</h2>
   <div style="border:1px solid #ddd;padding:16px;border-radius:8px;max-width:1100px;">
     <div style="margin-bottom:12px;">
       Mode:
