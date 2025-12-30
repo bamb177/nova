@@ -27,6 +27,22 @@ app = Flask(__name__, static_folder="public", static_url_path="")
 RARITY_SCORE = {"SSR": 30, "SR": 18, "R": 10, "-": 0}
 VALID_IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 
+# ===== 클래스/역할 정의 =====
+CLASS_SET = {"buffer", "debuffer", "guardian", "healer", "mage", "rogue", "warrior"}
+ROLE_SET = {"buffer", "dps", "debuffer", "healer", "tank"}
+
+# 클래스 -> 역할 매핑
+CLASS_TO_ROLE = {
+    "buffer": "buffer",
+    "debuffer": "debuffer",
+    "healer": "healer",
+    "guardian": "tank",
+    "mage": "dps",
+    "rogue": "dps",
+    "warrior": "dps",
+}
+
+
 CACHE = {
     "chars": [],
     "bosses": [],
@@ -80,18 +96,20 @@ def build_file_map(folder: str) -> dict:
         base = os.path.splitext(fn)[0]
         base_low = base.lower()
 
-        # 기본 키
         keys = {base_low}
-
-        # slug 키
         keys.add(slug_id(base))
 
-        # classes 폴더에서 1*.jpg 같은 경우를 대비:
-        # "1_dps" / "1dps" / "01-dps" 등에서 선행 숫자+구분자 제거한 키도 추가
+        # classes 폴더: 1*.jpg 같은 케이스 대응(선행 숫자+구분자 제거)
         stripped = re.sub(r"^[0-9]+[_\-\s]*", "", base_low).strip()
         if stripped:
             keys.add(stripped)
             keys.add(slug_id(stripped))
+
+        # 공백/하이픈/언더스코어 제거 버전도 추가
+        compact = re.sub(r"[\s\-_]+", "", base_low)
+        if compact:
+            keys.add(compact)
+            keys.add(slug_id(compact))
 
         for k in keys:
             if k not in m:
@@ -110,20 +128,90 @@ def normalize_char_name(name: str) -> str:
     return name
 
 
-def candidate_image_bases(char_id: str, name: str) -> list[str]:
+def normalize_class(v: str) -> str:
+    """
+    입력이 class일 수도 있고 role일 수도 있음.
+    class(7)로 정규화. 못 맞추면 '-'.
+    """
+    s = (v or "").strip()
+    if not s:
+        return "-"
+
+    low = s.lower()
+
+    # 흔한 변형 보정
+    alias = {
+        "guard": "guardian",
+        "guardian": "guardian",
+        "tank": "guardian",   # 잘못 들어온 경우 class로는 guardian 취급
+        "dps": "warrior",     # 잘못 들어온 경우(실제는 클래스 3종 중 하나)
+        "mage": "mage",
+        "rogue": "rogue",
+        "warrior": "warrior",
+        "healer": "healer",
+        "buffer": "buffer",
+        "debuffer": "debuffer",
+        "support": "buffer",
+        "attacker": "warrior",
+    }
+
+    if low in CLASS_SET:
+        return low
+
+    if low in alias:
+        return alias[low]
+
+    return "-"  # 알 수 없는 값
+
+
+def role_from_class(cls: str, cid: str) -> str:
+    """
+    class -> role(5) 변환. Apep 예외 반영.
+    """
+    if not cls or cls == "-":
+        return "-"
+
+    # Apep: Warrior라도 Tank 가능 -> role을 Tank로 처리
+    if cid == "apep" and cls == "warrior":
+        return "tank"
+
+    return CLASS_TO_ROLE.get(cls, "-")
+
+
+def candidate_image_keys(cid: str, name: str) -> list[str]:
+    """
+    Jeanne D Arc 같은 케이스까지 최대한 매칭 키를 많이 생성
+    """
     out = []
-    cid = (char_id or "").strip()
+    cid = (cid or "").strip()
     nm = (name or "").strip()
 
-    for v in [nm, nm.replace(" ", ""), nm.replace("'", ""), nm.replace("’", ""), cid]:
-        v = v.strip()
-        if not v:
-            continue
-        out.append(v.lower())
+    def add(x: str):
+        x = (x or "").strip()
+        if not x:
+            return
+        out.append(x.lower())
+        out.append(slug_id(x))
+        out.append(re.sub(r"[\s\-_]+", "", x.lower()))
+        out.append(slug_id(re.sub(r"[\s\-_]+", "", x)))
 
+    add(nm)
+    add(nm.replace("'", ""))
+    add(nm.replace("’", ""))
+    add(nm.replace(" ", ""))
+    add(cid)
+
+    # Jeanne D Arc 특별히 더 보강
+    if cid == "jeannedarc" or "jeanne" in cid:
+        add("Jeanne D Arc")
+        add("JeanneDArc")
+        add("Joanof Arc")
+        add("JoanofArc")
+
+    # 중복 제거
     seen, uniq = set(), []
     for x in out:
-        if x not in seen:
+        if x and x not in seen:
             seen.add(x)
             uniq.append(x)
     return uniq
@@ -147,7 +235,6 @@ def extract_char_list(raw) -> list[dict]:
     if isinstance(v, list):
         return v
     if isinstance(v, dict):
-        # 중첩 맵
         out = []
         for k, val in v.items():
             if isinstance(val, dict):
@@ -156,7 +243,6 @@ def extract_char_list(raw) -> list[dict]:
                 out.append(item)
         return out
 
-    # 맵 형태
     dict_values = list(raw.values())
     dict_like_cnt = sum(1 for x in dict_values if isinstance(x, dict))
     if dict_like_cnt >= 3:
@@ -174,19 +260,9 @@ def extract_char_list(raw) -> list[dict]:
 def normalize_chars(raw) -> list[dict]:
     chars = extract_char_list(raw)
 
-    # 이미지/아이콘 맵
     char_img_map = build_file_map(IMG_DIR)
     elem_icon_map = build_file_map(ELEM_ICON_DIR)
     class_icon_map = build_file_map(CLASS_ICON_DIR)
-
-    # 파일명 예외 처리(요청사항)
-    # Snow girl → Snow.jpg, Morgan Le fay → Morgan.jpg
-    # (id 기준 + name slug 기준 모두 대응)
-    SPECIAL_CHAR_IMAGE = {
-        "snowgirl": "Snow.jpg",
-        "morganlefay": "Morgan.jpg",
-        "morganle_fay": "Morgan.jpg",
-    }
 
     out = []
     seen = set()
@@ -204,37 +280,65 @@ def normalize_chars(raw) -> list[dict]:
             continue
         seen.add(cid)
 
-        # 기본 필드
         rarity = (c.get("rarity") or "-").strip().upper()
         element = (c.get("element") or "-").strip()
-        role = (c.get("role") or "-").strip().lower()
 
-        # Jeanne D Arc 정규화 (이전 오류 방지)
+        # ===== 클래스/역할 분리 =====
+        # upstream 데이터가 class로 오든 role로 오든 일단 class를 찾아 정규화
+        cls_raw = c.get("class") or c.get("Class") or c.get("job") or c.get("Job") or c.get("type") or c.get("Type") or c.get("role") or c.get("Role")
+        cls = normalize_class(str(cls_raw) if cls_raw is not None else "")
+
+        # Jeanne D Arc 정규화(이전 오류 방지)
         if slug_id(name) in {"jeannedarc", "joanofarc"} or cid in {"jeannedarc", "joanofarc"} or "jeanne" in cid:
             cid = "jeannedarc"
             name = "Jeanne D Arc"
 
-        # --- 캐릭터 이미지 매칭 ---
+        role = role_from_class(cls, cid)
+
+        # ===== 캐릭터 이미지 매칭 =====
         image_url = None
 
-        # 1) 강제 예외 매핑
-        forced = SPECIAL_CHAR_IMAGE.get(cid) or SPECIAL_CHAR_IMAGE.get(slug_id(name))
-        if forced:
-            # forced 파일이 실제 폴더에 있을 때만 적용
-            forced_base = os.path.splitext(forced)[0].lower()
-            real = char_img_map.get(forced_base) or char_img_map.get(slug_id(forced_base))
-            if real:
-                image_url = f"/images/games/zone-nova/characters/{real}"
-
-        # 2) 일반 매칭
-        if not image_url:
-            for base in candidate_image_bases(cid, name):
-                real = char_img_map.get(base) or char_img_map.get(slug_id(base))
+        # 1) 매핑 테이블(요청 반영)
+        # Snow girl / Morgan Le fay 등
+        special = {
+            "snowgirl": "Snow",
+            "morganlefay": "Morgan",
+            "morganle_fay": "Morgan",
+            "jeannedarc": "Jeanne D Arc",  # Jeanne만 별도 보강
+        }
+        forced_base = special.get(cid)
+        if forced_base:
+            # forced_base로 폴더에서 찾아 연결(확장자 상관없이)
+            for k in candidate_image_keys(cid, forced_base):
+                real = char_img_map.get(k)
                 if real:
                     image_url = f"/images/games/zone-nova/characters/{real}"
                     break
 
-        # --- 아이콘 매칭 (네 리포지토리) ---
+        # 2) 일반 키 매칭
+        if not image_url:
+            for k in candidate_image_keys(cid, name):
+                real = char_img_map.get(k)
+                if real:
+                    image_url = f"/images/games/zone-nova/characters/{real}"
+                    break
+
+        # 3) Jeanne D Arc 최종 보강: 폴더를 직접 스캔(이름이 예상 밖이어도 jeanne 포함 파일을 잡음)
+        if not image_url and cid == "jeannedarc" and os.path.isdir(IMG_DIR):
+            picked = None
+            for fn in os.listdir(IMG_DIR):
+                ext = os.path.splitext(fn)[1].lower()
+                if ext not in VALID_IMG_EXT:
+                    continue
+                base = os.path.splitext(fn)[0]
+                sb = slug_id(base)
+                if sb == "jeannedarc" or "jeanne" in sb or "joanofarc" in sb:
+                    picked = fn
+                    break
+            if picked:
+                image_url = f"/images/games/zone-nova/characters/{picked}"
+
+        # ===== 아이콘(네 리포지토리) =====
         elem_icon = None
         if element and element != "-":
             ek = element.lower()
@@ -242,25 +346,26 @@ def normalize_chars(raw) -> list[dict]:
             if real:
                 elem_icon = f"/images/games/zone-nova/element/{real}"
 
-        role_icon = None
-        if role and role != "-":
-            rk = role.lower()
-            real = class_icon_map.get(rk) or class_icon_map.get(slug_id(rk))
-            if not real:
-                # 혹시 원본 데이터가 "DPS" 같은 대문자일 때
-                real = class_icon_map.get(rk.upper().lower())
+        class_icon = None
+        if cls and cls != "-":
+            ck = cls.lower()
+            real = class_icon_map.get(ck) or class_icon_map.get(slug_id(ck))
             if real:
-                role_icon = f"/images/games/zone-nova/classes/{real}"
+                class_icon = f"/images/games/zone-nova/classes/{real}"
 
         out.append({
             "id": cid,
             "name": name or cid,      # 캐릭터명 영어 유지
             "rarity": rarity,
             "element": element,
-            "role": role,             # 직업 7개든 그 이상이든 그대로 표시 가능
+
+            # 분리 저장
+            "class": cls,             # 7개
+            "role": role,             # 5개
+
             "image": image_url,
             "element_icon": elem_icon,
-            "role_icon": role_icon,
+            "class_icon": class_icon,
         })
 
     return out
@@ -417,6 +522,7 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
             "name": c.get("name") or c["id"],
             "rarity": c.get("rarity") or "-",
             "element": c.get("element") or "-",
+            "class": c.get("class") or "-",
             "role": c.get("role") or "-",
             "image": c.get("image"),
             "score": bd["total"],
