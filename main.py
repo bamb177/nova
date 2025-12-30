@@ -10,9 +10,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "public", "data", "zone-nova")
 IMG_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "characters")
 
+# 아이콘(네 리포지토리)
+ELEM_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "element")
+CLASS_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "classes")
+
 CHAR_JSON_CANDIDATES = [
-    os.path.join(DATA_DIR, "characters.json"),
     os.path.join(DATA_DIR, "characters_meta.json"),
+    os.path.join(DATA_DIR, "characters.json"),
 ]
 
 ELEM_JSON = os.path.join(DATA_DIR, "element_chart.json")
@@ -56,29 +60,47 @@ def pick_char_json_path() -> str:
     raise RuntimeError(f"캐릭터 JSON을 찾지 못했습니다: {', '.join(CHAR_JSON_CANDIDATES)}")
 
 
-def build_image_map() -> dict:
+def build_file_map(folder: str) -> dict:
     """
-    IMG_DIR를 스캔해서 실제 파일명을 기준으로 매핑.
-    - key: basename(lower) (확장자 제외)
-    - value: 실제 파일명 (대소문자 포함)
+    폴더 스캔 → 다양한 키로 파일 매칭 가능하도록 맵 생성
+    key: 정규화된 베이스명(lower)
+    value: 실제 파일명
     """
     m = {}
-    if not os.path.isdir(IMG_DIR):
+    if not os.path.isdir(folder):
         return m
 
-    pri = {".jpg": 3, ".jpeg": 3, ".png": 2, ".webp": 1}
+    pri = {".jpg": 4, ".jpeg": 4, ".png": 3, ".webp": 2}
 
-    for fn in os.listdir(IMG_DIR):
+    for fn in os.listdir(folder):
         ext = os.path.splitext(fn)[1].lower()
         if ext not in VALID_IMG_EXT:
             continue
-        base = os.path.splitext(fn)[0].lower()
-        if base not in m:
-            m[base] = fn
-        else:
-            cur_ext = os.path.splitext(m[base])[1].lower()
-            if pri.get(ext, 0) > pri.get(cur_ext, 0):
-                m[base] = fn
+
+        base = os.path.splitext(fn)[0]
+        base_low = base.lower()
+
+        # 기본 키
+        keys = {base_low}
+
+        # slug 키
+        keys.add(slug_id(base))
+
+        # classes 폴더에서 1*.jpg 같은 경우를 대비:
+        # "1_dps" / "1dps" / "01-dps" 등에서 선행 숫자+구분자 제거한 키도 추가
+        stripped = re.sub(r"^[0-9]+[_\-\s]*", "", base_low).strip()
+        if stripped:
+            keys.add(stripped)
+            keys.add(slug_id(stripped))
+
+        for k in keys:
+            if k not in m:
+                m[k] = fn
+            else:
+                cur_ext = os.path.splitext(m[k])[1].lower()
+                if pri.get(ext, 0) > pri.get(cur_ext, 0):
+                    m[k] = fn
+
     return m
 
 
@@ -99,10 +121,6 @@ def candidate_image_bases(char_id: str, name: str) -> list[str]:
             continue
         out.append(v.lower())
 
-    # Jeanne D Arc / Joanof Arc 통합
-    if slug_id(nm) in {"jeannedarc", "joanofarc"} or slug_id(cid) in {"jeannedarc", "joanofarc"}:
-        out = ["jeanne d arc", "jeannedarc", "joanofarc", "joanof arc"]
-
     seen, uniq = set(), []
     for x in out:
         if x not in seen:
@@ -113,12 +131,11 @@ def candidate_image_bases(char_id: str, name: str) -> list[str]:
 
 def extract_char_list(raw) -> list[dict]:
     """
-    characters_meta.json 포맷이 여러 형태일 수 있어 유연하게 list로 변환.
     지원:
     1) [ {...}, {...} ]
-    2) { "characters": [ ... ] } / { "data": [ ... ] } 등
-    3) { "Nina": {...}, "Freya": {...} }  (맵 형태)
-    4) { "characters_meta": { "Nina": {...} } } (중첩 맵)
+    2) { "characters": [ ... ] }
+    3) { "characters": { "id": {...} } }  (맵)
+    4) { "id": {...}, "id2": {...} }      (맵)
     """
     if isinstance(raw, list):
         return raw
@@ -126,44 +143,50 @@ def extract_char_list(raw) -> list[dict]:
     if not isinstance(raw, dict):
         raise RuntimeError("캐릭터 JSON 포맷 오류: 최상위가 list/dict가 아닙니다.")
 
-    # 2) dict 안에 list가 들어있는 케이스 우선
-    for k in ["characters", "characters_meta", "data", "items"]:
-        v = raw.get(k)
-        if isinstance(v, list):
-            return v
-
-    # 4) dict 안에 dict(맵)가 중첩되어 있는 케이스
-    for k in ["characters", "characters_meta", "data", "items"]:
-        v = raw.get(k)
-        if isinstance(v, dict):
-            # 중첩 dict가 맵 형태면 아래 3)로 처리되도록 넘김
-            raw = v
-            break
-
-    # 3) 맵 형태: { "Nina": {...}, "Freya": {...} }
-    # 값들이 dict인 엔트리가 어느 정도 있으면 맵으로 판단
-    dict_values = list(raw.values())
-    dict_like_cnt = sum(1 for x in dict_values if isinstance(x, dict))
-    if dict_like_cnt >= 3:  # 너무 빡세게 잡지 않음
+    v = raw.get("characters")
+    if isinstance(v, list):
+        return v
+    if isinstance(v, dict):
+        # 중첩 맵
         out = []
-        for key, val in raw.items():
-            if not isinstance(val, dict):
-                continue
-            item = dict(val)
-            # name/id 보정
-            if not item.get("name"):
-                item["name"] = key
-            if not item.get("id"):
-                item["id"] = slug_id(item.get("name") or key)
-            out.append(item)
+        for k, val in v.items():
+            if isinstance(val, dict):
+                item = dict(val)
+                item["_id"] = k
+                out.append(item)
         return out
 
-    raise RuntimeError("캐릭터 JSON 포맷 오류: list 또는 {characters:[...]} 또는 {Name:{...}}(맵) 형태여야 합니다.")
+    # 맵 형태
+    dict_values = list(raw.values())
+    dict_like_cnt = sum(1 for x in dict_values if isinstance(x, dict))
+    if dict_like_cnt >= 3:
+        out = []
+        for k, val in raw.items():
+            if isinstance(val, dict):
+                item = dict(val)
+                item["_id"] = k
+                out.append(item)
+        return out
+
+    raise RuntimeError("캐릭터 JSON 포맷 오류: list 또는 {characters:[...]} 또는 맵 형태여야 합니다.")
 
 
 def normalize_chars(raw) -> list[dict]:
     chars = extract_char_list(raw)
-    img_map = build_image_map()
+
+    # 이미지/아이콘 맵
+    char_img_map = build_file_map(IMG_DIR)
+    elem_icon_map = build_file_map(ELEM_ICON_DIR)
+    class_icon_map = build_file_map(CLASS_ICON_DIR)
+
+    # 파일명 예외 처리(요청사항)
+    # Snow girl → Snow.jpg, Morgan Le fay → Morgan.jpg
+    # (id 기준 + name slug 기준 모두 대응)
+    SPECIAL_CHAR_IMAGE = {
+        "snowgirl": "Snow.jpg",
+        "morganlefay": "Morgan.jpg",
+        "morganle_fay": "Morgan.jpg",
+    }
 
     out = []
     seen = set()
@@ -173,47 +196,71 @@ def normalize_chars(raw) -> list[dict]:
             continue
 
         name = normalize_char_name(c.get("name") or "")
-        cid = (c.get("id") or "").strip()
+        cid = (c.get("id") or c.get("_id") or "").strip()
         if not cid:
             cid = slug_id(name)
-
-        # Jeanne D Arc 정규화
-        if slug_id(name) in {"jeannedarc", "joanofarc"} or slug_id(cid) in {"jeannedarc", "joanofarc"}:
-            cid = "jeannedarc"
-            name = "Jeanne D Arc"
-
         cid = slug_id(cid)
         if not cid or cid in seen:
             continue
         seen.add(cid)
 
-        rarity = c.get("rarity") or "-"
-        element = c.get("element") or "-"
-        role = c.get("role") or "-"
+        # 기본 필드
+        rarity = (c.get("rarity") or "-").strip().upper()
+        element = (c.get("element") or "-").strip()
+        role = (c.get("role") or "-").strip().lower()
 
+        # Jeanne D Arc 정규화 (이전 오류 방지)
+        if slug_id(name) in {"jeannedarc", "joanofarc"} or cid in {"jeannedarc", "joanofarc"} or "jeanne" in cid:
+            cid = "jeannedarc"
+            name = "Jeanne D Arc"
+
+        # --- 캐릭터 이미지 매칭 ---
         image_url = None
-        img_file = c.get("img_file")
 
-        if isinstance(img_file, str) and img_file:
-            base = os.path.splitext(img_file)[0].lower()
-            real = img_map.get(base)
+        # 1) 강제 예외 매핑
+        forced = SPECIAL_CHAR_IMAGE.get(cid) or SPECIAL_CHAR_IMAGE.get(slug_id(name))
+        if forced:
+            # forced 파일이 실제 폴더에 있을 때만 적용
+            forced_base = os.path.splitext(forced)[0].lower()
+            real = char_img_map.get(forced_base) or char_img_map.get(slug_id(forced_base))
             if real:
                 image_url = f"/images/games/zone-nova/characters/{real}"
 
+        # 2) 일반 매칭
         if not image_url:
             for base in candidate_image_bases(cid, name):
-                real = img_map.get(base)
+                real = char_img_map.get(base) or char_img_map.get(slug_id(base))
                 if real:
                     image_url = f"/images/games/zone-nova/characters/{real}"
                     break
 
+        # --- 아이콘 매칭 (네 리포지토리) ---
+        elem_icon = None
+        if element and element != "-":
+            ek = element.lower()
+            real = elem_icon_map.get(ek) or elem_icon_map.get(slug_id(ek))
+            if real:
+                elem_icon = f"/images/games/zone-nova/element/{real}"
+
+        role_icon = None
+        if role and role != "-":
+            rk = role.lower()
+            real = class_icon_map.get(rk) or class_icon_map.get(slug_id(rk))
+            if not real:
+                # 혹시 원본 데이터가 "DPS" 같은 대문자일 때
+                real = class_icon_map.get(rk.upper().lower())
+            if real:
+                role_icon = f"/images/games/zone-nova/classes/{real}"
+
         out.append({
             "id": cid,
-            "name": name or cid,   # 캐릭터 이름 영어 유지
+            "name": name or cid,      # 캐릭터명 영어 유지
             "rarity": rarity,
             "element": element,
-            "role": role,
+            "role": role,             # 직업 7개든 그 이상이든 그대로 표시 가능
             "image": image_url,
+            "element_icon": elem_icon,
+            "role_icon": role_icon,
         })
 
     return out
@@ -257,9 +304,6 @@ def load_all(force: bool = False) -> None:
         adv = edata.get("adv") if isinstance(edata, dict) else None
         if not (isinstance(adv, dict) and adv):
             raise RuntimeError("element_chart.json 포맷 오류: { adv:{...} } 형태가 필요합니다.")
-        for k in ["Fire", "Wind", "Ice", "Holy", "Chaos"]:
-            if k not in adv:
-                raise RuntimeError(f"element_chart.json adv 누락: {k}")
         CACHE["element_adv"] = {str(k): str(v) for k, v in adv.items()}
 
         bdata = read_json_file(BOSS_JSON)
@@ -421,8 +465,9 @@ def meta():
         "last_refresh": CACHE["last_refresh"],
         "error": CACHE["error"],
         "source": CACHE["source"],
-        "image_dir_exists": os.path.isdir(IMG_DIR),
         "image_dir": IMG_DIR,
+        "elem_icon_dir": ELEM_ICON_DIR,
+        "class_icon_dir": CLASS_ICON_DIR,
     })
 
 
