@@ -3,7 +3,7 @@ name: Sync Zone Nova Data
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 3 * * 1"  # 매주 월요일 12:00 KST 근처(UTC 03:00)
+    - cron: "0 3 * * 1"  # 매주 월요일 UTC 03:00 (KST 12:00)
 
 permissions:
   contents: write
@@ -25,9 +25,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4 lxml
 
-      - name: Run sync
+      - name: Clone upstream gacha-wiki (only for extraction)
         run: |
-          python scripts/sync_zone_nova.py --write
+          rm -rf ._upstream_gacha_wiki
+          git clone --depth 1 https://github.com/boring877/gacha-wiki.git ._upstream_gacha_wiki
+          ls -la ._upstream_gacha_wiki
+
+      - name: Run sync (extract from upstream repo)
+        run: |
+          python scripts/sync_zone_nova.py --write --upstream ._upstream_gacha_wiki
 
       - name: Commit & Push if changed
         run: |
