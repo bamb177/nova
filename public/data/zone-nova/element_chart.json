@@ -1,0 +1,9 @@
+{
+  "adv": {
+    "Fire": "Wind",
+    "Wind": "Ice",
+    "Ice": "Holy",
+    "Holy": "Chaos",
+    "Chaos": "Fire"
+  }
+}
