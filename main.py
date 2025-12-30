@@ -1,57 +1,28 @@
 import os
-import re
 import json
+import re
 from datetime import datetime, timezone
 from flask import Flask, request, Response, redirect, jsonify
 
 APP_TITLE = os.getenv("APP_TITLE", "Nova")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# (fallback) GitHub 이미지 소스
-GITHUB_OWNER = os.getenv("GITHUB_OWNER", "boring877")
-GITHUB_REPO = os.getenv("GITHUB_REPO", "gacha-wiki")
-GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "main")
+# ✅ 레포에 커밋된 데이터만 사용
+CHAR_JSON = os.path.join(BASE_DIR, "public", "data", "zone-nova", "characters.json")
 
-JSDELIVR_BASE = f"https://cdn.jsdelivr.net/gh/{GITHUB_OWNER}/{GITHUB_REPO}@{GITHUB_BRANCH}/public/images/games/zone-nova/characters/"
-RAW_BASE = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/public/images/games/zone-nova/characters/"
+# ✅ 정적 파일은 public 폴더에서만 서빙 (이미지도 여기서만)
+app = Flask(__name__, static_folder="public", static_url_path="")
 
-# ✅ 로컬 이미지 베이스(정적 서빙): /images/... -> public/images/...
-LOCAL_BASE = "/images/games/zone-nova/characters/"
-
+# 기본 상성표(다음 단계에서 public/data로 분리 가능)
 ELEMENT_ADV = {"Fire": "Wind", "Wind": "Ice", "Ice": "Holy", "Holy": "Chaos", "Chaos": "Fire"}
 RARITY_SCORE = {"SSR": 30, "SR": 18, "R": 10, "-": 0}
 
 CACHE = {
     "chars": [],
     "last_refresh": None,
-    "source": None,
-    "public_dir": None,
-    "image_dir": None,
+    "source": "public/data/zone-nova/characters.json",
     "error": None,
 }
-
-META_PATH = os.path.join("public", "data", "zone-nova", "characters_meta.json")
-
-def load_meta_map() -> dict:
-    try:
-        if os.path.isfile(META_PATH):
-            with open(META_PATH, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
-    return {}
-
-def apply_meta(chars: list[dict], meta_map: dict) -> list[dict]:
-    if not meta_map:
-        return chars
-    for c in chars:
-        cid = (c.get("id") or "").strip().lower()
-        m = meta_map.get(cid)
-        if isinstance(m, dict):
-            if m.get("rarity"):  c["rarity"]  = m["rarity"]
-            if m.get("element"): c["element"] = m["element"]
-            if m.get("role"):    c["role"]    = m["role"]
-    return chars
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
@@ -62,66 +33,51 @@ def slug_id(s: str) -> str:
     s = re.sub(r"[^a-z0-9_-]", "", s)
     return s
 
-def find_existing_dir(candidates: list[str]) -> str | None:
-    for p in candidates:
-        if p and os.path.isdir(p):
-            return p
-    return None
-
-def detect_public_dir() -> str | None:
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # 사용자가 강제 지정하면 최우선
-    env = os.getenv("PUBLIC_DIR")
-
-    candidates = [
-        env,
-        os.path.join(base_dir, "public"),
-        os.path.join(base_dir, "..", "public"),
-        os.path.join(os.getcwd(), "public"),
-        "/opt/render/project/src/public",
-        "/opt/render/project/src/app/public",
-    ]
-    return find_existing_dir(candidates)
-
-def detect_image_dir(public_dir: str | None) -> str | None:
-    if not public_dir:
-        return None
-    return find_existing_dir([
-        os.getenv("IMAGE_DIR"),
-        os.path.join(public_dir, "images", "games", "zone-nova", "characters"),
-    ])
-
 def normalize_chars(chars: list[dict]) -> list[dict]:
     """
-    Jeanne D Arc / Joanof Arc 표기 정규화 + aliases + 중복 제거
-    (img_file 같은 필드는 유지)
+    - id/name 정리
+    - Jeanne D Arc / Joanof Arc 정규화(jeannedarc)
+    - 중복 제거
     """
-    out, seen = [], set()
+    out = []
+    seen = set()
 
     for c in chars:
         c = dict(c)
         name = (c.get("name") or "").replace("’", "'").strip()
         name = " ".join(name.split())
         cid = (c.get("id") or "").strip()
-        aliases = set(c.get("aliases") or [])
 
-        nkey = slug_id(name)
-        ikey = slug_id(cid)
+        # id가 없으면 name 기반으로 생성
+        if not cid:
+            cid = slug_id(name)
 
-        if nkey in {"jeannedarc", "joanofarc"} or ikey in {"jeannedarc", "joanofarc"}:
-            if name: aliases.add(name)
-            if cid: aliases.add(cid)
-            aliases.update(["Jeanne D Arc", "Jeanne D'Arc", "Joanof Arc", "Joan of Arc", "JoanofArc", "JeanneDArc"])
-            c["name"] = "Jeanne D Arc"
+        # Jeanne D Arc 정규화
+        if slug_id(name) in {"jeannedarc", "joanofarc"} or slug_id(cid) in {"jeannedarc", "joanofarc"}:
             c["id"] = "jeannedarc"
+            c["name"] = "Jeanne D Arc"
         else:
+            c["id"] = slug_id(cid)
             c["name"] = name or cid
-            c["id"] = cid or slug_id(c["name"])
 
-        c["aliases"] = sorted({a.strip() for a in aliases if isinstance(a, str) and a.strip()})
+        # 필수 필드 채우기
+        c["rarity"] = c.get("rarity") or "-"
+        c["element"] = c.get("element") or "-"
+        c["role"] = c.get("role") or "-"
 
-        key = (c["name"] or "").lower()
+        # image는 반드시 /images/... 형태면 그대로 사용
+        # 동기화 스크립트가 image를 안 넣었다면, img_file이 있으면 만들어줌
+        img = c.get("image")
+        img_file = c.get("img_file")
+        if not img and img_file:
+            c["image"] = f"/images/games/zone-nova/characters/{img_file}"
+        elif isinstance(img, str) and img.startswith("/images/"):
+            c["image"] = img
+        else:
+            # image가 없거나 다른 형태면 None 처리(UI에서 placeholder)
+            c["image"] = img if (isinstance(img, str) and img.startswith("/")) else None
+
+        key = c["id"]
         if not key or key in seen:
             continue
         seen.add(key)
@@ -129,60 +85,32 @@ def normalize_chars(chars: list[dict]) -> list[dict]:
 
     return out
 
-def scan_chars_from_local_images(image_dir: str) -> list[dict]:
-    """
-    ✅ 실제 파일명(확장자 포함)을 기록해서 UI가 .jpg/.png 헷갈리지 않도록 함
-    """
-    chars = []
-    exts = (".png", ".jpg", ".jpeg", ".webp")
-    for fn in os.listdir(image_dir):
-        if not fn.lower().endswith(exts):
-            continue
-        stem, ext = os.path.splitext(fn)
-        name = stem
-        cid = slug_id(stem)
-
-        chars.append({
-            "id": cid,
-            "name": name,
-            "rarity": "-",
-            "element": "-",
-            "role": "-",
-            "img_file": fn,              # ✅ 예: "Nina.jpg"
-            "aliases": [name, cid],
-        })
-    return chars
-
-def ensure_cache(force: bool = False) -> None:
+def load_characters(force: bool = False) -> None:
     if CACHE["chars"] and not force:
         return
 
     CACHE["error"] = None
-    public_dir = detect_public_dir()
-    image_dir = detect_image_dir(public_dir)
-
-    CACHE["public_dir"] = public_dir
-    CACHE["image_dir"] = image_dir
-
     try:
-        if not public_dir:
-            raise RuntimeError("public 폴더를 찾지 못했습니다. (레포에 public이 포함되어 배포됐는지 확인)")
-        if not image_dir:
-            raise RuntimeError("public/images/games/zone-nova/characters 폴더를 찾지 못했습니다.")
+        if not os.path.isfile(CHAR_JSON):
+            raise RuntimeError(f"characters.json 파일이 없습니다: {CHAR_JSON}")
 
-        chars = scan_chars_from_local_images(image_dir)
-        chars = normalize_chars(chars)
-        meta_map = load_meta_map()
-        chars = apply_meta(chars, meta_map)
-    
-        CACHE["chars"] = chars
+        with open(CHAR_JSON, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # 동기화 결과가 {count, characters} 형태이거나, 리스트일 수도 있으니 유연하게
+        if isinstance(data, dict) and isinstance(data.get("characters"), list):
+            chars = data["characters"]
+        elif isinstance(data, list):
+            chars = data
+        else:
+            raise RuntimeError("characters.json 포맷이 올바르지 않습니다. (characters 배열이 필요)")
+
+        CACHE["chars"] = normalize_chars(chars)
         CACHE["last_refresh"] = now_iso()
-        CACHE["source"] = "local(public) first + github fallback"
 
     except Exception as e:
         CACHE["chars"] = []
         CACHE["last_refresh"] = now_iso()
-        CACHE["source"] = "error"
         CACHE["error"] = str(e)
 
 def resolve_ids(input_list: list[str], chars: list[dict]) -> list[str]:
@@ -190,11 +118,6 @@ def resolve_ids(input_list: list[str], chars: list[dict]) -> list[str]:
         return []
     by_id = {c["id"].lower(): c["id"] for c in chars if c.get("id")}
     by_name = {(c.get("name") or "").lower(): c["id"] for c in chars if c.get("id")}
-    for c in chars:
-        cid = c.get("id")
-        for a in c.get("aliases") or []:
-            if isinstance(a, str) and a.strip():
-                by_name[a.strip().lower()] = cid
 
     out = []
     for x in input_list:
@@ -203,6 +126,7 @@ def resolve_ids(input_list: list[str], chars: list[dict]) -> list[str]:
             continue
         out.append(by_id.get(k) or by_name.get(k) or slug_id(x))
 
+    # unique preserve order
     seen, uniq = set(), []
     for v in out:
         if v and v not in seen:
@@ -232,7 +156,7 @@ def recommend_party(payload: dict, chars: list[dict]) -> dict:
     enemy_element = payload.get("enemy_element") or None
     boss_weakness = payload.get("boss_weakness") or None
 
-    by_id = {c["id"]: c for c in chars if c.get("id")}
+    by_id = {c["id"]: c for c in chars}
     pool = [by_id[i] for i in owned if i in by_id and i not in banned]
 
     if len(pool) < 4:
@@ -247,6 +171,7 @@ def recommend_party(payload: dict, chars: list[dict]) -> dict:
     def score(c: dict) -> int:
         s = RARITY_SCORE.get(c.get("rarity") or "-", 0)
         s += element_bonus(c.get("element") or "-", enemy_element, boss_weakness)
+
         role = (c.get("role") or "-").lower()
         if mode == "pvp" and role in ("tank", "healer"):
             s += 6
@@ -256,6 +181,7 @@ def recommend_party(payload: dict, chars: list[dict]) -> dict:
             s += 18
         return s
 
+    # 4인 고정
     party = []
     for rid in required:
         if rid in pool_ids and rid not in party:
@@ -273,7 +199,7 @@ def recommend_party(payload: dict, chars: list[dict]) -> dict:
             continue
         members.append({
             "id": c["id"],
-            "name": c.get("name") or c["id"],
+            "name": c.get("name") or c["id"],   # 캐릭터명 영어 유지
             "rarity": c.get("rarity") or "-",
             "element": c.get("element") or "-",
             "role": c.get("role") or "-",
@@ -298,103 +224,109 @@ def recommend_party(payload: dict, chars: list[dict]) -> dict:
         }
     }
 
-# ✅ Flask app 생성: public 디렉터리를 절대경로로 지정
-_PUBLIC_DIR = detect_public_dir()
-app = Flask(__name__, static_folder=_PUBLIC_DIR if _PUBLIC_DIR else "public", static_url_path="")
-
 @app.get("/")
 def home():
+    # ✅ Not Found 방지
     return redirect("/ui/select")
 
 @app.get("/refresh")
 def refresh():
-    ensure_cache(force=True)
+    load_characters(force=True)
     return redirect("/ui/select")
+
+@app.get("/meta")
+def meta():
+    load_characters()
+    return jsonify({
+        "title": APP_TITLE,
+        "source": CACHE["source"],
+        "characters_cached": len(CACHE["chars"]),
+        "last_refresh": CACHE["last_refresh"],
+        "error": CACHE["error"],
+        "char_json": "public/data/zone-nova/characters.json",
+        "image_base": "/images/games/zone-nova/characters/",
+    })
 
 @app.get("/zones/zone-nova/characters")
 def api_chars():
-    ensure_cache()
+    load_characters()
     return jsonify({
         "count": len(CACHE["chars"]),
         "last_refresh": CACHE["last_refresh"],
         "source": CACHE["source"],
-        "public_dir": CACHE["public_dir"],
-        "image_dir": CACHE["image_dir"],
         "error": CACHE["error"],
         "characters": CACHE["chars"],
     })
 
 @app.post("/recommend/v3")
 def api_recommend():
-    ensure_cache()
+    load_characters()
     payload = request.get_json(force=True) or {}
-    return Response(
-        json.dumps(recommend_party(payload, CACHE["chars"]), ensure_ascii=False, indent=2),
-        mimetype="application/json; charset=utf-8"
-    )
+    res = recommend_party(payload, CACHE["chars"])
+    return Response(json.dumps(res, ensure_ascii=False, indent=2),
+                    mimetype="application/json; charset=utf-8")
 
 @app.get("/ui/select")
-def ui_select() -> Response:
-    ensure_cache()
+def ui_select():
+    load_characters()
 
     chars_json = json.dumps(CACHE["chars"], ensure_ascii=False)
-    bases_json = json.dumps([LOCAL_BASE, JSDELIVR_BASE, RAW_BASE], ensure_ascii=False)
 
-    template = r"""<!doctype html>
+    html = f"""<!doctype html>
 <html lang="ko"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>__TITLE__</title>
+<title>{APP_TITLE}</title>
 <style>
-body{margin:0;font-family:system-ui,"Noto Sans KR","Malgun Gothic",sans-serif;background:#0b1020;color:#eaf0ff;}
-a{color:#86b6ff;text-decoration:none} a:hover{text-decoration:underline}
-.top{position:sticky;top:0;background:rgba(11,16,32,.92);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.12);}
-.topIn{max-width:1280px;margin:0 auto;padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-.badge{font-size:12px;color:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);padding:6px 10px;border-radius:999px;}
-.wrap{max-width:1280px;margin:0 auto;padding:14px 16px 24px;}
-.grid{display:grid;grid-template-columns:380px 1fr;gap:12px;align-items:start;}
-@media(max-width:980px){.grid{grid-template-columns:1fr;}}
-.card{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);border-radius:14px;overflow:hidden;}
-.hd{padding:12px 12px;border-bottom:1px solid rgba(255,255,255,.10);font-weight:800;font-size:13px;display:flex;justify-content:space-between;gap:10px;}
-.bd{padding:12px;}
-.row{display:flex;flex-wrap:wrap;gap:10px;align-items:end;}
-label{font-size:12px;color:rgba(255,255,255,.72);display:block;margin-bottom:6px;}
-select,input{width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#eaf0ff;outline:none;}
-.btn{padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#eaf0ff;font-weight:800;cursor:pointer;}
-.btn:hover{background:rgba(255,255,255,.12);}
-.btnP{border-color:rgba(134,182,255,.45);background:rgba(134,182,255,.18);}
-.btnD{border-color:rgba(255,93,108,.55);background:rgba(255,93,108,.12);}
-.small{font-size:12px;color:rgba(255,255,255,.70);line-height:1.5;}
-.gridWrap{margin-top:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);border-radius:14px;padding:10px;min-height:420px;max-height:calc(100vh - 260px);overflow:auto;}
-.charGrid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}
-@media(max-width:1100px){.charGrid{grid-template-columns:repeat(5,1fr);}}
-@media(max-width:980px){.charGrid{grid-template-columns:repeat(4,1fr);} .gridWrap{max-height:none;}}
-@media(max-width:680px){.charGrid{grid-template-columns:repeat(3,1fr);}}
-@media(max-width:520px){.charGrid{grid-template-columns:repeat(2,1fr);}}
+body{{margin:0;font-family:system-ui,"Noto Sans KR","Malgun Gothic",sans-serif;background:#0b1020;color:#eaf0ff;}}
+a{{color:#86b6ff;text-decoration:none}} a:hover{{text-decoration:underline}}
+.top{{position:sticky;top:0;background:rgba(11,16,32,.92);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.12);}}
+.topIn{{max-width:1280px;margin:0 auto;padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}}
+.badge{{font-size:12px;color:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);padding:6px 10px;border-radius:999px;}}
+.wrap{{max-width:1280px;margin:0 auto;padding:14px 16px 24px;}}
+.grid{{display:grid;grid-template-columns:380px 1fr;gap:12px;align-items:start;}}
+@media(max-width:980px){{.grid{{grid-template-columns:1fr;}}}}
+.card{{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);border-radius:14px;overflow:hidden;}}
+.hd{{padding:12px 12px;border-bottom:1px solid rgba(255,255,255,.10);font-weight:800;font-size:13px;display:flex;justify-content:space-between;gap:10px;}}
+.bd{{padding:12px;}}
+.row{{display:flex;flex-wrap:wrap;gap:10px;align-items:end;}}
+label{{font-size:12px;color:rgba(255,255,255,.72);display:block;margin-bottom:6px;}}
+select,input{{width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#eaf0ff;outline:none;}}
+.btn{{padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#eaf0ff;font-weight:800;cursor:pointer;}}
+.btn:hover{{background:rgba(255,255,255,.12);}}
+.btnP{{border-color:rgba(134,182,255,.45);background:rgba(134,182,255,.18);}}
+.btnD{{border-color:rgba(255,93,108,.55);background:rgba(255,93,108,.12);}}
+.small{{font-size:12px;color:rgba(255,255,255,.70);line-height:1.5;}}
+.gridWrap{{margin-top:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);border-radius:14px;padding:10px;min-height:420px;max-height:calc(100vh - 260px);overflow:auto;}}
+.charGrid{{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;}}
+@media(max-width:1100px){{.charGrid{{grid-template-columns:repeat(5,1fr);}}}}
+@media(max-width:980px){{.charGrid{{grid-template-columns:repeat(4,1fr);}} .gridWrap{{max-height:none;}}}}
+@media(max-width:680px){{.charGrid{{grid-template-columns:repeat(3,1fr);}}}}
+@media(max-width:520px){{.charGrid{{grid-template-columns:repeat(2,1fr);}}}}
 
-.item{border:1px solid rgba(255,255,255,.12);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.16);position:relative;cursor:pointer;}
-.item.sel{border-color:rgba(134,182,255,.6);box-shadow:0 0 0 3px rgba(134,182,255,.12);}
-.thumb{width:100%;aspect-ratio:1/1;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.35);font-weight:900;}
-.thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.ck{position:absolute;top:8px;left:8px;width:22px;height:22px;border-radius:7px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;}
-.ck input{width:16px;height:16px;margin:0;accent-color:#86b6ff;}
-.badges{position:absolute;bottom:8px;left:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;}
-.tag{font-size:11px;padding:3px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.40);color:rgba(255,255,255,.86);}
-.name{padding:10px 10px;font-weight:900;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-top:1px solid rgba(255,255,255,.06);}
-pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:12px;}
+.item{{border:1px solid rgba(255,255,255,.12);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.16);position:relative;cursor:pointer;}}
+.item.sel{{border-color:rgba(134,182,255,.6);box-shadow:0 0 0 3px rgba(134,182,255,.12);}}
+.thumb{{width:100%;aspect-ratio:1/1;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.35);font-weight:900;}}
+.thumb img{{width:100%;height:100%;object-fit:cover;display:block;}}
+.ck{{position:absolute;top:8px;left:8px;width:22px;height:22px;border-radius:7px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;}}
+.ck input{{width:16px;height:16px;margin:0;accent-color:#86b6ff;}}
+.badges{{position:absolute;bottom:8px;left:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;}}
+.tag{{font-size:11px;padding:3px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.40);color:rgba(255,255,255,.86);}}
+.name{{padding:10px 10px;font-weight:900;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-top:1px solid rgba(255,255,255,.06);}}
+pre{{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:12px;}}
 </style></head>
 <body>
 <div class="top"><div class="topIn">
-  <div style="font-weight:900;">__TITLE__</div>
-  <span class="badge">캐시 __COUNT__ · 갱신 __REFRESH__</span>
-  <span class="badge">로컬: /images/... (public)</span>
+  <div style="font-weight:900;">{APP_TITLE}</div>
+  <span class="badge">캐시 {len(CACHE["chars"])} · 갱신 {CACHE["last_refresh"] or "N/A"}</span>
   <a class="badge" href="/refresh">새로고침</a>
+  <a class="badge" href="/meta">메타</a>
   <a class="badge" href="/zones/zone-nova/characters">JSON</a>
 </div></div>
 
 <div class="wrap">
   <div class="grid">
     <div class="card">
-      <div class="hd"><span>추천 옵션</span><span class="small">캐릭터 이름만 영어</span></div>
+      <div class="hd"><span>추천 옵션</span><span class="small">캐릭터 이름은 영어 유지</span></div>
       <div class="bd">
         <div class="row">
           <div style="flex:1;min-width:140px;">
@@ -475,86 +407,33 @@ pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace
   </div>
 </div>
 
-<script type="application/json" id="chars">__CHARS__</script>
-<script type="application/json" id="bases">__BASES__</script>
+<script type="application/json" id="chars">{chars_json}</script>
 <script>
 const CHARS = JSON.parse(document.getElementById('chars').textContent || "[]");
-const BASES = JSON.parse(document.getElementById('bases').textContent || "[]");
+const E_ICON = {{ Fire:"🔥", Ice:"❄️", Wind:"🌪️", Holy:"✨", Chaos:"☯️", "-":"❔" }};
+const R_ICON = {{ tank:"🛡️", healer:"💚", dps:"⚔️", buffer:"📣", debuffer:"🧪", "-":"❔" }};
 
-// (b) 아이콘 표시 (현재 데이터 element/role/rarity가 "-"라면 ❔만 보입니다)
-const E_ICON = { Fire:"🔥", Ice:"❄️", Wind:"🌪️", Holy:"✨", Chaos:"☯️", "-":"❔" };
-const R_ICON = { tank:"🛡️", healer:"💚", dps:"⚔️", buffer:"📣", debuffer:"🧪", "-":"❔" };
-
-function stat(){
+function stat(){{
   const n = document.querySelectorAll('.owned:checked').length;
   document.getElementById('stat').textContent = '선택 ' + n;
   document.getElementById('selCnt').textContent = '선택 ' + n;
-  document.querySelectorAll('.item').forEach(el=>{
+  document.querySelectorAll('.item').forEach(el=>{{
     const cb=el.querySelector('input.owned');
     if(cb && cb.checked) el.classList.add('sel'); else el.classList.remove('sel');
-  });
-}
+  }});
+}}
 
-function csv(v){ v=(v||'').trim(); if(!v) return []; return v.split(',').map(x=>x.trim()).filter(Boolean); }
-function uniq(arr){ const s=new Set(); const o=[]; for(const x of arr){ if(x && !s.has(x)){ s.add(x); o.push(x);} } return o; }
-function checked(){ return Array.from(document.querySelectorAll('.owned:checked')).map(x=>x.value); }
-function addCheckedTo(id){
+function csv(v){{ v=(v||'').trim(); if(!v) return []; return v.split(',').map(x=>x.trim()).filter(Boolean); }}
+function uniq(arr){{ const s=new Set(); const o=[]; for(const x of arr){{ if(x && !s.has(x)){{ s.add(x); o.push(x);}} }} return o; }}
+function checked(){{ return Array.from(document.querySelectorAll('.owned:checked')).map(x=>x.value); }}
+function addCheckedTo(id){{
   const ids = checked();
   if(!ids.length) return;
   const cur = csv(document.getElementById(id).value);
   document.getElementById(id).value = uniq(cur.concat(ids)).join(', ');
-}
+}}
 
-// ✅ 핵심: 로컬에서 "실제 파일명(img_file)"로 먼저 요청 (확장자 .jpg 문제 해결)
-function imageCandidates(c){
-  const out = [];
-  const file = c.img_file ? String(c.img_file).trim() : "";
-
-  // 1) 로컬 우선: /images/.../<실제파일명>
-  if(file){
-    out.push(LOCAL_BASE + encodeURIComponent(file));
-  }
-
-  // 2) jsDelivr/raw fallback: base + <실제파일명>
-  if(file){
-    for(const base of BASES){
-      if(base === LOCAL_BASE) continue;
-      out.push(base + encodeURIComponent(file));
-    }
-  }
-
-  // 3) 최후: name/id 기반 확장자 시도
-  const names = [];
-  if(c.name) names.push(String(c.name).trim());
-  if(c.id) names.push(String(c.id).trim());
-  if(Array.isArray(c.aliases)) for(const a of c.aliases){ if(a) names.push(String(a).trim()); }
-  const exts=['.jpg','.png','.jpeg'];
-  for(const base of BASES){
-    for(const n of names){
-      const enc = encodeURIComponent(n);
-      for(const ext of exts) out.push(base + enc + ext);
-    }
-  }
-
-  const seen = new Set();
-  return out.filter(u => (!seen.has(u) && seen.add(u)));
-}
-
-function loadWithFallback(img, cand, placeholder){
-  let i=0;
-  const next=()=>{
-    if(i>=cand.length){
-      placeholder.textContent='NO IMAGE';
-      img.remove();
-      return;
-    }
-    img.src=cand[i++];
-  };
-  img.onerror=next;
-  next();
-}
-
-function makeCard(c){
+function makeCard(c){{
   const el=document.createElement('div');
   el.className='item';
   el.dataset.name=(c.name||'').toLowerCase();
@@ -562,9 +441,14 @@ function makeCard(c){
   const thumb=document.createElement('div');
   thumb.className='thumb';
 
-  const img=document.createElement('img');
-  loadWithFallback(img, imageCandidates(c), thumb);
-  thumb.appendChild(img);
+  if(c.image){{
+    const img=document.createElement('img');
+    img.src=c.image;
+    img.onerror=()=>{{ thumb.textContent='NO IMAGE'; img.remove(); }};
+    thumb.appendChild(img);
+  }} else {{
+    thumb.textContent='NO IMAGE';
+  }}
 
   const ck=document.createElement('div');
   ck.className='ck';
@@ -586,40 +470,40 @@ function makeCard(c){
 
   const nm=document.createElement('div');
   nm.className='name';
-  nm.textContent=c.name || c.id; // 캐릭터명은 영어 유지
+  nm.textContent=c.name || c.id;
 
   el.appendChild(thumb);
   el.appendChild(ck);
   el.appendChild(badges);
   el.appendChild(nm);
 
-  el.addEventListener('click', (ev)=>{
+  el.addEventListener('click', (ev)=>{{
     if(ev.target && ev.target.tagName==='INPUT') return;
     cb.checked = !cb.checked;
     stat();
-  });
+  }});
   cb.addEventListener('change', stat);
 
   return el;
-}
+}}
 
-function render(list){
+function render(list){{
   const grid=document.getElementById('grid');
   grid.innerHTML='';
   list.forEach(c=>grid.appendChild(makeCard(c)));
   stat();
-}
+}}
 
-function applyFilter(){
+function applyFilter(){{
   const q=(document.getElementById('q').value||'').trim().toLowerCase();
-  document.querySelectorAll('.item').forEach(el=>{
-    if(!q) { el.style.display=''; return; }
+  document.querySelectorAll('.item').forEach(el=>{{
+    if(!q) {{ el.style.display=''; return; }}
     el.style.display = el.dataset.name.includes(q) ? '' : 'none';
-  });
-}
+  }});
+}}
 
-async function run(){
-  const payload={
+async function run(){{
+  const payload={{
     mode: document.getElementById('mode').value,
     owned: checked(),
     required: csv(document.getElementById('required').value),
@@ -627,38 +511,38 @@ async function run(){
     banned: csv(document.getElementById('banned').value),
     boss_weakness: document.getElementById('boss_weakness').value || null,
     enemy_element: document.getElementById('enemy_element').value || null
-  };
-  if(payload.owned.length < 4){
+  }};
+  if(payload.owned.length < 4){{
     document.getElementById('out').innerHTML='<div class="small">보유 캐릭터는 최소 4명 체크해야 합니다.</div>';
     return;
-  }
+  }}
   document.getElementById('out').innerHTML='<div class="small">계산 중...</div>';
-  const res = await fetch('/recommend/v3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const res = await fetch('/recommend/v3',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify(payload)}});
   const json = await res.json();
   document.getElementById('out').innerHTML='<pre>'+JSON.stringify(json,null,2)+'</pre>';
-}
+}}
 
-function clearAll(){
+function clearAll(){{
   document.querySelectorAll('.owned').forEach(x=>x.checked=false);
-  ['required','fixed','banned','boss_weakness','enemy_element','q'].forEach(id=>{
+  ['required','fixed','banned','boss_weakness','enemy_element','q'].forEach(id=>{{
     const el=document.getElementById(id);
     if(!el) return;
     if(el.tagName==='SELECT') el.value=''; else el.value='';
-  });
+  }});
   document.getElementById('out').textContent='(아직 없음)';
   stat(); applyFilter();
-}
+}}
 
-document.addEventListener('DOMContentLoaded', ()=>{
+document.addEventListener('DOMContentLoaded', ()=>{{
   render(CHARS);
   document.getElementById('q').addEventListener('input', applyFilter);
 
-  document.getElementById('btnAllOn').onclick=()=>{ document.querySelectorAll('.owned').forEach(x=>x.checked=true); stat(); };
-  document.getElementById('btnAllOff').onclick=()=>{ document.querySelectorAll('.owned').forEach(x=>x.checked=false); stat(); };
+  document.getElementById('btnAllOn').onclick=()=>{{ document.querySelectorAll('.owned').forEach(x=>x.checked=true); stat(); }};
+  document.getElementById('btnAllOff').onclick=()=>{{ document.querySelectorAll('.owned').forEach(x=>x.checked=false); stat(); }};
 
   const visibleItems=()=>Array.from(document.querySelectorAll('.item')).filter(el=>el.style.display!=='none');
-  document.getElementById('btnVisOn').onclick=()=>{ visibleItems().forEach(el=>el.querySelector('.owned').checked=true); stat(); };
-  document.getElementById('btnVisOff').onclick=()=>{ visibleItems().forEach(el=>el.querySelector('.owned').checked=false); stat(); };
+  document.getElementById('btnVisOn').onclick=()=>{{ visibleItems().forEach(el=>el.querySelector('.owned').checked=true); stat(); }};
+  document.getElementById('btnVisOff').onclick=()=>{{ visibleItems().forEach(el=>el.querySelector('.owned').checked=false); stat(); }};
 
   document.getElementById('btnReq').onclick=()=>addCheckedTo('required');
   document.getElementById('btnFix').onclick=()=>addCheckedTo('fixed');
@@ -666,24 +550,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   document.getElementById('btnRun').onclick=run;
   document.getElementById('btnClear').onclick=clearAll;
-});
-</script>
-<script>
-  // LOCAL_BASE를 JS에서 사용
-  const LOCAL_BASE = "__LOCAL_BASE__";
+}});
 </script>
 </body></html>
 """
-
-    html = (template
-        .replace("__TITLE__", APP_TITLE)
-        .replace("__COUNT__", str(len(CACHE["chars"])))
-        .replace("__REFRESH__", CACHE["last_refresh"] or "N/A")
-        .replace("__CHARS__", chars_json)
-        .replace("__BASES__", bases_json)
-        .replace("__LOCAL_BASE__", LOCAL_BASE)
-    )
-
     return Response(html, mimetype="text/html; charset=utf-8")
 
 if __name__ == "__main__":
