@@ -385,6 +385,47 @@ def ensure_cache_loaded() -> None:
     if CACHE["zone_nova"]["count"] == 0 and CACHE["zone_nova"]["last_refresh_iso"] is None:
         refresh_zone_nova_cache()
 
+def normalize_char_names(chars: list[dict]) -> list[dict]:
+    """
+    캐릭터 이름 표기 흔들림을 표준화하고, 이미지 탐색용 aliases를 부여.
+    """
+    out = []
+    seen_key = set()
+
+    for c in chars:
+        c = dict(c)
+
+        name = (c.get("name") or "").replace("’", "'").strip()
+        name = " ".join(name.split())  # 연속 공백 정리
+        cid = (c.get("id") or "").strip()
+
+        aliases = set(c.get("aliases") or [])
+
+        # ✅ Arc 캐릭터 표준화
+        arc_variants = {
+            "jeanne d arc", "jeanne d'arc", "jeanne d arc", "jeanne d arc ",
+            "joanof arc", "joan of arc", "joanofarc", "joanof  arc",
+        }
+        if name.lower() in arc_variants or cid.lower() in arc_variants:
+            name = "Jeanne D Arc"
+            aliases.update([
+                "Jeanne D Arc", "Jeanne D arc", "Jeanne D'Arc",
+                "Joanof Arc", "Joan of Arc", "JoanofArc",
+                "Jeanne D Arc",  # 혹시 파일명 케이스 흔들릴 때 대비
+            ])
+
+        c["name"] = name
+        c["aliases"] = sorted(aliases)
+
+        # 중복 제거 키(이름 기준). 같은 캐릭이 2번 들어오면 1개만 유지
+        key = name.lower()
+        if key in seen_key:
+            continue
+        seen_key.add(key)
+
+        out.append(c)
+
+    return out
 
 # =========================
 # Static images serving
