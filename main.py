@@ -10,7 +10,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "public", "data", "zone-nova")
 IMG_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "characters")
 
-# characters는 characters.json이 없으면 characters_meta.json을 읽도록 자동 처리
 CHAR_JSON_CANDIDATES = [
     os.path.join(DATA_DIR, "characters.json"),
     os.path.join(DATA_DIR, "characters_meta.json"),
@@ -67,17 +66,17 @@ def build_image_map() -> dict:
     if not os.path.isdir(IMG_DIR):
         return m
 
+    pri = {".jpg": 3, ".jpeg": 3, ".png": 2, ".webp": 1}
+
     for fn in os.listdir(IMG_DIR):
         ext = os.path.splitext(fn)[1].lower()
         if ext not in VALID_IMG_EXT:
             continue
         base = os.path.splitext(fn)[0].lower()
-        # 같은 base가 여러 확장자로 있으면 우선순위: jpg > png > webp
         if base not in m:
             m[base] = fn
         else:
             cur_ext = os.path.splitext(m[base])[1].lower()
-            pri = {".jpg": 3, ".jpeg": 3, ".png": 2, ".webp": 1}
             if pri.get(ext, 0) > pri.get(cur_ext, 0):
                 m[base] = fn
     return m
@@ -90,26 +89,20 @@ def normalize_char_name(name: str) -> str:
 
 
 def candidate_image_bases(char_id: str, name: str) -> list[str]:
-    """
-    이미지 파일 basename 후보 생성
-    - Render/Linux는 대소문자/공백이 매우 중요하므로, 가능한 후보를 넓게 잡음
-    """
     out = []
     cid = (char_id or "").strip()
     nm = (name or "").strip()
 
-    # 원본/변형 후보
     for v in [nm, nm.replace(" ", ""), nm.replace("'", ""), nm.replace("’", ""), cid]:
         v = v.strip()
         if not v:
             continue
         out.append(v.lower())
 
-    # 특수 케이스: Jeanne D Arc (Joanof Arc로 잘못 들어오더라도 동일 처리)
+    # Jeanne D Arc / Joanof Arc 통합
     if slug_id(nm) in {"jeannedarc", "joanofarc"} or slug_id(cid) in {"jeannedarc", "joanofarc"}:
         out = ["jeanne d arc", "jeannedarc", "joanofarc", "joanof arc"]
 
-    # 중복 제거
     seen, uniq = set(), []
     for x in out:
         if x not in seen:
@@ -118,28 +111,63 @@ def candidate_image_bases(char_id: str, name: str) -> list[str]:
     return uniq
 
 
-def normalize_chars(raw) -> list[dict]:
+def extract_char_list(raw) -> list[dict]:
     """
-    raw 포맷을 유연하게 처리:
-    - list면 그대로
-    - dict면 characters / characters_meta / data 등 키에서 list 추출
+    characters_meta.json 포맷이 여러 형태일 수 있어 유연하게 list로 변환.
+    지원:
+    1) [ {...}, {...} ]
+    2) { "characters": [ ... ] } / { "data": [ ... ] } 등
+    3) { "Nina": {...}, "Freya": {...} }  (맵 형태)
+    4) { "characters_meta": { "Nina": {...} } } (중첩 맵)
     """
     if isinstance(raw, list):
-        chars = raw
-    elif isinstance(raw, dict):
-        for k in ["characters", "characters_meta", "data", "items"]:
-            if isinstance(raw.get(k), list):
-                chars = raw[k]
-                break
-        else:
-            raise RuntimeError("캐릭터 JSON 포맷 오류: list 또는 {characters:[...]} 형태여야 합니다.")
-    else:
-        raise RuntimeError("캐릭터 JSON 포맷 오류: JSON 최상위 타입이 올바르지 않습니다.")
+        return raw
 
+    if not isinstance(raw, dict):
+        raise RuntimeError("캐릭터 JSON 포맷 오류: 최상위가 list/dict가 아닙니다.")
+
+    # 2) dict 안에 list가 들어있는 케이스 우선
+    for k in ["characters", "characters_meta", "data", "items"]:
+        v = raw.get(k)
+        if isinstance(v, list):
+            return v
+
+    # 4) dict 안에 dict(맵)가 중첩되어 있는 케이스
+    for k in ["characters", "characters_meta", "data", "items"]:
+        v = raw.get(k)
+        if isinstance(v, dict):
+            # 중첩 dict가 맵 형태면 아래 3)로 처리되도록 넘김
+            raw = v
+            break
+
+    # 3) 맵 형태: { "Nina": {...}, "Freya": {...} }
+    # 값들이 dict인 엔트리가 어느 정도 있으면 맵으로 판단
+    dict_values = list(raw.values())
+    dict_like_cnt = sum(1 for x in dict_values if isinstance(x, dict))
+    if dict_like_cnt >= 3:  # 너무 빡세게 잡지 않음
+        out = []
+        for key, val in raw.items():
+            if not isinstance(val, dict):
+                continue
+            item = dict(val)
+            # name/id 보정
+            if not item.get("name"):
+                item["name"] = key
+            if not item.get("id"):
+                item["id"] = slug_id(item.get("name") or key)
+            out.append(item)
+        return out
+
+    raise RuntimeError("캐릭터 JSON 포맷 오류: list 또는 {characters:[...]} 또는 {Name:{...}}(맵) 형태여야 합니다.")
+
+
+def normalize_chars(raw) -> list[dict]:
+    chars = extract_char_list(raw)
     img_map = build_image_map()
 
     out = []
     seen = set()
+
     for c in chars:
         if not isinstance(c, dict):
             continue
@@ -163,9 +191,9 @@ def normalize_chars(raw) -> list[dict]:
         element = c.get("element") or "-"
         role = c.get("role") or "-"
 
-        # image 매칭: JSON의 image/img_file이 있어도, 실제 파일 기준으로 재매칭
         image_url = None
         img_file = c.get("img_file")
+
         if isinstance(img_file, str) and img_file:
             base = os.path.splitext(img_file)[0].lower()
             real = img_map.get(base)
@@ -173,7 +201,6 @@ def normalize_chars(raw) -> list[dict]:
                 image_url = f"/images/games/zone-nova/characters/{real}"
 
         if not image_url:
-            # name/id 기반 후보로 매칭
             for base in candidate_image_bases(cid, name):
                 real = img_map.get(base)
                 if real:
@@ -182,11 +209,11 @@ def normalize_chars(raw) -> list[dict]:
 
         out.append({
             "id": cid,
-            "name": name or cid,
+            "name": name or cid,   # 캐릭터 이름 영어 유지
             "rarity": rarity,
             "element": element,
             "role": role,
-            "image": image_url,  # 없으면 None
+            "image": image_url,
         })
 
     return out
