@@ -395,11 +395,9 @@ def ui_select() -> Response:
     ensure_cache_loaded()
     chars = CACHE["zone_nova"]["characters"]
 
-    # JSON은 HTML/JS 중괄호 문제를 피하려고 application/json으로 넣고 JS에서 파싱합니다.
     chars_json = json.dumps(chars, ensure_ascii=False)
     adv_json = json.dumps(ELEMENT_ADVANTAGE, ensure_ascii=False)
 
-    # 표시용
     refreshed = CACHE["zone_nova"]["last_refresh_iso"] or "N/A"
     source = CACHE["zone_nova"]["source"] or "N/A"
     cached_n = len(chars)
@@ -487,10 +485,6 @@ def ui_select() -> Response:
       color:var(--text);
       outline:none;
     }
-    select:focus,input:focus{
-      border-color:rgba(110,168,255,.55);
-      box-shadow:0 0 0 4px rgba(110,168,255,.14);
-    }
 
     .btn{
       padding:10px 12px;border-radius:12px;
@@ -515,11 +509,7 @@ def ui_select() -> Response:
 
     .hint{font-size:12px;color:var(--muted);line-height:1.55;}
 
-    /* 오른쪽 패널: 상단 툴바 + 썸네일 그리드(스크롤) */
-    .rightTop{
-      display:flex;flex-wrap:wrap;gap:10px;align-items:end;
-      margin-bottom:12px;
-    }
+    .rightTop{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:12px;}
     .stat{
       margin-left:auto;
       font-size:12px;color:var(--muted);
@@ -557,7 +547,16 @@ def ui_select() -> Response:
     .charCard:hover{transform:translateY(-1px);background:rgba(0,0,0,.24);border-color:rgba(110,168,255,.35);}
     .charCard.selected{border-color:rgba(110,168,255,.60);box-shadow:0 0 0 4px rgba(110,168,255,.12);}
 
-    .thumb{width:100%;aspect-ratio:1/1;background:rgba(255,255,255,.05);overflow:hidden;}
+    .thumb{
+      width:100%;
+      aspect-ratio:1/1;
+      background:rgba(255,255,255,.06);
+      overflow:hidden;
+      display:flex;align-items:center;justify-content:center;
+      color:rgba(255,255,255,.35);
+      font-weight:900;
+      letter-spacing:.2px;
+    }
     .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
 
     .check{
@@ -586,7 +585,6 @@ def ui_select() -> Response:
     .chipElem{border-color:rgba(110,168,255,.28);color:rgba(110,168,255,.95);}
     .chipRole{border-color:rgba(61,220,151,.22);color:rgba(61,220,151,.92);}
 
-    /* 결과 */
     .resultBox{
       margin-top:12px;
       border:1px solid var(--border);
@@ -594,6 +592,7 @@ def ui_select() -> Response:
       border-radius:14px;
       padding:12px;
     }
+
     .toast{
       position:fixed;right:16px;bottom:16px;z-index:50;
       background:rgba(0,0,0,.65);
@@ -611,14 +610,14 @@ def ui_select() -> Response:
   <div class="topbarInner">
     <div class="title">
       <h1>__APP_TITLE__</h1>
-      <div class="pill"><span class="dot"></span> Ready</div>
+      <div class="pill"><span class="dot"></span> 준비됨</div>
     </div>
     <div class="meta">
-      cached <b>__CACHED_N__</b> · refreshed <span class="mono">__REFRESHED__</span> · source <b>__SOURCE__</b>
+      캐시 <b>__CACHED_N__</b> · 갱신 <span class="mono">__REFRESHED__</span> · 소스 <b>__SOURCE__</b>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
-      <a class="pill" href="/">Meta</a>
-      <a class="pill" href="/refresh">Refresh</a>
+      <a class="pill" href="/">메타</a>
+      <a class="pill" href="/refresh">새로고침</a>
       <a class="pill" href="/zones/zone-nova/characters">JSON</a>
     </div>
   </div>
@@ -627,25 +626,25 @@ def ui_select() -> Response:
 <div class="wrap">
   <div class="grid">
 
-    <!-- LEFT: 옵션 -->
+    <!-- LEFT -->
     <div class="card">
       <div class="cardHeader">
         <div class="cardTitle">추천 옵션</div>
-        <div class="pill mono">Fire→Wind · Wind→Ice · Ice→Holy · Holy→Chaos · Chaos→Fire</div>
+        <div class="pill mono">속성 상성: Fire→Wind · Wind→Ice · Ice→Holy · Holy→Chaos · Chaos→Fire</div>
       </div>
       <div class="cardBody">
 
         <div class="row">
-          <div class="field" style="flex:1;min-width:120px;">
-            <div class="label">Mode</div>
+          <div class="field" style="flex:1;min-width:140px;">
+            <div class="label">모드</div>
             <select id="mode">
-              <option value="pve">pve</option>
-              <option value="boss">boss</option>
-              <option value="pvp">pvp</option>
+              <option value="pve">일반(PvE)</option>
+              <option value="boss">보스</option>
+              <option value="pvp">PvP</option>
             </select>
           </div>
-          <div class="field" style="width:110px;">
-            <div class="label">Top</div>
+          <div class="field" style="width:120px;">
+            <div class="label">추천 개수</div>
             <select id="top_k">
               <option value="3">3</option>
               <option value="5" selected>5</option>
@@ -658,9 +657,9 @@ def ui_select() -> Response:
 
         <div class="row">
           <div class="field" style="flex:1;min-width:160px;">
-            <div class="label">Boss Weakness</div>
+            <div class="label">보스 약점 속성</div>
             <select id="boss_weakness">
-              <option value="">(none)</option>
+              <option value="">(없음)</option>
               <option value="Fire">Fire</option>
               <option value="Ice">Ice</option>
               <option value="Wind">Wind</option>
@@ -669,9 +668,9 @@ def ui_select() -> Response:
             </select>
           </div>
           <div class="field" style="flex:1;min-width:160px;">
-            <div class="label">Enemy Element</div>
+            <div class="label">상대(적) 속성</div>
             <select id="enemy_element">
-              <option value="">(none)</option>
+              <option value="">(없음)</option>
               <option value="Fire">Fire</option>
               <option value="Ice">Ice</option>
               <option value="Wind">Wind</option>
@@ -684,59 +683,59 @@ def ui_select() -> Response:
         <div style="height:12px;"></div>
 
         <div class="row">
-          <button class="btn btnGhost" id="btnReq">선택 → Required</button>
-          <button class="btn btnGhost" id="btnFocus">선택 → Focus</button>
-          <button class="btn btnGhost" id="btnBan">선택 → Banned</button>
+          <button class="btn btnGhost" id="btnReq">선택 → 필수 포함</button>
+          <button class="btn btnGhost" id="btnFix">선택 → 고정 포함</button>
+          <button class="btn btnGhost" id="btnBan">선택 → 제외</button>
         </div>
 
         <div style="height:12px;"></div>
 
         <div class="field">
-          <div class="label">Required (id/name, comma)</div>
-          <input id="required" placeholder="ex) nina, freya" />
+          <div class="label">필수 포함 (id/name, 쉼표)</div>
+          <input id="required" placeholder="예) nina, freya" />
         </div>
 
         <div style="height:10px;"></div>
 
         <div class="field">
-          <div class="label">Focus (id/name, comma)</div>
-          <input id="focus" placeholder="ex) lavinia" />
+          <div class="label">고정 포함 (id/name, 쉼표)</div>
+          <input id="fixed" placeholder="예) lavinia" />
         </div>
 
         <div style="height:10px;"></div>
 
         <div class="field">
-          <div class="label">Banned (id/name, comma)</div>
-          <input id="banned" placeholder="ex) apep" />
+          <div class="label">제외 (id/name, 쉼표)</div>
+          <input id="banned" placeholder="예) apep" />
         </div>
 
         <div style="height:14px;"></div>
 
         <div class="row">
-          <button class="btn btnPrimary" id="btnRun">Recommend</button>
-          <button class="btn btnDanger" id="btnClear">Clear</button>
+          <button class="btn btnPrimary" id="btnRun">추천 실행</button>
+          <button class="btn btnDanger" id="btnClear">초기화</button>
         </div>
 
         <div style="height:10px;"></div>
         <div class="hint">
-          오른쪽에서 <b>이미지로 체크</b> → Required/Focus/Banned 버튼으로 넣고 추천을 실행하세요.
+          오른쪽에서 <b>이미지로 체크</b> 후, “필수/고정/제외” 버튼으로 넣고 추천을 실행하세요.
         </div>
       </div>
     </div>
 
-    <!-- RIGHT: 이미지 체크 -->
+    <!-- RIGHT -->
     <div class="card">
       <div class="cardHeader">
-        <div class="cardTitle">Owned 선택 (이미지 체크)</div>
-        <div class="stat" id="selectedStat">Selected <b>0</b></div>
+        <div class="cardTitle">보유 캐릭터 선택 (이미지 체크)</div>
+        <div class="stat" id="selectedStat">선택됨 <b>0</b>명</div>
       </div>
       <div class="cardBody">
 
         <div class="rightTop">
           <div class="field" style="width:160px;">
-            <div class="label">Element</div>
+            <div class="label">속성</div>
             <select id="f_element">
-              <option value="">All</option>
+              <option value="">전체</option>
               <option value="Fire">Fire</option>
               <option value="Ice">Ice</option>
               <option value="Wind">Wind</option>
@@ -747,9 +746,9 @@ def ui_select() -> Response:
           </div>
 
           <div class="field" style="width:160px;">
-            <div class="label">Role</div>
+            <div class="label">역할</div>
             <select id="f_role">
-              <option value="">All</option>
+              <option value="">전체</option>
               <option value="tank">tank</option>
               <option value="healer">healer</option>
               <option value="dps">dps</option>
@@ -760,9 +759,9 @@ def ui_select() -> Response:
           </div>
 
           <div class="field" style="width:140px;">
-            <div class="label">Rarity</div>
+            <div class="label">등급</div>
             <select id="f_rarity">
-              <option value="">All</option>
+              <option value="">전체</option>
               <option value="SSR">SSR</option>
               <option value="SR">SR</option>
               <option value="R">R</option>
@@ -771,12 +770,12 @@ def ui_select() -> Response:
           </div>
 
           <div class="field" style="width:160px;">
-            <div class="label">Sort</div>
+            <div class="label">정렬</div>
             <select id="sort">
-              <option value="name" selected>Name</option>
-              <option value="rarity">Rarity</option>
-              <option value="element">Element</option>
-              <option value="role">Role</option>
+              <option value="name" selected>이름</option>
+              <option value="rarity">등급</option>
+              <option value="element">속성</option>
+              <option value="role">역할</option>
             </select>
           </div>
 
@@ -794,8 +793,8 @@ def ui_select() -> Response:
 
         <div class="resultBox">
           <div class="row" style="justify-content:space-between;">
-            <div class="cardTitle">Result</div>
-            <button class="btn btnGhost" id="btnCopy">Copy JSON</button>
+            <div class="cardTitle">결과</div>
+            <button class="btn btnGhost" id="btnCopy">JSON 복사</button>
           </div>
           <div style="height:10px;"></div>
           <div id="out" class="hint">(아직 없음)</div>
@@ -809,7 +808,6 @@ def ui_select() -> Response:
 
 <div class="toast" id="toast"></div>
 
-<!-- JSON data -->
 <script type="application/json" id="chars-data">__CHARS_JSON__</script>
 <script type="application/json" id="adv-data">__ADV_JSON__</script>
 
@@ -821,21 +819,23 @@ def ui_select() -> Response:
     clearTimeout(window.__toastTimer);
     window.__toastTimer=setTimeout(()=>{t.style.display='none';},1600);
   }
-
   function getJson(id){
     const el=document.getElementById(id);
-    try{ return JSON.parse(el.textContent); }
-    catch(e){ return null; }
+    try{ return JSON.parse(el.textContent); } catch(e){ return null; }
+  }
+  function normUrl(u){
+    if(!u) return '';
+    // mixed content 방지 (http -> https)
+    if(u.startsWith('http://')) return 'https://' + u.slice(7);
+    return u;
   }
 
   const CHARS = getJson('chars-data') || [];
-  const BY_ID = Object.fromEntries(CHARS.map(c => [c.id, c]));
-
-  let LAST_JSON=null;
+  let LAST_JSON = null;
 
   function syncSelectedStat(){
     const n=document.querySelectorAll('.owned:checked').length;
-    document.getElementById('selectedStat').innerHTML='Selected <b>'+n+'</b>';
+    document.getElementById('selectedStat').innerHTML='선택됨 <b>'+n+'</b>명';
   }
 
   function applyFilter(){
@@ -853,7 +853,7 @@ def ui_select() -> Response:
       if(ok && fr) ok=(role===fr);
       if(ok && frr) ok=(rar===frr);
 
-      card.style.display= ok ? '' : 'none';
+      card.style.display = ok ? '' : 'none';
     });
   }
 
@@ -893,26 +893,20 @@ def ui_select() -> Response:
 
   function selectAll(flag){
     document.querySelectorAll('.owned').forEach(cb=>cb.checked=flag);
-    syncSelectedCards();
-    syncSelectedStat();
+    syncSelectedCards(); syncSelectedStat();
   }
-
   function visibleCards(){
     return Array.from(document.querySelectorAll('.charCard')).filter(card=>card.style.display!=='none');
   }
   function selectVisible(flag){
     visibleCards().forEach(card=>{
-      const cb=card.querySelector('.owned');
-      cb.checked=flag;
+      card.querySelector('.owned').checked=flag;
     });
-    syncSelectedCards();
-    syncSelectedStat();
+    syncSelectedCards(); syncSelectedStat();
   }
-
   function checkedOwned(){
     return Array.from(document.querySelectorAll('.owned:checked')).map(x=>x.value);
   }
-
   function csv(v){
     v=(v||'').trim();
     if(!v) return [];
@@ -925,10 +919,10 @@ def ui_select() -> Response:
 
   function addCheckedTo(inputId){
     const ids=checkedOwned();
-    if(!ids.length){ toast('먼저 Owned 체크하세요.'); return; }
+    if(!ids.length){ toast('먼저 보유 캐릭터를 체크하세요.'); return; }
     const now=uniq(csv(document.getElementById(inputId).value).concat(ids));
     document.getElementById(inputId).value=now.join(', ');
-    toast('추가됨: '+ids.length);
+    toast('추가됨: '+ids.length+'명');
   }
 
   function clearAll(){
@@ -939,10 +933,9 @@ def ui_select() -> Response:
     document.getElementById('f_role').value='';
     document.getElementById('f_rarity').value='';
     document.getElementById('required').value='';
-    document.getElementById('focus').value='';
+    document.getElementById('fixed').value='';
     document.getElementById('banned').value='';
-    syncSelectedCards();
-    syncSelectedStat();
+    syncSelectedCards(); syncSelectedStat();
     document.getElementById('out').innerHTML='(아직 없음)';
     LAST_JSON=null;
     toast('초기화 완료');
@@ -954,14 +947,14 @@ def ui_select() -> Response:
       top_k: parseInt(document.getElementById('top_k').value,10),
       owned: checkedOwned(),
       required: csv(document.getElementById('required').value),
-      focus: csv(document.getElementById('focus').value),
+      focus: csv(document.getElementById('fixed').value),   // ✅ 서버는 focus 키를 쓰므로 fixed 입력을 focus로 전달
       banned: csv(document.getElementById('banned').value),
       boss_weakness: document.getElementById('boss_weakness').value || null,
       enemy_element: document.getElementById('enemy_element').value || null
     };
 
     if((payload.owned||[]).length < 4){
-      toast('Owned는 최소 4명 필요합니다.');
+      toast('보유 캐릭터는 최소 4명 선택해야 합니다.');
       return;
     }
 
@@ -993,13 +986,69 @@ def ui_select() -> Response:
     }
   }
 
+  // ✅ 이미지 로드 fallback: (1) 데이터의 image (2) 로컬 /images/.../NAME.jpg/png (3) id 기반 jpg/png
+  function buildImageCandidates(c){
+    const base = '/images/games/zone-nova/characters/';
+    const cand = [];
+
+    const raw = normUrl(c.image || '');
+    if(raw) cand.push(raw);
+
+    const name = (c.name || '').trim();
+    const id = (c.id || '').trim();
+
+    function addName(n){
+      if(!n) return;
+      // 파일명이 공백 포함일 수 있으니 encode
+      const enc = encodeURIComponent(n);
+      cand.push(base + enc);
+      // 확장자 없는 경우도 대비
+      cand.push(base + enc + '.jpg');
+      cand.push(base + enc + '.png');
+    }
+
+    addName(name);
+    addName(id);
+    addName(id ? (id[0].toUpperCase() + id.slice(1)) : '');
+
+    // 중복 제거
+    const seen = new Set();
+    return cand.filter(u => {
+      if(!u) return false;
+      if(seen.has(u)) return false;
+      seen.add(u);
+      return true;
+    });
+  }
+
+  function loadWithFallback(imgEl, candidates, placeholderEl, label){
+    let idx = 0;
+
+    function tryNext(){
+      if(idx >= candidates.length){
+        // 전부 실패 -> placeholder 텍스트
+        if(placeholderEl){
+          placeholderEl.textContent = 'NO IMAGE';
+          placeholderEl.title = label || '';
+        }
+        imgEl.remove();
+        return;
+      }
+      const u = candidates[idx++];
+      imgEl.src = u;
+      imgEl.dataset.srcTried = u;
+    }
+
+    imgEl.onerror = () => tryNext();
+    tryNext();
+  }
+
   function buildCard(c){
     const id=c.id || '';
-    const name=c.name || id;
+    const name=c.name || id; // ✅ 캐릭터 이름은 영어 그대로
     const rarity=c.rarity || '-';
     const element=c.element || '-';
     const role=c.role || '-';
-    const img=c.image || '';
 
     const card=document.createElement('div');
     card.className='charCard';
@@ -1011,12 +1060,12 @@ def ui_select() -> Response:
 
     const thumb=document.createElement('div');
     thumb.className='thumb';
-    if(img){
-      const im=document.createElement('img');
-      im.src=img;
-      im.onerror=()=>{ im.style.display='none'; };
-      thumb.appendChild(im);
-    }
+
+    const img=document.createElement('img');
+    const candidates = buildImageCandidates(c);
+    // 후보가 있어도 실패할 수 있으니 placeholder는 thumb 자체를 사용
+    loadWithFallback(img, candidates, thumb, name + ' (' + id + ')');
+    thumb.appendChild(img);
     card.appendChild(thumb);
 
     const check=document.createElement('div');
@@ -1050,12 +1099,10 @@ def ui_select() -> Response:
     card.addEventListener('click',(ev)=>{
       if(ev.target && ev.target.tagName==='INPUT') return;
       cb.checked=!cb.checked;
-      syncSelectedCards();
-      syncSelectedStat();
+      syncSelectedCards(); syncSelectedStat();
     });
     cb.addEventListener('change',()=>{
-      syncSelectedCards();
-      syncSelectedStat();
+      syncSelectedCards(); syncSelectedStat();
     });
 
     return card;
@@ -1083,7 +1130,7 @@ def ui_select() -> Response:
     document.getElementById('btnVisOff').addEventListener('click', ()=>selectVisible(false));
 
     document.getElementById('btnReq').addEventListener('click', ()=>addCheckedTo('required'));
-    document.getElementById('btnFocus').addEventListener('click', ()=>addCheckedTo('focus'));
+    document.getElementById('btnFix').addEventListener('click', ()=>addCheckedTo('fixed'));
     document.getElementById('btnBan').addEventListener('click', ()=>addCheckedTo('banned'));
 
     document.getElementById('btnRun').addEventListener('click', run);
@@ -1099,7 +1146,6 @@ def ui_select() -> Response:
 </html>
 """
 
-    # 안전 치환 (f-string 안 씀)
     html = html.replace("__APP_TITLE__", str(APP_TITLE))
     html = html.replace("__CACHED_N__", str(cached_n))
     html = html.replace("__REFRESHED__", str(refreshed))
@@ -1108,7 +1154,6 @@ def ui_select() -> Response:
     html = html.replace("__ADV_JSON__", adv_json)
 
     return Response(html, mimetype="text/html; charset=utf-8")
-
 
 if __name__ == "__main__":
     refresh_zone_nova_cache()
