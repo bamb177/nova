@@ -1,9 +1,9 @@
-name: Sync Zone Nova Data
+name: Sync Zone Nova Assets & Data
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 3 * * 1"  # 매주 월요일 UTC 03:00 (KST 12:00)
+    - cron: "0 3 * * 1"  # 매주 월요일 UTC 03:00
 
 permissions:
   contents: write
@@ -12,22 +12,47 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout (your repo)
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          python-version: "3.11"
+          node-version: "20"
 
-      - name: Install deps
+      - name: Install tools (tsx)
         run: |
-          python -m pip install --upgrade pip
-          pip install requests beautifulsoup4 lxml
+          npm i -g tsx
 
-      - name: Run sync (web -> save to repo)
+      - name: Clone upstream gacha-wiki
         run: |
-          python scripts/sync_zone_nova.py --write
+          rm -rf ._upstream_gacha_wiki
+          git clone --depth 1 https://github.com/boring877/gacha-wiki.git ._upstream_gacha_wiki
+          echo "Upstream cloned."
+
+      - name: Sync images (zone-nova)
+        run: |
+          mkdir -p public/images/games/zone-nova
+          # 1) 캐릭터 이미지
+          mkdir -p public/images/games/zone-nova/characters
+          rsync -a ._upstream_gacha_wiki/public/images/games/zone-nova/characters/ public/images/games/zone-nova/characters/ || true
+
+          # 2) 직업(클래스) 이미지 (public/images/games/zone-nova/classes/1*.jpg)
+          mkdir -p public/images/games/zone-nova/classes
+          rsync -a ._upstream_gacha_wiki/public/images/games/zone-nova/classes/ public/images/games/zone-nova/classes/ || true
+
+          # 3) 룬 이미지
+          mkdir -p public/images/games/zone-nova/runes
+          rsync -a ._upstream_gacha_wiki/public/images/games/zone-nova/runes/ public/images/games/zone-nova/runes/ || true
+
+          # 4) 노드트리 이미지
+          mkdir -p public/images/games/zone-nova/nodetree
+          rsync -a ._upstream_gacha_wiki/public/images/games/zone-nova/nodetree/ public/images/games/zone-nova/nodetree/ || true
+
+      - name: Build characters_meta.json from upstream JS/TS
+        run: |
+          mkdir -p public/data/zone-nova
+          tsx scripts/extract_zone_nova_characters.ts --upstream ._upstream_gacha_wiki --out public/data/zone-nova/characters_meta.json
 
       - name: Commit & Push if changed
         run: |
@@ -36,7 +61,11 @@ jobs:
             git config user.name "github-actions"
             git config user.email "github-actions@github.com"
             git add public/data/zone-nova/characters_meta.json
-            git commit -m "sync(zone-nova): update characters_meta.json"
+            git add public/images/games/zone-nova/characters
+            git add public/images/games/zone-nova/classes
+            git add public/images/games/zone-nova/runes
+            git add public/images/games/zone-nova/nodetree
+            git commit -m "sync(zone-nova): update assets + characters_meta"
             git push
           else
             echo "No changes"
