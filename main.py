@@ -402,6 +402,15 @@ def ui_select() -> Response:
     source = CACHE["zone_nova"]["source"] or "N/A"
     cached_n = len(chars)
 
+    # ✅ GitHub 이미지 소스 설정 (여기만 맞게 고치면 됨)
+    GITHUB_OWNER = "boring877"
+    GITHUB_REPO = "gacha-wiki"
+    GITHUB_BRANCH = "main"  # main이 아니면 master 등으로 바꾸세요.
+
+    # jsDelivr + rawgithub 둘 다 준비(하나 막혀도 다른 걸로 뜨게)
+    JSDELIVR_BASE = f"https://cdn.jsdelivr.net/gh/{GITHUB_OWNER}/{GITHUB_REPO}@{GITHUB_BRANCH}/public/images/games/zone-nova/characters/"
+    RAW_BASE      = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/public/images/games/zone-nova/characters/"
+
     html = r"""<!doctype html>
 <html lang="ko">
 <head>
@@ -410,16 +419,10 @@ def ui_select() -> Response:
   <title>__APP_TITLE__</title>
   <style>
     :root{
-      --bg:#0b1020;
-      --panel:rgba(255,255,255,.06);
-      --border:rgba(255,255,255,.12);
-      --muted:rgba(255,255,255,.65);
-      --text:rgba(255,255,255,.92);
-      --brand:#6ea8ff;
-      --danger:#ff5d6c;
-      --ok:#3ddc97;
-      --shadow:0 10px 30px rgba(0,0,0,.35);
-      --r:14px;
+      --bg:#0b1020; --panel:rgba(255,255,255,.06); --border:rgba(255,255,255,.12);
+      --muted:rgba(255,255,255,.65); --text:rgba(255,255,255,.92);
+      --brand:#6ea8ff; --danger:#ff5d6c; --ok:#3ddc97;
+      --shadow:0 10px 30px rgba(0,0,0,.35); --r:14px;
     }
     *{box-sizing:border-box;}
     body{
@@ -555,7 +558,6 @@ def ui_select() -> Response:
       display:flex;align-items:center;justify-content:center;
       color:rgba(255,255,255,.35);
       font-weight:900;
-      letter-spacing:.2px;
     }
     .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
 
@@ -619,6 +621,7 @@ def ui_select() -> Response:
       <a class="pill" href="/">메타</a>
       <a class="pill" href="/refresh">새로고침</a>
       <a class="pill" href="/zones/zone-nova/characters">JSON</a>
+      <span class="pill mono">IMG: __IMG_BASE_SHORT__</span>
     </div>
   </div>
 </div>
@@ -626,7 +629,6 @@ def ui_select() -> Response:
 <div class="wrap">
   <div class="grid">
 
-    <!-- LEFT -->
     <div class="card">
       <div class="cardHeader">
         <div class="cardTitle">추천 옵션</div>
@@ -717,13 +719,11 @@ def ui_select() -> Response:
         </div>
 
         <div style="height:10px;"></div>
-        <div class="hint">
-          오른쪽에서 <b>이미지로 체크</b> 후, “필수/고정/제외” 버튼으로 넣고 추천을 실행하세요.
-        </div>
+        <div class="hint">오른쪽에서 <b>이미지로 체크</b> 후, “필수/고정/제외” 버튼으로 넣고 추천을 실행하세요.</div>
+
       </div>
     </div>
 
-    <!-- RIGHT -->
     <div class="card">
       <div class="cardHeader">
         <div class="cardTitle">보유 캐릭터 선택 (이미지 체크)</div>
@@ -793,7 +793,7 @@ def ui_select() -> Response:
 
         <div class="resultBox">
           <div class="row" style="justify-content:space-between;">
-            <div class="cardTitle">결과</div>
+            <div class="cardTitle">결과(JSON)</div>
             <button class="btn btnGhost" id="btnCopy">JSON 복사</button>
           </div>
           <div style="height:10px;"></div>
@@ -810,6 +810,7 @@ def ui_select() -> Response:
 
 <script type="application/json" id="chars-data">__CHARS_JSON__</script>
 <script type="application/json" id="adv-data">__ADV_JSON__</script>
+<script type="application/json" id="img-bases">__IMG_BASES__</script>
 
 <script>
   function toast(msg){
@@ -823,14 +824,9 @@ def ui_select() -> Response:
     const el=document.getElementById(id);
     try{ return JSON.parse(el.textContent); } catch(e){ return null; }
   }
-  function normUrl(u){
-    if(!u) return '';
-    // mixed content 방지 (http -> https)
-    if(u.startsWith('http://')) return 'https://' + u.slice(7);
-    return u;
-  }
 
   const CHARS = getJson('chars-data') || [];
+  const IMG_BASES = getJson('img-bases') || [];
   let LAST_JSON = null;
 
   function syncSelectedStat(){
@@ -899,9 +895,7 @@ def ui_select() -> Response:
     return Array.from(document.querySelectorAll('.charCard')).filter(card=>card.style.display!=='none');
   }
   function selectVisible(flag){
-    visibleCards().forEach(card=>{
-      card.querySelector('.owned').checked=flag;
-    });
+    visibleCards().forEach(card=>{ card.querySelector('.owned').checked=flag; });
     syncSelectedCards(); syncSelectedStat();
   }
   function checkedOwned(){
@@ -916,7 +910,6 @@ def ui_select() -> Response:
     const s=new Set(); arr.forEach(x=>s.add(x));
     return Array.from(s);
   }
-
   function addCheckedTo(inputId){
     const ids=checkedOwned();
     if(!ids.length){ toast('먼저 보유 캐릭터를 체크하세요.'); return; }
@@ -947,7 +940,7 @@ def ui_select() -> Response:
       top_k: parseInt(document.getElementById('top_k').value,10),
       owned: checkedOwned(),
       required: csv(document.getElementById('required').value),
-      focus: csv(document.getElementById('fixed').value),   // ✅ 서버는 focus 키를 쓰므로 fixed 입력을 focus로 전달
+      focus: csv(document.getElementById('fixed').value),   // fixed -> focus로 전달
       banned: csv(document.getElementById('banned').value),
       boss_weakness: document.getElementById('boss_weakness').value || null,
       enemy_element: document.getElementById('enemy_element').value || null
@@ -970,7 +963,7 @@ def ui_select() -> Response:
     LAST_JSON=json;
 
     document.getElementById('out').innerHTML =
-      '<pre class="mono" style="white-space:pre-wrap;margin:0;">' +
+      '<pre class="mono" style="white-space:pre-wrap;margin:0;">'+
       JSON.stringify(json, null, 2) + '</pre>';
 
     toast('추천 완료');
@@ -986,66 +979,51 @@ def ui_select() -> Response:
     }
   }
 
-  // ✅ 이미지 로드 fallback: (1) 데이터의 image (2) 로컬 /images/.../NAME.jpg/png (3) id 기반 jpg/png
-  function buildImageCandidates(c){
-    const base = '/images/games/zone-nova/characters/';
-    const cand = [];
-
-    const raw = normUrl(c.image || '');
-    if(raw) cand.push(raw);
-
-    const name = (c.name || '').trim();
+  // ✅ GitHub 이미지 후보 생성: base(여러개) + (name/id) + (png/jpg) 조합
+  function imageCandidates(c){
+    const name = (c.name || '').trim();  // 캐릭터명(영어)
     const id = (c.id || '').trim();
 
-    function addName(n){
-      if(!n) return;
-      // 파일명이 공백 포함일 수 있으니 encode
-      const enc = encodeURIComponent(n);
-      cand.push(base + enc);
-      // 확장자 없는 경우도 대비
-      cand.push(base + enc + '.jpg');
-      cand.push(base + enc + '.png');
-    }
+    const names = [];
+    if(name) names.push(name);
+    if(id) names.push(id);
+    if(id) names.push(id[0].toUpperCase() + id.slice(1));
 
-    addName(name);
-    addName(id);
-    addName(id ? (id[0].toUpperCase() + id.slice(1)) : '');
+    // 파일명이 공백 포함 가능 -> encodeURIComponent 사용
+    const exts = ['.png', '.jpg', '.jpeg'];
+    const cand = [];
+
+    for(const base of IMG_BASES){
+      for(const n of names){
+        const enc = encodeURIComponent(n);
+        for(const ext of exts){
+          cand.push(base + enc + ext);
+        }
+      }
+    }
 
     // 중복 제거
     const seen = new Set();
-    return cand.filter(u => {
-      if(!u) return false;
-      if(seen.has(u)) return false;
-      seen.add(u);
-      return true;
-    });
+    return cand.filter(u => (!seen.has(u) && seen.add(u)));
   }
 
-  function loadWithFallback(imgEl, candidates, placeholderEl, label){
+  function loadWithFallback(imgEl, candidates, placeholderEl){
     let idx = 0;
-
     function tryNext(){
       if(idx >= candidates.length){
-        // 전부 실패 -> placeholder 텍스트
-        if(placeholderEl){
-          placeholderEl.textContent = 'NO IMAGE';
-          placeholderEl.title = label || '';
-        }
+        if(placeholderEl) placeholderEl.textContent = 'NO IMAGE';
         imgEl.remove();
         return;
       }
-      const u = candidates[idx++];
-      imgEl.src = u;
-      imgEl.dataset.srcTried = u;
+      imgEl.src = candidates[idx++];
     }
-
     imgEl.onerror = () => tryNext();
     tryNext();
   }
 
   function buildCard(c){
     const id=c.id || '';
-    const name=c.name || id; // ✅ 캐릭터 이름은 영어 그대로
+    const name=c.name || id; // ✅ 캐릭터 이름은 영어만 표시
     const rarity=c.rarity || '-';
     const element=c.element || '-';
     const role=c.role || '-';
@@ -1062,9 +1040,7 @@ def ui_select() -> Response:
     thumb.className='thumb';
 
     const img=document.createElement('img');
-    const candidates = buildImageCandidates(c);
-    // 후보가 있어도 실패할 수 있으니 placeholder는 thumb 자체를 사용
-    loadWithFallback(img, candidates, thumb, name + ' (' + id + ')');
+    loadWithFallback(img, imageCandidates(c), thumb);
     thumb.appendChild(img);
     card.appendChild(thumb);
 
@@ -1153,7 +1129,12 @@ def ui_select() -> Response:
     html = html.replace("__CHARS_JSON__", chars_json)
     html = html.replace("__ADV_JSON__", adv_json)
 
+    img_bases = json.dumps([JSDELIVR_BASE, RAW_BASE], ensure_ascii=False)
+    html = html.replace("__IMG_BASES__", img_bases)
+    html = html.replace("__IMG_BASE_SHORT__", f"{GITHUB_OWNER}/{GITHUB_REPO}@{GITHUB_BRANCH}")
+
     return Response(html, mimetype="text/html; charset=utf-8")
+
 
 if __name__ == "__main__":
     refresh_zone_nova_cache()
