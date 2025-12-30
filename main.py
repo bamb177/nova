@@ -29,6 +29,30 @@ CACHE = {
     "error": None,
 }
 
+META_PATH = os.path.join("public", "data", "zone-nova", "characters_meta.json")
+
+def load_meta_map() -> dict:
+    try:
+        if os.path.isfile(META_PATH):
+            with open(META_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+    return {}
+
+def apply_meta(chars: list[dict], meta_map: dict) -> list[dict]:
+    if not meta_map:
+        return chars
+    for c in chars:
+        cid = (c.get("id") or "").strip().lower()
+        m = meta_map.get(cid)
+        if isinstance(m, dict):
+            if m.get("rarity"):  c["rarity"]  = m["rarity"]
+            if m.get("element"): c["element"] = m["element"]
+            if m.get("role"):    c["role"]    = m["role"]
+    return chars
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
@@ -148,7 +172,9 @@ def ensure_cache(force: bool = False) -> None:
 
         chars = scan_chars_from_local_images(image_dir)
         chars = normalize_chars(chars)
-
+        meta_map = load_meta_map()
+        chars = apply_meta(chars, meta_map)
+    
         CACHE["chars"] = chars
         CACHE["last_refresh"] = now_iso()
         CACHE["source"] = "local(public) first + github fallback"
