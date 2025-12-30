@@ -1,9 +1,293 @@
 {
-  "nina":   { "rarity": "SSR", "element": "Wind",  "role": "dps" },
-  "freya":  { "rarity": "SSR", "element": "Chaos", "role": "dps" },
-  "lavinia":{ "rarity": "SSR", "element": "Holy",  "role": "healer" },
-
-  "apep":   { "rarity": "SSR", "element": "Fire",  "role": "tank" },
-
-  "jeannedarc": { "rarity": "SSR", "element": "Wind", "role": "healer" }
+  "_meta": {
+    "game": "zone-nova",
+    "source": "upstream:src/data/zone-nova/characters.js",
+    "generated_at": "2025-12-30T19:04:17.521Z",
+    "count": 46,
+    "roles": [
+      "Buffer",
+      "Debuffer",
+      "Tank",
+      "DPS",
+      "Healer"
+    ]
+  },
+  "characters": {
+    "1": {
+      "name": "Afrodite",
+      "rarity": "SSR",
+      "element": "Holy",
+      "role": "dps"
+    },
+    "2": {
+      "name": "Apollo",
+      "rarity": "SSR",
+      "element": "Fire",
+      "role": "buffer"
+    },
+    "3": {
+      "name": "Artemis",
+      "rarity": "SSR",
+      "element": "Wind",
+      "role": "dps"
+    },
+    "4": {
+      "name": "Arthur",
+      "rarity": "SSR",
+      "element": "Holy",
+      "role": "dps"
+    },
+    "5": {
+      "name": "Bastet",
+      "rarity": "SR",
+      "element": "Wind",
+      "role": "dps"
+    },
+    "6": {
+      "name": "Belphegar",
+      "rarity": "SR",
+      "element": "Chaos",
+      "role": "buffer"
+    },
+    "7": {
+      "name": "Chiya",
+      "rarity": "SSR",
+      "element": "Ice",
+      "role": "dps"
+    },
+    "8": {
+      "name": "Cleopatra",
+      "rarity": "SSR",
+      "element": "Chaos",
+      "role": "dps"
+    },
+    "9": {
+      "name": "Greed Mammon",
+      "rarity": "SR",
+      "element": "Chaos",
+      "role": "dps"
+    },
+    "10": {
+      "name": "Guinevere",
+      "rarity": "SSR",
+      "element": "Fire",
+      "role": "tank"
+    },
+    "11": {
+      "name": "Horus",
+      "rarity": "SSR",
+      "element": "Holy",
+      "role": "buffer"
+    },
+    "12": {
+      "name": "Kela",
+      "rarity": "SR",
+      "element": "Holy",
+      "role": "healer"
+    },
+    "13": {
+      "name": "Lancelot",
+      "rarity": "SR",
+      "element": "Holy",
+      "role": "tank"
+    },
+    "14": {
+      "name": "Leviathan",
+      "rarity": "SR",
+      "element": "Wind",
+      "role": "dps"
+    },
+    "15": {
+      "name": "Loki",
+      "rarity": "SSR",
+      "element": "Chaos",
+      "role": "buffer"
+    },
+    "16": {
+      "name": "Lyra",
+      "rarity": "SSR",
+      "element": "Fire",
+      "role": "dps"
+    },
+    "17": {
+      "name": "Merlin",
+      "rarity": "SSR",
+      "element": "Fire",
+      "role": "dps"
+    },
+    "18": {
+      "name": "Mordred",
+      "rarity": "SR",
+      "element": "Fire",
+      "role": "dps"
+    },
+    "19": {
+      "name": "Naiya",
+      "rarity": "SSR",
+      "element": "Ice",
+      "role": "buffer"
+    },
+    "20": {
+      "name": "Nini",
+      "rarity": "SR",
+      "element": "Ice",
+      "role": "buffer"
+    },
+    "21": {
+      "name": "Rose",
+      "rarity": "SR",
+      "element": "Ice",
+      "role": "dps"
+    },
+    "22": {
+      "name": "Shanna",
+      "rarity": "SR",
+      "element": "Fire",
+      "role": "dps"
+    },
+    "23": {
+      "name": "Shu",
+      "rarity": "SR",
+      "element": "Wind",
+      "role": "buffer"
+    },
+    "24": {
+      "name": "Tefnut",
+      "rarity": "SR",
+      "element": "Holy",
+      "role": "dps"
+    },
+    "25": {
+      "name": "Yuis",
+      "rarity": "SSR",
+      "element": "Holy",
+      "role": "dps"
+    },
+    "26": {
+      "name": "Zashiki-warashi",
+      "rarity": "SR",
+      "element": "Fire",
+      "role": "buffer"
+    },
+    "27": {
+      "name": "Penny",
+      "rarity": "SSR",
+      "element": "Wind",
+      "role": "tank"
+    },
+    "28": {
+      "name": "Anubis",
+      "rarity": "SSR",
+      "element": "Chaos",
+      "role": "healer"
+    },
+    "30": {
+      "name": "Snow Girl",
+      "rarity": "SR",
+      "element": "Ice",
+      "role": "healer"
+    },
+    "31": {
+      "name": "Hera",
+      "rarity": "SSR",
+      "element": "Chaos",
+      "role": "dps"
+    },
+    "32": {
+      "name": "Athena",
+      "rarity": "SSR",
+      "element": "Wind",
+      "role": "buffer"
+    },
+    "33": {
+      "name": "Gaia",
+      "rarity": "SSR",
+      "element": "Holy",
+      "role": "healer"
+    },
+    "34": {
+      "name": "Odin",
+      "rarity": "SSR",
+      "element": "Fire",
+      "role": "dps"
+    },
+    "35": {
+      "name": "Thor",
+      "rarity": "SSR",
+      "element": "Holy",
+      "role": "tank"
+    },
+    "36": {
+      "name": "Freye",
+      "rarity": "SSR",
+      "element": "Chaos",
+      "role": "buffer"
+    },
+    "37": {
+      "name": "Freya",
+      "rarity": "SSR",
+      "element": "Ice",
+      "role": "dps"
+    },
+    "38": {
+      "name": "Lavinia",
+      "rarity": "SSR",
+      "element": "Fire",
+      "role": "healer"
+    },
+    "39": {
+      "name": "Hela",
+      "rarity": "SSR",
+      "element": "Chaos",
+      "role": "dps"
+    },
+    "40": {
+      "name": "Lily",
+      "rarity": "SSR",
+      "element": "Ice",
+      "role": "tank"
+    },
+    "41": {
+      "name": "Nina",
+      "rarity": "SSR",
+      "element": "Ice",
+      "role": "dps"
+    },
+    "42": {
+      "name": "Apep",
+      "rarity": "SSR",
+      "element": "Wind",
+      "role": "dps"
+    },
+    "43": {
+      "name": "Morgan Le Fay",
+      "rarity": "SSR",
+      "element": "Holy",
+      "role": "buffer"
+    },
+    "44": {
+      "name": "Ibaraki-doji",
+      "rarity": "SSR",
+      "element": "Fire",
+      "role": "buffer"
+    },
+    "45": {
+      "name": "Sigurd",
+      "rarity": "SSR",
+      "element": "Fire",
+      "role": "dps"
+    },
+    "46": {
+      "name": "Jorogumo",
+      "rarity": "SSR",
+      "element": "Chaos",
+      "role": "healer"
+    },
+    "jeannedarc": {
+      "name": "Jeanne D Arc",
+      "rarity": "SSR",
+      "element": "Wind",
+      "role": "healer"
+    }
+  }
 }
