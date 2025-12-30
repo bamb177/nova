@@ -389,379 +389,11 @@ def ensure_cache_loaded() -> None:
 # =========================
 # Static images serving
 # =========================
-@app.get("/images/<path:filename>")
-def serve_images(filename: str):
-    for base in IMAGES_BASE_CANDIDATES:
-        full = os.path.join(base, filename)
-        if os.path.isfile(full):
-            return send_from_directory(base, filename)
-    abort(404)
-
-
-# =========================
-# Scoring
-# =========================
-def rarity_bonus(r: Optional[str]) -> float:
-    r = (r or "").upper().strip()
-    return {"SSR": 20.0, "SR": 10.0, "R": 0.0}.get(r, 0.0)
-
-
-def role_bonus(role: Optional[str], mode: str) -> float:
-    rr = (role or "").strip().lower()
-    if mode == "boss":
-        return {"dps": 12.0, "debuffer": 9.0, "buffer": 6.0, "tank": 3.0, "healer": 3.0}.get(rr, 0.0)
-    if mode == "pvp":
-        return {"tank": 12.0, "healer": 12.0, "debuffer": 8.0, "buffer": 7.0, "dps": 5.0}.get(rr, 0.0)
-    return {"tank": 10.0, "healer": 10.0, "dps": 9.0, "debuffer": 7.0, "buffer": 7.0}.get(rr, 0.0)
-
-
-def score_character(c: Dict[str, Any], mode: str) -> float:
-    st = c.get("stats") or {}
-    hp = st.get("hp") or 0
-    atk = st.get("atk") or 0
-    df = st.get("def") or 0
-    crit = st.get("crit") or 0.0
-
-    hp_s = float(hp) / 1000.0
-    atk_s = float(atk) / 100.0
-    df_s = float(df) / 100.0
-
-    if mode == "boss":
-        base = 0.75 * atk_s + 0.10 * df_s + 0.15 * hp_s
-    elif mode == "pvp":
-        base = 0.20 * atk_s + 0.45 * df_s + 0.35 * hp_s
-    else:
-        base = 0.55 * atk_s + 0.20 * df_s + 0.25 * hp_s
-
-    try:
-        base += float(crit) / 10.0
-    except Exception:
-        pass
-
-    base += rarity_bonus(c.get("rarity"))
-    base += role_bonus(c.get("role"), mode)
-    return base
-
-
-def element_advantage(attacker: Optional[str], defender: Optional[str]) -> bool:
-    if not attacker or not defender:
-        return False
-    return defender in ELEMENT_ADVANTAGE.get(attacker, [])
-
-
-def team_score(
-    party: List[Dict[str, Any]],
-    mode: str,
-    boss_weakness: Optional[str],
-    enemy_element: Optional[str],
-    focus_ids: List[str],
-) -> Tuple[float, List[str]]:
-    score = sum(score_character(c, mode) for c in party)
-    reasons: List[str] = []
-
-    roles = [(c.get("role") or "").strip().lower() for c in party]
-    if "tank" not in roles:
-        score -= 25.0
-        reasons.append("탱커 없음(패널티)")
-    else:
-        score += 8.0
-        reasons.append("탱커 포함")
-
-    if "healer" not in roles:
-        score -= 25.0
-        reasons.append("힐러 없음(패널티)")
-    else:
-        score += 8.0
-        reasons.append("힐러 포함")
-
-    if boss_weakness:
-        hit = sum(1 for c in party if (c.get("element") or "") == boss_weakness)
-        score += hit * WEIGHT_MATCH_WEAKNESS
-        reasons.append(f"약점속성({boss_weakness}) 매칭 {hit}/4")
-
-    if enemy_element:
-        hit = sum(1 for c in party if element_advantage(c.get("element"), enemy_element))
-        score += hit * WEIGHT_ADV_OVER_ENEMY
-        reasons.append(f"상성우위(Enemy={enemy_element}) {hit}/4")
-
-    if focus_ids:
-        hit = sum(1 for c in party if c["id"] in focus_ids)
-        score += hit * WEIGHT_FOCUS_INCLUDED
-        reasons.append(f"Focus 포함 {hit}/{len(focus_ids)}")
-
-    return score, reasons[:6]
-
-
-def resolve_ids(all_chars: List[Dict[str, Any]], xs: Any) -> List[str]:
-    if not isinstance(xs, list):
-        return []
-    by_id = {c["id"].lower(): c["id"] for c in all_chars}
-    by_name = {c["name"].lower(): c["id"] for c in all_chars if c.get("name")}
-    out: List[str] = []
-    for x in xs:
-        k = str(x).strip().lower()
-        if not k:
-            continue
-        if k in by_id:
-            out.append(by_id[k])
-        elif k in by_name:
-            out.append(by_name[k])
-    return list(dict.fromkeys(out))
-
-
-def top_parties_v3(
-    owned_chars: List[Dict[str, Any]],
-    mode: str,
-    top_k: int,
-    required: List[str],
-    banned: List[str],
-    focus: List[str],
-    boss_weakness: Optional[str],
-    enemy_element: Optional[str],
-) -> Dict[str, Any]:
-    banned_set = set(banned)
-    pool = [c for c in owned_chars if c["id"] not in banned_set]
-
-    required_set = set(required)
-    missing_required = [rid for rid in required if rid not in {c["id"] for c in pool}]
-    issues: List[str] = []
-    if missing_required:
-        issues.append(f"필수 캐릭 미포함/미보유: {missing_required}")
-
-    pool.sort(key=lambda c: score_character(c, mode), reverse=True)
-    candidate = pool[:22]
-
-    by_id = {c["id"]: c for c in pool}
-    for rid in required_set:
-        if rid in by_id and all(c["id"] != rid for c in candidate):
-            candidate.append(by_id[rid])
-
-    if len(candidate) < PARTY_SIZE:
-        return {"ok": False, "error": f"후보 부족({len(candidate)}명)", "issues": issues, "parties": []}
-
-    results: List[Tuple[float, Dict[str, Any]]] = []
-    focus_ids = list(dict.fromkeys(focus))
-
-    for comb in itertools.combinations(candidate, PARTY_SIZE):
-        ids = {c["id"] for c in comb}
-        if required_set and not required_set.issubset(ids):
-            continue
-
-        score, reasons = team_score(list(comb), mode, boss_weakness, enemy_element, focus_ids)
-        entry = {
-            "score": round(score, 2),
-            "reasons": reasons,
-            "members": [{
-                "id": c["id"],
-                "name": c.get("name"),
-                "rarity": c.get("rarity"),
-                "element": c.get("element"),
-                "role": c.get("role"),
-                "class": c.get("class"),
-                "image": c.get("image"),
-                "score": round(score_character(c, mode), 2),
-            } for c in sorted(comb, key=lambda x: score_character(x, mode), reverse=True)]
-        }
-        results.append((score, entry))
-
-    results.sort(key=lambda x: x[0], reverse=True)
-    top = [e for _, e in results[:max(1, min(10, top_k))]]
-    return {"ok": True, "issues": issues, "parties": top}
-
-
-# =========================
-# Routes
-# =========================
-@app.get("/")
-def home() -> Response:
-    ensure_cache_loaded()
-    zn = CACHE["zone_nova"]
-
-    html = f"""
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8" />
-  <title>{APP_TITLE}</title>
-  <style>
-    body {{ font-family: Arial, sans-serif; margin: 24px; }}
-    code {{ background: #f5f5f5; padding: 2px 6px; }}
-    .box {{ border: 1px solid #ddd; padding: 16px; border-radius: 8px; max-width: 1100px; }}
-    .row {{ margin: 8px 0; }}
-    .err {{ color: #b00020; white-space: pre-wrap; }}
-    a {{ text-decoration: none; }}
-  </style>
-</head>
-<body>
-  <h1>{APP_TITLE}</h1>
-  <div class="box">
-    <div class="row">Image dir: <code>{zn.get("image_dir") or "N/A"}</code></div>
-    <div class="row">Image files: <code>{zn.get("image_count")}</code></div>
-    <div class="row">Last refresh: <code>{zn.get("last_refresh_iso") or "N/A"}</code></div>
-    <div class="row">Characters cached: <code>{zn.get("count")}</code></div>
-    <div class="row">Source: <code>{zn.get("source") or "N/A"}</code></div>
-    <div class="row">Remote scrape: <code>{zn.get("remote_ok")}</code> (remote_count=<code>{zn.get("remote_count")}</code>)</div>
-    <div class="row">FORCE_LOCAL_ONLY: <code>{zn.get("force_local_only")}</code></div>
-
-    <div class="row">Remote error:</div>
-    <div class="err">{zn.get("remote_error") or "None"}</div>
-
-    <div class="row">Cache error:</div>
-    <div class="err">{zn.get("error") or "None"}</div>
-
-    <div class="row" style="margin-top: 12px;">
-      <a href="/refresh" style="margin-right:10px;">Refresh</a>
-      <a href="/zones/zone-nova/characters" style="margin-right:10px;">/zones/zone-nova/characters</a>
-      <a href="/ui/select" style="margin-right:10px;">/ui/select</a>
-      <a href="/recommend/v3">/recommend/v3</a>
-    </div>
-  </div>
-</body>
-</html>
-"""
-    return Response(html, mimetype="text/html; charset=utf-8")
-
-
-@app.get("/refresh")
-@app.post("/refresh")
-def refresh() -> Response:
-    ok, msg = refresh_zone_nova_cache()
-    status = 200 if ok else 500
-    return Response(
-        json.dumps({"ok": ok, "message": msg, "zone_nova": CACHE["zone_nova"]}, ensure_ascii=False),
-        mimetype="application/json; charset=utf-8",
-        status=status,
-    )
-
-
-@app.get("/zones/zone-nova/characters")
-def zone_nova_characters() -> Response:
-    ensure_cache_loaded()
-    payload = {
-        "game": "zone-nova",
-        "count": CACHE["zone_nova"]["count"],
-        "last_refresh": CACHE["zone_nova"]["last_refresh_iso"],
-        "source": CACHE["zone_nova"]["source"],
-        "image_dir": CACHE["zone_nova"]["image_dir"],
-        "image_count": CACHE["zone_nova"]["image_count"],
-        "remote_ok": CACHE["zone_nova"]["remote_ok"],
-        "remote_count": CACHE["zone_nova"]["remote_count"],
-        "remote_error": CACHE["zone_nova"]["remote_error"],
-        "error": CACHE["zone_nova"]["error"],
-        "characters": CACHE["zone_nova"]["characters"],
-    }
-    return Response(json.dumps(payload, ensure_ascii=False), mimetype="application/json; charset=utf-8")
-
-
-@app.get("/recommend/v3")
-def recommend_v3_help() -> Response:
-    html = f"""
-<!doctype html>
-<html lang="ko">
-<head><meta charset="utf-8" /><title>{APP_TITLE}</title></head>
-<body style="font-family: Arial, sans-serif; margin: 24px;">
-  <h2>{APP_TITLE} /recommend/v3</h2>
-  <pre style="background:#f5f5f5;padding:12px;border-radius:8px;">
-POST /recommend/v3
-Content-Type: application/json
-
-{{
-  "mode": "pve",
-  "top_k": 5,
-  "owned": ["nina","freya","..."],
-  "required": ["nina"],
-  "focus": ["freya"],
-  "banned": ["apep"],
-  "boss_weakness": "Fire",
-  "enemy_element": "Wind"
-}}
-  </pre>
-  <p><a href="/ui/select">UI로 이동</a></p>
-</body></html>
-"""
-    return Response(html, mimetype="text/html; charset=utf-8")
-
-
-@app.post("/recommend/v3")
-def recommend_v3() -> Response:
-    ensure_cache_loaded()
-    data = request.get_json(silent=True) or {}
-
-    mode = (data.get("mode") or "pve").strip().lower()
-    if mode not in {"pve", "boss", "pvp"}:
-        mode = "pve"
-
-    top_k = data.get("top_k", 5)
-    try:
-        top_k = int(top_k)
-    except Exception:
-        top_k = 5
-    top_k = max(1, min(10, top_k))
-
-    boss_weakness = (data.get("boss_weakness") or "").strip()
-    if boss_weakness and boss_weakness not in ALL_ELEMENTS:
-        boss_weakness = ""
-
-    enemy_element = (data.get("enemy_element") or "").strip()
-    if enemy_element and enemy_element not in ALL_ELEMENTS:
-        enemy_element = ""
-
-    chars = CACHE["zone_nova"]["characters"]
-
-    owned_ids = resolve_ids(chars, data.get("owned") or [])
-    required_ids = resolve_ids(chars, data.get("required") or [])
-    focus_ids = resolve_ids(chars, data.get("focus") or [])
-    banned_ids = resolve_ids(chars, data.get("banned") or [])
-
-    by_id = {c["id"]: c for c in chars}
-    owned_chars = [by_id[i] for i in owned_ids if i in by_id]
-
-    if len(owned_chars) < PARTY_SIZE:
-        return Response(
-            json.dumps({"ok": False, "error": f"owned는 최소 {PARTY_SIZE}명 필요", "count_owned": len(owned_chars)}, ensure_ascii=False),
-            mimetype="application/json; charset=utf-8",
-            status=400,
-        )
-
-    out = top_parties_v3(
-        owned_chars=owned_chars,
-        mode=mode,
-        top_k=top_k,
-        required=required_ids,
-        banned=banned_ids,
-        focus=focus_ids,
-        boss_weakness=boss_weakness or None,
-        enemy_element=enemy_element or None,
-    )
-
-    out.update({
-        "mode": mode,
-        "top_k": top_k,
-        "inputs": {
-            "owned": owned_ids,
-            "required": required_ids,
-            "focus": focus_ids,
-            "banned": banned_ids,
-            "boss_weakness": boss_weakness or None,
-            "enemy_element": enemy_element or None,
-        },
-        "data_source": CACHE["zone_nova"]["source"],
-        "remote_ok": CACHE["zone_nova"]["remote_ok"],
-        "remote_count": CACHE["zone_nova"]["remote_count"],
-    })
-
-    return Response(json.dumps(out, ensure_ascii=False), mimetype="application/json; charset=utf-8")
-
-
-# =========================
-# UI (JSON -> JS render 방식: 문법오류 방지)
-# =========================
 @app.get("/ui/select")
 def ui_select() -> Response:
     ensure_cache_loaded()
     chars = CACHE["zone_nova"]["characters"]
 
-    # JS에 주입할 JSON(스크립트 종료 태그 방지)
     chars_json = json.dumps(chars, ensure_ascii=False).replace("</", "<\\/")
 
     advantage_line = " · ".join([f"{k}→{','.join(v)}" for k, v in ELEMENT_ADVANTAGE.items()])
@@ -827,7 +459,7 @@ def ui_select() -> Response:
     .mono {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }}
 
     .wrap {{ max-width: 1280px; margin: 0 auto; padding: 16px 18px 34px; }}
-    .grid {{ display: grid; grid-template-columns: 420px 1fr; gap: 14px; align-items: start; }}
+    .grid {{ display: grid; grid-template-columns: 430px 1fr; gap: 14px; align-items: start; }}
     @media (max-width: 980px) {{ .grid {{ grid-template-columns: 1fr; }} }}
 
     .card {{
@@ -887,10 +519,6 @@ def ui_select() -> Response:
 
     .hint {{ font-size: 12px; color: var(--muted); line-height: 1.55; }}
 
-    .listTools {{
-      display:flex; gap: 10px; flex-wrap: wrap; align-items: end;
-      margin-bottom: 12px;
-    }}
     .stat {{
       font-size: 12px; color: var(--muted);
       border: 1px solid var(--border);
@@ -901,7 +529,7 @@ def ui_select() -> Response:
     }}
     .stat b {{ color: var(--text); }}
 
-    /* === 이미지 중심 카드 === */
+    /* === 이미지 카드 그리드 === */
     .charGrid {{ display:grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }}
     @media (max-width: 1100px) {{ .charGrid {{ grid-template-columns: repeat(5, 1fr); }} }}
     @media (max-width: 980px)  {{ .charGrid {{ grid-template-columns: repeat(4, 1fr); }} }}
@@ -926,12 +554,10 @@ def ui_select() -> Response:
       border-color: rgba(110,168,255,.55);
       box-shadow: 0 0 0 4px rgba(110,168,255,.12);
     }}
-
     .thumb {{
       width: 100%;
       aspect-ratio: 1 / 1;
       background: rgba(255,255,255,.06);
-      display:flex; align-items:center; justify-content:center;
       overflow:hidden;
     }}
     .thumb img {{
@@ -940,7 +566,6 @@ def ui_select() -> Response:
       object-fit: cover;
       display:block;
     }}
-
     .check {{
       position: absolute;
       top: 8px; left: 8px;
@@ -956,7 +581,6 @@ def ui_select() -> Response:
       accent-color: var(--brand);
       cursor: pointer;
     }}
-
     .chips {{
       position: absolute;
       bottom: 8px; left: 8px; right: 8px;
@@ -972,8 +596,6 @@ def ui_select() -> Response:
     }}
     .chipElem {{ border-color: rgba(110,168,255,.28); color: rgba(110,168,255,.95); }}
     .chipRole {{ border-color: rgba(61,220,151,.22); color: rgba(61,220,151,.92); }}
-
-    /* 이름/ID는 영어라 기본 숨김 → hover시에만 툴팁처럼 표시 */
     .info {{
       position:absolute;
       top: 8px; right: 8px;
@@ -988,7 +610,75 @@ def ui_select() -> Response:
     }}
     .charCard:hover .info {{ display:block; }}
 
-    /* 결과 영역 */
+    /* === Required/Focus/Banned 미리보기 === */
+    .bucket {{
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.18);
+      border-radius: 14px;
+      overflow:hidden;
+    }}
+    .bucketHead {{
+      padding: 10px 10px;
+      border-bottom: 1px solid var(--border);
+      display:flex; align-items:center; justify-content: space-between;
+      gap: 10px;
+    }}
+    .bucketTitle {{
+      font-weight: 900; font-size: 12px; letter-spacing: .2px;
+      color: rgba(255,255,255,.86);
+    }}
+    .bucketBody {{
+      padding: 10px 10px;
+      display:flex; flex-wrap: wrap; gap: 8px;
+      min-height: 44px;
+      align-items:center;
+    }}
+    .empty {{
+      font-size: 12px;
+      color: rgba(255,255,255,.45);
+    }}
+    .pillItem {{
+      display:flex; align-items:center; gap: 8px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.25);
+    }}
+    .pillThumb {{
+      width: 26px; height: 26px;
+      border-radius: 10px;
+      overflow:hidden;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+    }}
+    .pillThumb img {{ width:100%; height:100%; object-fit: cover; display:block; }}
+    .pillTxt {{
+      font-size: 12px;
+      color: rgba(255,255,255,.78);
+      max-width: 140px;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }}
+    .xbtn {{
+      width: 18px; height: 18px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.85);
+      cursor: pointer;
+      display:flex; align-items:center; justify-content:center;
+      font-size: 12px;
+      line-height: 1;
+    }}
+    .xbtn:hover {{
+      border-color: rgba(255,93,108,.45);
+      background: rgba(255,93,108,.12);
+      color: #ffd7db;
+    }}
+
+    /* 결과 */
     .resultArea {{ display: grid; grid-template-columns: 1fr; gap: 12px; }}
     .resultCard {{
       border: 1px solid var(--border);
@@ -1135,6 +825,7 @@ def ui_select() -> Response:
             <button class="btn btnGhost" id="btnBan">선택 → Banned</button>
           </div>
 
+          <!-- 기존 입력창은 유지 (API 호환 + 필요 시 직접 편집도 가능) -->
           <div style="height: 12px;"></div>
 
           <div class="field">
@@ -1156,6 +847,31 @@ def ui_select() -> Response:
             <input id="banned" placeholder="ex) apep" />
           </div>
 
+          <!-- 미리보기 패널 -->
+          <div class="bucket" style="margin-top: 12px;">
+            <div class="bucketHead">
+              <div class="bucketTitle">Required Preview</div>
+              <div class="pill" id="reqCount">0</div>
+            </div>
+            <div class="bucketBody" id="reqBox"><span class="empty">비어있음</span></div>
+          </div>
+
+          <div class="bucket">
+            <div class="bucketHead">
+              <div class="bucketTitle">Focus Preview</div>
+              <div class="pill" id="focusCount">0</div>
+            </div>
+            <div class="bucketBody" id="focusBox"><span class="empty">비어있음</span></div>
+          </div>
+
+          <div class="bucket">
+            <div class="bucketHead">
+              <div class="bucketTitle">Banned Preview</div>
+              <div class="pill" id="banCount">0</div>
+            </div>
+            <div class="bucketBody" id="banBox"><span class="empty">비어있음</span></div>
+          </div>
+
           <div style="height: 14px;"></div>
 
           <div class="row">
@@ -1165,7 +881,7 @@ def ui_select() -> Response:
 
           <div style="height: 12px;"></div>
           <div class="hint">
-            영어 입력 없이 이미지로 선택하세요. (캐릭터명/ID는 카드 hover 시만 표시됩니다.)
+            영어 입력 없이 이미지로 체크 후 버튼(Required/Focus/Banned)에 넣으면 미리보기로 관리됩니다. X로 제거 가능.
           </div>
 
         </div>
@@ -1181,7 +897,7 @@ def ui_select() -> Response:
 
         <div class="cardBody">
 
-          <div class="listTools">
+          <div class="row" style="margin-bottom: 12px;">
             <div class="field" style="width: 160px;">
               <div class="label">Element</div>
               <select id="f_element">
@@ -1259,71 +975,80 @@ def ui_select() -> Response:
 
 <script>
 const CHARS = {chars_json};
+const BY_ID = Object.fromEntries(CHARS.map(c => [c.id, c]));
+
 let LAST_JSON = null;
 
+let REQ = [];
+let FOCUS = [];
+let BAN = [];
+
 function toast(msg) {{
-  const t = document.getElementById("toast");
+  const t = document.getElementById('toast');
   t.textContent = msg;
-  t.style.display = "block";
+  t.style.display = 'block';
   clearTimeout(window.__toastTimer);
-  window.__toastTimer = setTimeout(() => {{ t.style.display = "none"; }}, 1600);
+  window.__toastTimer = setTimeout(() => {{ t.style.display = 'none'; }}, 1600);
 }}
 
 function csv(v) {{
-  v = (v || "").trim();
+  v = (v || '').trim();
   if (!v) return [];
-  return v.split(",").map(x => x.trim()).filter(Boolean);
+  return v.split(',').map(x => x.trim()).filter(Boolean);
 }}
 function uniq(arr) {{
   const s = new Set();
   arr.forEach(x => s.add(x));
   return Array.from(s);
 }}
+function removeFrom(arr, x) {{
+  return arr.filter(v => v !== x);
+}}
 
-function setSelectedStat() {{
-  const n = document.querySelectorAll(".owned:checked").length;
-  document.getElementById("selectedStat").innerHTML = "Selected <b>" + n + "</b>";
+function syncSelectedStat() {{
+  const n = document.querySelectorAll('.owned:checked').length;
+  document.getElementById('selectedStat').innerHTML = 'Selected <b>' + n + '</b>';
 }}
 
 function applyFilter() {{
-  const fe = document.getElementById("f_element").value;
-  const fr = (document.getElementById("f_role").value || "").toLowerCase();
-  const frr = document.getElementById("f_rarity").value;
+  const fe = document.getElementById('f_element').value;
+  const fr = (document.getElementById('f_role').value || '').toLowerCase();
+  const frr = document.getElementById('f_rarity').value;
 
-  document.querySelectorAll(".charCard").forEach(card => {{
-    const el = card.dataset.element || "-";
-    const role = (card.dataset.role || "-").toLowerCase();
-    const rar = card.dataset.rarity || "-";
+  document.querySelectorAll('.charCard').forEach(card => {{
+    const el = card.dataset.element || '-';
+    const role = (card.dataset.role || '-').toLowerCase();
+    const rar = card.dataset.rarity || '-';
 
     let ok = true;
     if (fe) ok = (el === fe);
     if (ok && fr) ok = (role === fr);
     if (ok && frr) ok = (rar === frr);
 
-    card.style.display = ok ? "" : "none";
+    card.style.display = ok ? '' : 'none';
   }});
 }}
 
 function applySort() {{
-  const sortKey = document.getElementById("sort").value;
-  const grid = document.getElementById("charGrid");
+  const sortKey = document.getElementById('sort').value;
+  const grid = document.getElementById('charGrid');
   const cards = Array.from(grid.children);
 
-  const rarityOrder = {{ "SSR": 1, "SR": 2, "R": 3, "-": 9 }};
-  const roleOrder = {{ "tank": 1, "healer": 2, "dps": 3, "debuffer": 4, "buffer": 5, "-": 9 }};
-  const elemOrder = {{ "Fire": 1, "Ice": 2, "Wind": 3, "Holy": 4, "Chaos": 5, "-": 9 }};
+  const rarityOrder = {{ 'SSR': 1, 'SR': 2, 'R': 3, '-': 9 }};
+  const roleOrder = {{ 'tank': 1, 'healer': 2, 'dps': 3, 'debuffer': 4, 'buffer': 5, '-': 9 }};
+  const elemOrder = {{ 'Fire': 1, 'Ice': 2, 'Wind': 3, 'Holy': 4, 'Chaos': 5, '-': 9 }};
 
   function key(card) {{
-    if (sortKey === "rarity") return rarityOrder[card.dataset.rarity] || 9;
-    if (sortKey === "role") return roleOrder[(card.dataset.role || "-").toLowerCase()] || 9;
-    if (sortKey === "element") return elemOrder[card.dataset.element] || 9;
-    return (card.dataset.name || "");
+    if (sortKey === 'rarity') return rarityOrder[card.dataset.rarity] || 9;
+    if (sortKey === 'role') return roleOrder[(card.dataset.role || '-').toLowerCase()] || 9;
+    if (sortKey === 'element') return elemOrder[card.dataset.element] || 9;
+    return (card.dataset.name || '');
   }}
 
   cards.sort((a, b) => {{
     const ka = key(a);
     const kb = key(b);
-    if (typeof ka === "number" && typeof kb === "number") return ka - kb;
+    if (typeof ka === 'number' && typeof kb === 'number') return ka - kb;
     return String(ka).localeCompare(String(kb));
   }});
 
@@ -1332,81 +1057,185 @@ function applySort() {{
 }}
 
 function syncSelectedCards() {{
-  document.querySelectorAll(".charCard").forEach(card => {{
-    const cb = card.querySelector(".owned");
-    if (cb && cb.checked) card.classList.add("selected");
-    else card.classList.remove("selected");
+  document.querySelectorAll('.charCard').forEach(card => {{
+    const cb = card.querySelector('.owned');
+    if (cb && cb.checked) card.classList.add('selected');
+    else card.classList.remove('selected');
   }});
 }}
 
 function selectAll(flag) {{
-  document.querySelectorAll(".owned").forEach(cb => cb.checked = flag);
+  document.querySelectorAll('.owned').forEach(cb => cb.checked = flag);
   syncSelectedCards();
-  setSelectedStat();
+  syncSelectedStat();
 }}
 
 function visibleCards() {{
-  return Array.from(document.querySelectorAll(".charCard")).filter(card => card.style.display !== "none");
+  return Array.from(document.querySelectorAll('.charCard')).filter(card => card.style.display !== 'none');
 }}
 function selectVisible(flag) {{
   visibleCards().forEach(card => {{
-    const cb = card.querySelector(".owned");
+    const cb = card.querySelector('.owned');
     cb.checked = flag;
   }});
   syncSelectedCards();
-  setSelectedStat();
+  syncSelectedStat();
 }}
 
 function checkedOwned() {{
-  return Array.from(document.querySelectorAll(".owned:checked")).map(x => x.value);
+  return Array.from(document.querySelectorAll('.owned:checked')).map(x => x.value);
 }}
 
-function pushTo(target) {{
-  const owned = checkedOwned();
-  if (owned.length === 0) {{
-    toast("먼저 Owned 체크하세요.");
+function syncInputsFromBuckets() {{
+  document.getElementById('required').value = REQ.join(', ');
+  document.getElementById('focus').value = FOCUS.join(', ');
+  document.getElementById('banned').value = BAN.join(', ');
+}}
+
+function rebuildBucketsFromInputs() {{
+  REQ = uniq(csv(document.getElementById('required').value));
+  FOCUS = uniq(csv(document.getElementById('focus').value));
+  BAN = uniq(csv(document.getElementById('banned').value));
+  // 충돌정리: banned가 최우선
+  REQ = REQ.filter(x => !BAN.includes(x));
+  FOCUS = FOCUS.filter(x => !BAN.includes(x));
+  // required와 focus는 겹칠 수 있게 둠(원하면 여기서 정리 가능)
+  syncInputsFromBuckets();
+  renderBuckets();
+}}
+
+function addCheckedTo(bucket) {{
+  const ids = checkedOwned();
+  if (!ids.length) {{
+    toast('먼저 Owned 체크하세요.');
     return;
   }}
-  const el = document.getElementById(target);
-  const cur = csv(el.value);
-  el.value = uniq(cur.concat(owned)).join(", ");
-  toast(target + "에 추가됨 (" + owned.length + ")");
+
+  if (bucket === 'ban') {{
+    BAN = uniq(BAN.concat(ids));
+    REQ = REQ.filter(x => !BAN.includes(x));
+    FOCUS = FOCUS.filter(x => !BAN.includes(x));
+  }} else if (bucket === 'req') {{
+    REQ = uniq(REQ.concat(ids));
+    BAN = BAN.filter(x => !REQ.includes(x));
+  }} else if (bucket === 'focus') {{
+    FOCUS = uniq(FOCUS.concat(ids));
+    BAN = BAN.filter(x => !FOCUS.includes(x));
+  }}
+
+  syncInputsFromBuckets();
+  renderBuckets();
+  toast(bucket.toUpperCase() + '에 추가됨 (' + ids.length + ')');
+}}
+
+function removeFromBucket(bucket, id) {{
+  if (bucket === 'req') REQ = removeFrom(REQ, id);
+  if (bucket === 'focus') FOCUS = removeFrom(FOCUS, id);
+  if (bucket === 'ban') BAN = removeFrom(BAN, id);
+  syncInputsFromBuckets();
+  renderBuckets();
+}}
+
+function pillFor(id, bucket) {{
+  const c = BY_ID[id] || {{ id: id, name: id, image: '' }};
+  const name = c.name || id;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'pillItem';
+
+  const th = document.createElement('div');
+  th.className = 'pillThumb';
+  if (c.image) {{
+    const im = document.createElement('img');
+    im.src = c.image;
+    im.onerror = () => {{ im.style.display = 'none'; }};
+    th.appendChild(im);
+  }}
+  wrap.appendChild(th);
+
+  const txt = document.createElement('div');
+  txt.className = 'pillTxt';
+  txt.title = name + ' (' + id + ')';
+  txt.textContent = name;
+  wrap.appendChild(txt);
+
+  const x = document.createElement('button');
+  x.className = 'xbtn';
+  x.type = 'button';
+  x.textContent = '×';
+  x.addEventListener('click', (ev) => {{
+    ev.stopPropagation();
+    removeFromBucket(bucket, id);
+  }});
+  wrap.appendChild(x);
+
+  return wrap;
+}}
+
+function renderBucket(boxId, countId, arr, bucketKey) {{
+  const box = document.getElementById(boxId);
+  const cnt = document.getElementById(countId);
+  cnt.textContent = String(arr.length);
+
+  box.innerHTML = '';
+  if (!arr.length) {{
+    const e = document.createElement('span');
+    e.className = 'empty';
+    e.textContent = '비어있음';
+    box.appendChild(e);
+    return;
+  }}
+
+  arr.forEach(id => box.appendChild(pillFor(id, bucketKey)));
+}}
+
+function renderBuckets() {{
+  renderBucket('reqBox', 'reqCount', REQ, 'req');
+  renderBucket('focusBox', 'focusCount', FOCUS, 'focus');
+  renderBucket('banBox', 'banCount', BAN, 'ban');
 }}
 
 function clearAll() {{
-  document.querySelectorAll(".owned").forEach(b => b.checked = false);
-  ["required", "focus", "banned"].forEach(id => document.getElementById(id).value = "");
-  document.getElementById("boss_weakness").value = "";
-  document.getElementById("enemy_element").value = "";
-  document.getElementById("f_element").value = "";
-  document.getElementById("f_role").value = "";
-  document.getElementById("f_rarity").value = "";
+  document.querySelectorAll('.owned').forEach(b => b.checked = false);
+  document.getElementById('boss_weakness').value = '';
+  document.getElementById('enemy_element').value = '';
+  document.getElementById('f_element').value = '';
+  document.getElementById('f_role').value = '';
+  document.getElementById('f_rarity').value = '';
+
+  REQ = [];
+  FOCUS = [];
+  BAN = [];
+  syncInputsFromBuckets();
+  renderBuckets();
+
   syncSelectedCards();
-  setSelectedStat();
-  document.getElementById("out").innerHTML = "(아직 없음)";
+  syncSelectedStat();
+
+  document.getElementById('out').innerHTML = '(아직 없음)';
   LAST_JSON = null;
-  toast("초기화 완료");
+  toast('초기화 완료');
 }}
 
 function renderResult(data) {{
   LAST_JSON = data;
 
   if (!data.ok) {{
-    document.getElementById("out").innerHTML =
+    document.getElementById('out').innerHTML =
       "<pre class='mono' style='white-space:pre-wrap;'>" + JSON.stringify(data, null, 2) + "</pre>";
     return;
   }}
 
   const parties = data.parties || [];
-  if (parties.length === 0) {{
-    document.getElementById("out").innerHTML = "<div class='hint'>조건을 만족하는 파티가 없습니다.</div>";
+  if (!parties.length) {{
+    document.getElementById('out').innerHTML = "<div class='hint'>조건을 만족하는 파티가 없습니다.</div>";
     return;
   }}
 
-  let html = "";
+  let html = '';
   if ((data.issues || []).length) {{
     html += "<div class='hint' style='margin-bottom:10px; color: rgba(255,93,108,.9);'>issues: "
-         + data.issues.join(" / ") + "</div>";
+         + data.issues.join(' / ') + "</div>";
   }}
 
   html += "<div class='hint mono' style='margin-bottom:12px;'>inputs: " + JSON.stringify(data.inputs) + "</div>";
@@ -1436,10 +1265,10 @@ function renderResult(data) {{
       html += "<div class='mtext'>";
       html += "<div class='mname'>" + (m.name || m.id) + "</div>";
       html += "<div class='mmeta'>";
-      html += "<span>" + (m.rarity || "-") + "</span>";
-      html += "<span>" + (m.element || "-") + "</span>";
-      html += "<span>" + (m.role || "-") + "</span>";
-      html += "<span>score " + (m.score ?? "-") + "</span>";
+      html += "<span>" + (m.rarity || '-') + "</span>";
+      html += "<span>" + (m.element || '-') + "</span>";
+      html += "<span>" + (m.role || '-') + "</span>";
+      html += "<span>score " + (m.score ?? '-') + "</span>";
       html += "</div></div></div>";
     }});
     html += "</div>";
@@ -1452,145 +1281,154 @@ function renderResult(data) {{
   }});
 
   html += "</div>";
-  document.getElementById("out").innerHTML = html;
+  document.getElementById('out').innerHTML = html;
 }}
 
 async function run() {{
+  // 입력창을 직접 수정했을 수도 있으니 동기화
+  rebuildBucketsFromInputs();
+
   const payload = {{
-    mode: document.getElementById("mode").value,
-    top_k: parseInt(document.getElementById("top_k").value, 10),
+    mode: document.getElementById('mode').value,
+    top_k: parseInt(document.getElementById('top_k').value, 10),
     owned: checkedOwned(),
-    required: csv(document.getElementById("required").value),
-    focus: csv(document.getElementById("focus").value),
-    banned: csv(document.getElementById("banned").value),
-    boss_weakness: document.getElementById("boss_weakness").value || null,
-    enemy_element: document.getElementById("enemy_element").value || null
+    required: REQ,
+    focus: FOCUS,
+    banned: BAN,
+    boss_weakness: document.getElementById('boss_weakness').value || null,
+    enemy_element: document.getElementById('enemy_element').value || null
   }};
 
   if ((payload.owned || []).length < 4) {{
-    toast("Owned는 최소 4명 필요합니다.");
+    toast('Owned는 최소 4명 필요합니다.');
     return;
   }}
 
-  document.getElementById("out").innerHTML = "<div class='hint'>계산 중...</div>";
-  const res = await fetch("/recommend/v3", {{
-    method: "POST",
-    headers: {{ "Content-Type": "application/json" }},
+  document.getElementById('out').innerHTML = "<div class='hint'>계산 중...</div>";
+  const res = await fetch('/recommend/v3', {{
+    method: 'POST',
+    headers: {{ 'Content-Type': 'application/json' }},
     body: JSON.stringify(payload)
   }});
 
   const json = await res.json();
   renderResult(json);
-  toast("추천 완료");
+  toast('추천 완료');
 }}
 
 async function copyLast() {{
   if (!LAST_JSON) {{
-    toast("복사할 결과가 없습니다.");
+    toast('복사할 결과가 없습니다.');
     return;
   }}
   try {{
     await navigator.clipboard.writeText(JSON.stringify(LAST_JSON, null, 2));
-    toast("JSON 복사 완료");
+    toast('JSON 복사 완료');
   }} catch (e) {{
-    toast("복사 실패(브라우저 권한 확인)");
+    toast('복사 실패(브라우저 권한 확인)');
   }}
 }}
 
 function buildCard(c) {{
-  const id = c.id || "";
+  const id = c.id || '';
   const name = c.name || id;
-  const rarity = c.rarity || "-";
-  const element = c.element || "-";
-  const role = c.role || "-";
-  const img = c.image || "";
+  const rarity = c.rarity || '-';
+  const element = c.element || '-';
+  const role = c.role || '-';
+  const img = c.image || '';
 
-  const card = document.createElement("div");
-  card.className = "charCard";
+  const card = document.createElement('div');
+  card.className = 'charCard';
   card.dataset.id = id;
   card.dataset.name = String(name).toLowerCase();
   card.dataset.rarity = rarity;
   card.dataset.element = element;
   card.dataset.role = role;
 
-  const check = document.createElement("div");
-  check.className = "check";
-  const cb = document.createElement("input");
-  cb.type = "checkbox";
-  cb.className = "owned";
-  cb.value = id;
-  check.appendChild(cb);
-
-  const thumb = document.createElement("div");
-  thumb.className = "thumb";
+  const thumb = document.createElement('div');
+  thumb.className = 'thumb';
   if (img) {{
-    const im = document.createElement("img");
+    const im = document.createElement('img');
     im.src = img;
-    im.onerror = () => {{ im.style.display = "none"; }};
+    im.onerror = () => {{ im.style.display = 'none'; }};
     thumb.appendChild(im);
   }}
+  card.appendChild(thumb);
 
-  const chips = document.createElement("div");
-  chips.className = "chips";
+  const check = document.createElement('div');
+  check.className = 'check';
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.className = 'owned';
+  cb.value = id;
+  check.appendChild(cb);
+  card.appendChild(check);
+
+  const chips = document.createElement('div');
+  chips.className = 'chips';
   chips.innerHTML =
     "<span class='chip'>" + rarity + "</span>" +
     "<span class='chip chipElem'>" + element + "</span>" +
     "<span class='chip chipRole'>" + role + "</span>";
-
-  const info = document.createElement("div");
-  info.className = "info mono";
-  info.textContent = name + " (" + id + ")";
-
-  card.appendChild(thumb);
-  card.appendChild(check);
-  card.appendChild(info);
   card.appendChild(chips);
 
-  card.addEventListener("click", (ev) => {{
-    if (ev.target && ev.target.tagName === "INPUT") return;
+  const info = document.createElement('div');
+  info.className = 'info mono';
+  info.textContent = name + ' (' + id + ')';
+  card.appendChild(info);
+
+  card.addEventListener('click', (ev) => {{
+    if (ev.target && ev.target.tagName === 'INPUT') return;
     cb.checked = !cb.checked;
     syncSelectedCards();
-    setSelectedStat();
+    syncSelectedStat();
   }});
-  cb.addEventListener("change", () => {{
+  cb.addEventListener('change', () => {{
     syncSelectedCards();
-    setSelectedStat();
+    syncSelectedStat();
   }});
 
   return card;
 }}
 
 function renderChars() {{
-  const grid = document.getElementById("charGrid");
-  grid.innerHTML = "";
+  const grid = document.getElementById('charGrid');
+  grid.innerHTML = '';
   CHARS.forEach(c => grid.appendChild(buildCard(c)));
 }}
 
-document.addEventListener("DOMContentLoaded", () => {{
+document.addEventListener('DOMContentLoaded', () => {{
   renderChars();
 
-  document.getElementById("f_element").addEventListener("change", applyFilter);
-  document.getElementById("f_role").addEventListener("change", applyFilter);
-  document.getElementById("f_rarity").addEventListener("change", applyFilter);
-  document.getElementById("sort").addEventListener("change", applySort);
+  document.getElementById('f_element').addEventListener('change', applyFilter);
+  document.getElementById('f_role').addEventListener('change', applyFilter);
+  document.getElementById('f_rarity').addEventListener('change', applyFilter);
+  document.getElementById('sort').addEventListener('change', applySort);
 
-  document.getElementById("btnAllOn").addEventListener("click", () => selectAll(true));
-  document.getElementById("btnAllOff").addEventListener("click", () => selectAll(false));
-  document.getElementById("btnVisOn").addEventListener("click", () => selectVisible(true));
-  document.getElementById("btnVisOff").addEventListener("click", () => selectVisible(false));
+  document.getElementById('btnAllOn').addEventListener('click', () => selectAll(true));
+  document.getElementById('btnAllOff').addEventListener('click', () => selectAll(false));
+  document.getElementById('btnVisOn').addEventListener('click', () => selectVisible(true));
+  document.getElementById('btnVisOff').addEventListener('click', () => selectVisible(false));
 
-  document.getElementById("btnReq").addEventListener("click", () => pushTo("required"));
-  document.getElementById("btnFocus").addEventListener("click", () => pushTo("focus"));
-  document.getElementById("btnBan").addEventListener("click", () => pushTo("banned"));
+  document.getElementById('btnReq').addEventListener('click', () => addCheckedTo('req'));
+  document.getElementById('btnFocus').addEventListener('click', () => addCheckedTo('focus'));
+  document.getElementById('btnBan').addEventListener('click', () => addCheckedTo('ban'));
 
-  document.getElementById("btnRun").addEventListener("click", run);
-  document.getElementById("btnClear").addEventListener("click", clearAll);
-  document.getElementById("btnCopy").addEventListener("click", copyLast);
+  document.getElementById('btnRun').addEventListener('click', run);
+  document.getElementById('btnClear').addEventListener('click', clearAll);
+  document.getElementById('btnCopy').addEventListener('click', copyLast);
+
+  // 입력창을 직접 편집해도 미리보기로 반영되도록
+  document.getElementById('required').addEventListener('change', rebuildBucketsFromInputs);
+  document.getElementById('focus').addEventListener('change', rebuildBucketsFromInputs);
+  document.getElementById('banned').addEventListener('change', rebuildBucketsFromInputs);
 
   applySort();
   applyFilter();
   syncSelectedCards();
-  setSelectedStat();
+  syncSelectedStat();
+
+  rebuildBucketsFromInputs();
 }});
 </script>
 
