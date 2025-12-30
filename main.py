@@ -501,7 +501,7 @@ def home() -> Response:
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <title>Zone Nova Meta</title>
+  <title>Nova</title>
   <style>
     body {{ font-family: Arial, sans-serif; margin: 24px; }}
     code {{ background: #f5f5f5; padding: 2px 6px; }}
@@ -512,7 +512,7 @@ def home() -> Response:
   </style>
 </head>
 <body>
-  <h1>Zone Nova Meta</h1>
+  <h1>Nova</h1>
   <div class="box">
     <div class="row">Image dir: <code>{zn.get("image_dir") or "N/A"}</code></div>
     <div class="row">Image files: <code>{zn.get("image_count")}</code></div>
