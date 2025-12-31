@@ -44,6 +44,7 @@
       border-radius:999px;
       font-size:12px;
       color:var(--muted);
+      white-space:nowrap;
     }
     .btn{
       border:1px solid var(--line);
@@ -62,8 +63,9 @@
     .wrap{
       padding:14px;
       display:grid;
-      grid-template-columns: 380px 1fr;
+      grid-template-columns: 360px 1fr;
       gap:14px;
+      align-items:start;
     }
     @media (max-width: 980px){
       .wrap{grid-template-columns: 1fr; }
@@ -77,9 +79,9 @@
     }
     .title{
       font-size:14px;
-      font-weight:800;
+      font-weight:900;
       margin:0 0 10px 0;
-      color:rgba(255,255,255,.9);
+      color:rgba(255,255,255,.92);
     }
     .sub{font-size:12px; color:var(--muted); margin-top:6px;}
     label{font-size:12px; color:var(--muted); display:block; margin-bottom:6px}
@@ -95,148 +97,38 @@
     .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
     .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
 
-    /* ===== 추천 결과: 카드 UI ===== */
-    .resultSection{margin-top:14px}
-    .resultHeader{
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      margin-bottom:10px;
-    }
-    .resultGrid{
-      display:grid;
-      grid-template-columns: repeat(4, minmax(120px, 1fr));
-      gap:10px;
-    }
-    @media (max-width: 980px){
-      .resultGrid{grid-template-columns: repeat(2, minmax(120px, 1fr));}
+    /* ====== 오른쪽(보유/결과) 공통 ====== */
+    .rightStack{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
     }
 
-    .pCard{
+    .sectionBox{
       border:1px solid rgba(255,255,255,.10);
       background: rgba(0,0,0,.18);
-      border-radius: 14px;
+      border-radius: var(--radius);
       overflow:hidden;
     }
-    .pThumb{
-      width:100%;
-      aspect-ratio: 4 / 3;
-      background: rgba(0,0,0,.25);
-      display:flex; align-items:center; justify-content:center;
-    }
-    .pThumb img{width:100%; height:100%; object-fit:cover; display:block;}
-    .pBody{padding:10px}
-    .pName{
-      font-weight:900;
-      font-size:12px;
-      margin-bottom:8px;
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-    }
-    .meta2x2{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:6px;
-    }
-    .badge{
-      display:flex; align-items:center; gap:6px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      padding:4px 6px;
-      border-radius: 10px;
-      font-size:10px;
-      color: rgba(255,255,255,.90);
-      min-height: 22px;
-      overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
-    }
-    .badgeIcon{
-      width:14px; height:14px; object-fit:contain; flex:0 0 auto;
-      filter: drop-shadow(0 1px 2px rgba(0,0,0,.45));
-    }
-    .rarity-badge{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:3px 6px;
-      border-radius:7px;
-      font-weight:900;
-      letter-spacing:.2px;
-      border:1px solid rgba(255,255,255,.18);
-      box-shadow: 0 6px 16px rgba(0,0,0,.28);
-      line-height:1;
-      font-size:10px;
-      min-width: 34px;
-    }
-    .rarity-ssr{
-      color: #0b0f14;
-      background:
-        radial-gradient(circle at 20% 25%, rgba(255,255,255,.85), rgba(255,255,255,0) 42%),
-        linear-gradient(135deg,#ff4fd8,#7c5cff,#2fd3ff,#2dff88,#ffe65a,#ff8a3d);
-    }
-    .rarity-sr{
-      color: #0b0f14;
-      background: linear-gradient(135deg, #ffb152, #ff7a00);
-    }
-    .rarity-r{
-      color:#e9eef5;
-      background: linear-gradient(135deg, #6e7786, #424a57);
-    }
-
-    .analysisBox{
-      margin-top:10px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-      border-radius: 14px;
-      padding:10px;
-    }
-    .analysisBox ul{margin:0; padding-left:18px; color:rgba(255,255,255,.86); font-size:12px;}
-    .analysisBox li{margin:6px 0}
-
-    details{
-      margin-top:10px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.14);
-      border-radius: 14px;
-      padding:10px;
-    }
-    summary{cursor:pointer; color:rgba(255,255,255,.85); font-weight:800; font-size:12px;}
-    pre{
-      margin:10px 0 0 0;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      font-size:12px;
-      color:rgba(255,255,255,.88);
-      white-space:pre-wrap;
-      word-break:break-word;
-    }
-
-    /* ===== 게시판(테이블) 형식 ===== */
-    .rightTop{
+    .sectionHead{
       display:flex; align-items:center; justify-content:space-between; gap:10px;
-      margin-bottom:10px;
+      padding:10px 12px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background: rgba(10,16,28,.55);
     }
-    .filters{
-      display:grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;
-      gap:10px;
-      margin-bottom:10px;
-    }
-    @media (max-width: 980px){
-      .filters{grid-template-columns: 1fr 1fr;}
-    }
+    .sectionHead .hTitle{font-weight:900; font-size:13px}
+    .sectionHead .hRight{display:flex; align-items:center; gap:8px}
 
+    /* ====== 테이블(게시판) ====== */
     .tableWrap{
-      border:1px solid var(--line);
-      border-radius: var(--radius);
-      background: rgba(0,0,0,.18);
       overflow:auto;
-      height: calc(100vh - 205px);
     }
-    @media (max-width: 980px){
-      .tableWrap{height: auto; max-height: 70vh;}
-    }
-
     table{
       width:100%;
       border-collapse:separate;
       border-spacing:0;
       font-size:12px;
-      min-width: 880px;
+      min-width: 860px;
     }
     thead th{
       position:sticky; top:0;
@@ -263,7 +155,7 @@
     }
     .rowFlex{display:flex; align-items:center; gap:10px;}
     .avatar{
-      width:44px; height:33px;
+      width:46px; height:34px;
       border-radius:10px;
       overflow:hidden;
       background: rgba(0,0,0,.25);
@@ -276,7 +168,7 @@
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-      max-width: 210px;
+      max-width: 230px;
     }
     .miniBadge{
       display:inline-flex; align-items:center; gap:6px;
@@ -291,7 +183,72 @@
       width:16px; height:16px; object-fit:contain;
       filter: drop-shadow(0 1px 2px rgba(0,0,0,.45));
     }
+
+    .rarity-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:3px 8px;
+      border-radius:8px;
+      font-weight:900;
+      letter-spacing:.2px;
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow: 0 6px 16px rgba(0,0,0,.28);
+      line-height:1;
+      font-size:11px;
+      min-width: 42px;
+    }
+    .rarity-ssr{
+      color: #0b0f14;
+      background:
+        radial-gradient(circle at 20% 25%, rgba(255,255,255,.85), rgba(255,255,255,0) 42%),
+        linear-gradient(135deg,#ff4fd8,#7c5cff,#2fd3ff,#2dff88,#ffe65a,#ff8a3d);
+    }
+    .rarity-sr{
+      color: #0b0f14;
+      background: linear-gradient(135deg, #ffb152, #ff7a00);
+    }
+    .rarity-r{
+      color:#e9eef5;
+      background: linear-gradient(135deg, #6e7786, #424a57);
+    }
+
+    /* ====== 추천 결과(게시판) 전용 ====== */
+    .resultWrap{
+      max-height: 260px; /* 결과는 상단 고정 영역으로 '짤림' 방지 + 과도한 길이 제한 */
+      overflow:auto;
+    }
+    .analysisBox{
+      padding:10px 12px;
+      border-top:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.12);
+    }
+    .analysisBox ul{margin:0; padding-left:18px; color:rgba(255,255,255,.86); font-size:12px;}
+    .analysisBox li{margin:6px 0}
+
+    /* ====== 보유 캐릭터 영역 ====== */
+    .filters{
+      display:grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    @media (max-width: 980px){
+      .filters{grid-template-columns: 1fr 1fr;}
+      table{min-width: 780px;}
+    }
     .tableActions{display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 0 0;}
+
+    /* 보유 테이블 높이: 결과 영역이 위에 생겨도 화면 전체에서 균형 유지 */
+    .ownedTableWrap{
+      height: calc(100vh - 280px);
+      overflow:auto;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.18);
+    }
+    @media (max-width: 980px){
+      .ownedTableWrap{height:auto; max-height: 70vh;}
+    }
   </style>
 </head>
 
@@ -310,7 +267,7 @@
   </div>
 
   <div class="wrap">
-    <!-- LEFT -->
+    <!-- LEFT: 옵션만 유지 -->
     <div class="card">
       <div class="title">추천 옵션</div>
       {% if error %}
@@ -351,100 +308,123 @@
       <div class="actions">
         <button class="btn primary" id="runBtn">추천 실행</button>
         <button class="btn danger" id="clearBtn">초기화</button>
+        <button class="btn" id="copyBtn">JSON 복사</button>
       </div>
 
-      <!-- 추천 결과(카드) -->
-      <div class="resultSection">
-        <div class="resultHeader">
-          <div class="title" style="margin:0">추천 결과</div>
-          <div style="display:flex; gap:8px; align-items:center">
-            <button class="btn" id="copyBtn">JSON 복사</button>
+      <div class="sub" style="margin-top:10px" id="resultHint">
+        추천 결과는 오른쪽 상단 “추천 결과(게시판)” 영역에 표시됩니다.
+      </div>
+    </div>
+
+    <!-- RIGHT: 결과(상단) + 보유(하단) -->
+    <div class="rightStack">
+
+      <!-- ✅ 추천 결과(게시판) : 보유 캐릭터 상단 -->
+      <div class="sectionBox" id="resultBox">
+        <div class="sectionHead">
+          <div class="hTitle">추천 결과(게시판)</div>
+          <div class="hRight">
+            <div class="pill" id="partyCount">파티 0 / 4</div>
           </div>
         </div>
 
-        <div class="sub" id="resultHint">추천 실행 후, 아래에 4인 파티 카드가 표시됩니다.</div>
-
-        <div class="resultGrid" id="partyGrid"></div>
+        <div class="tableWrap resultWrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:72px">순번</th>
+                <th style="width:320px">캐릭터</th>
+                <th style="width:160px">속성</th>
+                <th style="width:180px">클래스</th>
+                <th style="width:140px">역할</th>
+                <th style="width:140px">등급</th>
+              </tr>
+            </thead>
+            <tbody id="resultTbody">
+              <tr>
+                <td colspan="6" style="color:rgba(255,255,255,.55); font-weight:800;">
+                  (아직 없음) 왼쪽에서 “추천 실행”을 누르세요.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
         <div class="analysisBox" id="analysisBox" style="display:none">
           <div class="title" style="margin:0 0 8px 0">분석</div>
           <ul id="analysisList"></ul>
         </div>
-
-        <details id="rawWrap" style="display:none">
-          <summary>원본 JSON 보기</summary>
-          <pre id="rawJson"></pre>
-        </details>
-      </div>
-    </div>
-
-    <!-- RIGHT -->
-    <div class="card">
-      <div class="rightTop">
-        <div class="title" style="margin:0">보유 캐릭터 선택(게시판)</div>
-        <div class="pill" id="selectedCount">선택 0</div>
       </div>
 
-      <div class="filters">
-        <div>
-          <label>검색(이름)</label>
-          <input id="qName" placeholder="예: Nina" />
+      <!-- 보유 캐릭터 -->
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
+          <div class="title" style="margin:0">보유 캐릭터 선택(게시판)</div>
+          <div class="pill" id="selectedCount">선택 0</div>
         </div>
-        <div>
-          <label>속성</label>
-          <select id="fElement">
-            <option value="">전체</option>
-            <option>Fire</option><option>Wind</option><option>Ice</option><option>Holy</option><option>Chaos</option>
-          </select>
+
+        <div class="filters">
+          <div>
+            <label>검색(이름)</label>
+            <input id="qName" placeholder="예: Nina" />
+          </div>
+          <div>
+            <label>속성</label>
+            <select id="fElement">
+              <option value="">전체</option>
+              <option>Fire</option><option>Wind</option><option>Ice</option><option>Holy</option><option>Chaos</option>
+            </select>
+          </div>
+          <div>
+            <label>클래스</label>
+            <select id="fClass">
+              <option value="">전체</option>
+            </select>
+          </div>
+          <div>
+            <label>역할</label>
+            <select id="fRole">
+              <option value="">전체</option>
+              <option value="Buffer">Buffer</option>
+              <option value="DPS">DPS</option>
+              <option value="Debuffer">Debuffer</option>
+              <option value="Healer">Healer</option>
+              <option value="Tank">Tank</option>
+            </select>
+          </div>
+          <div>
+            <label>등급</label>
+            <select id="fRarity">
+              <option value="">전체</option>
+              <option>SSR</option><option>SR</option><option>R</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label>클래스</label>
-          <select id="fClass">
-            <option value="">전체</option>
-          </select>
+
+        <div class="tableActions">
+          <button class="btn" id="selAllBtn">전체 선택</button>
+          <button class="btn" id="selNoneBtn">전체 해제</button>
+          <button class="btn" id="selVisibleBtn">보이는 것만 선택</button>
+          <button class="btn" id="unselVisibleBtn">보이는 것만 해제</button>
         </div>
-        <div>
-          <label>역할</label>
-          <select id="fRole">
-            <option value="">전체</option>
-            <option value="Buffer">Buffer</option>
-            <option value="DPS">DPS</option>
-            <option value="Debuffer">Debuffer</option>
-            <option value="Healer">Healer</option>
-            <option value="Tank">Tank</option>
-          </select>
-        </div>
-        <div>
-          <label>등급</label>
-          <select id="fRarity">
-            <option value="">전체</option>
-            <option>SSR</option><option>SR</option><option>R</option>
-          </select>
+
+        <div class="ownedTableWrap" style="margin-top:10px;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:56px">선택</th>
+                <th style="width:320px">캐릭터</th>
+                <th style="width:160px">속성</th>
+                <th style="width:180px">클래스</th>
+                <th style="width:140px">역할</th>
+                <th style="width:140px">등급</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
         </div>
       </div>
 
-      <div class="tableActions">
-        <button class="btn" id="selAllBtn">전체 선택</button>
-        <button class="btn" id="selNoneBtn">전체 해제</button>
-        <button class="btn" id="selVisibleBtn">보이는 것만 선택</button>
-        <button class="btn" id="unselVisibleBtn">보이는 것만 해제</button>
-      </div>
-
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:56px">선택</th>
-              <th style="width:320px">캐릭터</th>
-              <th style="width:160px">속성</th>
-              <th style="width:180px">클래스</th>
-              <th style="width:140px">역할</th>
-              <th style="width:140px">등급</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
     </div>
   </div>
 
@@ -464,7 +444,6 @@
     function slugId(s){
       return (s || "").toString().trim().toLowerCase().replace(/[^a-z0-9]/g, "");
     }
-
     function titleCase(s){
       const v = (s || "").toString().trim();
       if (!v) return "";
@@ -472,8 +451,6 @@
     }
 
     // 아이콘 규칙(사용자 파일명 기준)
-    // element: /element/wind.jpg, chaos.jpg...
-    // class:   /classes/Mage.jpg, Warrior.jpg...
     function elementIconPath(el){
       const v = titleCase(el);
       if (!v) return null;
@@ -501,7 +478,6 @@
       img.onerror = () => img.remove();
       return img;
     }
-
     function makeBadge(iconSrc, text){
       const span = document.createElement("span");
       span.className = "miniBadge";
@@ -541,7 +517,6 @@
       }
       return Array.from(s).sort();
     }
-
     function renderClassFilter(){
       const sel = $("fClass");
       while (sel.options.length > 1) sel.remove(1);
@@ -573,7 +548,6 @@
       renderTable();
       updateSelectedCount();
     }
-
     function setAll(checked){
       for (const c of CHARS){
         if (checked) state.selected.add(c.id);
@@ -630,7 +604,7 @@
         });
         td0.appendChild(chk);
 
-        // 캐릭터(썸네일+이름)
+        // 캐릭터
         const td1 = document.createElement("td");
         const rowFlex = document.createElement("div");
         rowFlex.className = "rowFlex";
@@ -653,11 +627,11 @@
 
         td1.appendChild(rowFlex);
 
-        // 속성(아이콘+텍스트)
+        // 속성
         const td2 = document.createElement("td");
         td2.appendChild(makeBadge(elementIconPath(c.element), c.element || "-"));
 
-        // 클래스(아이콘+텍스트)
+        // 클래스
         const td3 = document.createElement("td");
         td3.appendChild(makeBadge(classIconPath(c.class), c.class || "-"));
 
@@ -686,97 +660,22 @@
       }
     }
 
-    // ===== 추천 결과 카드 렌더링 =====
-    function badge(iconSrc, text){
-      const b = document.createElement("div");
-      b.className = "badge";
-      if (iconSrc){
-        const img = document.createElement("img");
-        img.className = "badgeIcon";
-        img.loading = "lazy";
-        img.src = iconSrc;
-        img.onerror = () => img.remove();
-        b.appendChild(img);
-      }
-      const t = document.createElement("span");
-      t.textContent = text || "-";
-      b.appendChild(t);
-      return b;
-    }
-
-    function partyCard(char){
-      const c = {
-        ...char,
-        element: titleCase(char.element || ""),
-        class: titleCase(char.class || ""),
-        rarity: (char.rarity || "").toUpperCase(),
-      };
-
-      const wrap = document.createElement("div");
-      wrap.className = "pCard";
-
-      const th = document.createElement("div");
-      th.className = "pThumb";
-      if (c.image){
-        const img = document.createElement("img");
-        img.loading = "lazy";
-        img.src = c.image;
-        img.alt = c.name;
-        th.appendChild(img);
-      } else {
-        th.textContent = "NO IMAGE";
-        th.style.color = "rgba(255,255,255,.35)";
-        th.style.fontWeight = "900";
-        th.style.fontSize = "11px";
-      }
-
-      const bd = document.createElement("div");
-      bd.className = "pBody";
-
-      const nm = document.createElement("div");
-      nm.className = "pName";
-      nm.textContent = c.name;
-
-      const g = document.createElement("div");
-      g.className = "meta2x2";
-      g.appendChild(badge(elementIconPath(c.element), c.element || "-"));
-      g.appendChild(badge(classIconPath(c.class), c.class || "-"));
-      g.appendChild(badge(null, c.role || "-"));
-
-      const r = document.createElement("div");
-      r.className = "badge";
-      r.style.justifyContent = "center";
-      r.innerHTML = rarityHtml(c.rarity);
-      g.appendChild(r);
-
-      bd.appendChild(nm);
-      bd.appendChild(g);
-
-      wrap.appendChild(th);
-      wrap.appendChild(bd);
-      return wrap;
-    }
-
+    /* ===== 추천 결과(게시판) 렌더링 ===== */
     function toChar(objOrStr){
       if (!objOrStr) return null;
 
-      // string id/name
       if (typeof objOrStr === "string"){
         return state.byId.get(objOrStr) || state.bySlug.get(slugId(objOrStr)) || null;
       }
-
-      // object with id/name
       if (typeof objOrStr === "object"){
         const id = objOrStr.id || objOrStr.char_id || objOrStr.key || "";
         const name = objOrStr.name || objOrStr.title || "";
         return state.byId.get(id) || state.bySlug.get(slugId(id)) || state.bySlug.get(slugId(name)) || null;
       }
-
       return null;
     }
 
     function extractPartyList(data){
-      // 최대한 호환적으로: best_party / party / members / teams 등
       const candidates = [];
 
       const bp = data?.best_party;
@@ -784,20 +683,16 @@
         const arr = bp.party || bp.members || bp.team || bp.picks || bp.characters || null;
         if (Array.isArray(arr)) candidates.push(arr);
       }
-
       if (Array.isArray(data?.party)) candidates.push(data.party);
       if (Array.isArray(data?.members)) candidates.push(data.members);
       if (Array.isArray(data?.team)) candidates.push(data.team);
 
-      // 여러 후보(상위 N) 형태
       if (Array.isArray(data?.parties)){
         for (const p of data.parties){
           const arr = p.party || p.members || p.team || p.characters || null;
           if (Array.isArray(arr)) candidates.push(arr);
         }
       }
-
-      // 후보가 없으면 빈
       return candidates.length ? candidates[0] : [];
     }
 
@@ -805,8 +700,6 @@
       const out = [];
       if (Array.isArray(data?.analysis)) out.push(...data.analysis);
       if (Array.isArray(data?.best_party?.analysis)) out.push(...data.best_party.analysis);
-
-      // 문자열일 수도 있음
       if (typeof data?.comment === "string") out.push(data.comment);
       if (typeof data?.best_party?.comment === "string") out.push(data.best_party.comment);
       return out.filter(Boolean).map(x => x.toString());
@@ -815,42 +708,98 @@
     function renderRecommendUI(data){
       state.lastResult = data;
 
-      const partyGrid = $("partyGrid");
+      const tbody = $("resultTbody");
       const analysisBox = $("analysisBox");
       const analysisList = $("analysisList");
-      const rawWrap = $("rawWrap");
-      const rawJson = $("rawJson");
-      const hint = $("resultHint");
+      const partyCount = $("partyCount");
 
-      partyGrid.innerHTML = "";
+      tbody.innerHTML = "";
       analysisList.innerHTML = "";
 
       const party = extractPartyList(data);
-      const chars = party.map(toChar).filter(Boolean);
+      const chars = party.map(toChar).filter(Boolean).slice(0, 4);
 
-      hint.textContent = chars.length
-        ? `추천 파티 ${chars.length}인(표준 4인 기준)`
-        : "추천 결과에서 파티를 찾지 못했습니다(원본 JSON을 확인하세요).";
+      partyCount.textContent = `파티 ${chars.length} / 4`;
 
-      // 카드 표시 (최대 4명)
-      for (const c of chars.slice(0, 4)){
-        partyGrid.appendChild(partyCard(c));
+      if (!chars.length){
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 6;
+        td.style.color = "rgba(255,255,255,.55)";
+        td.style.fontWeight = "800";
+        td.textContent = "추천 결과에서 파티를 찾지 못했습니다. (추천 JSON 구조 확인 필요)";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      } else {
+        chars.forEach((c0, idx) => {
+          const c = {
+            ...c0,
+            element: titleCase(c0.element || ""),
+            class: titleCase(c0.class || ""),
+            rarity: (c0.rarity || "").toUpperCase(),
+          };
+
+          const tr = document.createElement("tr");
+
+          const td0 = document.createElement("td");
+          td0.textContent = (idx + 1) + "번";
+
+          const td1 = document.createElement("td");
+          const rowFlex = document.createElement("div");
+          rowFlex.className = "rowFlex";
+
+          const av = document.createElement("div");
+          av.className = "avatar";
+          if (c.image){
+            const img = document.createElement("img");
+            img.loading = "lazy";
+            img.src = c.image;
+            img.alt = c.name;
+            av.appendChild(img);
+          }
+          rowFlex.appendChild(av);
+
+          const nm = document.createElement("div");
+          nm.className = "nameCell";
+          nm.textContent = c.name;
+          rowFlex.appendChild(nm);
+
+          td1.appendChild(rowFlex);
+
+          const td2 = document.createElement("td");
+          td2.appendChild(makeBadge(elementIconPath(c.element), c.element || "-"));
+
+          const td3 = document.createElement("td");
+          td3.appendChild(makeBadge(classIconPath(c.class), c.class || "-"));
+
+          const td4 = document.createElement("td");
+          td4.textContent = c.role || "-";
+
+          const td5 = document.createElement("td");
+          td5.innerHTML = rarityHtml(c.rarity);
+
+          tr.appendChild(td0);
+          tr.appendChild(td1);
+          tr.appendChild(td2);
+          tr.appendChild(td3);
+          tr.appendChild(td4);
+          tr.appendChild(td5);
+
+          tbody.appendChild(tr);
+        });
       }
 
       const analysis = extractAnalysis(data);
       if (analysis.length){
         analysisBox.style.display = "";
-        for (const a of analysis){
+        analysis.forEach(a => {
           const li = document.createElement("li");
           li.textContent = a;
           analysisList.appendChild(li);
-        }
+        });
       } else {
         analysisBox.style.display = "none";
       }
-
-      rawWrap.style.display = "";
-      rawJson.textContent = JSON.stringify(data, null, 2);
     }
 
     function runRecommend(){
@@ -859,8 +808,6 @@
         owned: Array.from(state.selected),
         boss_weakness: $("bossWeakness").value || null,
         enemy_element: $("enemyElement").value || null,
-        required: [],
-        banned: [],
       };
 
       fetch("/recommend/v3", {
@@ -870,9 +817,7 @@
       })
       .then(r => r.json())
       .then(j => renderRecommendUI(j))
-      .catch(err => {
-        renderRecommendUI({ error: (err?.message || err) });
-      });
+      .catch(err => renderRecommendUI({ error: (err?.message || err) }));
     }
 
     function copyJson(){
@@ -896,10 +841,14 @@
       $("clearBtn").addEventListener("click", () => {
         state.selected.clear();
         state.lastResult = null;
-        $("partyGrid").innerHTML = "";
+
+        $("resultTbody").innerHTML = `
+          <tr><td colspan="6" style="color:rgba(255,255,255,.55); font-weight:800;">
+            (아직 없음) 왼쪽에서 “추천 실행”을 누르세요.
+          </td></tr>`;
         $("analysisBox").style.display = "none";
-        $("rawWrap").style.display = "none";
-        $("resultHint").textContent = "추천 실행 후, 아래에 4인 파티 카드가 표시됩니다.";
+        $("partyCount").textContent = "파티 0 / 4";
+
         updateSelectedCount();
         renderTable();
       });
