@@ -1,258 +1,918 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8">
-<title>Nova Party Builder</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{ title }}</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:rgba(255,255,255,.06);
+      --panel2:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.10);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.65);
+      --accent:rgba(96,165,250,.9);
+      --danger:rgba(248,113,113,.9);
+      --radius:14px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Apple SD Gothic Neo", "Noto Sans KR", Arial;
+      background:
+        radial-gradient(1200px 800px at 50% -10%, rgba(59,130,246,.25), transparent 60%),
+        radial-gradient(1000px 700px at 10% 10%, rgba(168,85,247,.18), transparent 55%),
+        var(--bg);
+      color:var(--text);
+    }
+    a{color:inherit; text-decoration:none}
 
-<style>
-body{
-  margin:0;
-  font-family:system-ui,-apple-system;
-  background:#0b1220;
-  color:#e5e7eb;
-}
-h2{margin:0 0 10px 0}
-button{
-  background:#2563eb;
-  color:#fff;
-  border:none;
-  border-radius:6px;
-  padding:8px 14px;
-  cursor:pointer;
-  font-weight:700;
-}
-button.secondary{background:#374151}
-button.danger{background:#dc2626}
+    .topbar{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter: blur(14px);
+      background: rgba(5,10,20,.65);
+      border-bottom:1px solid var(--line);
+      padding:10px 14px;
+      display:flex; gap:10px; align-items:center; justify-content:space-between;
+    }
+    .brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.3px}
+    .pill{
+      border:1px solid var(--line);
+      background: var(--panel);
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .btn{
+      border:1px solid var(--line);
+      background: var(--panel2);
+      padding:8px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      color:var(--text);
+      font-weight:700;
+      user-select:none;
+    }
+    .btn:hover{border-color:rgba(255,255,255,.18)}
+    .btn.primary{border-color:rgba(96,165,250,.45); background:rgba(96,165,250,.18)}
+    .btn.danger{border-color:rgba(248,113,113,.45); background:rgba(248,113,113,.10)}
 
-.container{
-  display:grid;
-  grid-template-columns:420px 1fr;
-  gap:16px;
-  padding:16px;
-}
-@media(max-width:1000px){
-  .container{grid-template-columns:1fr}
-}
+    .wrap{
+      padding:14px;
+      display:grid;
+      grid-template-columns: 380px 1fr;
+      gap:14px;
+    }
+    @media (max-width: 980px){
+      .wrap{grid-template-columns: 1fr; }
+    }
+    .card{
+      border:1px solid var(--line);
+      background: var(--panel);
+      border-radius: var(--radius);
+      padding:14px;
+      box-shadow: 0 18px 40px rgba(0,0,0,.35);
+    }
+    .title{
+      font-size:14px;
+      font-weight:800;
+      margin:0 0 10px 0;
+      color:rgba(255,255,255,.9);
+    }
+    .sub{font-size:12px; color:var(--muted); margin-top:6px;}
+    label{font-size:12px; color:var(--muted); display:block; margin-bottom:6px}
+    select,input{
+      width:100%;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(0,0,0,.25);
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      outline:none;
+    }
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
 
-.panel{
-  background:#111827;
-  border:1px solid #1f2937;
-  border-radius:12px;
-  padding:14px;
-}
+    /* ===== 추천 결과: 카드 UI ===== */
+    .resultSection{margin-top:14px}
+    .resultHeader{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-bottom:10px;
+    }
+    .resultGrid{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap:10px;
+    }
+    @media (max-width: 980px){
+      .resultGrid{grid-template-columns: repeat(2, minmax(120px, 1fr));}
+    }
 
-/* ===== 보유 캐릭터 리스트 ===== */
-.char-list{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  max-height:75vh;
-  overflow:auto;
-}
+    .pCard{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      border-radius: 14px;
+      overflow:hidden;
+    }
+    .pThumb{
+      width:100%;
+      aspect-ratio: 4 / 3;
+      background: rgba(0,0,0,.25);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .pThumb img{width:100%; height:100%; object-fit:cover; display:block;}
+    .pBody{padding:10px}
+    .pName{
+      font-weight:900;
+      font-size:12px;
+      margin-bottom:8px;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .meta2x2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:6px;
+    }
+    .badge{
+      display:flex; align-items:center; gap:6px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      padding:4px 6px;
+      border-radius: 10px;
+      font-size:10px;
+      color: rgba(255,255,255,.90);
+      min-height: 22px;
+      overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    }
+    .badgeIcon{
+      width:14px; height:14px; object-fit:contain; flex:0 0 auto;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,.45));
+    }
+    .rarity-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:3px 6px;
+      border-radius:7px;
+      font-weight:900;
+      letter-spacing:.2px;
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow: 0 6px 16px rgba(0,0,0,.28);
+      line-height:1;
+      font-size:10px;
+      min-width: 34px;
+    }
+    .rarity-ssr{
+      color: #0b0f14;
+      background:
+        radial-gradient(circle at 20% 25%, rgba(255,255,255,.85), rgba(255,255,255,0) 42%),
+        linear-gradient(135deg,#ff4fd8,#7c5cff,#2fd3ff,#2dff88,#ffe65a,#ff8a3d);
+    }
+    .rarity-sr{
+      color: #0b0f14;
+      background: linear-gradient(135deg, #ffb152, #ff7a00);
+    }
+    .rarity-r{
+      color:#e9eef5;
+      background: linear-gradient(135deg, #6e7786, #424a57);
+    }
 
-.char-row{
-  display:grid;
-  grid-template-columns:26px 56px 1fr 360px;
-  gap:12px;
-  align-items:center;
-  padding:8px;
-  background:#0f172a;
-  border-radius:10px;
-  border:1px solid #1f2937;
-}
-.char-row:hover{border-color:#3b82f6}
+    .analysisBox{
+      margin-top:10px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      border-radius: 14px;
+      padding:10px;
+    }
+    .analysisBox ul{margin:0; padding-left:18px; color:rgba(255,255,255,.86); font-size:12px;}
+    .analysisBox li{margin:6px 0}
 
-.char-thumb img{
-  width:56px;
-  height:56px;
-  object-fit:cover;
-  border-radius:8px;
-}
+    details{
+      margin-top:10px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.14);
+      border-radius: 14px;
+      padding:10px;
+    }
+    summary{cursor:pointer; color:rgba(255,255,255,.85); font-weight:800; font-size:12px;}
+    pre{
+      margin:10px 0 0 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size:12px;
+      color:rgba(255,255,255,.88);
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
 
-.char-name{
-  font-weight:800;
-  font-size:14px;
-}
+    /* ===== 게시판(테이블) 형식 ===== */
+    .rightTop{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-bottom:10px;
+    }
+    .filters{
+      display:grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    @media (max-width: 980px){
+      .filters{grid-template-columns: 1fr 1fr;}
+    }
 
-.badges{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:6px;
-}
+    .tableWrap{
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.18);
+      overflow:auto;
+      height: calc(100vh - 205px);
+    }
+    @media (max-width: 980px){
+      .tableWrap{height: auto; max-height: 70vh;}
+    }
 
-.badge{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  background:#020617;
-  border:1px solid #1f2937;
-  border-radius:8px;
-  padding:4px 6px;
-  font-size:11px;
-}
-.badge img{
-  width:16px;
-  height:16px;
-  object-fit:contain;
-}
-
-.rarity-SSR{background:linear-gradient(135deg,#ff4fd8,#7c5cff,#2fd3ff)}
-.rarity-SR{background:linear-gradient(135deg,#ffb152,#ff7a00)}
-.rarity-R{background:#6b7280;color:#111}
-
-/* ===== 추천 결과 카드 ===== */
-.party{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:14px;
-  margin-top:10px;
-}
-@media(max-width:900px){
-  .party{grid-template-columns:repeat(2,1fr)}
-}
-
-.party-card{
-  background:#020617;
-  border:1px solid #1f2937;
-  border-radius:14px;
-  overflow:hidden;
-}
-.party-card img{
-  width:100%;
-  aspect-ratio:1/1;
-  object-fit:cover;
-}
-.party-body{
-  padding:10px;
-}
-.party-name{
-  font-weight:900;
-  margin-bottom:6px;
-}
-.party-badges{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:6px;
-}
-</style>
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      font-size:12px;
+      min-width: 880px;
+    }
+    thead th{
+      position:sticky; top:0;
+      background: rgba(10,16,28,.92);
+      color: rgba(255,255,255,.85);
+      text-align:left;
+      padding:10px 10px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      z-index:2;
+      font-weight:900;
+    }
+    tbody td{
+      padding:10px 10px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      vertical-align:middle;
+      color: rgba(255,255,255,.88);
+    }
+    tbody tr:hover{
+      background: rgba(255,255,255,.05);
+    }
+    .chk{
+      width:16px; height:16px;
+      accent-color: rgba(96,165,250,.95);
+    }
+    .rowFlex{display:flex; align-items:center; gap:10px;}
+    .avatar{
+      width:44px; height:33px;
+      border-radius:10px;
+      overflow:hidden;
+      background: rgba(0,0,0,.25);
+      border:1px solid rgba(255,255,255,.10);
+      flex:0 0 auto;
+    }
+    .avatar img{width:100%; height:100%; object-fit:cover; display:block;}
+    .nameCell{
+      font-weight:900;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 210px;
+    }
+    .miniBadge{
+      display:inline-flex; align-items:center; gap:6px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:11px;
+      white-space:nowrap;
+    }
+    .miniIcon{
+      width:16px; height:16px; object-fit:contain;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,.45));
+    }
+    .tableActions{display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 0 0;}
+  </style>
 </head>
 
 <body>
-
-<div class="container">
-
-<!-- ================= LEFT ================= -->
-<div class="panel">
-  <h2>보유 캐릭터</h2>
-
-  <div style="display:flex;gap:8px;margin-bottom:10px">
-    <button class="secondary" onclick="selectAll(true)">전체선택</button>
-    <button class="secondary" onclick="selectAll(false)">해제</button>
+  <div class="topbar">
+    <div class="brand">
+      <div style="font-size:18px">{{ title }}</div>
+      <div class="pill">캐시 {{ cache_count }} · 보스 {{ boss_count }} · 갱신 {{ last_refresh }}</div>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center">
+      <a class="btn" href="/refresh">새로고침</a>
+      <a class="btn" href="/meta">메타</a>
+      <a class="btn" href="/zones/zone-nova/characters">캐릭터 JSON</a>
+      <a class="btn" href="/zones/zone-nova/bosses">보스 JSON</a>
+    </div>
   </div>
 
-  <div class="char-list" id="charList"></div>
-</div>
+  <div class="wrap">
+    <!-- LEFT -->
+    <div class="card">
+      <div class="title">추천 옵션</div>
+      {% if error %}
+        <div class="sub" style="color:var(--danger); font-weight:800">데이터 로드 오류: {{ error }}</div>
+      {% endif %}
 
-<!-- ================= RIGHT ================= -->
-<div class="panel">
-  <h2>추천 파티 결과</h2>
+      <label>모드</label>
+      <select id="mode">
+        <option value="pve">일반(PvE)</option>
+        <option value="boss">보스</option>
+        <option value="pvp">PVP</option>
+      </select>
 
-  <div style="display:flex;gap:10px;margin-bottom:10px">
-    <select id="mode">
-      <option value="pve">PvE</option>
-      <option value="boss">Boss</option>
-      <option value="pvp">PvP</option>
-    </select>
-    <button onclick="runRecommend()">추천 실행</button>
-  </div>
+      <div class="sub" style="margin:10px 0 6px 0; font-weight:800">보스 선택 시 약점/속성 자동 반영</div>
 
-  <div class="party" id="party"></div>
-</div>
+      <label>보스 선택</label>
+      <select id="bossSelect">
+        <option value="">(선택 안 함)</option>
+      </select>
 
-</div>
-
-<script>
-const CHARS = {{ chars_json | safe }};
-const selected = new Set();
-
-function badge(text, img){
-  return `
-    <div class="badge">
-      ${img?`<img src="${img}">`:``}
-      <span>${text}</span>
-    </div>`;
-}
-
-function renderList(){
-  const el=document.getElementById("charList");
-  el.innerHTML="";
-  CHARS.forEach(c=>{
-    const row=document.createElement("div");
-    row.className="char-row";
-    row.innerHTML=`
-      <input type="checkbox" ${selected.has(c.id)?"checked":""}>
-      <div class="char-thumb">
-        <img src="${c.image||""}">
-      </div>
-      <div class="char-name">${c.name}</div>
-      <div class="badges">
-        ${badge(c.element,`/images/games/zone-nova/element/${c.element.toLowerCase()}.jpg`)}
-        ${badge(c.class,`/images/games/zone-nova/classes/${c.class}.jpg`)}
-        ${badge(c.role)}
-        <div class="badge rarity-${c.rarity}">${c.rarity}</div>
-      </div>
-    `;
-    row.querySelector("input").onchange=e=>{
-      e.target.checked?selected.add(c.id):selected.delete(c.id);
-    };
-    el.appendChild(row);
-  });
-}
-
-function selectAll(v){
-  if(v) CHARS.forEach(c=>selected.add(c.id));
-  else selected.clear();
-  renderList();
-}
-
-function runRecommend(){
-  fetch("/recommend/v3",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      mode:document.getElementById("mode").value,
-      owned:[...selected]
-    })
-  })
-  .then(r=>r.json())
-  .then(renderParty);
-}
-
-function renderParty(data){
-  const el=document.getElementById("party");
-  el.innerHTML="";
-  (data.party||[]).forEach(c=>{
-    const card=document.createElement("div");
-    card.className="party-card";
-    card.innerHTML=`
-      <img src="${c.image}">
-      <div class="party-body">
-        <div class="party-name">${c.name}</div>
-        <div class="party-badges">
-          ${badge(c.element,`/images/games/zone-nova/element/${c.element.toLowerCase()}.jpg`)}
-          ${badge(c.class,`/images/games/zone-nova/classes/${c.class}.jpg`)}
-          ${badge(c.role)}
-          <div class="badge rarity-${c.rarity}">${c.rarity}</div>
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label>보스 약점 속성</label>
+          <select id="bossWeakness">
+            <option value="">(없음)</option>
+            <option>Fire</option><option>Wind</option><option>Ice</option><option>Holy</option><option>Chaos</option>
+          </select>
+        </div>
+        <div>
+          <label>상대(적) 속성</label>
+          <select id="enemyElement">
+            <option value="">(없음)</option>
+            <option>Fire</option><option>Wind</option><option>Ice</option><option>Holy</option><option>Chaos</option>
+          </select>
         </div>
       </div>
-    `;
-    el.appendChild(card);
-  });
-}
 
-renderList();
-</script>
+      <div class="actions">
+        <button class="btn primary" id="runBtn">추천 실행</button>
+        <button class="btn danger" id="clearBtn">초기화</button>
+      </div>
 
+      <!-- 추천 결과(카드) -->
+      <div class="resultSection">
+        <div class="resultHeader">
+          <div class="title" style="margin:0">추천 결과</div>
+          <div style="display:flex; gap:8px; align-items:center">
+            <button class="btn" id="copyBtn">JSON 복사</button>
+          </div>
+        </div>
+
+        <div class="sub" id="resultHint">추천 실행 후, 아래에 4인 파티 카드가 표시됩니다.</div>
+
+        <div class="resultGrid" id="partyGrid"></div>
+
+        <div class="analysisBox" id="analysisBox" style="display:none">
+          <div class="title" style="margin:0 0 8px 0">분석</div>
+          <ul id="analysisList"></ul>
+        </div>
+
+        <details id="rawWrap" style="display:none">
+          <summary>원본 JSON 보기</summary>
+          <pre id="rawJson"></pre>
+        </details>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="card">
+      <div class="rightTop">
+        <div class="title" style="margin:0">보유 캐릭터 선택(게시판)</div>
+        <div class="pill" id="selectedCount">선택 0</div>
+      </div>
+
+      <div class="filters">
+        <div>
+          <label>검색(이름)</label>
+          <input id="qName" placeholder="예: Nina" />
+        </div>
+        <div>
+          <label>속성</label>
+          <select id="fElement">
+            <option value="">전체</option>
+            <option>Fire</option><option>Wind</option><option>Ice</option><option>Holy</option><option>Chaos</option>
+          </select>
+        </div>
+        <div>
+          <label>클래스</label>
+          <select id="fClass">
+            <option value="">전체</option>
+          </select>
+        </div>
+        <div>
+          <label>역할</label>
+          <select id="fRole">
+            <option value="">전체</option>
+            <option value="Buffer">Buffer</option>
+            <option value="DPS">DPS</option>
+            <option value="Debuffer">Debuffer</option>
+            <option value="Healer">Healer</option>
+            <option value="Tank">Tank</option>
+          </select>
+        </div>
+        <div>
+          <label>등급</label>
+          <select id="fRarity">
+            <option value="">전체</option>
+            <option>SSR</option><option>SR</option><option>R</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="tableActions">
+        <button class="btn" id="selAllBtn">전체 선택</button>
+        <button class="btn" id="selNoneBtn">전체 해제</button>
+        <button class="btn" id="selVisibleBtn">보이는 것만 선택</button>
+        <button class="btn" id="unselVisibleBtn">보이는 것만 해제</button>
+      </div>
+
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:56px">선택</th>
+              <th style="width:320px">캐릭터</th>
+              <th style="width:160px">속성</th>
+              <th style="width:180px">클래스</th>
+              <th style="width:140px">역할</th>
+              <th style="width:140px">등급</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CHARS = {{ chars_json | safe }};
+    const BOSSES = {{ bosses_json | safe }};
+    const $ = (id) => document.getElementById(id);
+
+    const state = {
+      selected: new Set(),
+      visibleIds: [],
+      byId: new Map(),
+      bySlug: new Map(),
+      lastResult: null,
+    };
+
+    function slugId(s){
+      return (s || "").toString().trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function titleCase(s){
+      const v = (s || "").toString().trim();
+      if (!v) return "";
+      return v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
+    }
+
+    // 아이콘 규칙(사용자 파일명 기준)
+    // element: /element/wind.jpg, chaos.jpg...
+    // class:   /classes/Mage.jpg, Warrior.jpg...
+    function elementIconPath(el){
+      const v = titleCase(el);
+      if (!v) return null;
+      return `/images/games/zone-nova/element/${v.toLowerCase()}.jpg`;
+    }
+    function classIconPath(cls){
+      const v = titleCase(cls);
+      if (!v) return null;
+      return `/images/games/zone-nova/classes/${v}.jpg`;
+    }
+
+    function rarityHtml(r){
+      const rr = (r || "").toString().trim().toUpperCase();
+      if (rr === "SSR") return `<span class="rarity-badge rarity-ssr">SSR</span>`;
+      if (rr === "SR")  return `<span class="rarity-badge rarity-sr">SR</span>`;
+      if (rr === "R")   return `<span class="rarity-badge rarity-r">R</span>`;
+      return `<span class="rarity-badge rarity-r">${rr || "-"}</span>`;
+    }
+
+    function makeIcon(src){
+      const img = document.createElement("img");
+      img.className = "miniIcon";
+      img.loading = "lazy";
+      img.src = src;
+      img.onerror = () => img.remove();
+      return img;
+    }
+
+    function makeBadge(iconSrc, text){
+      const span = document.createElement("span");
+      span.className = "miniBadge";
+      if (iconSrc){
+        span.appendChild(makeIcon(iconSrc));
+      }
+      const t = document.createElement("span");
+      t.textContent = text || "-";
+      span.appendChild(t);
+      return span;
+    }
+
+    function renderBosses(){
+      const sel = $("bossSelect");
+      for (const b of BOSSES){
+        const opt = document.createElement("option");
+        opt.value = b.id;
+        opt.textContent = b.name;
+        opt.dataset.weakness = b.weakness || "";
+        opt.dataset.enemy = b.enemy_element || "";
+        sel.appendChild(opt);
+      }
+      sel.addEventListener("change", () => {
+        const opt = sel.options[sel.selectedIndex];
+        const w = opt?.dataset?.weakness || "";
+        const e = opt?.dataset?.enemy || "";
+        if (w) $("bossWeakness").value = w;
+        if (e) $("enemyElement").value = e;
+      });
+    }
+
+    function uniqueClasses(chars){
+      const s = new Set();
+      for (const c of chars){
+        const v = titleCase(c.class || "");
+        if (v) s.add(v);
+      }
+      return Array.from(s).sort();
+    }
+
+    function renderClassFilter(){
+      const sel = $("fClass");
+      while (sel.options.length > 1) sel.remove(1);
+      for (const c of uniqueClasses(CHARS)){
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c;
+        sel.appendChild(opt);
+      }
+    }
+
+    function indexChars(){
+      for (const c of CHARS){
+        state.byId.set(c.id, c);
+        state.bySlug.set(slugId(c.id), c);
+        state.bySlug.set(slugId(c.name), c);
+      }
+    }
+
+    function updateSelectedCount(){
+      $("selectedCount").textContent = "선택 " + state.selected.size;
+    }
+
+    function setVisible(checked){
+      for (const id of state.visibleIds){
+        if (checked) state.selected.add(id);
+        else state.selected.delete(id);
+      }
+      renderTable();
+      updateSelectedCount();
+    }
+
+    function setAll(checked){
+      for (const c of CHARS){
+        if (checked) state.selected.add(c.id);
+        else state.selected.delete(c.id);
+      }
+      renderTable();
+      updateSelectedCount();
+    }
+
+    function applyFilters(list){
+      const q = ($("qName").value || "").trim().toLowerCase();
+      const fe = $("fElement").value;
+      const fc = $("fClass").value;
+      const fr = $("fRole").value;
+      const frr = $("fRarity").value;
+
+      return list.filter(c => {
+        if (q && !(c.name || "").toLowerCase().includes(q)) return false;
+        if (fe && titleCase(c.element) !== fe) return false;
+        if (fc && titleCase(c.class) !== fc) return false;
+        if (fr && (c.role || "") !== fr) return false;
+        if (frr && (c.rarity || "").toUpperCase() !== frr) return false;
+        return true;
+      });
+    }
+
+    function renderTable(){
+      const tbody = $("tbody");
+      tbody.innerHTML = "";
+
+      const filtered = applyFilters(CHARS.slice());
+      state.visibleIds = filtered.map(x => x.id);
+
+      for (const c0 of filtered){
+        const c = {
+          ...c0,
+          element: titleCase(c0.element || ""),
+          class: titleCase(c0.class || ""),
+          rarity: (c0.rarity || "").toUpperCase(),
+        };
+
+        const tr = document.createElement("tr");
+
+        // 선택
+        const td0 = document.createElement("td");
+        const chk = document.createElement("input");
+        chk.type = "checkbox";
+        chk.className = "chk";
+        chk.checked = state.selected.has(c.id);
+        chk.addEventListener("change", (e) => {
+          if (e.target.checked) state.selected.add(c.id);
+          else state.selected.delete(c.id);
+          updateSelectedCount();
+        });
+        td0.appendChild(chk);
+
+        // 캐릭터(썸네일+이름)
+        const td1 = document.createElement("td");
+        const rowFlex = document.createElement("div");
+        rowFlex.className = "rowFlex";
+
+        const av = document.createElement("div");
+        av.className = "avatar";
+        if (c.image){
+          const img = document.createElement("img");
+          img.loading = "lazy";
+          img.src = c.image;
+          img.alt = c.name;
+          av.appendChild(img);
+        }
+        rowFlex.appendChild(av);
+
+        const nm = document.createElement("div");
+        nm.className = "nameCell";
+        nm.textContent = c.name;
+        rowFlex.appendChild(nm);
+
+        td1.appendChild(rowFlex);
+
+        // 속성(아이콘+텍스트)
+        const td2 = document.createElement("td");
+        td2.appendChild(makeBadge(elementIconPath(c.element), c.element || "-"));
+
+        // 클래스(아이콘+텍스트)
+        const td3 = document.createElement("td");
+        td3.appendChild(makeBadge(classIconPath(c.class), c.class || "-"));
+
+        // 역할
+        const td4 = document.createElement("td");
+        td4.textContent = c.role || "-";
+
+        // 등급
+        const td5 = document.createElement("td");
+        td5.innerHTML = rarityHtml(c.rarity);
+
+        tr.appendChild(td0);
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        tr.appendChild(td3);
+        tr.appendChild(td4);
+        tr.appendChild(td5);
+
+        tr.addEventListener("click", (e) => {
+          if (e.target === chk) return;
+          chk.checked = !chk.checked;
+          chk.dispatchEvent(new Event("change"));
+        });
+
+        tbody.appendChild(tr);
+      }
+    }
+
+    // ===== 추천 결과 카드 렌더링 =====
+    function badge(iconSrc, text){
+      const b = document.createElement("div");
+      b.className = "badge";
+      if (iconSrc){
+        const img = document.createElement("img");
+        img.className = "badgeIcon";
+        img.loading = "lazy";
+        img.src = iconSrc;
+        img.onerror = () => img.remove();
+        b.appendChild(img);
+      }
+      const t = document.createElement("span");
+      t.textContent = text || "-";
+      b.appendChild(t);
+      return b;
+    }
+
+    function partyCard(char){
+      const c = {
+        ...char,
+        element: titleCase(char.element || ""),
+        class: titleCase(char.class || ""),
+        rarity: (char.rarity || "").toUpperCase(),
+      };
+
+      const wrap = document.createElement("div");
+      wrap.className = "pCard";
+
+      const th = document.createElement("div");
+      th.className = "pThumb";
+      if (c.image){
+        const img = document.createElement("img");
+        img.loading = "lazy";
+        img.src = c.image;
+        img.alt = c.name;
+        th.appendChild(img);
+      } else {
+        th.textContent = "NO IMAGE";
+        th.style.color = "rgba(255,255,255,.35)";
+        th.style.fontWeight = "900";
+        th.style.fontSize = "11px";
+      }
+
+      const bd = document.createElement("div");
+      bd.className = "pBody";
+
+      const nm = document.createElement("div");
+      nm.className = "pName";
+      nm.textContent = c.name;
+
+      const g = document.createElement("div");
+      g.className = "meta2x2";
+      g.appendChild(badge(elementIconPath(c.element), c.element || "-"));
+      g.appendChild(badge(classIconPath(c.class), c.class || "-"));
+      g.appendChild(badge(null, c.role || "-"));
+
+      const r = document.createElement("div");
+      r.className = "badge";
+      r.style.justifyContent = "center";
+      r.innerHTML = rarityHtml(c.rarity);
+      g.appendChild(r);
+
+      bd.appendChild(nm);
+      bd.appendChild(g);
+
+      wrap.appendChild(th);
+      wrap.appendChild(bd);
+      return wrap;
+    }
+
+    function toChar(objOrStr){
+      if (!objOrStr) return null;
+
+      // string id/name
+      if (typeof objOrStr === "string"){
+        return state.byId.get(objOrStr) || state.bySlug.get(slugId(objOrStr)) || null;
+      }
+
+      // object with id/name
+      if (typeof objOrStr === "object"){
+        const id = objOrStr.id || objOrStr.char_id || objOrStr.key || "";
+        const name = objOrStr.name || objOrStr.title || "";
+        return state.byId.get(id) || state.bySlug.get(slugId(id)) || state.bySlug.get(slugId(name)) || null;
+      }
+
+      return null;
+    }
+
+    function extractPartyList(data){
+      // 최대한 호환적으로: best_party / party / members / teams 등
+      const candidates = [];
+
+      const bp = data?.best_party;
+      if (bp){
+        const arr = bp.party || bp.members || bp.team || bp.picks || bp.characters || null;
+        if (Array.isArray(arr)) candidates.push(arr);
+      }
+
+      if (Array.isArray(data?.party)) candidates.push(data.party);
+      if (Array.isArray(data?.members)) candidates.push(data.members);
+      if (Array.isArray(data?.team)) candidates.push(data.team);
+
+      // 여러 후보(상위 N) 형태
+      if (Array.isArray(data?.parties)){
+        for (const p of data.parties){
+          const arr = p.party || p.members || p.team || p.characters || null;
+          if (Array.isArray(arr)) candidates.push(arr);
+        }
+      }
+
+      // 후보가 없으면 빈
+      return candidates.length ? candidates[0] : [];
+    }
+
+    function extractAnalysis(data){
+      const out = [];
+      if (Array.isArray(data?.analysis)) out.push(...data.analysis);
+      if (Array.isArray(data?.best_party?.analysis)) out.push(...data.best_party.analysis);
+
+      // 문자열일 수도 있음
+      if (typeof data?.comment === "string") out.push(data.comment);
+      if (typeof data?.best_party?.comment === "string") out.push(data.best_party.comment);
+      return out.filter(Boolean).map(x => x.toString());
+    }
+
+    function renderRecommendUI(data){
+      state.lastResult = data;
+
+      const partyGrid = $("partyGrid");
+      const analysisBox = $("analysisBox");
+      const analysisList = $("analysisList");
+      const rawWrap = $("rawWrap");
+      const rawJson = $("rawJson");
+      const hint = $("resultHint");
+
+      partyGrid.innerHTML = "";
+      analysisList.innerHTML = "";
+
+      const party = extractPartyList(data);
+      const chars = party.map(toChar).filter(Boolean);
+
+      hint.textContent = chars.length
+        ? `추천 파티 ${chars.length}인(표준 4인 기준)`
+        : "추천 결과에서 파티를 찾지 못했습니다(원본 JSON을 확인하세요).";
+
+      // 카드 표시 (최대 4명)
+      for (const c of chars.slice(0, 4)){
+        partyGrid.appendChild(partyCard(c));
+      }
+
+      const analysis = extractAnalysis(data);
+      if (analysis.length){
+        analysisBox.style.display = "";
+        for (const a of analysis){
+          const li = document.createElement("li");
+          li.textContent = a;
+          analysisList.appendChild(li);
+        }
+      } else {
+        analysisBox.style.display = "none";
+      }
+
+      rawWrap.style.display = "";
+      rawJson.textContent = JSON.stringify(data, null, 2);
+    }
+
+    function runRecommend(){
+      const payload = {
+        mode: $("mode").value,
+        owned: Array.from(state.selected),
+        boss_weakness: $("bossWeakness").value || null,
+        enemy_element: $("enemyElement").value || null,
+        required: [],
+        banned: [],
+      };
+
+      fetch("/recommend/v3", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(payload)
+      })
+      .then(r => r.json())
+      .then(j => renderRecommendUI(j))
+      .catch(err => {
+        renderRecommendUI({ error: (err?.message || err) });
+      });
+    }
+
+    function copyJson(){
+      const txt = JSON.stringify(state.lastResult || {}, null, 2);
+      navigator.clipboard.writeText(txt).catch(()=>{});
+    }
+
+    function wireEvents(){
+      $("qName").addEventListener("input", () => renderTable());
+      $("fElement").addEventListener("change", () => renderTable());
+      $("fClass").addEventListener("change", () => renderTable());
+      $("fRole").addEventListener("change", () => renderTable());
+      $("fRarity").addEventListener("change", () => renderTable());
+
+      $("selAllBtn").addEventListener("click", () => { setAll(true); });
+      $("selNoneBtn").addEventListener("click", () => { setAll(false); });
+      $("selVisibleBtn").addEventListener("click", () => { setVisible(true); });
+      $("unselVisibleBtn").addEventListener("click", () => { setVisible(false); });
+
+      $("runBtn").addEventListener("click", runRecommend);
+      $("clearBtn").addEventListener("click", () => {
+        state.selected.clear();
+        state.lastResult = null;
+        $("partyGrid").innerHTML = "";
+        $("analysisBox").style.display = "none";
+        $("rawWrap").style.display = "none";
+        $("resultHint").textContent = "추천 실행 후, 아래에 4인 파티 카드가 표시됩니다.";
+        updateSelectedCount();
+        renderTable();
+      });
+      $("copyBtn").addEventListener("click", copyJson);
+    }
+
+    // init
+    indexChars();
+    renderBosses();
+    renderClassFilter();
+    wireEvents();
+    renderTable();
+    updateSelectedCount();
+  </script>
 </body>
 </html>
