@@ -19,6 +19,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+      
+      - name: Run sync (extract from upstream repo)
+        run: python scripts/sync_zone_nova.py --write --upstream _upstream_gacha_wiki
 
       - name: Install tools (tsx)
         run: |
