@@ -37,12 +37,6 @@ CLASS_TO_ROLE = {
     "Warrior": "DPS",
 }
 
-# 예외: Apep은 Warrior지만 Tank 가능 -> 여기서는 role 자체를 Tank로 고정(요청사항)
-SPECIAL_ROLE_OVERRIDE = {
-    "apep": "Tank"
-}
-
-
 def iso_now():
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
@@ -70,11 +64,7 @@ def normalize_class(cls: str) -> str:
 
 
 def derive_role(char_id: str, class_title: str) -> str:
-    cid = (char_id or "").strip().lower()
-    if cid in SPECIAL_ROLE_OVERRIDE:
-        return SPECIAL_ROLE_OVERRIDE[cid]
     return CLASS_TO_ROLE.get(class_title, "")
-
 
 def has_js_files(p: Path) -> bool:
     if not p.exists() or not p.is_dir():
