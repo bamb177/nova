@@ -1,16 +1,22 @@
-name: Sync Zone Nova Assets & Data
+name: sync
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 3 * * 1"  # 매주 월요일 UTC 03:00
+    # 매일 03:10 UTC (KST 12:10)
+    - cron: "10 3 * * *"
 
 permissions:
   contents: write
 
+concurrency:
+  group: sync-zone-nova
+  cancel-in-progress: true
+
 jobs:
   sync:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout (your repo)
         uses: actions/checkout@v4
@@ -19,57 +25,42 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-      
-      - name: Run sync (extract from upstream repo)
-        run: python scripts/sync_zone_nova.py --write --upstream _upstream_gacha_wiki
 
-      - name: Install tools (tsx)
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps (Python)
         run: |
-          npm i -g tsx
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Clone upstream gacha-wiki
+      - name: Clone upstream gacha-wiki (only for extraction)
         run: |
-          rm -rf ._upstream_gacha_wiki
-          git clone --depth 1 https://github.com/boring877/gacha-wiki.git ._upstream_gacha_wiki
-          echo "Upstream cloned."
+          rm -rf _upstream_gacha_wiki
+          git clone --depth 1 https://github.com/boring877/gacha-wiki.git _upstream_gacha_wiki
+          echo "Upstream root:"
+          ls -la _upstream_gacha_wiki
+          echo "Upstream src/data candidates:"
+          find _upstream_gacha_wiki/src -maxdepth 5 -type d | head -n 80
 
-      - name: Sync images (zone-nova)
+      - name: Run sync (extract Zone Nova)
         run: |
-          mkdir -p public/images/games/zone-nova
-          # 1) 캐릭터 이미지
-          mkdir -p public/images/games/zone-nova/characters
-          rsync -a ._upstream_gacha_wiki/public/images/games/zone-nova/characters/ public/images/games/zone-nova/characters/ || true
-
-          # 2) 직업(클래스) 이미지 (public/images/games/zone-nova/classes/1*.jpg)
-          mkdir -p public/images/games/zone-nova/classes
-          rsync -a ._upstream_gacha_wiki/public/images/games/zone-nova/classes/ public/images/games/zone-nova/classes/ || true
-
-          # 3) 룬 이미지
-          mkdir -p public/images/games/zone-nova/runes
-          rsync -a ._upstream_gacha_wiki/public/images/games/zone-nova/runes/ public/images/games/zone-nova/runes/ || true
-
-          # 4) 노드트리 이미지
-          mkdir -p public/images/games/zone-nova/nodetree
-          rsync -a ._upstream_gacha_wiki/public/images/games/zone-nova/nodetree/ public/images/games/zone-nova/nodetree/ || true
-
-      - name: Build characters_meta.json from upstream JS/TS
-        run: |
-          mkdir -p public/data/zone-nova
-          tsx scripts/extract_zone_nova_characters.ts --upstream ._upstream_gacha_wiki --out public/data/zone-nova/characters_meta.json
+          python scripts/sync_zone_nova.py --write --upstream _upstream_gacha_wiki
 
       - name: Commit & Push if changed
         run: |
-          git status --porcelain
-          if [ -n "$(git status --porcelain)" ]; then
-            git config user.name "github-actions"
-            git config user.email "github-actions@github.com"
-            git add public/data/zone-nova/characters_meta.json
-            git add public/images/games/zone-nova/characters
-            git add public/images/games/zone-nova/classes
-            git add public/images/games/zone-nova/runes
-            git add public/images/games/zone-nova/nodetree
-            git commit -m "sync(zone-nova): update assets + characters_meta"
-            git push
-          else
-            echo "No changes"
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 변경 사항이 없으면 종료
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
           fi
+
+          git add public/data/zone-nova/characters.json public/data/zone-nova/characters_meta.json || true
+          git commit -m "sync(zone-nova): update characters data"
+          git push
