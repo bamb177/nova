@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="stylesheet" href="/css/style.css">
   <title>{{ title }}</title>
   <style>
     :root{
@@ -15,7 +14,7 @@
       --muted:rgba(255,255,255,.65);
       --accent:rgba(96,165,250,.9);
       --danger:rgba(248,113,113,.9);
-      --radius:16px;
+      --radius:14px;
     }
     *{box-sizing:border-box}
     body{
@@ -124,31 +123,40 @@
       border:1px solid var(--line);
       border-radius: var(--radius);
       background: rgba(0,0,0,.18);
-      padding:12px;
+      padding:10px;
       height: calc(100vh - 170px);
       overflow:auto;
     }
     @media (max-width: 980px){
       .gridWrap{height: auto; max-height: 70vh;}
     }
+
+    /* ============================
+       1/4 사이즈 느낌: 카드/이미지/배지 전체 축소
+       ============================ */
+
     .grid{
       display:grid;
-      grid-template-columns: repeat(4, minmax(190px, 1fr));
-      gap:12px;
+      /* 기존 2~4열 → 8~10열 수준으로 늘려 체감 크기 1/4 근접 */
+      grid-template-columns: repeat(8, minmax(110px, 1fr));
+      gap:8px;
     }
-    @media (max-width: 1200px){ .grid{grid-template-columns: repeat(3, minmax(170px, 1fr));} }
-    @media (max-width: 980px){ .grid{grid-template-columns: repeat(2, minmax(160px, 1fr));} }
-    @media (max-width: 540px){ .grid{grid-template-columns: 1fr;} }
+    @media (max-width: 1400px){ .grid{grid-template-columns: repeat(7, minmax(105px, 1fr));} }
+    @media (max-width: 1200px){ .grid{grid-template-columns: repeat(6, minmax(100px, 1fr));} }
+    @media (max-width: 980px){  .grid{grid-template-columns: repeat(4, minmax(92px, 1fr));} }
+    @media (max-width: 540px){  .grid{grid-template-columns: repeat(3, minmax(92px, 1fr));} }
 
     .charCard{
       border:1px solid rgba(255,255,255,.10);
-      border-radius: 16px;
+      border-radius: 12px;
       overflow:hidden;
       background: rgba(255,255,255,.04);
       position:relative;
     }
+
     .thumb{
       width:100%;
+      /* 이미지 영역도 줄임: 4:3 유지하되 전체 카드가 작아짐 */
       aspect-ratio: 4 / 3;
       background: rgba(0,0,0,.25);
       display:flex; align-items:center; justify-content:center;
@@ -163,49 +171,89 @@
       font-weight:900;
       color: rgba(255,255,255,.35);
       letter-spacing:.4px;
+      font-size:11px;
     }
+
+    /* 체크박스도 축소 */
     .chk{
-      position:absolute; top:10px; left:10px;
-      width:18px; height:18px;
+      position:absolute; top:6px; left:6px;
+      width:14px; height:14px;
       accent-color: rgba(96,165,250,.95);
       z-index:3;
     }
+
     .meta{
-      padding:10px 10px 12px 10px;
+      padding:6px 6px 7px 6px;
       background: rgba(0,0,0,.22);
       border-top:1px solid rgba(255,255,255,.08);
     }
+
+    /* 이름 폰트 축소 */
     .name{
       font-weight:900;
-      font-size:13px;
-      line-height:1.2;
-      margin-bottom:8px;
+      font-size:11px;
+      line-height:1.15;
+      margin-bottom:5px;
       color:rgba(255,255,255,.92);
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
     }
+
+    /* 배지 전체 축소 (한 줄에 과도하게 넘치지 않도록 최소화) */
     .badges{
-      display:flex; gap:8px; flex-wrap:wrap;
+      display:flex; gap:4px; flex-wrap:wrap;
     }
     .badge{
-      display:inline-flex; align-items:center; gap:6px;
+      display:inline-flex; align-items:center; gap:4px;
       border:1px solid rgba(255,255,255,.12);
       background: rgba(255,255,255,.06);
-      padding:5px 8px;
-      border-radius: 999px;
-      font-size:12px;
+      padding:3px 6px;
+      border-radius: 10px;
+      font-size:10px;
       color: rgba(255,255,255,.88);
     }
     .badge .ico{
-      width:16px; height:16px;
+      width:12px; height:12px;
       object-fit:contain;
       filter: drop-shadow(0 1px 2px rgba(0,0,0,.45));
     }
-    .badge.rarity{
+
+    /* 등급 배지: 네모상자 */
+    .rarity-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:3px 6px;
+      border-radius:7px;
       font-weight:900;
-      background: rgba(96,165,250,.12);
-      border-color: rgba(96,165,250,.30);
+      letter-spacing:.2px;
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow: 0 6px 16px rgba(0,0,0,.28);
+      line-height:1;
+      font-size:10px;
+      min-width: 34px;
+    }
+    .rarity-ssr{
+      color: #0b0f14;
+      background:
+        radial-gradient(circle at 20% 25%, rgba(255,255,255,.85), rgba(255,255,255,0) 42%),
+        linear-gradient(135deg,
+          #ff4fd8,
+          #7c5cff,
+          #2fd3ff,
+          #2dff88,
+          #ffe65a,
+          #ff8a3d
+        );
+    }
+    .rarity-sr{
+      color: #0b0f14;
+      background: linear-gradient(135deg, #ffb152, #ff7a00);
+    }
+    .rarity-r{
+      color:#e9eef5;
+      background: linear-gradient(135deg, #6e7786, #424a57);
     }
   </style>
 </head>
@@ -290,20 +338,20 @@
           </select>
         </div>
         <div>
-          <label>클래스(7)</label>
+          <label>클래스</label>
           <select id="fClass">
             <option value="">전체</option>
           </select>
         </div>
         <div>
-          <label>역할(5)</label>
+          <label>역할</label>
           <select id="fRole">
             <option value="">전체</option>
-            <option value="buffer">buffer</option>
-            <option value="dps">dps</option>
-            <option value="debuffer">debuffer</option>
-            <option value="healer">healer</option>
-            <option value="tank">tank</option>
+            <option value="Buffer">Buffer</option>
+            <option value="DPS">DPS</option>
+            <option value="Debuffer">Debuffer</option>
+            <option value="Healer">Healer</option>
+            <option value="Tank">Tank</option>
           </select>
         </div>
         <div>
@@ -352,7 +400,7 @@
     function uniqueClasses(chars){
       const s = new Set();
       for (const c of chars){
-        const v = (c.class || "").toString().toLowerCase();
+        const v = (c.class || "").toString();
         if (v && v !== "-") s.add(v);
       }
       return Array.from(s).sort();
@@ -383,17 +431,15 @@
       for (const c of uniqueClasses(CHARS)){
         const opt = document.createElement("option");
         opt.value = c;
-        opt.textContent = c; // 클래스명은 영문 유지
+        opt.textContent = c;
         sel.appendChild(opt);
       }
     }
 
     function cmpSort(a, b, key){
-      const av = (a[key] ?? "").toString().toLowerCase();
-      const bv = (b[key] ?? "").toString().toLowerCase();
-      if (av < bv) return -1;
-      if (av > bv) return 1;
-      return 0;
+      const av = (a[key] ?? "").toString();
+      const bv = (b[key] ?? "").toString();
+      return av.localeCompare(bv);
     }
 
     function applyFilter(){
@@ -406,15 +452,23 @@
       let list = CHARS.slice();
 
       if (fe) list = list.filter(c => c.element === fe);
-      if (fcls) list = list.filter(c => String(c.class || "").toLowerCase() === fcls);
-      if (fr) list = list.filter(c => String(c.role || "").toLowerCase() === fr);
-      if (frar) list = list.filter(c => c.rarity === frar);
+      if (fcls) list = list.filter(c => (c.class || "") === fcls);
+      if (fr) list = list.filter(c => (c.role || "") === fr);
+      if (frar) list = list.filter(c => (c.rarity || "") === frar);
 
       list.sort((a,b) => cmpSort(a,b,sortKey));
 
       state.filteredIds = list.map(x => x.id);
       renderGrid(list);
       updateSelectedCount();
+    }
+
+    function rarityBadge(r){
+      const rr = (r || "").toUpperCase();
+      if (rr === "SSR") return `<span class="rarity-badge rarity-ssr">SSR</span>`;
+      if (rr === "SR")  return `<span class="rarity-badge rarity-sr">SR</span>`;
+      if (rr === "R")   return `<span class="rarity-badge rarity-r">R</span>`;
+      return `<span class="rarity-badge rarity-r">${rr || "-"}</span>`;
     }
 
     function cardEl(c){
@@ -458,39 +512,24 @@
       const badges = document.createElement("div");
       badges.className = "badges";
 
-      // element badge
+      // element
       const b1 = document.createElement("div");
       b1.className = "badge";
-      if (c.element_icon){
-        const ico = document.createElement("img");
-        ico.className = "ico";
-        ico.src = c.element_icon;
-        ico.alt = c.element;
-        b1.appendChild(ico);
-      }
-      b1.appendChild(document.createTextNode(c.element || "-"));
+      b1.textContent = c.element || "-";
 
-      // class badge (7) - 아이콘은 classes 폴더 사용
+      // class
       const b2 = document.createElement("div");
       b2.className = "badge";
-      if (c.class_icon){
-        const ico = document.createElement("img");
-        ico.className = "ico";
-        ico.src = c.class_icon;
-        ico.alt = c.class;
-        b2.appendChild(ico);
-      }
-      b2.appendChild(document.createTextNode(c.class || "-"));
+      b2.textContent = c.class || "-";
 
-      // role badge (5) - 텍스트로만(겹침/가독성 최우선)
+      // role
       const b3 = document.createElement("div");
       b3.className = "badge";
       b3.textContent = c.role || "-";
 
-      // rarity badge
+      // rarity (사각 배지)
       const b4 = document.createElement("div");
-      b4.className = "badge rarity";
-      b4.textContent = c.rarity || "-";
+      b4.innerHTML = rarityBadge(c.rarity);
 
       badges.appendChild(b1);
       badges.appendChild(b2);
@@ -506,7 +545,6 @@
 
       div.addEventListener("click", (e) => {
         if (e.target === chk) return;
-        if (e.target?.classList?.contains("ico")) return;
         chk.checked = !chk.checked;
         chk.dispatchEvent(new Event("change"));
       });
