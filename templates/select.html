@@ -1,712 +1,258 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>{{ title }}</title>
-  <style>
-    :root{
-      --bg:#0b1220;
-      --panel:rgba(255,255,255,.06);
-      --panel2:rgba(255,255,255,.08);
-      --line:rgba(255,255,255,.10);
-      --text:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.65);
-      --accent:rgba(96,165,250,.9);
-      --danger:rgba(248,113,113,.9);
-      --radius:14px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Apple SD Gothic Neo", "Noto Sans KR", Arial;
-      background: radial-gradient(1200px 800px at 50% -10%, rgba(59,130,246,.25), transparent 60%),
-                  radial-gradient(1000px 700px at 10% 10%, rgba(168,85,247,.18), transparent 55%),
-                  var(--bg);
-      color:var(--text);
-    }
-    a{color:inherit; text-decoration:none}
-    .topbar{
-      position:sticky; top:0; z-index:50;
-      backdrop-filter: blur(14px);
-      background: rgba(5,10,20,.65);
-      border-bottom:1px solid var(--line);
-      padding:10px 14px;
-      display:flex; gap:10px; align-items:center; justify-content:space-between;
-    }
-    .brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.3px}
-    .pill{
-      border:1px solid var(--line);
-      background: var(--panel);
-      padding:6px 10px;
-      border-radius:999px;
-      font-size:12px;
-      color:var(--muted);
-    }
-    .btn{
-      border:1px solid var(--line);
-      background: var(--panel2);
-      padding:8px 12px;
-      border-radius:12px;
-      cursor:pointer;
-      color:var(--text);
-      font-weight:700;
-    }
-    .btn:hover{border-color:rgba(255,255,255,.18)}
-    .btn.primary{border-color:rgba(96,165,250,.45); background:rgba(96,165,250,.18)}
-    .btn.danger{border-color:rgba(248,113,113,.45); background:rgba(248,113,113,.10)}
-    .wrap{
-      padding:14px;
-      display:grid;
-      grid-template-columns: 340px 1fr;
-      gap:14px;
-    }
-    @media (max-width: 980px){
-      .wrap{grid-template-columns: 1fr; }
-    }
-    .card{
-      border:1px solid var(--line);
-      background: var(--panel);
-      border-radius: var(--radius);
-      padding:14px;
-      box-shadow: 0 18px 40px rgba(0,0,0,.35);
-    }
-    .title{
-      font-size:14px;
-      font-weight:800;
-      margin:0 0 10px 0;
-      color:rgba(255,255,255,.9);
-    }
-    .sub{
-      font-size:12px; color:var(--muted); margin-top:6px;
-    }
-    label{font-size:12px; color:var(--muted); display:block; margin-bottom:6px}
-    select,input{
-      width:100%;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(0,0,0,.25);
-      color:var(--text);
-      border-radius:12px;
-      padding:10px 12px;
-      outline:none;
-    }
-    .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
-    .resultBox{
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-      border-radius: 14px;
-      padding:12px;
-      margin-top:12px;
-    }
-    .mono{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      font-size:12px;
-      color:rgba(255,255,255,.88);
-      white-space:pre-wrap;
-      word-break:break-word;
-    }
+<meta charset="utf-8">
+<title>Nova Party Builder</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
-    .gridTop{
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      margin-bottom:10px;
-    }
-    .filters{
-      display:grid; grid-template-columns: 160px 160px 160px 160px 160px;
-      gap:10px;
-    }
-    @media (max-width: 980px){
-      .filters{grid-template-columns: 1fr 1fr;}
-    }
-    .gridActions{display:flex; gap:10px; flex-wrap:wrap; margin:10px 0}
-    .gridWrap{
-      border:1px solid var(--line);
-      border-radius: var(--radius);
-      background: rgba(0,0,0,.18);
-      padding:12px;
-      height: calc(100vh - 170px);
-      overflow:auto;
-    }
-    @media (max-width: 980px){
-      .gridWrap{height: auto; max-height: 70vh;}
-    }
+<style>
+body{
+  margin:0;
+  font-family:system-ui,-apple-system;
+  background:#0b1220;
+  color:#e5e7eb;
+}
+h2{margin:0 0 10px 0}
+button{
+  background:#2563eb;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  padding:8px 14px;
+  cursor:pointer;
+  font-weight:700;
+}
+button.secondary{background:#374151}
+button.danger{background:#dc2626}
 
-    /* 더 작게 + 간격 넓힘 */
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(10, minmax(88px, 1fr));
-      gap:20px; /* 캐릭터 간격 넓힘 */
-    }
-    @media (max-width: 1400px){ .grid{grid-template-columns: repeat(9, minmax(86px, 1fr));} }
-    @media (max-width: 1200px){ .grid{grid-template-columns: repeat(8, minmax(84px, 1fr));} }
-    @media (max-width: 980px){  .grid{grid-template-columns: repeat(5, minmax(82px, 1fr)); gap:16px;} }
-    @media (max-width: 540px){  .grid{grid-template-columns: repeat(4, minmax(78px, 1fr)); gap:14px;} }
+.container{
+  display:grid;
+  grid-template-columns:420px 1fr;
+  gap:16px;
+  padding:16px;
+}
+@media(max-width:1000px){
+  .container{grid-template-columns:1fr}
+}
 
-    .charCard{
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: 12px;
-      overflow:hidden;
-      background: rgba(255,255,255,.04);
-      position:relative;
-    }
+.panel{
+  background:#111827;
+  border:1px solid #1f2937;
+  border-radius:12px;
+  padding:14px;
+}
 
-    /* 썸네일 더 작게 (정사각) */
-    .thumb{
-      width:100%;
-      aspect-ratio: 1 / 1;
-      background: rgba(0,0,0,.25);
-      display:flex; align-items:center; justify-content:center;
-      position:relative;
-    }
-    .thumb img{
-      width:100%; height:100%;
-      object-fit:cover;
-      display:block;
-    }
-    .noimg{
-      font-weight:900;
-      color: rgba(255,255,255,.35);
-      letter-spacing:.4px;
-      font-size:10px;
-    }
+/* ===== 보유 캐릭터 리스트 ===== */
+.char-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  max-height:75vh;
+  overflow:auto;
+}
 
-    .chk{
-      position:absolute; top:6px; left:6px;
-      width:14px; height:14px;
-      accent-color: rgba(96,165,250,.95);
-      z-index:3;
-    }
+.char-row{
+  display:grid;
+  grid-template-columns:26px 56px 1fr 360px;
+  gap:12px;
+  align-items:center;
+  padding:8px;
+  background:#0f172a;
+  border-radius:10px;
+  border:1px solid #1f2937;
+}
+.char-row:hover{border-color:#3b82f6}
 
-    .meta{
-      padding:7px 7px 9px 7px;
-      background: rgba(0,0,0,.22);
-      border-top:1px solid rgba(255,255,255,.08);
-    }
-    .name{
-      font-weight:900;
-      font-size:11px;
-      line-height:1.15;
-      margin-bottom:7px;
-      color:rgba(255,255,255,.92);
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-    }
+.char-thumb img{
+  width:56px;
+  height:56px;
+  object-fit:cover;
+  border-radius:8px;
+}
 
-    /* 2열/2열 배치 */
-    .metaGrid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:6px;
-    }
+.char-name{
+  font-weight:800;
+  font-size:14px;
+}
 
-    /* 배지: 카드가 작아도 텍스트가 죽지 않도록 최소 폭 부여 */
-    .badge{
-      display:flex;
-      align-items:center;
-      gap:6px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      padding:4px 6px;
-      border-radius: 10px;
-      font-size:10px;
-      color: rgba(255,255,255,.90);
-      min-height: 22px;
-      min-width: 54px; /* 핵심: 동그라미처럼 눌리는 현상 방지 */
-      overflow:hidden;
-      white-space:nowrap;
-      text-overflow:ellipsis;
-    }
+.badges{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+}
 
-    .badgeIcon{
-      width:14px;
-      height:14px;
-      object-fit:contain;
-      flex: 0 0 auto;
-      filter: drop-shadow(0 1px 2px rgba(0,0,0,.45));
-    }
+.badge{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  background:#020617;
+  border:1px solid #1f2937;
+  border-radius:8px;
+  padding:4px 6px;
+  font-size:11px;
+}
+.badge img{
+  width:16px;
+  height:16px;
+  object-fit:contain;
+}
 
-    .rarity-badge{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:3px 6px;
-      border-radius:7px;
-      font-weight:900;
-      letter-spacing:.2px;
-      border:1px solid rgba(255,255,255,.18);
-      box-shadow: 0 6px 16px rgba(0,0,0,.28);
-      line-height:1;
-      font-size:10px;
-      min-width: 34px;
-    }
-    .rarity-ssr{
-      color: #0b0f14;
-      background:
-        radial-gradient(circle at 20% 25%, rgba(255,255,255,.85), rgba(255,255,255,0) 42%),
-        linear-gradient(135deg,#ff4fd8,#7c5cff,#2fd3ff,#2dff88,#ffe65a,#ff8a3d);
-    }
-    .rarity-sr{
-      color: #0b0f14;
-      background: linear-gradient(135deg, #ffb152, #ff7a00);
-    }
-    .rarity-r{
-      color:#e9eef5;
-      background: linear-gradient(135deg, #6e7786, #424a57);
-    }
-  </style>
+.rarity-SSR{background:linear-gradient(135deg,#ff4fd8,#7c5cff,#2fd3ff)}
+.rarity-SR{background:linear-gradient(135deg,#ffb152,#ff7a00)}
+.rarity-R{background:#6b7280;color:#111}
+
+/* ===== 추천 결과 카드 ===== */
+.party{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:14px;
+  margin-top:10px;
+}
+@media(max-width:900px){
+  .party{grid-template-columns:repeat(2,1fr)}
+}
+
+.party-card{
+  background:#020617;
+  border:1px solid #1f2937;
+  border-radius:14px;
+  overflow:hidden;
+}
+.party-card img{
+  width:100%;
+  aspect-ratio:1/1;
+  object-fit:cover;
+}
+.party-body{
+  padding:10px;
+}
+.party-name{
+  font-weight:900;
+  margin-bottom:6px;
+}
+.party-badges{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:6px;
+}
+</style>
 </head>
+
 <body>
-  <div class="topbar">
-    <div class="brand">
-      <div style="font-size:18px">{{ title }}</div>
-      <div class="pill">캐시 {{ cache_count }} · 보스 {{ boss_count }} · 갱신 {{ last_refresh }}</div>
-    </div>
-    <div style="display:flex; gap:8px; align-items:center">
-      <a class="btn" href="/refresh">새로고침</a>
-      <a class="btn" href="/meta">메타</a>
-      <a class="btn" href="/zones/zone-nova/characters">캐릭터 JSON</a>
-      <a class="btn" href="/zones/zone-nova/bosses">보스 JSON</a>
-    </div>
+
+<div class="container">
+
+<!-- ================= LEFT ================= -->
+<div class="panel">
+  <h2>보유 캐릭터</h2>
+
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <button class="secondary" onclick="selectAll(true)">전체선택</button>
+    <button class="secondary" onclick="selectAll(false)">해제</button>
   </div>
 
-  <div class="wrap">
-    <div class="card">
-      <div class="title">추천 옵션</div>
-      {% if error %}
-        <div class="sub" style="color:var(--danger); font-weight:800">데이터 로드 오류: {{ error }}</div>
-      {% endif %}
+  <div class="char-list" id="charList"></div>
+</div>
 
-      <label>모드</label>
-      <select id="mode">
-        <option value="pve">일반(PvE)</option>
-        <option value="boss">보스</option>
-        <option value="pvp">PVP</option>
-      </select>
+<!-- ================= RIGHT ================= -->
+<div class="panel">
+  <h2>추천 파티 결과</h2>
 
-      <div class="sub" style="margin:10px 0 6px 0; font-weight:800">보스 선택 시 약점/속성 자동 반영</div>
-
-      <label>보스 선택</label>
-      <select id="bossSelect">
-        <option value="">(선택 안 함)</option>
-      </select>
-
-      <div class="row" style="margin-top:10px">
-        <div>
-          <label>보스 약점 속성</label>
-          <select id="bossWeakness">
-            <option value="">(없음)</option>
-            <option>Fire</option><option>Wind</option><option>Ice</option><option>Holy</option><option>Chaos</option>
-          </select>
-        </div>
-        <div>
-          <label>상대(적) 속성</label>
-          <select id="enemyElement">
-            <option value="">(없음)</option>
-            <option>Fire</option><option>Wind</option><option>Ice</option><option>Holy</option><option>Chaos</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="actions">
-        <button class="btn primary" id="runBtn">추천 실행</button>
-        <button class="btn danger" id="clearBtn">초기화</button>
-      </div>
-
-      <div class="resultBox">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px">
-          <div class="title" style="margin:0">결과</div>
-          <button class="btn" id="copyBtn">JSON 복사</button>
-        </div>
-        <div class="mono" id="resultText">(아직 없음)</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="gridTop">
-        <div class="title" style="margin:0">보유 캐릭터 선택(이미지 체크)</div>
-        <div class="pill" id="selectedCount">선택 0</div>
-      </div>
-
-      <div class="filters">
-        <div>
-          <label>속성</label>
-          <select id="fElement">
-            <option value="">전체</option>
-            <option>Fire</option><option>Wind</option><option>Ice</option><option>Holy</option><option>Chaos</option>
-          </select>
-        </div>
-        <div>
-          <label>클래스</label>
-          <select id="fClass">
-            <option value="">전체</option>
-          </select>
-        </div>
-        <div>
-          <label>역할</label>
-          <select id="fRole">
-            <option value="">전체</option>
-            <option value="Buffer">Buffer</option>
-            <option value="DPS">DPS</option>
-            <option value="Debuffer">Debuffer</option>
-            <option value="Healer">Healer</option>
-            <option value="Tank">Tank</option>
-          </select>
-        </div>
-        <div>
-          <label>등급</label>
-          <select id="fRarity">
-            <option value="">전체</option>
-            <option>SSR</option><option>SR</option><option>R</option>
-          </select>
-        </div>
-        <div>
-          <label>정렬</label>
-          <select id="fSort">
-            <option value="name">이름</option>
-            <option value="rarity">등급</option>
-            <option value="element">속성</option>
-            <option value="class">클래스</option>
-            <option value="role">역할</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="gridActions">
-        <button class="btn" id="selAllBtn">전체 선택</button>
-        <button class="btn" id="selNoneBtn">전체 해제</button>
-        <button class="btn" id="selVisibleBtn">보이는 것만 선택</button>
-        <button class="btn" id="unselVisibleBtn">보이는 것만 해제</button>
-      </div>
-
-      <div class="gridWrap">
-        <div class="grid" id="grid"></div>
-      </div>
-    </div>
+  <div style="display:flex;gap:10px;margin-bottom:10px">
+    <select id="mode">
+      <option value="pve">PvE</option>
+      <option value="boss">Boss</option>
+      <option value="pvp">PvP</option>
+    </select>
+    <button onclick="runRecommend()">추천 실행</button>
   </div>
 
-  <script>
-    const CHARS = {{ chars_json | safe }};
-    const BOSSES = {{ bosses_json | safe }};
-    const $ = (id) => document.getElementById(id);
+  <div class="party" id="party"></div>
+</div>
 
-    const state = {
-      selected: new Set(),
-      filteredIds: [],
+</div>
+
+<script>
+const CHARS = {{ chars_json | safe }};
+const selected = new Set();
+
+function badge(text, img){
+  return `
+    <div class="badge">
+      ${img?`<img src="${img}">`:``}
+      <span>${text}</span>
+    </div>`;
+}
+
+function renderList(){
+  const el=document.getElementById("charList");
+  el.innerHTML="";
+  CHARS.forEach(c=>{
+    const row=document.createElement("div");
+    row.className="char-row";
+    row.innerHTML=`
+      <input type="checkbox" ${selected.has(c.id)?"checked":""}>
+      <div class="char-thumb">
+        <img src="${c.image||""}">
+      </div>
+      <div class="char-name">${c.name}</div>
+      <div class="badges">
+        ${badge(c.element,`/images/games/zone-nova/element/${c.element.toLowerCase()}.jpg`)}
+        ${badge(c.class,`/images/games/zone-nova/classes/${c.class}.jpg`)}
+        ${badge(c.role)}
+        <div class="badge rarity-${c.rarity}">${c.rarity}</div>
+      </div>
+    `;
+    row.querySelector("input").onchange=e=>{
+      e.target.checked?selected.add(c.id):selected.delete(c.id);
     };
+    el.appendChild(row);
+  });
+}
 
-    function titleCase(s){
-      const v = (s || "").toString().trim();
-      if (!v) return "";
-      return v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
-    }
+function selectAll(v){
+  if(v) CHARS.forEach(c=>selected.add(c.id));
+  else selected.clear();
+  renderList();
+}
 
-    function normalizeElement(v){
-      // 표시용은 "Fire/Wind..." 그대로 유지 (데이터가 소문자면 보정)
-      const t = titleCase(v);
-      return t;
-    }
+function runRecommend(){
+  fetch("/recommend/v3",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      mode:document.getElementById("mode").value,
+      owned:[...selected]
+    })
+  })
+  .then(r=>r.json())
+  .then(renderParty);
+}
 
-    function normalizeClass(v){
-      // file은 Buffer.jpg 등 TitleCase, 데이터가 mage/warrior면 보정
-      return titleCase(v);
-    }
+function renderParty(data){
+  const el=document.getElementById("party");
+  el.innerHTML="";
+  (data.party||[]).forEach(c=>{
+    const card=document.createElement("div");
+    card.className="party-card";
+    card.innerHTML=`
+      <img src="${c.image}">
+      <div class="party-body">
+        <div class="party-name">${c.name}</div>
+        <div class="party-badges">
+          ${badge(c.element,`/images/games/zone-nova/element/${c.element.toLowerCase()}.jpg`)}
+          ${badge(c.class,`/images/games/zone-nova/classes/${c.class}.jpg`)}
+          ${badge(c.role)}
+          <div class="badge rarity-${c.rarity}">${c.rarity}</div>
+        </div>
+      </div>
+    `;
+    el.appendChild(card);
+  });
+}
 
-    function deriveRoleFromClass(cls){
-      const c = normalizeClass(cls);
-      if (!c) return "";
-      if (c === "Guardian") return "Tank";
-      if (c === "Healer") return "Healer";
-      if (c === "Buffer") return "Buffer";
-      if (c === "Debuffer") return "Debuffer";
-      if (c === "Warrior" || c === "Mage" || c === "Rogue") return "DPS";
-      return "";
-    }
+renderList();
+</script>
 
-    function normalizeRole(role, cls){
-      const r = titleCase(role);
-      if (r) {
-        // DPS는 대문자 유지
-        if (r.toUpperCase() === "DPS") return "DPS";
-        return r;
-      }
-      const dr = deriveRoleFromClass(cls);
-      return dr || "";
-    }
-
-    function uniqueClasses(chars){
-      const s = new Set();
-      for (const c of chars){
-        const v = normalizeClass(c.class || "");
-        if (v && v !== "-") s.add(v);
-      }
-      return Array.from(s).sort();
-    }
-
-    function renderBosses(){
-      const sel = $("bossSelect");
-      for (const b of BOSSES){
-        const opt = document.createElement("option");
-        opt.value = b.id;
-        opt.textContent = b.name;
-        opt.dataset.weakness = b.weakness || "";
-        opt.dataset.enemy = b.enemy_element || "";
-        sel.appendChild(opt);
-      }
-      sel.addEventListener("change", () => {
-        const opt = sel.options[sel.selectedIndex];
-        const w = opt?.dataset?.weakness || "";
-        const e = opt?.dataset?.enemy || "";
-        if (w) $("bossWeakness").value = w;
-        if (e) $("enemyElement").value = e;
-      });
-    }
-
-    function renderClassFilter(){
-      const sel = $("fClass");
-      while (sel.options.length > 1) sel.remove(1);
-      for (const c of uniqueClasses(CHARS)){
-        const opt = document.createElement("option");
-        opt.value = c;
-        opt.textContent = c;
-        sel.appendChild(opt);
-      }
-    }
-
-    function cmpSort(a, b, key){
-      const av = (a[key] ?? "").toString();
-      const bv = (b[key] ?? "").toString();
-      return av.localeCompare(bv);
-    }
-
-    function applyFilter(){
-      const fe = $("fElement").value;
-      const fcls = $("fClass").value;
-      const fr = $("fRole").value;
-      const frar = $("fRarity").value;
-      const sortKey = $("fSort").value;
-
-      let list = CHARS.map(x => {
-        // UI에서 안전하게 보정된 값 사용
-        const element = normalizeElement(x.element || "");
-        const cls = normalizeClass(x.class || "");
-        const role = normalizeRole(x.role || "", cls);
-        const rarity = (x.rarity || "").toString().toUpperCase();
-
-        return {
-          ...x,
-          element,
-          class: cls,
-          role,
-          rarity
-        };
-      });
-
-      if (fe) list = list.filter(c => c.element === fe);
-      if (fcls) list = list.filter(c => (c.class || "") === fcls);
-      if (fr) list = list.filter(c => (c.role || "") === fr);
-      if (frar) list = list.filter(c => (c.rarity || "") === frar);
-
-      list.sort((a,b) => cmpSort(a,b,sortKey));
-
-      state.filteredIds = list.map(x => x.id);
-      renderGrid(list);
-      updateSelectedCount();
-    }
-
-    function rarityBadge(r){
-      const rr = (r || "").toUpperCase();
-      if (rr === "SSR") return `<span class="rarity-badge rarity-ssr">SSR</span>`;
-      if (rr === "SR")  return `<span class="rarity-badge rarity-sr">SR</span>`;
-      if (rr === "R")   return `<span class="rarity-badge rarity-r">R</span>`;
-      return `<span class="rarity-badge rarity-r">${rr || "-"}</span>`;
-    }
-
-    function makeImg(src){
-      const img = document.createElement("img");
-      img.className = "badgeIcon";
-      img.loading = "lazy";
-      img.src = src;
-      img.onerror = () => img.remove();
-      return img;
-    }
-
-    // 파일명 규칙 고정:
-    // element: chaos.jpg / fire.jpg ...
-    function elementIcon(el){
-      const v = (el || "").toString().trim();
-      if (!v) return null;
-      const file = v.toLowerCase(); // 중요
-      return makeImg(`/images/games/zone-nova/element/${file}.jpg`);
-    }
-
-    // class: Buffer.jpg / Mage.jpg ...
-    function classIcon(cls){
-      const v = (cls || "").toString().trim();
-      if (!v) return null;
-      const file = normalizeClass(v); // 중요
-      return makeImg(`/images/games/zone-nova/classes/${file}.jpg`);
-    }
-
-    function badgeWithIcon(iconEl, text){
-      const b = document.createElement("div");
-      b.className = "badge";
-      if (iconEl) b.appendChild(iconEl);
-      const span = document.createElement("span");
-      span.textContent = (text && text.trim()) ? text : "-";
-      b.appendChild(span);
-      return b;
-    }
-
-    function cardEl(c){
-      const div = document.createElement("div");
-      div.className = "charCard";
-      div.dataset.id = c.id;
-
-      const chk = document.createElement("input");
-      chk.type = "checkbox";
-      chk.className = "chk";
-      chk.checked = state.selected.has(c.id);
-      chk.addEventListener("change", (e) => {
-        if (e.target.checked) state.selected.add(c.id);
-        else state.selected.delete(c.id);
-        updateSelectedCount();
-      });
-
-      const thumb = document.createElement("div");
-      thumb.className = "thumb";
-
-      if (c.image){
-        const img = document.createElement("img");
-        img.loading = "lazy";
-        img.src = c.image;
-        img.alt = c.name;
-        thumb.appendChild(img);
-      } else {
-        const no = document.createElement("div");
-        no.className = "noimg";
-        no.textContent = "NO IMAGE";
-        thumb.appendChild(no);
-      }
-
-      const meta = document.createElement("div");
-      meta.className = "meta";
-
-      const name = document.createElement("div");
-      name.className = "name";
-      name.textContent = c.name;
-
-      const mg = document.createElement("div");
-      mg.className = "metaGrid";
-
-      // 2x2: element / class / role / rarity
-      const bElement = badgeWithIcon(elementIcon(c.element), c.element || "-");
-      const bClass   = badgeWithIcon(classIcon(c.class), c.class || "-");
-      const bRole    = badgeWithIcon(null, c.role || "-");
-
-      const bRarity = document.createElement("div");
-      bRarity.className = "badge";
-      bRarity.style.justifyContent = "center";
-      bRarity.innerHTML = rarityBadge(c.rarity);
-
-      mg.appendChild(bElement);
-      mg.appendChild(bClass);
-      mg.appendChild(bRole);
-      mg.appendChild(bRarity);
-
-      meta.appendChild(name);
-      meta.appendChild(mg);
-
-      div.appendChild(chk);
-      div.appendChild(thumb);
-      div.appendChild(meta);
-
-      div.addEventListener("click", (e) => {
-        if (e.target === chk) return;
-        chk.checked = !chk.checked;
-        chk.dispatchEvent(new Event("change"));
-      });
-
-      return div;
-    }
-
-    function renderGrid(list){
-      const g = $("grid");
-      g.innerHTML = "";
-      for (const c of list){
-        g.appendChild(cardEl(c));
-      }
-    }
-
-    function updateSelectedCount(){
-      $("selectedCount").textContent = "선택 " + state.selected.size;
-    }
-
-    function setAll(checked){
-      for (const id of (state.filteredIds.length ? state.filteredIds : CHARS.map(c=>c.id))){
-        if (checked) state.selected.add(id);
-        else state.selected.delete(id);
-      }
-      applyFilter();
-      updateSelectedCount();
-    }
-
-    function setVisible(checked){
-      for (const id of state.filteredIds){
-        if (checked) state.selected.add(id);
-        else state.selected.delete(id);
-      }
-      applyFilter();
-      updateSelectedCount();
-    }
-
-    function runRecommend(){
-      const payload = {
-        mode: $("mode").value,
-        owned: Array.from(state.selected),
-        boss_weakness: $("bossWeakness").value || null,
-        enemy_element: $("enemyElement").value || null,
-        required: [],
-        banned: [],
-      };
-
-      fetch("/recommend/v3", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify(payload)
-      })
-      .then(r => r.json())
-      .then(j => {
-        $("resultText").textContent = JSON.stringify(j, null, 2);
-      })
-      .catch(err => {
-        $("resultText").textContent = "오류: " + (err?.message || err);
-      });
-    }
-
-    function copyResult(){
-      const txt = $("resultText").textContent || "";
-      navigator.clipboard.writeText(txt).catch(()=>{});
-    }
-
-    $("fElement").addEventListener("change", applyFilter);
-    $("fClass").addEventListener("change", applyFilter);
-    $("fRole").addEventListener("change", applyFilter);
-    $("fRarity").addEventListener("change", applyFilter);
-    $("fSort").addEventListener("change", applyFilter);
-
-    $("selAllBtn").addEventListener("click", () => setAll(true));
-    $("selNoneBtn").addEventListener("click", () => setAll(false));
-    $("selVisibleBtn").addEventListener("click", () => setVisible(true));
-    $("unselVisibleBtn").addEventListener("click", () => setVisible(false));
-
-    $("runBtn").addEventListener("click", runRecommend);
-    $("clearBtn").addEventListener("click", () => { state.selected.clear(); applyFilter(); $("resultText").textContent="(아직 없음)"; });
-    $("copyBtn").addEventListener("click", copyResult);
-
-    renderBosses();
-    renderClassFilter();
-    applyFilter();
-  </script>
 </body>
 </html>
