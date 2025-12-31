@@ -1,178 +1,174 @@
-# scripts/sync_zone_nova.py
 import argparse
 import json
-import re
+import os
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = ROOT / "public" / "data" / "zone-nova"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+OUT_DIR = REPO_ROOT / "public" / "data" / "zone-nova"
+CHAR_JSON = OUT_DIR / "characters.json"
+META_JSON = OUT_DIR / "characters_meta.json"
 
-CHAR_JSON = DATA_DIR / "characters.json"
-CHAR_META_JSON = DATA_DIR / "characters_meta.json"
+NODE_EXTRACTOR = REPO_ROOT / "scripts" / "extract_zone_nova_characters.mjs"
 
-CLASS_SET = {"buffer", "debuffer", "guardian", "healer", "mage", "rogue", "warrior"}
-ROLE_SET = {"buffer", "dps", "debuffer", "healer", "tank"}
 
-CLASS_TO_ROLE = {
-    "buffer": "buffer",
-    "debuffer": "debuffer",
-    "healer": "healer",
-    "guardian": "tank",
-    "mage": "dps",
-    "rogue": "dps",
-    "warrior": "dps",
-}
+def iso_now():
+    # KST 고정이 꼭 필요하면 여기서 +09:00로 바꿔도 됨
+    return datetime.now(timezone.utc).astimezone().isoformat()
 
-SPECIAL_ROLE_OVERRIDES = {
-    "apep": "tank",
-}
 
-def now_iso() -> str:
-    return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+def has_js_files(p: Path) -> bool:
+    if not p.exists() or not p.is_dir():
+        return False
+    for child in p.iterdir():
+        if child.is_file() and child.suffix.lower() == ".js" and child.name.lower() != "index.js":
+            return True
+    return False
 
-def slug_id(s: str) -> str:
-    s = (s or "").strip().lower().replace("’", "'")
-    s = re.sub(r"[\s'\"`]+", "", s)
-    s = re.sub(r"[^a-z0-9_-]", "", s)
-    return s
 
-def run_node_extract(upstream_root: Path, out_file: Path):
-    script = ROOT / "scripts" / "extract_zone_nova_characters.mjs"
-    if not script.exists():
-        raise RuntimeError(f"extract 스크립트를 찾지 못했습니다: {script}")
+def find_zone_nova_characters_dir(upstream_root: Path) -> Path:
+    """
+    Upstream structure may change. We search robustly.
+    Priority:
+      1) known canonical paths
+      2) heuristic walk under upstream_root/src looking for *zone-nova*/*zone_nova* and *characters* directory
+    """
+    candidates = [
+        upstream_root / "src" / "data" / "zone-nova" / "characters",
+        upstream_root / "src" / "data" / "zone_nova" / "characters",
+        upstream_root / "src" / "data" / "zone-nova" / "character",
+        upstream_root / "src" / "data" / "zone_nova" / "character",
+    ]
+    for c in candidates:
+        if has_js_files(c):
+            return c
 
-    out_file.parent.mkdir(parents=True, exist_ok=True)
+    # heuristic scan
+    src_root = upstream_root / "src"
+    if not src_root.exists():
+        raise RuntimeError(f"업스트림 src 디렉터리를 찾지 못했습니다: {src_root}")
 
-    cmd = ["node", str(script), "--upstream", str(upstream_root), "--out", str(out_file)]
+    best = None
+    for root, dirs, files in os.walk(src_root):
+        rp = Path(root)
+        lower_parts = [x.lower() for x in rp.parts]
+        # zone-nova/zone_nova 포함 & characters/character 디렉터리 후보
+        if ("zone-nova" in lower_parts or "zone_nova" in lower_parts) and (
+            rp.name.lower() in ("characters", "character")
+        ):
+            if any(f.lower().endswith(".js") and f.lower() != "index.js" for f in files):
+                best = rp
+                break
+
+    if best:
+        return best
+
+    raise RuntimeError(
+        "업스트림에서 zone-nova 캐릭터 디렉터리를 찾지 못했습니다. "
+        "업스트림 경로가 변경된 것으로 보입니다."
+    )
+
+
+def run_node_extract(input_dir: Path, out_file: Path):
+    if not NODE_EXTRACTOR.exists():
+        raise RuntimeError(f"노드 추출기 파일이 없습니다: {NODE_EXTRACTOR}")
+
+    cmd = [
+        "node",
+        str(NODE_EXTRACTOR),
+        "--input-dir",
+        str(input_dir),
+        "--out",
+        str(out_file),
+    ]
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
-        raise RuntimeError(f"Node 변환 실패:\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}")
-
-    print(proc.stdout.strip())
-
-def normalize_class(v) -> str:
-    if v is None:
-        return "-"
-    s = str(v).strip()
-    if not s:
-        return "-"
-    low = s.lower()
-
-    alias = {
-        "guard": "guardian",
-        "guardian": "guardian",
-        "healer": "healer",
-        "buffer": "buffer",
-        "support": "buffer",
-        "debuffer": "debuffer",
-        "mage": "mage",
-        "rogue": "rogue",
-        "warrior": "warrior",
-        # 잘못 들어온 값 보정(혹시 role이 섞였을 때)
-        "tank": "guardian",
-        "dps": "warrior",
-    }
-    if low in CLASS_SET:
-        return low
-    if low in alias:
-        return alias[low]
-    return "-"
-
-def role_from_class(cls: str, cid: str) -> str:
-    if not cls or cls == "-":
-        return "-"
-    cid = (cid or "").strip().lower()
-    if cid in SPECIAL_ROLE_OVERRIDES:
-        return SPECIAL_ROLE_OVERRIDES[cid]
-    return CLASS_TO_ROLE.get(cls, "-")
-
-def load_characters_json(path: Path):
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    if isinstance(raw, list):
-        return raw
-    if isinstance(raw, dict) and isinstance(raw.get("characters"), list):
-        return raw["characters"]
-    raise RuntimeError("characters.json 포맷 오류: list 또는 {characters:[...]} 이어야 합니다.")
-
-def build_char_meta(chars: list[dict]) -> dict:
-    out = []
-    seen = set()
-
-    for c in chars:
-        if not isinstance(c, dict):
-            continue
-
-        name = (c.get("name") or "").strip()
-        cid = c.get("id") or c.get("_id") or ""
-        cid = slug_id(cid) if cid else slug_id(name)
-
-        if not cid or cid in seen:
-            continue
-        seen.add(cid)
-
-        # Jeanne D Arc 통일
-        if slug_id(name) in {"jeannedarc", "joanofarc"} or cid in {"joanofarc"} or "jeanne" in cid:
-            cid = "jeannedarc"
-            name = "Jeanne D Arc"
-
-        rarity = (c.get("rarity") or c.get("rank") or "-").strip().upper()
-        element = (c.get("element") or "-").strip()
-
-        # 핵심: class 키를 1순위로 읽는다(요청사항)
-        cls_raw = (
-            c.get("class") or c.get("Class") or
-            c.get("classes") or c.get("Classes") or
-            c.get("job") or c.get("Job") or
-            c.get("type") or c.get("Type")
+        raise RuntimeError(
+            "Node 변환 실패:\n"
+            f"STDOUT:\n{proc.stdout}\n\nSTDERR:\n{proc.stderr}\n"
         )
-        cls = normalize_class(cls_raw)
-        role = role_from_class(cls, cid)
 
-        out.append({
-            "id": cid,
-            "name": name or cid,
-            "rarity": rarity,
-            "element": element,
-            "class": cls,   # 7개
-            "role": role,   # 5개(계산)
-        })
+
+def build_meta(char_list: list[dict]) -> dict:
+    """
+    characters_meta.json: UI/추천 엔진이 바로 쓰기 쉬운 형태로 정규화.
+    - classes는 'class' 필드로 저장 (사용자 요구)
+    - role은 파생값(버튼/필터용). 필요없으면 추후 제거 가능.
+    """
+    out_chars = []
+    for c in char_list:
+        name = (c.get("name") or "").strip()
+        cid = (c.get("id") or "").strip()
+        cls = (c.get("class") or "").strip()
+        rarity = (c.get("rarity") or "").strip()
+        element = (c.get("element") or "").strip()
+        role = (c.get("role") or "").strip()
+        tank_capable = bool(c.get("tank_capable", False))
+
+        # image 처리:
+        # - 업스트림에서 image를 줬으면 그대로 사용
+        # - 없으면 (name 기반 jpg)로 기본값. 실제 파일명 예외(Snow/Morgan 등)는 후속 단계에서 별도 맵으로 보정 가능
+        img = (c.get("image") or "").strip()
+        if not img:
+            # 기본 규칙: 공백 제거한 형태를 쓰지 않고, 기존 시스템과 충돌이 많아 name을 그대로 쓰지 않음
+            # 현재는 id 기반으로 우선 추정
+            img = f"{cid}.jpg" if cid else ""
+
+        out_chars.append(
+            {
+                "id": cid,
+                "name": name,
+                "rarity": rarity,
+                "element": element,
+                "class": cls,          # 핵심: class 기반
+                "role": role,          # 파생(필터/추천용)
+                "tank_capable": tank_capable,
+                "image": img,          # UI 이미지 매칭용
+            }
+        )
 
     return {
-        "generated_at": now_iso(),
-        "count": len(out),
-        "characters": out,
-        "notes": {
-            "class_set": sorted(list(CLASS_SET)),
-            "role_set": sorted(list(ROLE_SET)),
-            "class_to_role": CLASS_TO_ROLE,
-            "special_role_overrides": SPECIAL_ROLE_OVERRIDES,
-            "source": "upstream src/data/zone-nova/characters/*.js (class key)"
-        }
+        "game": "zone-nova",
+        "last_refresh": iso_now(),
+        "count": len(out_chars),
+        "characters": out_chars,
     }
+
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--upstream", required=True, help="업스트림 레포 루트 (예: _upstream_gacha_wiki)")
-    ap.add_argument("--write", action="store_true", help="characters.json + characters_meta.json 쓰기")
+    ap.add_argument("--upstream", required=True, help="Upstream repo root path (cloned)")
+    ap.add_argument("--write", action="store_true", help="Write outputs to public/data/zone-nova")
     args = ap.parse_args()
 
     upstream_root = Path(args.upstream).resolve()
+    if not upstream_root.exists():
+        raise RuntimeError(f"업스트림 루트가 존재하지 않습니다: {upstream_root}")
 
-    # 1) 업스트림 추출(단일 파일/디렉토리 자동 감지)
-    run_node_extract(upstream_root, CHAR_JSON)
+    # 1) find actual characters dir
+    char_dir = find_zone_nova_characters_dir(upstream_root)
 
-    # 2) characters.json -> characters_meta.json (class 기반)
-    chars = load_characters_json(CHAR_JSON)
-    meta = build_char_meta(chars)
+    # 2) node extract -> characters.json
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    run_node_extract(char_dir, CHAR_JSON)
+
+    # 3) build characters_meta.json in required format
+    char_list = json.loads(CHAR_JSON.read_text(encoding="utf-8"))
+    if not isinstance(char_list, list):
+        raise RuntimeError("characters.json 포맷 오류: list 여야 합니다.")
+
+    meta = build_meta(char_list)
 
     if args.write:
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
-        CHAR_META_JSON.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(f"OK: wrote {CHAR_META_JSON} (count={meta['count']})")
-    else:
-        print(json.dumps(meta, ensure_ascii=False, indent=2))
+        META_JSON.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    print("OK")
+    print(f"- upstream: {upstream_root}")
+    print(f"- detected dir: {char_dir}")
+    print(f"- characters.json: {CHAR_JSON} ({len(char_list)})")
+    print(f"- characters_meta.json: {META_JSON} ({meta['count']})")
+
 
 if __name__ == "__main__":
     main()
