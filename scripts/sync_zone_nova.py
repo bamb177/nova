@@ -1,22 +1,37 @@
+# scripts/sync_zone_nova.py
+import argparse
+import json
 import os
 import re
-import json
-import time
-import argparse
+import subprocess
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any, List, Tuple
+from pathlib import Path
 
-import requests
-from bs4 import BeautifulSoup
+ROOT = Path(__file__).resolve().parents[1]
 
+DATA_DIR = ROOT / "public" / "data" / "zone-nova"
+CHAR_JSON = DATA_DIR / "characters.json"
+CHAR_META_JSON = DATA_DIR / "characters_meta.json"
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT_PATH = os.path.join(BASE_DIR, "public", "data", "zone-nova", "characters_meta.json")
+UPSTREAM_CHAR_JS = Path("src/data/zone-nova/characters.js")
 
-# 1차(일괄 파싱) / 2차(목록+개별페이지)
-URL_COMPARISON_V2 = "https://gachawiki.info/guides/zone-nova/character-comparison-v2/"
-URL_CHAR_INDEX = "https://gachawiki.info/guides/zone-nova/characters/"
+CLASS_SET = {"buffer", "debuffer", "guardian", "healer", "mage", "rogue", "warrior"}
+ROLE_SET = {"buffer", "dps", "debuffer", "healer", "tank"}
 
+CLASS_TO_ROLE = {
+    "buffer": "buffer",
+    "debuffer": "debuffer",
+    "healer": "healer",
+    "guardian": "tank",
+    "mage": "dps",
+    "rogue": "dps",
+    "warrior": "dps",
+}
+
+# Apep 예외: warrior 클래스여도 tank 역할 가능(요청사항 반영)
+SPECIAL_ROLE_OVERRIDES = {
+    "apep": "tank",
+}
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
@@ -29,263 +44,169 @@ def slug_id(s: str) -> str:
     return s
 
 
-def normalize_role(role: str) -> str:
-    r = (role or "").strip().lower()
-    if r in {"dps", "tank", "healer", "buffer", "debuffer"}:
-        return r
-    if "heal" in r:
-        return "healer"
-    if "tank" in r or "guard" in r or "defend" in r:
-        return "tank"
-    if "debuff" in r:
-        return "debuffer"
-    if "buff" in r or "support" in r:
-        return "buffer"
-    if "dps" in r or "damage" in r or "attacker" in r:
-        return "dps"
-    return r or "-"
+def run_node_extract(upstream_root: Path, out_file: Path):
+    """
+    업스트림 characters.js -> characters.json 변환
+    """
+    script = ROOT / "scripts" / "extract_zone_nova_characters.mjs"
+    if not script.exists():
+        raise RuntimeError(f"extract 스크립트를 찾지 못했습니다: {script}")
+
+    js_path = upstream_root / UPSTREAM_CHAR_JS
+    if not js_path.exists():
+        raise RuntimeError(f"업스트림 파일을 찾지 못했습니다: {js_path}")
+
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+
+    cmd = [
+        "node",
+        str(script),
+        "--upstream",
+        str(upstream_root),
+        "--out",
+        str(out_file),
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError(f"Node 변환 실패:\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}")
+
+    print(proc.stdout.strip())
 
 
-def ensure_parent_dir(path: str):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+def normalize_class(v) -> str:
+    """
+    원본 characters.js 안의 class/classes/job 등 어느 키로 오든 class(7)로 정규화
+    """
+    if v is None:
+        return "-"
+    s = str(v).strip()
+    if not s:
+        return "-"
 
+    low = s.lower()
 
-def http_get(url: str, timeout: int = 35) -> str:
-    headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; NovaSync/1.0; +https://github.com/)",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    alias = {
+        "guard": "guardian",
+        "guardian": "guardian",
+        "healer": "healer",
+        "buffer": "buffer",
+        "support": "buffer",
+        "debuffer": "debuffer",
+        "mage": "mage",
+        "rogue": "rogue",
+        "warrior": "warrior",
+        # 잘못 들어온 경우 보정(원본에서 role을 class로 잘못 쓰는 상황 대비)
+        "tank": "guardian",
+        "dps": "warrior",
     }
-    r = requests.get(url, headers=headers, timeout=timeout)
-    r.raise_for_status()
-    return r.text
+
+    if low in CLASS_SET:
+        return low
+    if low in alias:
+        return alias[low]
+    return "-"
 
 
-def pick_value(lines: List[str], key: str) -> Optional[str]:
-    for i, l in enumerate(lines):
-        if l == key and i + 1 < len(lines):
-            return lines[i + 1]
-    return None
+def role_from_class(cls: str, cid: str) -> str:
+    if not cls or cls == "-":
+        return "-"
+    cid = (cid or "").strip().lower()
+    if cid in SPECIAL_ROLE_OVERRIDES:
+        return SPECIAL_ROLE_OVERRIDES[cid]
+    return CLASS_TO_ROLE.get(cls, "-")
 
 
-def parse_from_web_comparison_v2(html: str) -> Dict[str, Dict[str, str]]:
+def load_characters_json(path: Path):
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(raw, list):
+        return raw
+    if isinstance(raw, dict) and isinstance(raw.get("characters"), list):
+        return raw["characters"]
+    raise RuntimeError("characters.json 포맷 오류: list 또는 {characters:[...]} 이어야 합니다.")
+
+
+def build_char_meta(chars: list[dict]) -> dict:
     """
-    character-comparison-v2 페이지는 대개 텍스트에
-    ### Name / Rarity / Element / Role 구조가 들어있음
+    출력: { characters: [ ... ] }
+    - class(7) 기준으로 role(5) 계산
     """
-    soup = BeautifulSoup(html, "lxml")
-    text = soup.get_text("\n")
+    out = []
+    seen = set()
 
-    chunks = text.split("\n### ")
-    if len(chunks) < 2:
-        raise RuntimeError("comparison-v2 구조에서 '###' 패턴을 찾지 못했습니다(페이지 구조 변경/차단 가능).")
-
-    result: Dict[str, Dict[str, str]] = {}
-    for chunk in chunks[1:]:
-        name = chunk.split("\n", 1)[0].strip()
-        if not name:
-            continue
-        lines = [x.strip() for x in chunk.split("\n") if x.strip()]
-        rarity = pick_value(lines, "Rarity")
-        element = pick_value(lines, "Element")
-        role = pick_value(lines, "Role")
-        if not (rarity and element and role):
+    for c in chars:
+        if not isinstance(c, dict):
             continue
 
-        sid = slug_id(name)
-        # Jeanne D Arc 통일
-        if sid in {"joanofarc", "jeannedarc"} or "jeanne" in sid:
-            sid = "jeannedarc"
+        name = (c.get("name") or "").strip()
+        cid = c.get("id") or c.get("_id") or ""
+        cid = slug_id(cid) if cid else slug_id(name)
+
+        if not cid or cid in seen:
+            continue
+        seen.add(cid)
+
+        # Jeanne D Arc 통일(기존 혼선 방지)
+        if slug_id(name) in {"jeannedarc", "joanofarc"} or cid in {"joanofarc"} or "jeanne" in cid:
+            cid = "jeannedarc"
             name = "Jeanne D Arc"
 
-        result[sid] = {
-            "name": name,
-            "rarity": rarity.strip().upper(),
-            "element": element.strip(),
-            "role": normalize_role(role),
+        rarity = (c.get("rarity") or c.get("rank") or "-").strip().upper()
+        element = (c.get("element") or "-").strip()
+
+        # 중요한 부분: role이 아니라 class를 가져온다
+        cls_raw = (
+            c.get("class") or c.get("Class") or
+            c.get("classes") or c.get("Classes") or
+            c.get("job") or c.get("Job") or
+            c.get("type") or c.get("Type")
+        )
+        cls = normalize_class(cls_raw)
+
+        role = role_from_class(cls, cid)
+
+        out.append({
+            "id": cid,
+            "name": name or cid,
+            "rarity": rarity,
+            "element": element,
+            "class": cls,   # 7개
+            "role": role,   # 5개(계산값)
+        })
+
+    return {
+        "generated_at": now_iso(),
+        "count": len(out),
+        "characters": out,
+        "notes": {
+            "class_set": sorted(list(CLASS_SET)),
+            "role_set": sorted(list(ROLE_SET)),
+            "class_to_role": CLASS_TO_ROLE,
+            "special_role_overrides": SPECIAL_ROLE_OVERRIDES,
         }
-
-    if len(result) < 20:
-        raise RuntimeError(f"comparison-v2 파싱 결과가 너무 적습니다({len(result)}).")
-    return result
-
-
-def extract_dt_dd(soup: BeautifulSoup, key: str) -> Optional[str]:
-    """
-    DT/DD 구조에서 key에 해당하는 값을 찾음
-    """
-    dts = soup.find_all(["dt", "th"])
-    for dt in dts:
-        if not dt.get_text(strip=True):
-            continue
-        if dt.get_text(strip=True).lower() == key.lower():
-            # dt 다음 dd 혹은 같은 row의 td
-            dd = dt.find_next_sibling(["dd", "td"])
-            if dd:
-                v = dd.get_text(" ", strip=True)
-                return v if v else None
-    return None
-
-
-def extract_from_table_rows(soup: BeautifulSoup, key: str) -> Optional[str]:
-    """
-    표(tr) 기반에서 th=key인 td를 찾음
-    """
-    for tr in soup.find_all("tr"):
-        th = tr.find("th")
-        td = tr.find("td")
-        if not th or not td:
-            continue
-        if th.get_text(strip=True).lower() == key.lower():
-            v = td.get_text(" ", strip=True)
-            return v if v else None
-    return None
-
-
-def parse_character_detail(url: str) -> Optional[Tuple[str, str, str, str]]:
-    """
-    개별 캐릭터 페이지에서 (id, name, rarity, element, role)을 추출.
-    실패하면 None.
-    """
-    html = http_get(url)
-    soup = BeautifulSoup(html, "lxml")
-
-    # 이름: h1 우선
-    h1 = soup.find("h1")
-    name = h1.get_text(" ", strip=True) if h1 else ""
-    if not name:
-        # title fallback
-        title = soup.find("title")
-        name = title.get_text(" ", strip=True) if title else ""
-        name = name.replace(" - GachaWiki", "").strip()
-
-    name = name.replace("’", "'").strip()
-    if not name:
-        return None
-
-    rarity = (
-        extract_dt_dd(soup, "Rarity")
-        or extract_from_table_rows(soup, "Rarity")
-    )
-    element = (
-        extract_dt_dd(soup, "Element")
-        or extract_from_table_rows(soup, "Element")
-    )
-    role = (
-        extract_dt_dd(soup, "Role")
-        or extract_from_table_rows(soup, "Role")
-        or extract_dt_dd(soup, "Class")
-        or extract_from_table_rows(soup, "Class")
-    )
-
-    if not (rarity and element):
-        # 텍스트 라인 기반 마지막 보정
-        txt = soup.get_text("\n")
-        lines = [x.strip() for x in txt.split("\n") if x.strip()]
-        rarity = rarity or pick_value(lines, "Rarity")
-        element = element or pick_value(lines, "Element")
-        role = role or pick_value(lines, "Role") or pick_value(lines, "Class")
-
-    if not (rarity and element and role):
-        return None
-
-    sid = slug_id(name)
-    if sid in {"joanofarc", "jeannedarc"} or "jeanne" in sid:
-        sid = "jeannedarc"
-        name = "Jeanne D Arc"
-
-    return sid, name, rarity.strip().upper(), element.strip(), normalize_role(role)
-
-
-def parse_from_char_index_and_details(index_html: str, max_sleep: float = 0.12) -> Dict[str, Dict[str, str]]:
-    """
-    characters/ 목록 페이지에서 캐릭터 링크를 수집하고,
-    각 캐릭터 페이지를 순회하며 rarity/element/role을 수집.
-    """
-    soup = BeautifulSoup(index_html, "lxml")
-
-    links = set()
-    for a in soup.find_all("a", href=True):
-        href = a["href"].strip()
-        # 절대/상대 모두 처리
-        if href.startswith("/"):
-            href = "https://gachawiki.info" + href
-        if not href.startswith("https://gachawiki.info/guides/zone-nova/characters/"):
-            continue
-        # 인덱스 자체 제외
-        if href.rstrip("/") == URL_CHAR_INDEX.rstrip("/"):
-            continue
-        links.add(href.rstrip("/") + "/")
-
-    links = sorted(links)
-    if len(links) < 10:
-        raise RuntimeError(f"characters 인덱스에서 링크를 충분히 수집하지 못했습니다({len(links)}).")
-
-    result: Dict[str, Dict[str, str]] = {}
-    fails: List[str] = []
-
-    for i, url in enumerate(links, start=1):
-        try:
-            parsed = parse_character_detail(url)
-            if not parsed:
-                fails.append(url)
-                continue
-            sid, name, rarity, element, role = parsed
-            result[sid] = {"name": name, "rarity": rarity, "element": element, "role": role}
-        except Exception:
-            fails.append(url)
-
-        # 과도한 요청 방지(가볍게)
-        time.sleep(max_sleep)
-
-    if len(result) < 20:
-        raise RuntimeError(f"개별 페이지 파싱 결과가 너무 적습니다({len(result)}). 실패 예시: {fails[:5]}")
-
-    return result
+    }
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--write", action="store_true", help="write characters_meta.json to repo")
+    ap.add_argument("--upstream", required=True, help="업스트림 레포 루트 (예: _upstream_gacha_wiki)")
+    ap.add_argument("--write", action="store_true", help="characters.json + characters_meta.json 쓰기")
     args = ap.parse_args()
 
-    # 예시 데이터 생성은 절대 하지 않음.
-    # 항상 원문(웹)에서 파싱해 저장하는 방식만 사용.
-    meta: Dict[str, Dict[str, str]] = {}
-    source = ""
+    upstream_root = Path(args.upstream).resolve()
 
-    # 1차: comparison-v2
-    try:
-        html = http_get(URL_COMPARISON_V2)
-        meta = parse_from_web_comparison_v2(html)
-        source = f"web:{URL_COMPARISON_V2}"
-        print(f"[OK] comparison-v2 parsed count={len(meta)}")
-    except Exception as e1:
-        print(f"[WARN] comparison-v2 failed: {e1}")
+    # 1) 업스트림 characters.js -> characters.json
+    run_node_extract(upstream_root, CHAR_JSON)
 
-        # 2차: characters index + details
-        html = http_get(URL_CHAR_INDEX)
-        meta = parse_from_char_index_and_details(html)
-        source = f"web:{URL_CHAR_INDEX} (details)"
-        print(f"[OK] index+details parsed count={len(meta)}")
-
-    payload = {
-        "_meta": {
-            "game": "zone-nova",
-            "source": source,
-            "generated_at": now_iso(),
-            "count": len(meta),
-        },
-        "characters": meta
-    }
+    # 2) characters.json -> characters_meta.json (classes 기반)
+    chars = load_characters_json(CHAR_JSON)
+    meta = build_char_meta(chars)
 
     if args.write:
-        ensure_parent_dir(OUT_PATH)
-        with open(OUT_PATH, "w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2, sort_keys=True)
-        print(f"[OK] wrote: {OUT_PATH}")
-        print(f"[OK] count={len(meta)} source={source}")
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        CHAR_META_JSON.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"OK: wrote {CHAR_META_JSON} (count={meta['count']})")
     else:
-        print(json.dumps(payload, ensure_ascii=False, indent=2)[:4000])
+        print(json.dumps(meta, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
