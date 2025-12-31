@@ -1,149 +1,169 @@
-// scripts/extract_zone_nova_characters.mjs
+#!/usr/bin/env node
+/**
+ * Extract Zone Nova character modules from upstream repo directory and emit JSON.
+ * - input: a directory containing per-character .js files (upstream)
+ * - output: JSON array of characters (normalized)
+ *
+ * Usage:
+ *   node scripts/extract_zone_nova_characters.mjs --input-dir <DIR> --out <FILE>
+ */
+
 import fs from "fs";
 import path from "path";
-import vm from "vm";
+import { pathToFileURL } from "url";
 
-function usage() {
-  console.log(`Usage:
-  node scripts/extract_zone_nova_characters.mjs --upstream <dir> --out <file>
-
-Example:
-  node scripts/extract_zone_nova_characters.mjs --upstream _upstream_gacha_wiki --out public/data/zone-nova/characters.json
-`);
+function argValue(flag) {
+  const i = process.argv.indexOf(flag);
+  if (i === -1) return null;
+  return process.argv[i + 1] ?? null;
 }
 
-function parseArgs(argv) {
-  const args = {};
-  for (let i = 2; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === "--upstream") args.upstream = argv[++i];
-    else if (a === "--out") args.out = argv[++i];
-    else if (a === "-h" || a === "--help") args.help = true;
+function existsDir(p) {
+  try {
+    return fs.statSync(p).isDirectory();
+  } catch {
+    return false;
   }
-  return args;
 }
 
-function sanitizeAndExecModule(jsPath) {
-  let code = fs.readFileSync(jsPath, "utf8");
+function listJsFiles(dir) {
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .filter((d) => d.isFile())
+    .map((d) => d.name)
+    .filter((n) => n.toLowerCase().endsWith(".js"))
+    // 흔한 인덱스 파일/보조 파일 제외(있다면)
+    .filter((n) => !/^index\.js$/i.test(n));
+}
 
-  // import 제거(데이터 모듈이 import를 쓰는 경우가 있어 VM 실패 방지)
-  code = code.replace(/^\s*import\s+.*?;\s*$/gm, "");
+function normalizeText(x) {
+  return (x ?? "").toString().trim();
+}
 
-  // export 변환
-  const exportedNames = [];
+function slugifyId(nameOrFile) {
+  return normalizeText(nameOrFile)
+    .toLowerCase()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
-  // export const X = ...  => const X = ...
-  code = code.replace(/export\s+const\s+([A-Za-z0-9_]+)\s*=/g, (_, name) => {
-    exportedNames.push(name);
-    return `const ${name} =`;
-  });
+function pickField(obj, keys) {
+  for (const k of keys) {
+    if (obj && Object.prototype.hasOwnProperty.call(obj, k) && obj[k] != null) {
+      return obj[k];
+    }
+  }
+  return null;
+}
 
-  // export { A, B } 제거
-  code = code.replace(/export\s*\{\s*[^}]*\}\s*;?/gm, "");
+async function loadCharacterModule(jsPath) {
+  // dynamic import (ESM/CJS 모두 대응)
+  const url = pathToFileURL(jsPath).href;
+  const mod = await import(url);
+  const data = mod?.default ?? mod?.character ?? mod;
+  if (!data || typeof data !== "object") {
+    throw new Error(`Invalid export object: ${jsPath}`);
+  }
+  return data;
+}
 
-  // export default Y  => module.exports = Y
-  code = code.replace(/export\s+default\s+/g, "module.exports = ");
+function deriveRoleFromClass(cls, name) {
+  const c = normalizeText(cls);
+  const nm = normalizeText(name).toLowerCase();
 
-  // export default가 없고 export const만 있으면 그걸 module.exports로 묶기
-  if (!/module\.exports\s*=/.test(code) && exportedNames.length > 0) {
-    code += `\n;module.exports = { ${exportedNames.join(", ")} };`;
+  // 사용자가 지정한 룰:
+  // - DPS = Warrior/Mage/Rogue
+  // - Tank = Guardian
+  // - Healer/Buffer/Debuffer는 동일명 매칭
+  // - 예외: Apep은 Warrior지만 Tank 역할 가능 (여기서는 기본 role은 DPS로 두고, tank_capable=true 추가)
+  if (["warrior", "mage", "rogue"].includes(c.toLowerCase())) return "DPS";
+  if (c.toLowerCase() === "guardian") return "Tank";
+  if (c.toLowerCase() === "healer") return "Healer";
+  if (c.toLowerCase() === "buffer") return "Buffer";
+  if (c.toLowerCase() === "debuffer") return "Debuffer";
+
+  // fallback
+  if (nm === "apep") return "DPS";
+  return "";
+}
+
+async function main() {
+  const inputDir = argValue("--input-dir");
+  const outFile = argValue("--out");
+
+  if (!inputDir || !outFile) {
+    console.error("Usage: node scripts/extract_zone_nova_characters.mjs --input-dir <DIR> --out <FILE>");
+    process.exit(1);
+  }
+  if (!existsDir(inputDir)) {
+    console.error(`ERROR: input-dir not found: ${inputDir}`);
+    process.exit(2);
   }
 
-  const context = { module: { exports: {} }, exports: {}, console };
-  vm.createContext(context);
-
-  vm.runInContext(code, context, { filename: jsPath, timeout: 2000 });
-  return context.module.exports;
-}
-
-function loadSingleFile(jsPath) {
-  const exp = sanitizeAndExecModule(jsPath);
-
-  if (Array.isArray(exp)) return exp;
-  if (exp && Array.isArray(exp.characters)) return exp.characters;
-  if (exp && Array.isArray(exp.default)) return exp.default;
-
-  // 단일 파일이 “객체 1개”를 export 하는 경우도 있으므로 배열로 감싸기
-  if (exp && typeof exp === "object") return [exp];
-  throw new Error(`추출 실패: ${jsPath}에서 캐릭터 데이터를 찾지 못했습니다.`);
-}
-
-function loadFromDirectory(dirPath) {
-  if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
-    throw new Error(`업스트림 캐릭터 디렉토리를 찾지 못했습니다: ${dirPath}`);
-  }
-
-  const files = fs.readdirSync(dirPath)
-    .filter(f => f.toLowerCase().endsWith(".js"))
-    .sort((a, b) => a.localeCompare(b));
-
+  const files = listJsFiles(inputDir);
   if (files.length === 0) {
-    throw new Error(`디렉토리에 .js 파일이 없습니다: ${dirPath}`);
+    console.error(`ERROR: no .js files in: ${inputDir}`);
+    process.exit(3);
   }
 
-  const out = [];
-  for (const fn of files) {
-    const fp = path.join(dirPath, fn);
-    const exp = sanitizeAndExecModule(fp);
-
-    // 케이스 1: export default { ...캐릭터... }
-    if (exp && typeof exp === "object" && !Array.isArray(exp)) {
-      const one = { ...exp };
-      // id가 없으면 파일명 기반으로 보강(혹시 모를 케이스)
-      if (!one.id && !one.name) {
-        one.id = path.parse(fn).name;
-      }
-      out.push(one);
+  const results = [];
+  for (const f of files) {
+    const jsPath = path.join(inputDir, f);
+    let obj;
+    try {
+      obj = await loadCharacterModule(jsPath);
+    } catch (e) {
+      console.error(`WARN: failed to import ${jsPath}: ${e?.message ?? e}`);
       continue;
     }
 
-    // 케이스 2: export default [ ... ] (드물지만)
-    if (Array.isArray(exp)) {
-      for (const item of exp) {
-        if (item && typeof item === "object") out.push(item);
-      }
-      continue;
-    }
+    const name = normalizeText(
+      pickField(obj, ["name", "Name", "displayName", "title"]) ?? path.parse(f).name
+    );
 
-    // 케이스 3: module.exports = { character: {...} } 같은 형태
-    if (exp && typeof exp === "object") {
-      const vals = Object.values(exp);
-      const dict = vals.find(v => v && typeof v === "object" && !Array.isArray(v));
-      if (dict) out.push(dict);
-      else throw new Error(`알 수 없는 export 형태: ${fp}`);
-      continue;
-    }
+    // 업스트림이 "class" 키를 쓴다고 하셨으니 최우선
+    const cls = normalizeText(pickField(obj, ["class", "Class", "job", "Job"]) ?? "");
+    const rarity = normalizeText(pickField(obj, ["rarity", "Rarity"]) ?? "");
+    const element = normalizeText(pickField(obj, ["element", "Element"]) ?? "");
 
-    throw new Error(`알 수 없는 export 형태: ${fp}`);
+    // 이미지 파일명(업스트림 오브젝트에 image/portrait 등 있으면 그걸 우선 사용)
+    // 없으면 파일명 기반 추정(추후 예외는 메타 생성 단계에서 override 가능)
+    const image = normalizeText(
+      pickField(obj, ["image", "portrait", "img", "art", "thumbnail"]) ?? ""
+    );
+
+    const id =
+      normalizeText(pickField(obj, ["id", "key", "slug"])) ||
+      slugifyId(path.parse(f).name || name);
+
+    const role = deriveRoleFromClass(cls, name);
+    const tankCapable = normalizeText(name).toLowerCase() === "apep"; // 예외 조건
+
+    results.push({
+      id,
+      name,
+      rarity,
+      element,
+      class: cls,
+      role,
+      tank_capable: tankCapable,
+      image, // 빈 값일 수 있음(후처리 가능)
+      _src_file: f, // 디버그용(원하면 나중에 삭제 가능)
+    });
   }
 
-  return out;
+  // 안정 정렬
+  results.sort((a, b) => a.name.localeCompare(b.name));
+
+  fs.mkdirSync(path.dirname(outFile), { recursive: true });
+  fs.writeFileSync(outFile, JSON.stringify(results, null, 2), "utf-8");
+
+  console.log(`OK: extracted ${results.length} characters`);
+  console.log(`OUT: ${outFile}`);
 }
 
-function main() {
-  const args = parseArgs(process.argv);
-  if (args.help || !args.upstream || !args.out) {
-    usage();
-    process.exit(args.help ? 0 : 1);
-  }
-
-  const upstreamRoot = path.resolve(args.upstream);
-
-  const singlePath = path.join(upstreamRoot, "src", "data", "zone-nova", "characters.js");
-  const dirPath = path.join(upstreamRoot, "src", "data", "zone-nova", "characters");
-
-  let chars;
-  if (fs.existsSync(singlePath)) {
-    chars = loadSingleFile(singlePath);
-  } else {
-    chars = loadFromDirectory(dirPath);
-  }
-
-  const outPath = path.resolve(args.out);
-  fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, JSON.stringify(chars, null, 2), "utf8");
-
-  console.log(`OK: extracted ${chars.length} characters -> ${outPath}`);
-}
-
-main();
+main().catch((e) => {
+  console.error(`FATAL: ${e?.stack ?? e}`);
+  process.exit(99);
+});
