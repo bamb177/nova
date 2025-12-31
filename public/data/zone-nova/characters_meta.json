@@ -1,5 +1,420 @@
 {
-  "last_refresh": "2025-12-31T18:20:03.810170+00:00",
-  "count": 0,
-  "characters": []
+  "last_refresh": "2025-12-31T18:26:37.447430+00:00",
+  "count": 46,
+  "characters": [
+    {
+      "id": "afrodite",
+      "name": "Afrodite",
+      "element": "Holy",
+      "class": "Warrior",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Afrodite.jpg"
+    },
+    {
+      "id": "anubis",
+      "name": "Anubis",
+      "element": "Chaos",
+      "class": "Healer",
+      "role": "Healer",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Anubis.jpg"
+    },
+    {
+      "id": "apep",
+      "name": "Apep",
+      "element": "Wind",
+      "class": "Warrior",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Apep.jpg"
+    },
+    {
+      "id": "apollo",
+      "name": "Apollo",
+      "element": "Fire",
+      "class": "Buffer",
+      "role": "Buffer",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Apollo.jpg"
+    },
+    {
+      "id": "artemis",
+      "name": "Artemis",
+      "element": "Wind",
+      "class": "Warrior",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Artemis.jpg"
+    },
+    {
+      "id": "arthur",
+      "name": "Arthur",
+      "element": "Holy",
+      "class": "Mage",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Arthur.jpg"
+    },
+    {
+      "id": "athena",
+      "name": "Athena",
+      "element": "Wind",
+      "class": "Buffer",
+      "role": "Buffer",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Athena.jpg"
+    },
+    {
+      "id": "bastet",
+      "name": "Bastet",
+      "element": "Wind",
+      "class": "Mage",
+      "role": "DPS",
+      "rarity": "SR",
+      "image": "/images/games/zone-nova/characters/Bastet.jpg"
+    },
+    {
+      "id": "leviathan",
+      "name": "Behemoth",
+      "element": "Wind",
+      "class": "Rogue",
+      "role": "DPS",
+      "rarity": "SR",
+      "image": "/images/games/zone-nova/characters/Behemoth.jpg"
+    },
+    {
+      "id": "belphegar",
+      "name": "Belphegar",
+      "element": "Chaos",
+      "class": "Debuffer",
+      "role": "Debuffer",
+      "rarity": "SR",
+      "image": "/images/games/zone-nova/characters/belphegar.jpg"
+    },
+    {
+      "id": "chiya",
+      "name": "Chiya",
+      "element": "Ice",
+      "class": "Rogue",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Chiya.jpg"
+    },
+    {
+      "id": "kela",
+      "name": "Clara",
+      "element": "Holy",
+      "class": "Healer",
+      "role": "Healer",
+      "rarity": "SR",
+      "image": "/images/games/zone-nova/characters/Clara.jpg"
+    },
+    {
+      "id": "cleopatra",
+      "name": "Cleopatra",
+      "element": "Chaos",
+      "class": "Mage",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Cleopatra.jpg"
+    },
+    {
+      "id": "freya",
+      "name": "Freya",
+      "element": "Ice",
+      "class": "Mage",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Freya.jpg"
+    },
+    {
+      "id": "freye",
+      "name": "Freye",
+      "element": "Chaos",
+      "class": "Debuffer",
+      "role": "Debuffer",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Freye.jpg"
+    },
+    {
+      "id": "gaia",
+      "name": "Gaia",
+      "element": "Holy",
+      "class": "Healer",
+      "role": "Healer",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Gaia.jpg"
+    },
+    {
+      "id": "guinevere",
+      "name": "Guinevere",
+      "element": "Fire",
+      "class": "Guardian",
+      "role": "Tank",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Guinevere.jpg"
+    },
+    {
+      "id": "hela",
+      "name": "Hela",
+      "element": "Chaos",
+      "class": "Rogue",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Hela.jpg"
+    },
+    {
+      "id": "hera",
+      "name": "Hera",
+      "element": "Chaos",
+      "class": "Rogue",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Hera.jpg"
+    },
+    {
+      "id": "horus",
+      "name": "Horus",
+      "element": "Holy",
+      "class": "Debuffer",
+      "role": "Debuffer",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Horus.jpg"
+    },
+    {
+      "id": "ibarakidoji",
+      "name": "Ibaraki-doji",
+      "element": "Fire",
+      "class": "Debuffer",
+      "role": "Debuffer",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Ibaraki-doji.jpg"
+    },
+    {
+      "id": "jeannedarc",
+      "name": "Jeanne D Arc",
+      "element": "Wind",
+      "class": "Healer",
+      "role": "Healer",
+      "rarity": "SSR",
+      "image": null
+    },
+    {
+      "id": "jorogumo",
+      "name": "Jorogumo",
+      "element": "Chaos",
+      "class": "Healer",
+      "role": "Healer",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Jorogumo.jpg"
+    },
+    {
+      "id": "lancelot",
+      "name": "Lancelot",
+      "element": "Holy",
+      "class": "Guardian",
+      "role": "Tank",
+      "rarity": "SR",
+      "image": "/images/games/zone-nova/characters/Lancelot.jpg"
+    },
+    {
+      "id": "lavinia",
+      "name": "Lavinia",
+      "element": "Fire",
+      "class": "Healer",
+      "role": "Healer",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Lavinia.jpg"
+    },
+    {
+      "id": "lily",
+      "name": "Lily",
+      "element": "Ice",
+      "class": "Guardian",
+      "role": "Tank",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Lily.jpg"
+    },
+    {
+      "id": "loki",
+      "name": "Loki",
+      "element": "Chaos",
+      "class": "Debuffer",
+      "role": "Debuffer",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Loki.jpg"
+    },
+    {
+      "id": "lyra",
+      "name": "Lyra",
+      "element": "Fire",
+      "class": "Mage",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Lyra.jpg"
+    },
+    {
+      "id": "greedmammon",
+      "name": "Mammon",
+      "element": "Chaos",
+      "class": "Mage",
+      "role": "DPS",
+      "rarity": "SR",
+      "image": "/images/games/zone-nova/characters/Mammon.jpg"
+    },
+    {
+      "id": "merlin",
+      "name": "Merlin",
+      "element": "Fire",
+      "class": "Rogue",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Merlin.jpg"
+    },
+    {
+      "id": "mordred",
+      "name": "Mordred",
+      "element": "Fire",
+      "class": "Warrior",
+      "role": "DPS",
+      "rarity": "SR",
+      "image": "/images/games/zone-nova/characters/Mordred.jpg"
+    },
+    {
+      "id": "morganlefay",
+      "name": "Morgan Le Fay",
+      "element": "Holy",
+      "class": "Buffer",
+      "role": "Buffer",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Morgan Le Fay.jpg"
+    },
+    {
+      "id": "naiya",
+      "name": "Naiya",
+      "element": "Ice",
+      "class": "Buffer",
+      "role": "Buffer",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Naiya.jpg"
+    },
+    {
+      "id": "nina",
+      "name": "Nina",
+      "element": "Ice",
+      "class": "Warrior",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Nina.jpg"
+    },
+    {
+      "id": "nini",
+      "name": "Nini",
+      "element": "Ice",
+      "class": "Debuffer",
+      "role": "Debuffer",
+      "rarity": "SR",
+      "image": "/images/games/zone-nova/characters/Nini.jpg"
+    },
+    {
+      "id": "odin",
+      "name": "Odin",
+      "element": "Fire",
+      "class": "Rogue",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Odin.jpg"
+    },
+    {
+      "id": "penny",
+      "name": "Penny",
+      "element": "Wind",
+      "class": "Guardian",
+      "role": "Tank",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/penny.jpg"
+    },
+    {
+      "id": "rose",
+      "name": "Rose",
+      "element": "Ice",
+      "class": "Mage",
+      "role": "DPS",
+      "rarity": "SR",
+      "image": "/images/games/zone-nova/characters/Rose.jpg"
+    },
+    {
+      "id": "shanna",
+      "name": "Saya",
+      "element": "Fire",
+      "class": "Rogue",
+      "role": "DPS",
+      "rarity": "SR",
+      "image": "/images/games/zone-nova/characters/Saya.jpg"
+    },
+    {
+      "id": "shu",
+      "name": "Shu",
+      "element": "Wind",
+      "class": "Debuffer",
+      "role": "Debuffer",
+      "rarity": "SR",
+      "image": "/images/games/zone-nova/characters/Shu.jpg"
+    },
+    {
+      "id": "sigurd",
+      "name": "Sigurd",
+      "element": "Fire",
+      "class": "Rogue",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Sigurd.jpg"
+    },
+    {
+      "id": "tefnut",
+      "name": "Tefnut",
+      "element": "Holy",
+      "class": "Rogue",
+      "role": "DPS",
+      "rarity": "SR",
+      "image": "/images/games/zone-nova/characters/Tefnut.jpg"
+    },
+    {
+      "id": "thor",
+      "name": "Thor",
+      "element": "Holy",
+      "class": "Guardian",
+      "role": "Tank",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Thor.jpg"
+    },
+    {
+      "id": "yuis",
+      "name": "Yuis",
+      "element": "Holy",
+      "class": "Rogue",
+      "role": "DPS",
+      "rarity": "SSR",
+      "image": "/images/games/zone-nova/characters/Yuis.jpg"
+    },
+    {
+      "id": "snowgirl",
+      "name": "Yuki-onna",
+      "element": "Ice",
+      "class": "Healer",
+      "role": "Healer",
+      "rarity": "SR",
+      "image": "/images/games/zone-nova/characters/Yuki-onna.jpg"
+    },
+    {
+      "id": "zashikiwarashi",
+      "name": "Zashiki-warashi",
+      "element": "Fire",
+      "class": "Buffer",
+      "role": "Buffer",
+      "rarity": "SR",
+      "image": "/images/games/zone-nova/characters/Zashiki-warashi.jpg"
+    }
+  ]
 }
