@@ -1,0 +1,40 @@
+/* =========================
+   Rarity badges (SSR / SR)
+   ========================= */
+
+.rarity-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+
+  padding:4px 8px;
+  border-radius:8px;           /* 네모 + 라운드 */
+
+  font-weight:800;
+  letter-spacing:.3px;
+  line-height:1;
+
+  border:1px solid rgba(255,255,255,.18);
+  box-shadow: 0 6px 16px rgba(0,0,0,.28);
+}
+
+/* SSR: 무지개 펄 느낌 */
+.rarity-ssr{
+  color:#0b0f14;
+  background:
+    radial-gradient(circle at 20% 25%, rgba(255,255,255,.85), rgba(255,255,255,0) 42%),
+    linear-gradient(135deg,
+      #ff4fd8,
+      #7c5cff,
+      #2fd3ff,
+      #2dff88,
+      #ffe65a,
+      #ff8a3d
+    );
+}
+
+/* SR: 주황색 네모상자 */
+.rarity-sr{
+  color:#0b0f14;
+  background: linear-gradient(135deg, #ffb152, #ff7a00);
+}
