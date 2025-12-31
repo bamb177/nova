@@ -177,11 +177,12 @@ def main():
     # 4) characters_meta.json 생성 (UI/추천 엔진이 쓰는 최종)
     meta_list = []
     for c in chars:
-        name = (c.get("name") or "").strip()
-        if not name:
-            # name이 비어있으면 파일명 기반이 들어가도록 node에서 처리되어야 함
-            continue
-
+      raw_name = (c.get("name") or "").strip()
+      if not raw_name:
+        continue
+        
+        # ✅ 동기화 시에도 실제 게임 기준 이름으로 고정
+        name = apply_name_override(raw_name)
         element = normalize_element(c.get("element") or "")
         cls = normalize_class(c.get("class") or "")
         rarity = normalize_rarity(c.get("rarity") or "")
@@ -190,6 +191,14 @@ def main():
         # Apep/Gaia 누락 케이스 방지: class/element가 비어있으면 source_file이라도 남겨 디버깅 가능
         image = pick_image_url(name, img_index)
 
+        # (옵션) 혹시 이미지 파일명이 예전 이름이면 별칭으로 한 번 더 시도
+        if image is None:
+            k = _canon_name_key(name)
+            for alt in IMAGE_NAME_ALIASES.get(k, []):
+                image = pick_image_url(alt, img_index)
+                if image:
+                    break
+          
         meta_list.append({
             "id": c.get("id") or slug_id(name),
             "name": name,
