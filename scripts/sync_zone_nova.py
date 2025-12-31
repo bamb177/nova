@@ -8,6 +8,30 @@ import subprocess
 from pathlib import Path
 from datetime import datetime, timezone
 
+# ✅ 실제 게임 기준 이름 고정 (동기화해도 유지)
+NAME_OVERRIDES = {
+    "greed mammon": "Mammon",
+    "kela": "Clara",
+    "morgan": "Morgan Le Fay",
+    "leviathan": "Behemoth",
+    "snow girl": "Yuki-onna",
+    "shanna": "Saya",
+    "apep": "Apep",   # 대소문자 교정
+}
+
+# (옵션) 이미지 파일명이 예전 이름으로 남아있을 때 대비용 별칭
+# 예: Snow Girl 이미지가 Snow.jpg로 남아있다면 "Yuki-onna" -> "Snow"로 매칭 가능
+IMAGE_NAME_ALIASES = {
+    "yuki-onna": ["snow", "snow girl"],
+    "morgan le fay": ["morgan"],
+}
+
+def _canon_name_key(s: str) -> str:
+    return " ".join((s or "").strip().lower().split())
+
+def apply_name_override(raw_name: str) -> str:
+    k = _canon_name_key(raw_name)
+    return NAME_OVERRIDES.get(k, raw_name.strip())
 
 def now_iso():
     return datetime.now(timezone.utc).astimezone().isoformat()
