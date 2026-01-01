@@ -20,9 +20,9 @@ body{
 }
 
 .wrap{
-  max-width: 1280px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 18px 16px 32px;
+  padding: 20px 16px 36px;
 }
 
 .topbar{
@@ -35,22 +35,22 @@ body{
 
 .title h1{
   margin:0;
-  font-size: 22px;
+  font-size: 24px;
   letter-spacing:.2px;
 }
 
 .meta{
-  margin-top: 6px;
+  margin-top: 8px;
   display:flex;
   gap: 12px;
   flex-wrap:wrap;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .meta .error{
   color:#ff8a8a;
-  font-weight:600;
+  font-weight:700;
 }
 
 .actions .btn{
@@ -60,33 +60,33 @@ body{
   color:var(--text);
   text-decoration:none;
   padding: 10px 14px;
-  border-radius: 10px;
-  font-weight: 600;
+  border-radius: 12px;
+  font-weight: 700;
   font-size: 14px;
 }
 
 .panel{
   background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 18px;
   overflow:hidden;
 }
 
 .panel-head{
-  padding: 14px 16px;
+  padding: 16px 16px;
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
 }
 
 .panel-title{
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 17px;
+  font-weight: 900;
 }
 
 .panel-sub{
-  margin-top:6px;
+  margin-top:7px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .table-wrap{
@@ -97,7 +97,7 @@ body{
   width:100%;
   border-collapse: separate;
   border-spacing:0;
-  min-width: 1060px;
+  min-width: 1120px;
 }
 
 .char-table thead th{
@@ -111,13 +111,13 @@ body{
   text-align:left;
   font-size: 13px;
   letter-spacing:.2px;
-  padding: 12px 12px;
+  padding: 14px 12px;
 }
 
 .char-table tbody td{
   border-bottom: 1px solid var(--line);
-  padding: 12px 12px;
-  font-size: 15px;           /* 요청5: 글씨 키움 */
+  padding: 14px 12px;
+  font-size: 16px;             /* ✅ 가독성 확대 */
 }
 
 .char-table tbody tr:hover{
@@ -125,23 +125,23 @@ body{
 }
 
 .col-check{width:70px}
-.col-char{width:380px}
-.col-elem{width:170px}
-.col-faction{width:220px}
-.col-class{width:170px}
-.col-role{width:120px}
-.col-rarity{width:110px}
+.col-char{width:420px}
+.col-elem{width:190px}
+.col-faction{width:240px}
+.col-class{width:190px}
+.col-role{width:170px}
+.col-rarity{width:120px}
 
 .char-cell{
   display:flex;
   align-items:center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .avatar{
-  width: 54px;               /* 요청5: 이미지 키움 */
-  height: 54px;
-  border-radius: 14px;
+  width: 68px;                 /* ✅ 이미지 확대 */
+  height: 68px;
+  border-radius: 16px;
   object-fit: cover;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.03);
@@ -152,49 +152,48 @@ body{
 }
 
 .char-name{
-  font-size: 16px;          /* 요청5: 글씨 키움 */
-  font-weight: 800;
+  font-size: 18px;             /* ✅ 이름 글씨 확대 */
+  font-weight: 900;
   letter-spacing:.2px;
-}
-
-.text{
-  color: var(--text);
 }
 
 .badge{
   display:inline-flex;
   align-items:center;
-  gap: 8px;
-  padding: 7px 10px;
+  gap: 10px;
+  padding: 9px 12px;           /* ✅ 배지 크기 확대 */
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.04);
-  font-weight: 700;
-  font-size: 14px;          /* 요청5 */
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.05);
+  font-weight: 850;
+  font-size: 15px;             /* ✅ 배지 글씨 확대 */
+  line-height: 1;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.18) inset;
 }
 
 .badge-icon{
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
-  opacity: .95;
+  opacity: .96;
 }
 
 .badge-text{
   color: var(--text);
 }
 
+/* ========= 등급 배지 ========= */
 .rarity{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  min-width: 56px;
-  padding: 6px 10px;
+  min-width: 64px;
+  padding: 8px 12px;
   border-radius: 999px;
-  font-weight: 900;
-  letter-spacing:.6px;
-  border: 1px solid rgba(255,255,255,.14);
-  font-size: 14px;
+  font-weight: 950;
+  letter-spacing:.7px;
+  border: 1px solid rgba(255,255,255,.18);
+  font-size: 15px;
 }
 
 .rarity.none{
@@ -203,22 +202,27 @@ body{
 }
 
 .rarity.r{
-  background: linear-gradient(180deg, rgba(120,160,255,.28), rgba(120,160,255,.12));
+  background: linear-gradient(90deg, rgba(120,160,255,.28), rgba(120,160,255,.12));
 }
 
 .rarity.ssr{
+  /* ✅ SSR = 노란색 그라데이션 */
   background: linear-gradient(90deg,
-    rgba(110,231,183,.32),
-    rgba(96,165,250,.32),
-    rgba(167,139,250,.32)
+    rgba(255, 238, 153, .44),
+    rgba(255, 207, 74, .40),
+    rgba(255, 244, 189, .34)
   );
 }
 
 .rarity.sr{
-  /* 요청7: SR도 주황색 그라데이션 느낌 */
+  /* ✅ SR = 주황색 그라데이션 */
   background: linear-gradient(90deg,
-    rgba(255, 184, 77, .36),
-    rgba(255, 132, 59, .32),
-    rgba(255, 208, 93, .30)
+    rgba(255, 184, 77, .40),
+    rgba(255, 132, 59, .36),
+    rgba(255, 208, 93, .34)
   );
 }
+
+/* ========= 속성 배지(요청 2: 너가 판단한 색상 그라데이션) ========= */
+.badge-elem--blaze{
+  background: linear-gradient(90deg, rgba(255, 98, 72, .35), rgba(2
