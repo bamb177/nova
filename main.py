@@ -625,6 +625,32 @@ def ui_select():
         adv_json=json.dumps(CACHE["element_adv"], ensure_ascii=False),
     )
 
+def _count_ge2(values):
+    from collections import Counter
+    c = Counter([v for v in values if v])
+    return any(n >= 2 for n in c.values())
+
+def compute_combo_bonus(party_chars, w_elem=20, w_faction=20):
+    """
+    party_chars: 캐릭 dict 리스트 (element, faction 포함)
+    - 같은 속성 2명 이상 -> w_elem
+    - 같은 파벌 2명 이상 -> w_faction
+    - 둘 다 만족하면 과대가중 방지를 위해 max 적용(원하면 합산으로 변경 가능)
+    """
+    elems = [c.get("element") for c in party_chars]
+    facts = [c.get("faction") for c in party_chars]
+
+    elem_ok = _count_ge2(elems)
+    fac_ok = _count_ge2(facts)
+
+    elem_bonus = w_elem if elem_ok else 0
+    fac_bonus = w_faction if fac_ok else 0
+    bonus = max(elem_bonus, fac_bonus)
+
+    reasons = []
+    if elem_ok: reasons.append("콤보: 같은 속성 2인 이상")
+    if fac_ok: reasons.append("콤보: 같은 파벌 2인 이상")
+    return bonus, reasons
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "10000"))
