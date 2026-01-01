@@ -8,31 +8,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]  # /nova
 PUBLIC_DATA_DIR = REPO_ROOT / "public" / "data" / "zone-nova"
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 
-# ===== 사용자 고정 오버라이드 =====
+OVERRIDES_NAMES = PUBLIC_DATA_DIR / "overrides_names.json"
+OVERRIDES_FACTIONS = PUBLIC_DATA_DIR / "overrides_factions.json"
 
-# ✅ 이름 고정 변환(동기화해도 원복 방지)
-# - 키는 normalize_name(원본 name) 기준
-NAME_DISPLAY_MAP = {
-    "greed mammon": "Mammon",
-    "kela": "Clara",
-    "morgan": "Morgan Le Fay",
-    "leviathan": "Behemoth",
-    "snow girl": "Yuki-onna",
-    "shanna": "Saya",
-    "naiya": "Naya",
-    "afrodite": "Aphrodite",
-    "apep": "Apep",
-    "belphegar": "Belphegor",
-    "chiya": "Cynia",
-    "freye": "Frigga",
-    "gaia": "Gaia",
-    "jeanne d arc": "Joan of Arc",
-    "penny": "Pennie",
-    "yuis": "Zeus",
-}
-
-# ✅ 파벌명 고정 변환 (동기화해도 원복 방지)
-FACTION_NAME_MAP = {
+# ✅ 파벌명 고정 변환(기본값) - overrides_factions.json이 있으면 그게 우선
+FACTION_NAME_MAP_FALLBACK = {
     "A.S.A": "Asa",
     "Bicta Tower": "Bikta",
     "Chemic": "Kemich",
@@ -40,7 +20,26 @@ FACTION_NAME_MAP = {
     "Oduis": "Otis",
     "Pingjing City": "Heikyo Castle",
     "Sapphire": "Safir",
-    # 총 8개 중 여기 없는 1개는 원문 유지
+}
+
+# ✅ 이름 고정 변환(기본값) - overrides_names.json이 있으면 그게 우선
+NAME_OVERRIDE_FALLBACK = {
+    "Greed Mammon": "Mammon",
+    "Kela": "Clara",
+    "Morgan": "Morgan Le Fay",
+    "Leviathan": "Behemoth",
+    "Snow Girl": "Yuki-onna",
+    "Shanna": "Saya",
+    "Naiya": "Naya",
+    "Afrodite": "Aphrodite",
+    "apep": "Apep",
+    "Belphegar": "Belphegor",
+    "Chiya": "Cynia",
+    "Freye": "Frigga",
+    "gaia": "Gaia",
+    "Jeanne D Arc": "Joan of Arc",
+    "Penny": "Pennie",
+    "Yuis": "Zeus",
 }
 
 # ✅ class(7) -> role(5) 규칙
@@ -57,31 +56,39 @@ CLASS_TO_ROLE = {
     "Debuffer": "Debuffer",
 }
 
+
+def _load_json(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    with path.open("r", encoding="utf-8") as f:
+        x = json.load(f)
+        return x if isinstance(x, dict) else {}
+
+
+def _norm(s: str) -> str:
+    return (s or "").strip().lower()
+
+
 def title_case(s: str) -> str:
     s = (s or "").strip()
     if not s:
         return ""
     return s[0].upper() + s[1:].lower()
 
-def normalize_name(name: str) -> str:
-    name = (name or "").replace("’", "'").strip()
-    name = " ".join(name.split())
-    return name
 
 def normalize_rarity(r: str) -> str:
     return (r or "").strip().upper()
+
 
 def normalize_element(e: str) -> str:
     # Fire/Wind/Ice/Holy/Chaos 첫글자 대문자
     return title_case(e)
 
+
 def normalize_class(c: str) -> str:
     # Buffer/Debuffer/Guardian/Healer/Mage/Rogue/Warrior 첫글자 대문자
-    s = title_case(c)
-    # 오타 보정
-    if s.lower() == "debeffer":
-        return "Debuffer"
-    return s
+    return title_case(c)
+
 
 def normalize_role(role: str) -> str:
     # Healer/DPS/Buffer/Debuffer/Tank
@@ -93,27 +100,71 @@ def normalize_role(role: str) -> str:
         return "DPS"
     return title_case(role)
 
-def apply_faction_map(faction: str) -> str:
+
+def build_override_maps() -> tuple[dict, dict]:
+    names = dict(NAME_OVERRIDE_FALLBACK)
+    factions = dict(FACTION_NAME_MAP_FALLBACK)
+
+    names_file = _load_json(OVERRIDES_NAMES)
+    if names_file:
+        names.update({str(k): str(v) for k, v in names_file.items()})
+
+    factions_file = _load_json(OVERRIDES_FACTIONS)
+    if factions_file:
+        factions.update({str(k): str(v) for k, v in factions_file.items()})
+
+    return names, factions
+
+
+def apply_faction_map(faction: str, factions_map: dict) -> str:
     f = (faction or "").strip()
     if not f:
         return ""
-    return FACTION_NAME_MAP.get(f, f)
+    if f in factions_map:
+        return factions_map[f]
+    # 정규화 비교
+    fk = _norm(f)
+    for kk, vv in factions_map.items():
+        if _norm(kk) == fk:
+            return vv
+    return f
 
-def apply_name_map(name: str) -> str:
-    nm = normalize_name(name)
-    key = nm.lower()
-    return NAME_DISPLAY_MAP.get(key, nm)
+
+def apply_name_map(cid: str, name: str, names_map: dict) -> str:
+    cid = (cid or "").strip()
+    name = (name or "").strip()
+    if cid and cid in names_map:
+        return names_map[cid].strip()
+    if cid and cid.lower() in names_map:
+        return names_map[cid.lower()].strip()
+
+    if name in names_map:
+        return names_map[name].strip()
+
+    nk = _norm(name)
+    for kk, vv in names_map.items():
+        if _norm(kk) == nk:
+            return vv.strip()
+
+    return name
+
 
 def class_to_role(cls: str) -> str:
     c = normalize_class(cls)
     return CLASS_TO_ROLE.get(c, "")
+
 
 def run_node_extract(upstream_char_dir: Path, out_json: Path):
     extractor = SCRIPTS_DIR / "extract_zone_nova_characters.mjs"
     if not extractor.exists():
         raise RuntimeError(f"extractor 파일이 없습니다: {extractor}")
 
-    cmd = ["node", str(extractor), "--dir", str(upstream_char_dir), "--out", str(out_json)]
+    cmd = [
+        "node",
+        str(extractor),
+        "--dir", str(upstream_char_dir),
+        "--out", str(out_json),
+    ]
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         raise RuntimeError(
@@ -122,120 +173,63 @@ def run_node_extract(upstream_char_dir: Path, out_json: Path):
             f"STDERR:\n{proc.stderr}\n"
         )
 
-def _load_json(path: Path):
-    if not path.exists():
-        return None
-    return json.loads(path.read_text(encoding="utf-8"))
 
-def _as_list(raw):
-    """
-    characters.json 또는 characters_meta.json 등 다양한 포맷을 list[dict]로 정규화
-    """
-    if raw is None:
-        return []
-    if isinstance(raw, list):
-        return [x for x in raw if isinstance(x, dict)]
-    if isinstance(raw, dict):
-        if isinstance(raw.get("characters"), list):
-            return [x for x in raw["characters"] if isinstance(x, dict)]
-        # {id: {...}} 형태
-        out = []
-        for k, v in raw.items():
-            if isinstance(v, dict):
-                item = dict(v)
-                if "id" not in item:
-                    item["id"] = k
-                out.append(item)
-        if len(out) >= 1:
-            return out
-    return []
+def build_characters_meta(raw_list: list) -> dict:
+    names_map, factions_map = build_override_maps()
 
-def build_characters_meta(raw_list: list, local_overrides: list) -> dict:
-    """
-    raw_list: upstream 추출 결과 list
-    local_overrides: public/data/zone-nova/characters.json (수동 보강/누락 보완)
-      - upstream에 없는 캐릭터(Apep/Gaia 등)는 local에서 추가됨
-      - 동일 id가 있으면 local 값을 우선(필드별 덮어쓰기)
-    """
-    # 1) upstream 정규화
+    # raw_list: [{id,name,rarity,element,class,faction}, ...]
     chars = []
     for c in raw_list:
+        if not isinstance(c, dict):
+            continue
+
         cid = (c.get("id") or "").strip()
         if not cid:
             continue
 
-        name = apply_name_map(c.get("name") or cid)
+        name = (c.get("name") or cid).strip()
+        name = apply_name_map(cid, name, names_map)
+
         rarity = normalize_rarity(c.get("rarity") or "")
         element = normalize_element(c.get("element") or "")
         cls = normalize_class(c.get("class") or "")
-        faction = apply_faction_map(c.get("faction") or "")
+        faction = apply_faction_map(c.get("faction") or "", factions_map)
 
-        role = normalize_role(class_to_role(cls))
+        role = class_to_role(cls)
+        role = normalize_role(role)
 
         chars.append({
             "id": cid,
             "name": name,
             "rarity": rarity,
             "element": element,
-            "class": cls,       # class(7)
-            "role": role,       # role(5)
-            "faction": faction, # faction(8)
+            "class": cls,        # class(7)
+            "role": role,        # role(5)
+            "faction": faction,  # faction(8)
         })
 
-    by_id = {c["id"]: c for c in chars}
-
-    # 2) local overrides 병합
-    for ov in local_overrides:
-        if not isinstance(ov, dict):
-            continue
-        cid = (ov.get("id") or "").strip()
-        if not cid:
-            continue
-
-        # local 데이터도 동일 정규화 적용
-        name = apply_name_map(ov.get("name") or cid)
-        rarity = normalize_rarity(ov.get("rarity") or "")
-        element = normalize_element(ov.get("element") or "")
-        cls = normalize_class(ov.get("class") or "")
-        faction = apply_faction_map(ov.get("faction") or "")
-
-        role = normalize_role(ov.get("role") or class_to_role(cls) or "")
-
-        item = {
-            "id": cid,
-            "name": name,
-            "rarity": rarity,
-            "element": element,
-            "class": cls,
-            "role": role,
-            "faction": faction,
-        }
-
-        if cid in by_id:
-            # 필드 단위로 local이 비어있지 않으면 덮어쓰기
-            for k, v in item.items():
-                if v not in (None, "", "-"):
-                    by_id[cid][k] = v
-        else:
-            by_id[cid] = item
-
-    merged = list(by_id.values())
-    merged.sort(key=lambda x: (x.get("id") or ""))
+    # 중복 id 제거
+    dedup = {}
+    for c in chars:
+        dedup[c["id"]] = c
+    chars = list(dedup.values())
+    chars.sort(key=lambda x: x["id"])
 
     last_refresh = datetime.now(timezone.utc).isoformat()
-    factions = sorted({c["faction"] for c in merged if c.get("faction")})
-    elements = sorted({c["element"] for c in merged if c.get("element")})
-    classes = sorted({c["class"] for c in merged if c.get("class")})
+    factions = sorted({c["faction"] for c in chars if c.get("faction")})
+    elements = sorted({c["element"] for c in chars if c.get("element")})
+    classes = sorted({c["class"] for c in chars if c.get("class")})
 
     return {
         "last_refresh": last_refresh,
-        "count": len(merged),
+        "count": len(chars),
         "factions_count": len(factions),
         "factions": factions,
         "elements": elements,
         "classes": classes,
-        "characters": merged,
+        "characters": chars,
     }
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -255,16 +249,11 @@ def main():
     tmp_out = REPO_ROOT / ".tmp_zone_nova_characters.json"
     run_node_extract(upstream_char_dir, tmp_out)
 
-    raw = _load_json(tmp_out)
+    raw = json.loads(tmp_out.read_text(encoding="utf-8"))
     if not isinstance(raw, list):
         raise RuntimeError("추출 결과 포맷 오류: list여야 합니다.")
 
-    # local overrides (Apep/Gaia 등 보강)
-    local_path = PUBLIC_DATA_DIR / "characters.json"
-    local_raw = _load_json(local_path)
-    local_list = _as_list(local_raw)
-
-    meta = build_characters_meta(raw, local_list)
+    meta = build_characters_meta(raw)
 
     if args.write:
         PUBLIC_DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -278,6 +267,7 @@ def main():
         pass
 
     print(f"[ok] characters_meta.json generated: count={meta['count']} factions={meta.get('factions_count')}")
+
 
 if __name__ == "__main__":
     main()
