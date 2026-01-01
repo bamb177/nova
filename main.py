@@ -42,7 +42,6 @@ CLASS_TO_ROLE = {
     "warrior": "dps",
 }
 
-
 CACHE = {
     "chars": [],
     "bosses": [],
@@ -126,6 +125,12 @@ def normalize_char_name(name: str) -> str:
     name = (name or "").replace("’", "'").strip()
     name = " ".join(name.split())
     return name
+
+
+def normalize_faction(v: str) -> str:
+    v = (v or "").strip()
+    v = " ".join(v.split())
+    return v
 
 
 def normalize_class(v: str) -> str:
@@ -257,6 +262,18 @@ def extract_char_list(raw) -> list[dict]:
     raise RuntimeError("캐릭터 JSON 포맷 오류: list 또는 {characters:[...]} 또는 맵 형태여야 합니다.")
 
 
+def _uniq_keep_order(xs: list[str]) -> list[str]:
+    seen, out = set(), []
+    for x in xs:
+        x = (x or "").strip()
+        if not x:
+            continue
+        if x not in seen:
+            seen.add(x)
+            out.append(x)
+    return out
+
+
 def normalize_chars(raw) -> list[dict]:
     chars = extract_char_list(raw)
 
@@ -271,59 +288,96 @@ def normalize_chars(raw) -> list[dict]:
         if not isinstance(c, dict):
             continue
 
-        name = normalize_char_name(c.get("name") or "")
+        # ===== ID =====
         cid = (c.get("id") or c.get("_id") or "").strip()
         if not cid:
-            cid = slug_id(name)
+            # name 기반으로라도 만들되, 최종은 slug
+            fallback_name = normalize_char_name(c.get("display_name") or c.get("name") or "")
+            cid = slug_id(fallback_name)
         cid = slug_id(cid)
         if not cid or cid in seen:
+            continue
+
+        # ===== 이름(표시명 우선) =====
+        # sync에서 display_name/name_raw/aliases가 오면 적극 활용
+        name = normalize_char_name(c.get("display_name") or c.get("name") or "")
+        name_raw = normalize_char_name(c.get("name_raw") or c.get("name") or "")
+
+        # aliases: sync가 준 aliases + name + name_raw + id
+        aliases = []
+        if isinstance(c.get("aliases"), list):
+            aliases.extend([normalize_char_name(str(x)) for x in c.get("aliases") if x is not None])
+        aliases.extend([name, name_raw, cid])
+        aliases = _uniq_keep_order(aliases)
+
+        # Jeanne D Arc 정규화(이전 오류 방지)
+        if slug_id(name) in {"jeannedarc", "joanofarc"} or cid in {"jeannedarc", "joanofarc"} or "jeanne" in cid:
+            cid = "jeannedarc"
+            name = "Jeanne D Arc"
+            # name_raw/aliases도 보강
+            name_raw = name_raw or "Jeanne D Arc"
+            aliases = _uniq_keep_order(aliases + ["Jeanne D Arc", "JeanneDArc", "Joan of Arc", "JoanofArc"])
+
+        # id가 jeannedarc로 변경되면 중복 체크 다시
+        if cid in seen:
             continue
         seen.add(cid)
 
         rarity = (c.get("rarity") or "-").strip().upper()
         element = (c.get("element") or "-").strip()
 
+        # ===== 파벌(콤보용 필수) =====
+        faction = normalize_faction(
+            c.get("faction_display")
+            or c.get("faction")
+            or c.get("Faction")
+            or ""
+        )
+        faction_raw = normalize_faction(c.get("faction_raw") or c.get("faction") or "")
+
         # ===== 클래스/역할 분리 =====
         # upstream 데이터가 class로 오든 role로 오든 일단 class를 찾아 정규화
-        cls_raw = c.get("class") or c.get("Class") or c.get("job") or c.get("Job") or c.get("type") or c.get("Type") or c.get("role") or c.get("Role")
+        cls_raw = (
+            c.get("class") or c.get("Class")
+            or c.get("job") or c.get("Job")
+            or c.get("type") or c.get("Type")
+            or c.get("role") or c.get("Role")
+        )
         cls = normalize_class(str(cls_raw) if cls_raw is not None else "")
-
-        # Jeanne D Arc 정규화(이전 오류 방지)
-        if slug_id(name) in {"jeannedarc", "joanofarc"} or cid in {"jeannedarc", "joanofarc"} or "jeanne" in cid:
-            cid = "jeannedarc"
-            name = "Jeanne D Arc"
-
         role = role_from_class(cls, cid)
 
         # ===== 캐릭터 이미지 매칭 =====
         image_url = None
 
-        # 1) 매핑 테이블(요청 반영)
-        # Snow girl / Morgan Le fay 등
+        # 1) 기존 special 유지(호환)
         special = {
             "snowgirl": "Snow",
             "morganlefay": "Morgan",
             "morganle_fay": "Morgan",
-            "jeannedarc": "Jeanne D Arc",  # Jeanne만 별도 보강
+            "jeannedarc": "Jeanne D Arc",
         }
         forced_base = special.get(cid)
         if forced_base:
-            # forced_base로 폴더에서 찾아 연결(확장자 상관없이)
             for k in candidate_image_keys(cid, forced_base):
                 real = char_img_map.get(k)
                 if real:
                     image_url = f"/images/games/zone-nova/characters/{real}"
                     break
 
-        # 2) 일반 키 매칭
+        # 2) 일반 키 매칭(표시명/원본명/aliases 전부 후보)
         if not image_url:
-            for k in candidate_image_keys(cid, name):
-                real = char_img_map.get(k)
-                if real:
-                    image_url = f"/images/games/zone-nova/characters/{real}"
+            # aliases 우선순위: name -> name_raw -> 나머지
+            alias_candidates = _uniq_keep_order([name, name_raw] + aliases)
+            for a in alias_candidates:
+                for k in candidate_image_keys(cid, a):
+                    real = char_img_map.get(k)
+                    if real:
+                        image_url = f"/images/games/zone-nova/characters/{real}"
+                        break
+                if image_url:
                     break
 
-        # 3) Jeanne D Arc 최종 보강: 폴더를 직접 스캔(이름이 예상 밖이어도 jeanne 포함 파일을 잡음)
+        # 3) Jeanne D Arc 최종 보강: 폴더를 직접 스캔
         if not image_url and cid == "jeannedarc" and os.path.isdir(IMG_DIR):
             picked = None
             for fn in os.listdir(IMG_DIR):
@@ -355,9 +409,20 @@ def normalize_chars(raw) -> list[dict]:
 
         out.append({
             "id": cid,
-            "name": name or cid,      # 캐릭터명 영어 유지
+
+            # 표시명(오버라이드 반영된 값이 들어오면 그대로 표시)
+            "name": name or cid,
+
+            # 추적/매칭 안정화 필드(있으면 UI/디버그에도 유용)
+            "name_raw": name_raw or None,
+            "aliases": aliases,
+
             "rarity": rarity,
             "element": element,
+
+            # 콤보/표시용 파벌(오버라이드 반영)
+            "faction": faction or None,
+            "faction_raw": faction_raw or None,
 
             # 분리 저장
             "class": cls,             # 7개
@@ -424,17 +489,63 @@ def load_all(force: bool = False) -> None:
 
 
 def resolve_ids(input_list: list[str], chars: list[dict]) -> list[str]:
+    """
+    입력 문자열(owned/required/banned)을 캐릭터 id로 최대한 안정적으로 해석.
+    - id 직접 매칭
+    - name 매칭
+    - aliases(동의어/원본명/표시명) 매칭
+    - slug fallback
+    """
     if not input_list:
         return []
-    by_id = {c["id"].lower(): c["id"] for c in chars if c.get("id")}
-    by_name = {(c.get("name") or "").lower(): c["id"] for c in chars if c.get("id")}
+
+    by_id = {}
+    by_key = {}
+
+    for c in chars:
+        cid = (c.get("id") or "").strip()
+        if not cid:
+            continue
+        cid_low = cid.lower()
+        by_id[cid_low] = cid
+
+        # name
+        nm = normalize_char_name(c.get("name") or "")
+        if nm:
+            by_key[nm.lower()] = cid
+            by_key[slug_id(nm)] = cid
+
+        # name_raw
+        nraw = normalize_char_name(c.get("name_raw") or "")
+        if nraw:
+            by_key[nraw.lower()] = cid
+            by_key[slug_id(nraw)] = cid
+
+        # aliases
+        als = c.get("aliases")
+        if isinstance(als, list):
+            for a in als:
+                a = normalize_char_name(str(a))
+                if not a:
+                    continue
+                by_key[a.lower()] = cid
+                by_key[slug_id(a)] = cid
 
     out = []
     for x in input_list:
-        k = (x or "").strip().lower()
-        if not k:
+        raw = (x or "").strip()
+        if not raw:
             continue
-        out.append(by_id.get(k) or by_name.get(k) or slug_id(x))
+
+        k = normalize_char_name(raw).lower()
+        sid = slug_id(raw)
+
+        out.append(
+            by_id.get(k)
+            or by_key.get(k)
+            or by_key.get(sid)
+            or sid
+        )
 
     seen, uniq = set(), []
     for v in out:
@@ -486,7 +597,7 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
     enemy_element = payload.get("enemy_element") or None
     boss_weakness = payload.get("boss_weakness") or None
 
-    by_id = {c["id"]: c for c in chars}
+    by_id = {c["id"]: c for c in chars if c.get("id")}
     pool = [by_id[i] for i in owned if i in by_id and i not in banned]
 
     if len(pool) < 4:
@@ -522,6 +633,7 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
             "name": c.get("name") or c["id"],
             "rarity": c.get("rarity") or "-",
             "element": c.get("element") or "-",
+            "faction": c.get("faction") or None,
             "class": c.get("class") or "-",
             "role": c.get("role") or "-",
             "image": c.get("image"),
@@ -625,10 +737,12 @@ def ui_select():
         adv_json=json.dumps(CACHE["element_adv"], ensure_ascii=False),
     )
 
+
 def _count_ge2(values):
     from collections import Counter
     c = Counter([v for v in values if v])
     return any(n >= 2 for n in c.values())
+
 
 def compute_combo_bonus(party_chars, w_elem=20, w_faction=20):
     """
@@ -638,7 +752,7 @@ def compute_combo_bonus(party_chars, w_elem=20, w_faction=20):
     - 둘 다 만족하면 과대가중 방지를 위해 max 적용(원하면 합산으로 변경 가능)
     """
     elems = [c.get("element") for c in party_chars]
-    facts = [c.get("faction") for c in party_chars]
+    facts = [c.get("faction") for c in party_chars]  # ✅ normalize_chars에서 faction을 채워주므로 이제 유효
 
     elem_ok = _count_ge2(elems)
     fac_ok = _count_ge2(facts)
@@ -648,9 +762,12 @@ def compute_combo_bonus(party_chars, w_elem=20, w_faction=20):
     bonus = max(elem_bonus, fac_bonus)
 
     reasons = []
-    if elem_ok: reasons.append("콤보: 같은 속성 2인 이상")
-    if fac_ok: reasons.append("콤보: 같은 파벌 2인 이상")
+    if elem_ok:
+        reasons.append("콤보: 같은 속성 2인 이상")
+    if fac_ok:
+        reasons.append("콤보: 같은 파벌 2인 이상")
     return bonus, reasons
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "10000"))
