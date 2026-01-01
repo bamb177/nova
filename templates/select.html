@@ -7,38 +7,32 @@
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
-  <div class="page">
+  <div class="wrap">
     <header class="topbar">
-      <div class="topbar__left">
-        <div class="brand">{{ title }}</div>
+      <div class="title">
+        <h1>{{ title }}</h1>
         <div class="meta">
-          <span>캐릭터: <b>{{ cache_count }}</b></span>
-          <span class="dot">•</span>
-          <span>보스: <b>{{ boss_count }}</b></span>
-          <span class="dot">•</span>
-          <span>갱신: <b>{{ last_refresh }}</b></span>
+          <span>캐릭터: {{ cache_count }}</span>
+          <span>보스: {{ boss_count }}</span>
+          <span>갱신: {{ last_refresh }}</span>
+          {% if error %}
+            <span class="error">ERROR: {{ error }}</span>
+          {% endif %}
         </div>
       </div>
-      <div class="topbar__right">
+      <div class="actions">
         <a class="btn" href="/refresh">Refresh</a>
       </div>
     </header>
 
-    {% if error %}
-      <div class="alert">데이터 로딩 오류: {{ error }}</div>
-    {% endif %}
-
     <section class="panel">
-      <div class="panel__head">
-        <div class="panel__title">보유 캐릭터</div>
-        <div class="panel__tools">
-          <input id="q" class="input" placeholder="이름/속성/특성/클래스 검색" />
-          <span class="hint" id="count"></span>
-        </div>
+      <div class="panel-head">
+        <div class="panel-title">캐릭터 목록</div>
+        <div class="panel-sub">체크박스로 보유(Owned) 캐릭터를 선택하세요.</div>
       </div>
 
       <div class="table-wrap">
-        <table class="table">
+        <table class="char-table" id="charTable">
           <thead>
             <tr>
               <th class="col-check">선택</th>
@@ -50,7 +44,7 @@
               <th class="col-rarity">등급</th>
             </tr>
           </thead>
-          <tbody id="tbody"></tbody>
+          <tbody id="charTbody"></tbody>
         </table>
       </div>
     </section>
@@ -58,98 +52,69 @@
 
   <script>
     const CHARS = {{ chars_json|safe }};
-    const $tbody = document.getElementById("tbody");
-    const $q = document.getElementById("q");
-    const $count = document.getElementById("count");
 
-    function escapeHtml(s) {
-      return String(s ?? "").replace(/[&<>"']/g, m => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-      }[m]));
+    function roleLabel(role) {
+      const r = (role || "-").toString().toLowerCase();
+      if (r === "dps") return "DPS";              // 요청 3
+      if (r === "-" || r === "") return "-";
+      return r.charAt(0).toUpperCase() + r.slice(1);
     }
 
-    function rarityRank(r) {
-      const x = String(r || "-").toUpperCase();
-      if (x === "SSR") return 0;
-      if (x === "SR") return 1;
-      if (x === "R") return 2;
-      return 9;
+    function classLabel(cls) {
+      const c = (cls || "-").toString().toLowerCase();
+      if (c === "debuffer") return "Disruptor";   // 요청 4 (표기 변경)
+      if (c === "-" || c === "") return "-";
+      return c.charAt(0).toUpperCase() + c.slice(1);
     }
 
-    function sortChars(list) {
-      // 요구사항: 등급 1차, 이름 2차
-      return [...list].sort((a, b) => {
-        const ra = rarityRank(a.rarity), rb = rarityRank(b.rarity);
-        if (ra !== rb) return ra - rb;
-        const na = String(a.name || "").toLowerCase();
-        const nb = String(b.name || "").toLowerCase();
-        if (na < nb) return -1;
-        if (na > nb) return 1;
-        return String(a.id || "").localeCompare(String(b.id || ""));
-      });
+    function rarityClass(r) {
+      const x = (r || "-").toString().toUpperCase();
+      if (x === "SSR") return "rarity ssr";
+      if (x === "SR")  return "rarity sr";        // 요청 7 (CSS에서 주황 그라데이션)
+      if (x === "R")   return "rarity r";
+      return "rarity none";
     }
 
-    function badge(html, cls) {
-      return `<span class="badge ${cls}">${html}</span>`;
-    }
-
-    function renderRow(c) {
-      const img = c.image ? `<img class="avatar" src="${escapeHtml(c.image)}" alt="">` : `<div class="avatar avatar--empty"></div>`;
-      const elem = c.element && c.element !== "-" ? badge(escapeHtml(c.element), `badge--elem badge--${String(c.element).toLowerCase()}`) : badge("-", "badge--muted");
-      const faction = c.faction ? badge(escapeHtml(c.faction), "badge--faction") : badge("-", "badge--muted");
-
-      const clsLabel = c.class_display || c.class || "-";
-      const roleLabel = c.role_display || c.role || "-";
-
-      const cls = clsLabel && clsLabel !== "-" ? badge(escapeHtml(clsLabel), "badge--class") : badge("-", "badge--muted");
-      const role = roleLabel && roleLabel !== "-" ? `<span class="role">${escapeHtml(roleLabel)}</span>` : `<span class="role role--muted">-</span>`;
-
-      const rar = String(c.rarity || "-").toUpperCase();
-      const rarityBadgeCls = (rar === "SSR") ? "badge--rarity badge--ssr" :
-                             (rar === "SR")  ? "badge--rarity badge--sr" :
-                             (rar === "R")   ? "badge--rarity badge--r" : "badge--rarity badge--muted";
-      const rarity = badge(escapeHtml(rar), rarityBadgeCls);
-
-      return `
-        <tr>
-          <td class="col-check"><input type="checkbox" class="chk" data-id="${escapeHtml(c.id)}"></td>
-          <td class="col-char">
-            <div class="char">
-              ${img}
-              <div class="char__text">
-                <div class="char__name">${escapeHtml(c.name || c.id)}</div>
-                <div class="char__sub">${escapeHtml(c.id)}</div>
-              </div>
-            </div>
-          </td>
-          <td class="col-elem">${elem}</td>
-          <td class="col-faction">${faction}</td>
-          <td class="col-class">${cls}</td>
-          <td class="col-role">${role}</td>
-          <td class="col-rarity">${rarity}</td>
-        </tr>
-      `;
-    }
-
-    function applyFilter(list, q) {
-      const k = String(q || "").trim().toLowerCase();
-      if (!k) return list;
-
-      return list.filter(c => {
-        const s = [
-          c.name, c.id, c.element, c.faction, c.class_display, c.role_display, c.rarity
-        ].join(" ").toLowerCase();
-        return s.includes(k);
-      });
+    function badge(text, iconUrl, extraClass="") {
+      const icon = iconUrl ? `<img class="badge-icon" src="${iconUrl}" alt="" />` : "";
+      return `<span class="badge ${extraClass}">${icon}<span class="badge-text">${text || "-"}</span></span>`;
     }
 
     function render() {
-      const list = sortChars(applyFilter(CHARS, $q.value));
-      $tbody.innerHTML = list.map(renderRow).join("");
-      $count.textContent = `${list.length} / ${CHARS.length}`;
+      const tbody = document.getElementById("charTbody");
+      tbody.innerHTML = "";
+
+      for (const c of CHARS) {
+        const img = c.image
+          ? `<img class="avatar" src="${c.image}" alt="" />`
+          : `<div class="avatar placeholder"></div>`;
+
+        const name = c.name || c.id || "-";
+        const elem = badge(c.element || "-", c.element_icon, "badge-elem");
+        const faction = (c.faction || "-");
+        const cls = badge(classLabel(c.class), c.class_icon, "badge-class");
+        const role = roleLabel(c.role);
+        const rarity = `<span class="${rarityClass(c.rarity)}">${(c.rarity || "-").toString().toUpperCase()}</span>`;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="col-check"><input type="checkbox" class="chk-owned" data-id="${c.id}" /></td>
+          <td class="col-char">
+            <div class="char-cell">
+              ${img}
+              <div class="char-name">${name}</div>
+            </div>
+          </td>
+          <td class="col-elem">${elem}</td>
+          <td class="col-faction"><span class="text">${faction}</span></td>
+          <td class="col-class">${cls}</td>
+          <td class="col-role"><span class="text">${role}</span></td>
+          <td class="col-rarity">${rarity}</td>
+        `;
+        tbody.appendChild(tr);
+      }
     }
 
-    $q.addEventListener("input", render);
     render();
   </script>
 </body>
