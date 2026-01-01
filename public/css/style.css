@@ -295,3 +295,176 @@ body{
 .badge-role--{
   background: rgba(255,255,255,.04);
 }
+
+/* ===== Modal ===== */
+.modal-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 9999;
+}
+.modal-backdrop.show{ display:flex; }
+
+.modal{
+  width: min(980px, 100%);
+  max-height: min(86vh, 920px);
+  overflow: auto;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: linear-gradient(180deg, rgba(18,28,45,.98), rgba(10,16,28,.98));
+  box-shadow: 0 20px 70px rgba(0,0,0,.45);
+}
+
+.modal-head{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+  background: rgba(6, 12, 24, .88);
+  backdrop-filter: blur(10px);
+}
+
+.modal-title{
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.modal-close{
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.92);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-body{
+  padding: 16px;
+}
+
+.modal-loading{
+  padding: 18px;
+  color: rgba(255,255,255,.70);
+  font-weight: 700;
+}
+
+.detail-head{
+  display:flex;
+  gap: 16px;
+  align-items:flex-start;
+  margin-bottom: 14px;
+}
+
+.detail-avatar{
+  width: 104px;
+  height: 104px;
+  border-radius: 20px;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.03);
+}
+
+.detail-name{
+  font-size: 22px;
+  font-weight: 950;
+  letter-spacing: .2px;
+  margin-bottom: 8px;
+}
+
+.detail-badges{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.detail-sub{
+  color: rgba(255,255,255,.60);
+  font-size: 13px;
+}
+
+.detail-h3{
+  margin: 16px 0 8px;
+  font-size: 14px;
+  font-weight: 900;
+  color: rgba(255,255,255,.78);
+}
+
+.detail-empty{
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.72);
+  font-weight: 700;
+}
+
+/* stats table */
+.kv{
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.10);
+}
+.kv td{
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  font-size: 14px;
+}
+.kv tr:last-child td{ border-bottom: none; }
+.kv-k{ color: rgba(255,255,255,.62); width: 220px; }
+.kv-v{ color: rgba(255,255,255,.88); }
+
+/* tags chips */
+.chips{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip{
+  display:inline-flex;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.80);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.detail-ul{
+  margin: 0;
+  padding-left: 18px;
+  color: rgba(255,255,255,.85);
+  font-size: 14px;
+}
+.detail-ul li{ margin: 6px 0; }
+
+.raw summary{
+  cursor: pointer;
+  color: rgba(255,255,255,.72);
+  font-weight: 800;
+}
+.raw pre{
+  margin: 10px 0 0;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.30);
+  overflow:auto;
+  font-size: 12px;
+  color: rgba(255,255,255,.78);
+}
