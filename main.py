@@ -18,7 +18,7 @@ CLASS_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova"
 CHAR_META_JSON = os.path.join(DATA_DIR, "characters_meta.json")
 CHAR_JSON = os.path.join(DATA_DIR, "characters.json")
 
-# 오버라이드(이전 수정 값 유지)
+# 오버라이드
 OVERRIDES_NAMES_JSON = os.path.join(DATA_DIR, "overrides_names.json")
 OVERRIDES_FACTIONS_JSON = os.path.join(DATA_DIR, "overrides_factions.json")
 
@@ -35,7 +35,7 @@ VALID_IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 CLASS_SET = {"buffer", "debuffer", "guardian", "healer", "mage", "rogue", "warrior"}
 ROLE_SET = {"buffer", "dps", "debuffer", "healer", "tank"}
 
-# 클래스 -> 역할 매핑
+# 클래스 -> 역할 매핑(내부 로직용: 기존 유지)
 CLASS_TO_ROLE = {
     "buffer": "buffer",
     "debuffer": "debuffer",
@@ -77,10 +77,19 @@ NAME_OVERRIDE_FALLBACK = {
     "Yuis": "Zeus",
 }
 
+# ✅ 속성명 변경(요청 2)
+ELEMENT_RENAME = {
+    "ice": "Frost",
+    "wind": "Storm",
+    "fire": "Blaze",
+    "holy": "Holy",
+    "chaos": "Chaos",
+}
+
 CACHE = {
     "chars": [],
     "bosses": [],
-    "element_adv": {"Fire": "Wind", "Wind": "Ice", "Ice": "Holy", "Holy": "Chaos", "Chaos": "Fire"},
+    "element_adv": {"Blaze": "Storm", "Storm": "Frost", "Frost": "Holy", "Holy": "Chaos", "Chaos": "Blaze"},
     "last_refresh": None,
     "source": {
         "characters": None,
@@ -96,7 +105,13 @@ def now_iso() -> str:
 
 
 def slug_id(s: str) -> str:
+    """
+    ✅ 중복 이슈 방지:
+    - 다양한 dash(– — − -)를 '-'로 정규화
+    """
     s = (s or "").strip().lower().replace("’", "'")
+    # 다양한 dash 정규화
+    s = s.replace("–", "-").replace("—", "-").replace("−", "-").replace("-", "-")
     s = re.sub(r"[\s'\"`]+", "", s)
     s = re.sub(r"[^a-z0-9_-]", "", s)
     return s
@@ -119,8 +134,6 @@ def safe_read_json(path: str, default):
 def build_file_map(folder: str) -> dict:
     """
     폴더 스캔 → 다양한 키로 파일 매칭 가능하도록 맵 생성
-    key: 정규화된 베이스명(lower)
-    value: 실제 파일명
     """
     m = {}
     if not os.path.isdir(folder):
@@ -139,13 +152,11 @@ def build_file_map(folder: str) -> dict:
         keys = {base_low}
         keys.add(slug_id(base))
 
-        # classes 폴더: 1*.jpg 같은 케이스 대응(선행 숫자+구분자 제거)
         stripped = re.sub(r"^[0-9]+[_\-\s]*", "", base_low).strip()
         if stripped:
             keys.add(stripped)
             keys.add(slug_id(stripped))
 
-        # 공백/하이픈/언더스코어 제거 버전도 추가
         compact = re.sub(r"[\s\-_]+", "", base_low)
         if compact:
             keys.add(compact)
@@ -164,26 +175,51 @@ def build_file_map(folder: str) -> dict:
 
 def normalize_char_name(name: str) -> str:
     name = (name or "").replace("’", "'").strip()
+    name = name.replace("–", "-").replace("—", "-").replace("−", "-").replace("-", "-")
     name = " ".join(name.split())
     return name
 
 
 def _norm_key(s: str) -> str:
-    return re.sub(r"[\s\-_]+", "", (s or "").strip().lower())
+    s = (s or "").strip().lower()
+    s = s.replace("–", "-").replace("—", "-").replace("−", "-").replace("-", "-")
+    return re.sub(r"[\s\-_]+", "", s)
+
+
+def normalize_element_name(v: str) -> str:
+    """
+    Ice->Frost, Wind->Storm, Fire->Blaze
+    """
+    s = (v or "").strip()
+    if not s or s == "-":
+        return "-"
+    low = s.lower()
+    return ELEMENT_RENAME.get(low, s)
+
+
+def element_icon_candidates(element: str) -> list[str]:
+    """
+    표기는 새 속성, 아이콘 파일명은 기존일 가능성까지 고려한 후보키
+    """
+    e = (element or "").strip()
+    if not e or e == "-":
+        return []
+    low = e.lower()
+    if low == "frost":
+        return ["frost", "ice"]
+    if low == "storm":
+        return ["storm", "wind"]
+    if low == "blaze":
+        return ["blaze", "fire"]
+    return [low]
 
 
 def load_overrides() -> tuple[dict, dict]:
-    """
-    (names_override, factions_override)
-    - 파일이 있으면 파일 우선
-    - 없으면 fallback 사용
-    """
     names = dict(NAME_OVERRIDE_FALLBACK)
     factions = dict(FACTION_NAME_MAP_FALLBACK)
 
     f_names = safe_read_json(OVERRIDES_NAMES_JSON, {})
     if isinstance(f_names, dict) and f_names:
-        # 파일이 있으면 fallback 위에 덮어씀(파일 우선)
         names.update({str(k): str(v) for k, v in f_names.items()})
 
     f_factions = safe_read_json(OVERRIDES_FACTIONS_JSON, {})
@@ -194,30 +230,19 @@ def load_overrides() -> tuple[dict, dict]:
 
 
 def apply_name_override(cid: str, name: str, names_map: dict) -> str:
-    """
-    id 기반 / name 기반 모두 대응
-    """
     cid = (cid or "").strip()
     name = (name or "").strip()
 
-    # 1) id 완전일치(대소문자/공백 제거 포함)
     if cid:
-        for k in (cid, cid.lower(), _norm_key(cid)):
+        for k in (cid, cid.lower(), _norm_key(cid), slug_id(cid)):
             if k in names_map:
                 return str(names_map[k]).strip()
 
-    # 2) name 일치(원본/소문자/컴팩트/slug)
-    candidates = [
-        name,
-        name.lower(),
-        _norm_key(name),
-        slug_id(name),
-    ]
+    candidates = [name, name.lower(), _norm_key(name), slug_id(name)]
     for k in candidates:
         if k in names_map:
             return str(names_map[k]).strip()
 
-    # 3) keys도 정규화 비교(파일이 "Greed Mammon" 형태로 들어간 케이스)
     nk = _norm_key(name)
     for kk, vv in names_map.items():
         if _norm_key(kk) == nk:
@@ -233,7 +258,6 @@ def apply_faction_override(faction: str, factions_map: dict) -> str:
     if f in factions_map:
         return str(factions_map[f]).strip()
 
-    # 정규화 비교
     fk = _norm_key(f)
     for kk, vv in factions_map.items():
         if _norm_key(kk) == fk:
@@ -243,22 +267,17 @@ def apply_faction_override(faction: str, factions_map: dict) -> str:
 
 
 def normalize_class(v: str) -> str:
-    """
-    입력이 class일 수도 있고 role일 수도 있음.
-    class(7)로 정규화. 못 맞추면 '-'.
-    """
     s = (v or "").strip()
     if not s:
         return "-"
 
     low = s.lower()
 
-    # 흔한 변형 보정
     alias = {
         "guard": "guardian",
         "guardian": "guardian",
-        "tank": "guardian",       # role이 들어온 경우
-        "dps": "warrior",         # role이 들어온 경우
+        "tank": "guardian",
+        "dps": "warrior",
         "mage": "mage",
         "rogue": "rogue",
         "warrior": "warrior",
@@ -267,28 +286,20 @@ def normalize_class(v: str) -> str:
         "debuffer": "debuffer",
         "support": "buffer",
         "attacker": "warrior",
-
-        # UI 표기 변경(Disruptor) 들어오는 경우도 debuffer로 수렴
         "disruptor": "debuffer",
     }
 
     if low in CLASS_SET:
         return low
-
     if low in alias:
         return alias[low]
-
-    return "-"  # 알 수 없는 값
+    return "-"
 
 
 def role_from_class(cls: str, cid: str) -> str:
-    """
-    class -> role(5) 변환. Apep 예외 반영.
-    """
     if not cls or cls == "-":
         return "-"
 
-    # Apep: Warrior라도 Tank 가능 -> role을 Tank로 처리
     if cid == "apep" and cls == "warrior":
         return "tank"
 
@@ -296,9 +307,6 @@ def role_from_class(cls: str, cid: str) -> str:
 
 
 def candidate_image_keys(cid: str, name: str) -> list[str]:
-    """
-    Jeanne D Arc 같은 케이스까지 최대한 매칭 키를 많이 생성
-    """
     out = []
     cid = (cid or "").strip()
     nm = (name or "").strip()
@@ -307,6 +315,8 @@ def candidate_image_keys(cid: str, name: str) -> list[str]:
         x = (x or "").strip()
         if not x:
             return
+        # dash 정규화
+        x = x.replace("–", "-").replace("—", "-").replace("−", "-").replace("-", "-")
         out.append(x.lower())
         out.append(slug_id(x))
         out.append(re.sub(r"[\s\-_]+", "", x.lower()))
@@ -318,14 +328,12 @@ def candidate_image_keys(cid: str, name: str) -> list[str]:
     add(nm.replace(" ", ""))
     add(cid)
 
-    # Jeanne D Arc 특별히 더 보강
     if cid == "jeannedarc" or "jeanne" in cid:
         add("Jeanne D Arc")
         add("JeanneDArc")
         add("Joan of Arc")
         add("JoanofArc")
 
-    # 중복 제거
     seen, uniq = set(), []
     for x in out:
         if x and x not in seen:
@@ -335,13 +343,6 @@ def candidate_image_keys(cid: str, name: str) -> list[str]:
 
 
 def extract_char_list(raw) -> list[dict]:
-    """
-    지원:
-    1) [ {...}, {...} ]
-    2) { "characters": [ ... ] }
-    3) { "characters": { "id": {...} } }  (맵)
-    4) { "id": {...}, "id2": {...} }      (맵)
-    """
     if isinstance(raw, list):
         return raw
 
@@ -375,10 +376,6 @@ def extract_char_list(raw) -> list[dict]:
 
 
 def load_and_merge_character_sources() -> tuple[list[dict], str]:
-    """
-    characters_meta.json(우선) + characters.json(보강) 병합
-    - Apep/Gaia 같은 누락을 characters.json에서 채움
-    """
     sources = []
     src_names = []
 
@@ -393,7 +390,6 @@ def load_and_merge_character_sources() -> tuple[list[dict], str]:
     if not sources:
         raise RuntimeError("캐릭터 JSON을 찾지 못했습니다: characters_meta.json / characters.json")
 
-    # 우선순위: meta -> characters
     merged: dict[str, dict] = {}
 
     for raw in sources:
@@ -412,12 +408,33 @@ def load_and_merge_character_sources() -> tuple[list[dict], str]:
             if cid not in merged:
                 merged[cid] = dict(c)
             else:
-                # 기존(meta)에 없던 필드를 characters.json에서 보강
                 for k, v in c.items():
                     if k not in merged[cid] or merged[cid].get(k) in (None, "", "-", []):
                         merged[cid][k] = v
 
     return list(merged.values()), " + ".join(src_names)
+
+
+def _quality_score(x: dict) -> int:
+    """
+    ✅ 동일 이름 중복 병합시, 정보가 더 완전한 레코드를 우선
+    """
+    s = 0
+    if (x.get("image") or ""):
+        s += 4
+    if (x.get("faction") or "") and x.get("faction") != "-":
+        s += 3
+    if (x.get("element") or "") and x.get("element") != "-":
+        s += 2
+    if (x.get("class") or "") and x.get("class") != "-":
+        s += 2
+    if (x.get("rarity") or "") and x.get("rarity") != "-":
+        s += 1
+    if (x.get("element_icon") or ""):
+        s += 1
+    if (x.get("class_icon") or ""):
+        s += 1
+    return s
 
 
 def normalize_chars(raw) -> list[dict]:
@@ -441,38 +458,37 @@ def normalize_chars(raw) -> list[dict]:
         if not cid:
             cid = slug_id(name)
         cid = slug_id(cid)
-        if not cid or cid in seen:
+        if not cid:
+            continue
+
+        # ✅ 1차 중복 제거: id 기준
+        if cid in seen:
             continue
         seen.add(cid)
 
-        # ===== 이름 오버라이드 =====
         name = apply_name_override(cid, name, names_override)
 
         rarity = (c.get("rarity") or "-").strip().upper()
-        element = (c.get("element") or "-").strip()
 
-        # 파벌
+        # ✅ 속성명 변경(요청 2)
+        element_raw = (c.get("element") or "-").strip()
+        element = normalize_element_name(element_raw)
+
         faction_raw = c.get("faction") or c.get("Faction") or c.get("group") or c.get("Group") or ""
         faction = apply_faction_override(str(faction_raw), factions_override)
 
-        # ===== 클래스/역할 분리 =====
         cls_raw = c.get("class") or c.get("Class") or c.get("job") or c.get("Job") or c.get("type") or c.get("Type") or c.get("role") or c.get("Role")
         cls = normalize_class(str(cls_raw) if cls_raw is not None else "")
 
-        # Jeanne D Arc 정규화(이전 오류 방지)
         if slug_id(name) in {"jeannedarc", "joanofarc"} or cid in {"jeannedarc", "joanofarc"} or "jeanne" in cid:
             cid = "jeannedarc"
-            # 표기 자체는 overrides_names.json에 따라갈 수 있으니 name은 유지하되,
-            # 이미지 매칭을 위해 Jeannedarc alias는 아래 candidate_image_keys에서 보강
             if not name:
                 name = "Jeanne D Arc"
 
         role = role_from_class(cls, cid)
 
-        # ===== 캐릭터 이미지 매칭 =====
         image_url = None
 
-        # 1) 매핑 테이블(일부 케이스)
         special = {
             "snowgirl": "Snow",
             "morganlefay": "Morgan",
@@ -487,7 +503,6 @@ def normalize_chars(raw) -> list[dict]:
                     image_url = f"/images/games/zone-nova/characters/{real}"
                     break
 
-        # 2) 일반 키 매칭
         if not image_url:
             for k in candidate_image_keys(cid, name):
                 real = char_img_map.get(k)
@@ -495,7 +510,6 @@ def normalize_chars(raw) -> list[dict]:
                     image_url = f"/images/games/zone-nova/characters/{real}"
                     break
 
-        # 3) Jeanne D Arc 최종 보강
         if not image_url and cid == "jeannedarc" and os.path.isdir(IMG_DIR):
             picked = None
             for fn in os.listdir(IMG_DIR):
@@ -510,13 +524,17 @@ def normalize_chars(raw) -> list[dict]:
             if picked:
                 image_url = f"/images/games/zone-nova/characters/{picked}"
 
-        # ===== 아이콘(네 리포지토리) =====
         elem_icon = None
         if element and element != "-":
-            ek = element.lower()
-            real = elem_icon_map.get(ek) or elem_icon_map.get(slug_id(ek))
-            if real:
-                elem_icon = f"/images/games/zone-nova/element/{real}"
+            # ✅ 새 속성명/구 속성명 모두 시도
+            picked = None
+            for ek in element_icon_candidates(element):
+                real = elem_icon_map.get(ek) or elem_icon_map.get(slug_id(ek))
+                if real:
+                    picked = real
+                    break
+            if picked:
+                elem_icon = f"/images/games/zone-nova/element/{picked}"
 
         class_icon = None
         if cls and cls != "-":
@@ -530,18 +548,39 @@ def normalize_chars(raw) -> list[dict]:
             "name": name or cid,
             "rarity": rarity,
             "element": element,
-
-            "faction": faction,      # ✅ 추가(요청 2)
-
-            "class": cls,            # 7개
-            "role": role,            # 5개
-
+            "faction": faction,
+            "class": cls,
+            "role": role,
             "image": image_url,
             "element_icon": elem_icon,
             "class_icon": class_icon,
         })
 
-    # ✅ 정렬: 등급(SSR>SR>R) -> 이름순 (요청 6)
+    # ✅ 2차 중복 제거: "같은 이름"이 여러 번 나오는 케이스 병합
+    by_name = {}
+    for x in out:
+        key = _norm_key(x.get("name") or "") or x.get("id")
+        if key not in by_name:
+            by_name[key] = x
+            continue
+
+        cur = by_name[key]
+        # 더 "완전한" 레코드를 채택하되, 서로의 빈 값은 병합
+        if _quality_score(x) > _quality_score(cur):
+            keep, other = x, cur
+        else:
+            keep, other = cur, x
+
+        for k in ("rarity", "element", "faction", "class", "role", "image", "element_icon", "class_icon"):
+            if (keep.get(k) in (None, "", "-", [])) and (other.get(k) not in (None, "", "-", [])):
+                keep[k] = other.get(k)
+
+        # id는 keep 기준 유지
+        by_name[key] = keep
+
+    out = list(by_name.values())
+
+    # ✅ 정렬: 등급(SSR>SR>R) -> 이름순
     def _sort_key(x: dict):
         r = (x.get("rarity") or "-").upper()
         return (-RARITY_ORDER.get(r, 0), (x.get("name") or "").lower())
@@ -564,11 +603,15 @@ def normalize_bosses(raw) -> list[dict]:
         if not bid or bid in seen:
             continue
         seen.add(bid)
+
+        weakness = normalize_element_name(b.get("weakness") or None) if b.get("weakness") else None
+        enemy_element = normalize_element_name(b.get("enemy_element") or None) if b.get("enemy_element") else None
+
         out.append({
             "id": bid,
             "name": (b.get("name") or bid).strip(),
-            "weakness": b.get("weakness") or None,
-            "enemy_element": b.get("enemy_element") or None,
+            "weakness": weakness,
+            "enemy_element": enemy_element,
         })
     return out
 
@@ -587,7 +630,14 @@ def load_all(force: bool = False) -> None:
         adv = edata.get("adv") if isinstance(edata, dict) else None
         if not (isinstance(adv, dict) and adv):
             raise RuntimeError("element_chart.json 포맷 오류: { adv:{...} } 형태가 필요합니다.")
-        CACHE["element_adv"] = {str(k): str(v) for k, v in adv.items()}
+
+        # ✅ adv 맵도 새 속성명으로 변환
+        new_adv = {}
+        for k, v in adv.items():
+            kk = normalize_element_name(str(k))
+            vv = normalize_element_name(str(v))
+            new_adv[str(kk)] = str(vv)
+        CACHE["element_adv"] = new_adv
 
         bdata = read_json_file(BOSS_JSON)
         CACHE["bosses"] = normalize_bosses(bdata)
@@ -628,6 +678,11 @@ def breakdown(c: dict, mode: str, enemy_element: str | None, boss_weakness: str 
     role = (c.get("role") or "-").lower()
 
     rarity_pts = RARITY_SCORE.get(rarity, 0)
+
+    # ✅ 입력 요소도 새 속성명으로 정규화
+    enemy_element = normalize_element_name(enemy_element) if enemy_element else None
+    boss_weakness = normalize_element_name(boss_weakness) if boss_weakness else None
+
     boss_bonus = 25 if (boss_weakness and element == boss_weakness) else 0
 
     adv_bonus = 0
@@ -803,37 +858,6 @@ def ui_select():
         bosses_json=json.dumps(CACHE["bosses"], ensure_ascii=False),
         adv_json=json.dumps(CACHE["element_adv"], ensure_ascii=False),
     )
-
-
-def _count_ge2(values):
-    from collections import Counter
-    c = Counter([v for v in values if v])
-    return any(n >= 2 for n in c.values())
-
-
-def compute_combo_bonus(party_chars, w_elem=20, w_faction=20):
-    """
-    party_chars: 캐릭 dict 리스트 (element, faction 포함)
-    - 같은 속성 2명 이상 -> w_elem
-    - 같은 파벌 2명 이상 -> w_faction
-    - 둘 다 만족하면 과대가중 방지를 위해 max 적용(원하면 합산으로 변경 가능)
-    """
-    elems = [c.get("element") for c in party_chars]
-    facts = [c.get("faction") for c in party_chars]
-
-    elem_ok = _count_ge2(elems)
-    fac_ok = _count_ge2(facts)
-
-    elem_bonus = w_elem if elem_ok else 0
-    fac_bonus = w_faction if fac_ok else 0
-    bonus = max(elem_bonus, fac_bonus)
-
-    reasons = []
-    if elem_ok:
-        reasons.append("콤보: 같은 속성 2인 이상")
-    if fac_ok:
-        reasons.append("콤보: 같은 파벌 2인 이상")
-    return bonus, reasons
 
 
 if __name__ == "__main__":
