@@ -1,5 +1,5 @@
 {
-  "last_refresh": "2026-01-01T09:02:55.244739+00:00",
+  "last_refresh": "2026-01-01T09:56:27.558021+00:00",
   "count": 46,
   "factions_count": 8,
   "factions": [
@@ -31,417 +31,706 @@
   "characters": [
     {
       "id": "afrodite",
-      "name": "Afrodite",
+      "name": "Aphrodite",
+      "name_raw": "Afrodite",
+      "aliases": [
+        "Aphrodite",
+        "Afrodite",
+        "afrodite"
+      ],
       "rarity": "SSR",
       "element": "Holy",
       "class": "Warrior",
       "role": "DPS",
-      "faction": "Odius"
+      "faction": "Odius",
+      "faction_raw": "Odius"
     },
     {
       "id": "anubis",
       "name": "Anubis",
+      "name_raw": "Anubis",
+      "aliases": [
+        "Anubis",
+        "anubis"
+      ],
       "rarity": "SSR",
       "element": "Chaos",
       "class": "Healer",
       "role": "Healer",
-      "faction": "Kemich"
+      "faction": "Kemich",
+      "faction_raw": "Chemic"
     },
     {
       "id": "apep",
-      "name": "apep",
+      "name": "Apep",
+      "name_raw": "apep",
+      "aliases": [
+        "Apep",
+        "apep"
+      ],
       "rarity": "",
       "element": "",
       "class": "",
       "role": "",
-      "faction": ""
+      "faction": "",
+      "faction_raw": ""
     },
     {
       "id": "apollo",
       "name": "Apollo",
+      "name_raw": "Apollo",
+      "aliases": [
+        "Apollo",
+        "apollo"
+      ],
       "rarity": "SSR",
       "element": "Fire",
       "class": "Buffer",
       "role": "Buffer",
-      "faction": "Odius"
+      "faction": "Odius",
+      "faction_raw": "Odius"
     },
     {
       "id": "artemis",
       "name": "Artemis",
+      "name_raw": "Artemis",
+      "aliases": [
+        "Artemis",
+        "artemis"
+      ],
       "rarity": "SSR",
       "element": "Wind",
       "class": "Warrior",
       "role": "DPS",
-      "faction": "Odius"
+      "faction": "Odius",
+      "faction_raw": "Odius"
     },
     {
       "id": "arthur",
       "name": "Arthur",
+      "name_raw": "Arthur",
+      "aliases": [
+        "Arthur",
+        "arthur"
+      ],
       "rarity": "SSR",
       "element": "Holy",
       "class": "Mage",
       "role": "DPS",
-      "faction": "Avalon"
+      "faction": "Avalon",
+      "faction_raw": "Avalon"
     },
     {
       "id": "athena",
       "name": "Athena",
+      "name_raw": "Athena",
+      "aliases": [
+        "Athena",
+        "athena"
+      ],
       "rarity": "SSR",
       "element": "Wind",
       "class": "Buffer",
       "role": "Buffer",
-      "faction": "Odius"
+      "faction": "Odius",
+      "faction_raw": "Odius"
     },
     {
       "id": "bastet",
       "name": "Bastet",
+      "name_raw": "Bastet",
+      "aliases": [
+        "Bastet",
+        "bastet"
+      ],
       "rarity": "SR",
       "element": "Wind",
       "class": "Mage",
       "role": "DPS",
-      "faction": "Kemich"
+      "faction": "Kemich",
+      "faction_raw": "Chemic"
     },
     {
       "id": "belphegar",
-      "name": "Belphegar",
+      "name": "Belphegor",
+      "name_raw": "Belphegar",
+      "aliases": [
+        "Belphegor",
+        "Belphegar",
+        "belphegar"
+      ],
       "rarity": "SR",
       "element": "Chaos",
       "class": "Debuffer",
       "role": "Debuffer",
-      "faction": "Bikta"
+      "faction": "Bikta",
+      "faction_raw": "Bicta Tower"
     },
     {
       "id": "chiya",
-      "name": "Chiya",
+      "name": "Cynia",
+      "name_raw": "Chiya",
+      "aliases": [
+        "Cynia",
+        "Chiya",
+        "chiya"
+      ],
       "rarity": "SSR",
       "element": "Ice",
       "class": "Rogue",
       "role": "DPS",
-      "faction": "Safir"
+      "faction": "Safir",
+      "faction_raw": "Sapphire"
     },
     {
       "id": "cleopatra",
       "name": "Cleopatra",
+      "name_raw": "Cleopatra",
+      "aliases": [
+        "Cleopatra",
+        "cleopatra"
+      ],
       "rarity": "SSR",
       "element": "Chaos",
       "class": "Mage",
       "role": "DPS",
-      "faction": "Kemich"
+      "faction": "Kemich",
+      "faction_raw": "Chemic"
     },
     {
       "id": "freya",
       "name": "Freya",
+      "name_raw": "Freya",
+      "aliases": [
+        "Freya",
+        "freya"
+      ],
       "rarity": "SSR",
       "element": "Ice",
       "class": "Mage",
       "role": "DPS",
-      "faction": "Asa"
+      "faction": "Asa",
+      "faction_raw": "A.S.A"
     },
     {
       "id": "freye",
-      "name": "Freye",
+      "name": "Frigga",
+      "name_raw": "Freye",
+      "aliases": [
+        "Frigga",
+        "Freye",
+        "freye"
+      ],
       "rarity": "SSR",
       "element": "Chaos",
       "class": "Debuffer",
       "role": "Debuffer",
-      "faction": "Asa"
+      "faction": "Asa",
+      "faction_raw": "A.S.A"
     },
     {
       "id": "gaia",
-      "name": "gaia",
+      "name": "Gaia",
+      "name_raw": "gaia",
+      "aliases": [
+        "Gaia",
+        "gaia"
+      ],
       "rarity": "",
       "element": "",
       "class": "",
       "role": "",
-      "faction": ""
+      "faction": "",
+      "faction_raw": ""
     },
     {
       "id": "greed-mammon",
-      "name": "Greed Mammon",
+      "name": "Mammon",
+      "name_raw": "Greed Mammon",
+      "aliases": [
+        "Mammon",
+        "Greed Mammon",
+        "greed-mammon"
+      ],
       "rarity": "SR",
       "element": "Chaos",
       "class": "Mage",
       "role": "DPS",
-      "faction": "Bikta"
+      "faction": "Bikta",
+      "faction_raw": "Bicta Tower"
     },
     {
       "id": "guinevere",
       "name": "Guinevere",
+      "name_raw": "Guinevere",
+      "aliases": [
+        "Guinevere",
+        "guinevere"
+      ],
       "rarity": "SSR",
       "element": "Fire",
       "class": "Guardian",
       "role": "Tank",
-      "faction": "Avalon"
+      "faction": "Avalon",
+      "faction_raw": "Avalon"
     },
     {
       "id": "hela",
       "name": "Hela",
+      "name_raw": "Hela",
+      "aliases": [
+        "Hela",
+        "hela"
+      ],
       "rarity": "SSR",
       "element": "Chaos",
       "class": "Rogue",
       "role": "DPS",
-      "faction": "Asa"
+      "faction": "Asa",
+      "faction_raw": "A.S.A"
     },
     {
       "id": "hera",
       "name": "Hera",
+      "name_raw": "Hera",
+      "aliases": [
+        "Hera",
+        "hera"
+      ],
       "rarity": "SSR",
       "element": "Chaos",
       "class": "Rogue",
       "role": "DPS",
-      "faction": "Odius"
+      "faction": "Odius",
+      "faction_raw": "Odius"
     },
     {
       "id": "horus",
       "name": "Horus",
+      "name_raw": "Horus",
+      "aliases": [
+        "Horus",
+        "horus"
+      ],
       "rarity": "SSR",
       "element": "Holy",
       "class": "Debuffer",
       "role": "Debuffer",
-      "faction": "Kemich"
+      "faction": "Kemich",
+      "faction_raw": "Chemic"
     },
     {
       "id": "ibaraki-doji",
       "name": "Ibaraki-doji",
+      "name_raw": "Ibaraki-doji",
+      "aliases": [
+        "Ibaraki-doji",
+        "ibaraki-doji"
+      ],
       "rarity": "SSR",
       "element": "Fire",
       "class": "Debuffer",
       "role": "Debuffer",
-      "faction": "Heikyo Castle"
+      "faction": "Heikyo Castle",
+      "faction_raw": "Pingjing City"
     },
     {
       "id": "jeanne-darc",
-      "name": "Jeanne D Arc",
+      "name": "Joan of Arc",
+      "name_raw": "Jeanne D Arc",
+      "aliases": [
+        "Joan of Arc",
+        "Jeanne D Arc",
+        "jeanne-darc"
+      ],
       "rarity": "SSR",
       "element": "Wind",
       "class": "Healer",
       "role": "Healer",
-      "faction": "Avalon"
+      "faction": "Avalon",
+      "faction_raw": "Avalon"
     },
     {
       "id": "jorogumo",
       "name": "Jorogumo",
+      "name_raw": "Jorogumo",
+      "aliases": [
+        "Jorogumo",
+        "jorogumo"
+      ],
       "rarity": "SSR",
       "element": "Chaos",
       "class": "Healer",
       "role": "Healer",
-      "faction": "Heikyo Castle"
+      "faction": "Heikyo Castle",
+      "faction_raw": "Pingjing City"
     },
     {
       "id": "kela",
-      "name": "Kela",
+      "name": "Clara",
+      "name_raw": "Kela",
+      "aliases": [
+        "Clara",
+        "Kela",
+        "kela"
+      ],
       "rarity": "SR",
       "element": "Holy",
       "class": "Healer",
       "role": "Healer",
-      "faction": "Safir"
+      "faction": "Safir",
+      "faction_raw": "Sapphire"
     },
     {
       "id": "lancelot",
       "name": "Lancelot",
+      "name_raw": "Lancelot",
+      "aliases": [
+        "Lancelot",
+        "lancelot"
+      ],
       "rarity": "SR",
       "element": "Holy",
       "class": "Guardian",
       "role": "Tank",
-      "faction": "Avalon"
+      "faction": "Avalon",
+      "faction_raw": "Avalon"
     },
     {
       "id": "lavinia",
       "name": "Lavinia",
+      "name_raw": "Lavinia",
+      "aliases": [
+        "Lavinia",
+        "lavinia"
+      ],
       "rarity": "SSR",
       "element": "Fire",
       "class": "Healer",
       "role": "Healer",
-      "faction": "Safir"
+      "faction": "Safir",
+      "faction_raw": "Sapphire"
     },
     {
       "id": "leviathan",
-      "name": "Leviathan",
+      "name": "Behemoth",
+      "name_raw": "Leviathan",
+      "aliases": [
+        "Behemoth",
+        "Leviathan",
+        "leviathan"
+      ],
       "rarity": "SR",
       "element": "Wind",
       "class": "Rogue",
       "role": "DPS",
-      "faction": "Bikta"
+      "faction": "Bikta",
+      "faction_raw": "Bicta Tower"
     },
     {
       "id": "lily",
       "name": "Lily",
+      "name_raw": "Lily",
+      "aliases": [
+        "Lily",
+        "lily"
+      ],
       "rarity": "SSR",
       "element": "Ice",
       "class": "Guardian",
       "role": "Tank",
-      "faction": "Safir"
+      "faction": "Safir",
+      "faction_raw": "Sapphire"
     },
     {
       "id": "loki",
       "name": "Loki",
+      "name_raw": "Loki",
+      "aliases": [
+        "Loki",
+        "loki"
+      ],
       "rarity": "SSR",
       "element": "Chaos",
       "class": "Debuffer",
       "role": "Debuffer",
-      "faction": "Asa"
+      "faction": "Asa",
+      "faction_raw": "A.S.A"
     },
     {
       "id": "lyra",
       "name": "Lyra",
+      "name_raw": "Lyra",
+      "aliases": [
+        "Lyra",
+        "lyra"
+      ],
       "rarity": "SSR",
       "element": "Fire",
       "class": "Mage",
       "role": "DPS",
-      "faction": "Safir"
+      "faction": "Safir",
+      "faction_raw": "Sapphire"
     },
     {
       "id": "merlin",
       "name": "Merlin",
+      "name_raw": "Merlin",
+      "aliases": [
+        "Merlin",
+        "merlin"
+      ],
       "rarity": "SSR",
       "element": "Fire",
       "class": "Rogue",
       "role": "DPS",
-      "faction": "Avalon"
+      "faction": "Avalon",
+      "faction_raw": "Avalon"
     },
     {
       "id": "mordred",
       "name": "Mordred",
+      "name_raw": "Mordred",
+      "aliases": [
+        "Mordred",
+        "mordred"
+      ],
       "rarity": "SR",
       "element": "Fire",
       "class": "Warrior",
       "role": "DPS",
-      "faction": "Avalon"
+      "faction": "Avalon",
+      "faction_raw": "Avalon"
     },
     {
       "id": "morgan-le-fay",
       "name": "Morgan Le Fay",
+      "name_raw": "Morgan Le Fay",
+      "aliases": [
+        "Morgan Le Fay",
+        "morgan-le-fay"
+      ],
       "rarity": "SSR",
       "element": "Holy",
       "class": "Buffer",
       "role": "Buffer",
-      "faction": "Avalon"
+      "faction": "Avalon",
+      "faction_raw": "Avalon"
     },
     {
       "id": "naiya",
-      "name": "Naiya",
+      "name": "Naya",
+      "name_raw": "Naiya",
+      "aliases": [
+        "Naya",
+        "Naiya",
+        "naiya"
+      ],
       "rarity": "SSR",
       "element": "Ice",
       "class": "Buffer",
       "role": "Buffer",
-      "faction": "Safir"
+      "faction": "Safir",
+      "faction_raw": "Sapphire"
     },
     {
       "id": "nina",
       "name": "Nina",
+      "name_raw": "Nina",
+      "aliases": [
+        "Nina",
+        "nina"
+      ],
       "rarity": "SSR",
       "element": "Ice",
       "class": "Warrior",
       "role": "DPS",
-      "faction": "Safir"
+      "faction": "Safir",
+      "faction_raw": "Sapphire"
     },
     {
       "id": "nini",
       "name": "Nini",
+      "name_raw": "Nini",
+      "aliases": [
+        "Nini",
+        "nini"
+      ],
       "rarity": "SR",
       "element": "Ice",
       "class": "Debuffer",
       "role": "Debuffer",
-      "faction": "Monochrome Realm"
+      "faction": "Monochrome Realm",
+      "faction_raw": "Monochrome Nation"
     },
     {
       "id": "odin",
       "name": "Odin",
+      "name_raw": "Odin",
+      "aliases": [
+        "Odin",
+        "odin"
+      ],
       "rarity": "SSR",
       "element": "Fire",
       "class": "Rogue",
       "role": "DPS",
-      "faction": "Asa"
+      "faction": "Asa",
+      "faction_raw": "A.S.A"
     },
     {
       "id": "penny",
-      "name": "Penny",
+      "name": "Pennie",
+      "name_raw": "Penny",
+      "aliases": [
+        "Pennie",
+        "Penny",
+        "penny"
+      ],
       "rarity": "SSR",
       "element": "Wind",
       "class": "Guardian",
       "role": "Tank",
-      "faction": "Safir"
+      "faction": "Safir",
+      "faction_raw": "Sapphire"
     },
     {
       "id": "rose",
       "name": "Rose",
+      "name_raw": "Rose",
+      "aliases": [
+        "Rose",
+        "rose"
+      ],
       "rarity": "SR",
       "element": "Ice",
       "class": "Mage",
       "role": "DPS",
-      "faction": "Monochrome Realm"
+      "faction": "Monochrome Realm",
+      "faction_raw": "Monochrome Nation"
     },
     {
       "id": "shanna",
-      "name": "Shanna",
+      "name": "Saya",
+      "name_raw": "Shanna",
+      "aliases": [
+        "Saya",
+        "Shanna",
+        "shanna"
+      ],
       "rarity": "SR",
       "element": "Fire",
       "class": "Rogue",
       "role": "DPS",
-      "faction": "Safir"
+      "faction": "Safir",
+      "faction_raw": "Sapphire"
     },
     {
       "id": "shu",
       "name": "Shu",
+      "name_raw": "Shu",
+      "aliases": [
+        "Shu",
+        "shu"
+      ],
       "rarity": "SR",
       "element": "Wind",
       "class": "Debuffer",
       "role": "Debuffer",
-      "faction": "Kemich"
+      "faction": "Kemich",
+      "faction_raw": "Chemic"
     },
     {
       "id": "sigurd",
       "name": "Sigurd",
+      "name_raw": "Sigurd",
+      "aliases": [
+        "Sigurd",
+        "sigurd"
+      ],
       "rarity": "SSR",
       "element": "Fire",
       "class": "Rogue",
       "role": "DPS",
-      "faction": "Asa"
+      "faction": "Asa",
+      "faction_raw": "A.S.A"
     },
     {
       "id": "snow-girl",
-      "name": "Snow Girl",
+      "name": "Yuki-onna",
+      "name_raw": "Snow Girl",
+      "aliases": [
+        "Yuki-onna",
+        "Snow Girl",
+        "snow-girl"
+      ],
       "rarity": "SR",
       "element": "Ice",
       "class": "Healer",
       "role": "Healer",
-      "faction": "Heikyo Castle"
+      "faction": "Heikyo Castle",
+      "faction_raw": "Pingjing City"
     },
     {
       "id": "tefnut",
       "name": "Tefnut",
+      "name_raw": "Tefnut",
+      "aliases": [
+        "Tefnut",
+        "tefnut"
+      ],
       "rarity": "SR",
       "element": "Holy",
       "class": "Rogue",
       "role": "DPS",
-      "faction": "Kemich"
+      "faction": "Kemich",
+      "faction_raw": "Chemic"
     },
     {
       "id": "thor",
       "name": "Thor",
+      "name_raw": "Thor",
+      "aliases": [
+        "Thor",
+        "thor"
+      ],
       "rarity": "SSR",
       "element": "Holy",
       "class": "Guardian",
       "role": "Tank",
-      "faction": "Asa"
+      "faction": "Asa",
+      "faction_raw": "A.S.A"
     },
     {
       "id": "yuis",
-      "name": "Yuis",
+      "name": "Zeus",
+      "name_raw": "Yuis",
+      "aliases": [
+        "Zeus",
+        "Yuis",
+        "yuis"
+      ],
       "rarity": "SSR",
       "element": "Holy",
       "class": "Rogue",
       "role": "DPS",
-      "faction": "Odius"
+      "faction": "Odius",
+      "faction_raw": "Odius"
     },
     {
       "id": "zashiki-warashi",
       "name": "Zashiki-warashi",
+      "name_raw": "Zashiki-warashi",
+      "aliases": [
+        "Zashiki-warashi",
+        "zashiki-warashi"
+      ],
       "rarity": "SR",
       "element": "Fire",
       "class": "Buffer",
       "role": "Buffer",
-      "faction": "Heikyo Castle"
+      "faction": "Heikyo Castle",
+      "faction_raw": "Pingjing City"
     }
   ]
 }
