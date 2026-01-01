@@ -1,40 +1,282 @@
-/* =========================
-   Rarity badges (SSR / SR)
-   ========================= */
+:root{
+  --bg: #0b1020;
+  --panel: rgba(255,255,255,0.04);
+  --panel2: rgba(255,255,255,0.06);
+  --line: rgba(255,255,255,0.08);
+  --text: rgba(255,255,255,0.92);
+  --muted: rgba(255,255,255,0.60);
+  --muted2: rgba(255,255,255,0.45);
+  --shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
 
-.rarity-badge{
+*{ box-sizing: border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: radial-gradient(1200px 700px at 20% 0%, #18254a 0%, var(--bg) 60%);
+  color: var(--text);
+}
+
+a{ color: inherit; text-decoration: none; }
+
+.page{
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 18px 18px 30px;
+}
+
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  box-shadow: var(--shadow);
+}
+
+.brand{
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.meta{
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--muted);
+  display:flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.meta b{ color: var(--text); font-weight: 700; }
+.dot{ opacity: .7; }
+
+.btn{
   display:inline-flex;
   align-items:center;
   justify-content:center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px;
+  font-weight: 700;
+  transition: .15s ease;
+}
+.btn:hover{ background: rgba(255,255,255,0.07); }
 
-  padding:4px 8px;
-  border-radius:8px;           /* 네모 + 라운드 */
-
-  font-weight:800;
-  letter-spacing:.3px;
-  line-height:1;
-
-  border:1px solid rgba(255,255,255,.18);
-  box-shadow: 0 6px 16px rgba(0,0,0,.28);
+.alert{
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,80,80,0.4);
+  background: rgba(255,80,80,0.08);
+  border-radius: 12px;
+  color: rgba(255,220,220,0.95);
 }
 
-/* SSR: 무지개 펄 느낌 */
-.rarity-ssr{
-  color:#0b0f14;
-  background:
-    radial-gradient(circle at 20% 25%, rgba(255,255,255,.85), rgba(255,255,255,0) 42%),
-    linear-gradient(135deg,
-      #ff4fd8,
-      #7c5cff,
-      #2fd3ff,
-      #2dff88,
-      #ffe65a,
-      #ff8a3d
-    );
+.panel{
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(0,0,0,0.18);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
 
-/* SR: 주황색 네모상자 */
-.rarity-sr{
-  color:#0b0f14;
-  background: linear-gradient(135deg, #ffb152, #ff7a00);
+.panel__head{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+}
+
+.panel__title{
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+.panel__tools{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+
+.input{
+  width: 320px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  outline: none;
+  font-size: 15px;
+}
+.input::placeholder{ color: var(--muted2); }
+
+.hint{
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.table-wrap{
+  width:100%;
+  overflow-x:auto;
+}
+
+.table{
+  width:100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.table thead th{
+  font-size: 14px;
+  text-align:left;
+  color: var(--muted);
+  font-weight: 800;
+  padding: 12px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.table tbody td{
+  padding: 14px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-size: 16px; /* ✅ 가독성: 글씨 크기 업 */
+  vertical-align: middle;
+}
+
+.table tbody tr:hover{
+  background: rgba(255,255,255,0.03);
+}
+
+.col-check{ width: 68px; }
+.col-char{ width: 360px; }
+.col-elem{ width: 130px; }
+.col-faction{ width: 200px; }
+.col-class{ width: 150px; }
+.col-role{ width: 120px; }
+.col-rarity{ width: 100px; }
+
+.chk{
+  width: 18px;
+  height: 18px;
+  accent-color: #62d5ff;
+}
+
+.char{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+}
+
+.avatar{
+  width: 56px;   /* ✅ 가독성: 이미지 크기 업 */
+  height: 56px;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.03);
+}
+.avatar--empty{
+  display:inline-block;
+}
+
+.char__name{
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.char__sub{
+  margin-top: 5px;
+  font-size: 12.5px;
+  color: var(--muted2);
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: .2px;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.badge--muted{
+  opacity: .65;
+}
+
+.badge--faction{
+  background: rgba(155, 125, 255, 0.10);
+  border-color: rgba(155, 125, 255, 0.25);
+}
+
+.badge--class{
+  background: rgba(80, 190, 255, 0.10);
+  border-color: rgba(80, 190, 255, 0.22);
+}
+
+.role{
+  font-weight: 900;
+  letter-spacing: .2px;
+  font-size: 15px;
+}
+.role--muted{ color: var(--muted2); }
+
+/* ===== 속성 배지(간단 색감) ===== */
+.badge--elem{ border-color: rgba(255,255,255,0.14); }
+.badge--fire{ background: rgba(255, 90, 90, 0.12); }
+.badge--wind{ background: rgba(90, 255, 160, 0.10); }
+.badge--ice{ background: rgba(90, 200, 255, 0.10); }
+.badge--holy{ background: rgba(255, 220, 120, 0.10); }
+.badge--chaos{ background: rgba(190, 120, 255, 0.10); }
+
+/* ===== 등급 배지 ===== */
+.badge--rarity{
+  min-width: 64px;
+  justify-content: center;
+  padding: 7px 12px;
+  border: 0;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+}
+.badge--ssr{
+  color: rgba(20,25,35,0.95);
+  background: linear-gradient(90deg, #63fff2 0%, #7ad1ff 40%, #a6ff7a 100%);
+}
+.badge--sr{
+  /* ✅ 요구사항: SR 등급도 주황색 그라데이션 느낌 */
+  color: rgba(30,18,10,0.95);
+  background: linear-gradient(90deg, #ffb24a 0%, #ff7a2f 55%, #ffcf6f 100%);
+}
+.badge--r{
+  color: rgba(20,25,35,0.95);
+  background: linear-gradient(90deg, #a5b4fc 0%, #93c5fd 50%, #c4b5fd 100%);
+}
+.badge--muted{
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.75);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: none;
+}
+
+@media (max-width: 900px){
+  .input{ width: 220px; }
+  .col-char{ width: 320px; }
+  .avatar{ width: 52px; height: 52px; }
+  .table tbody td{ font-size: 15px; }
 }
