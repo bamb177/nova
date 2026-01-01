@@ -9,12 +9,35 @@ REPO_ROOT = Path(__file__).resolve().parents[1]  # /nova
 PUBLIC_DATA_DIR = REPO_ROOT / "public" / "data" / "zone-nova"
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 
-BASE_DIR = Path(__file__).resolve().parents[1]
-DATA_DIR = BASE_DIR / "public" / "data" / "zone-nova"
+def _norm(s: str) -> str:
+    return (s or "").strip().lower()
 
-NAMES_OVR_PATH = DATA_DIR / "overrides_names.json"
-FACTIONS_OVR_PATH = DATA_DIR / "overrides_factions.json"
-META_PATH = DATA_DIR / "characters_meta.json"
+def title_case(s: str) -> str:
+    s = (s or "").strip()
+    if not s:
+        return ""
+    return s[0].upper() + s[1:].lower()
+
+# ✅ 캐릭터 이름 오버라이드(동기화해도 원복 방지)
+# "전열(업스트림 표기) -> 후열(진짜 표시명)"
+NAME_OVERRIDE_MAP = {
+    "Greed Mammon": "Mammon",
+    "Kela": "Clara",
+    "Morgan": "Morgan Le Fay",
+    "Leviathan": "Behemoth",
+    "Snow Girl": "Yuki-onna",
+    "Shanna": "Saya",
+    "Naiya": "Naya",
+    "Afrodite": "Aphrodite",
+    "apep": "Apep",
+    "Belphegar": "Belphegor",
+    "Chiya": "Cynia",
+    "Freye": "Frigga",
+    "gaia": "Gaia",
+    "Jeanne D Arc": "Joan of Arc",
+    "Penny": "Pennie",
+    "Yuis": "Zeus",
+}
 
 # ✅ 파벌명 고정 변환 (동기화해도 원복 방지)
 FACTION_NAME_MAP = {
@@ -42,12 +65,6 @@ CLASS_TO_ROLE = {
     "Debuffer": "Debuffer",
 }
 
-def title_case(s: str) -> str:
-    s = (s or "").strip()
-    if not s:
-        return ""
-    return s[0].upper() + s[1:].lower()
-
 def normalize_rarity(r: str) -> str:
     r = (r or "").strip().upper()
     return r
@@ -65,9 +82,9 @@ def normalize_role(role: str) -> str:
     role = (role or "").strip()
     if not role:
         return ""
-    # 이미 규정된 형태로만
     role_up = role.upper()
-    if role_up == "DPS": return "DPS"
+    if role_up == "DPS":
+        return "DPS"
     return title_case(role)
 
 def apply_faction_map(faction: str) -> str:
@@ -75,6 +92,22 @@ def apply_faction_map(faction: str) -> str:
     if not f:
         return ""
     return FACTION_NAME_MAP.get(f, f)
+
+def apply_name_override(name: str) -> str:
+    """
+    업스트림 name을 입력받아, 오버라이드 표시명을 반환.
+    - 대소문자/공백 차이를 흡수하기 위해 case-insensitive 매칭 사용
+    """
+    n = (name or "").strip()
+    if not n:
+        return ""
+    # case-insensitive 매칭
+    key = _norm(n)
+    # NAME_OVERRIDE_MAP도 동일 정규화로 탐색
+    for k, v in NAME_OVERRIDE_MAP.items():
+        if _norm(k) == key:
+            return v
+    return n
 
 def class_to_role(cls: str) -> str:
     c = normalize_class(cls)
@@ -107,23 +140,40 @@ def build_characters_meta(raw_list: list) -> dict:
         if not cid:
             continue
 
-        name = (c.get("name") or cid).strip()
+        # ✅ 업스트림 원본 보존
+        name_raw = (c.get("name") or cid).strip()
+        # ✅ 표시명 오버라이드(요청 매핑 적용)
+        name = apply_name_override(name_raw)
+
         rarity = normalize_rarity(c.get("rarity") or "")
         element = normalize_element(c.get("element") or "")
         cls = normalize_class(c.get("class") or "")
-        faction = apply_faction_map(c.get("faction") or "")
+
+        # ✅ 파벌도 원본 보존 + 표시용은 맵 적용
+        faction_raw = (c.get("faction") or "").strip()
+        faction = apply_faction_map(faction_raw)
 
         role = class_to_role(cls)
         role = normalize_role(role)
 
+        # ✅ 매칭 안정성: 원본/표시명 모두 aliases로 제공
+        aliases = []
+        for v in [name, name_raw, cid]:
+            v = (v or "").strip()
+            if v and v not in aliases:
+                aliases.append(v)
+
         chars.append({
             "id": cid,
-            "name": name,
+            "name": name,               # ✅ UI/표시용(오버라이드 적용)
+            "name_raw": name_raw,       # ✅ 업스트림 원본 보존(동기화 비교/추적용)
+            "aliases": aliases,         # ✅ 매칭 안정화(원본/표시/ID)
             "rarity": rarity,
             "element": element,
-            "class": cls,       # ✅ class(7)
-            "role": role,       # ✅ role(5)
-            "faction": faction, # ✅ faction(8)
+            "class": cls,               # ✅ class(7)
+            "role": role,               # ✅ role(5)
+            "faction": faction,         # ✅ 표시용(맵 적용)
+            "faction_raw": faction_raw, # ✅ 업스트림 원본 보존
             # image는 main.py에서 id/name 매핑으로 붙이는 방식이면 여기 없어도 됨
         })
 
@@ -185,59 +235,6 @@ def main():
         pass
 
     print(f"[ok] characters_meta.json generated: count={meta['count']} factions={meta.get('factions_count')}")
-
-def _load_json(path: Path) -> dict:
-    if not path.exists():
-        return {}
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def _norm(s: str) -> str:
-    return (s or "").strip().lower()
-
-
-def apply_overrides(characters: list[dict]) -> list[dict]:
-    name_ovr_raw = _load_json(NAMES_OVR_PATH)
-    faction_ovr_raw = _load_json(FACTIONS_OVR_PATH)
-
-    # case-insensitive 매칭을 위해 정규화 맵 생성
-    name_ovr = {_norm(k): v for k, v in name_ovr_raw.items()}
-    faction_ovr = {_norm(k): v for k, v in faction_ovr_raw.items()}
-
-    for ch in characters:
-        # 원본 이름(업스트림 값) 기준으로 오버라이드 적용
-        src_name = ch.get("name") or ch.get("name_en") or ch.get("title") or ""
-        src_faction = ch.get("faction") or ""
-
-        # 표시용 필드에만 반영 (ID/slug 등 내부키는 유지)
-        display_name = name_ovr.get(_norm(src_name))
-        if display_name:
-            ch["display_name"] = display_name
-        else:
-            # 오버라이드 없으면 display_name을 원본으로 채워 UI에서 일관되게 사용 가능
-            ch.setdefault("display_name", src_name)
-
-        display_faction = faction_ovr.get(_norm(src_faction))
-        if display_faction:
-            ch["faction_display"] = display_faction
-        else:
-            ch.setdefault("faction_display", src_faction)
-
-    return characters
-
-
-def main():
-    # 1) 여기에서 업스트림 데이터 받아와서 characters 리스트 만든 뒤 (기존 로직)
-    # characters = fetch_and_build_characters()
-
-    # 2) 마지막에 무조건 오버라이드 적용
-    characters = apply_overrides(characters)
-
-    # 3) 저장
-    with META_PATH.open("w", encoding="utf-8") as f:
-        json.dump(characters, f, ensure_ascii=False, indent=2)
-
 
 if __name__ == "__main__":
     main()
