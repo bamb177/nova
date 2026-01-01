@@ -28,7 +28,7 @@
     <section class="panel">
       <div class="panel-head">
         <div class="panel-title">캐릭터 목록</div>
-        <div class="panel-sub">체크박스로 보유(Owned) 캐릭터를 선택하세요.</div>
+        <div class="panel-sub">체크박스로 보유(Owned) 캐릭터를 선택하세요. 캐릭터를 클릭하면 상세 정보를 봅니다.</div>
       </div>
 
       <div class="table-wrap">
@@ -50,6 +50,19 @@
     </section>
   </div>
 
+  <!-- ✅ 상세 모달 -->
+  <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <div class="modal-title" id="modalTitle">Character</div>
+        <button class="modal-close" id="modalClose" type="button">×</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <div class="modal-loading">Loading…</div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const CHARS = {{ chars_json|safe }};
 
@@ -65,11 +78,9 @@
         .replace(/\-+/g, "-");
     }
 
-    // ✅ 역할 표기: Disruptor(=debuffer 클래스)는 DPS로 표기
     function roleLabel(role, cls) {
       const c = (cls || "-").toString().toLowerCase();
       if (c === "debuffer") return "DPS";
-
       const r = (role || "-").toString().toLowerCase();
       if (r === "dps") return "DPS";
       if (r === "-" || r === "") return "-";
@@ -85,8 +96,8 @@
 
     function rarityClass(r) {
       const x = (r || "-").toString().toUpperCase();
-      if (x === "SSR") return "rarity ssr"; // ✅ 노란 그라데이션(요청 3)
-      if (x === "SR")  return "rarity sr";  // ✅ 주황 그라데이션(요청 3)
+      if (x === "SSR") return "rarity ssr";
+      if (x === "SR")  return "rarity sr";
       if (x === "R")   return "rarity r";
       return "rarity none";
     }
@@ -113,25 +124,19 @@
 
         const name = c.name || c.id || "-";
 
-        const elemText = c.element || "-";
-        const elem = badge("elem", elemText, c.element_icon);
-
-        const factionText = (c.faction || "-");
-        const faction = badge("faction", factionText, null);  // ✅ 특성도 배지(요청 1)
-
-        const clsText = classLabel(c.class);
-        const cls = badge("class", clsText, c.class_icon);
-
-        const roleText = roleLabel(c.role, c.class);
-        const role = badge("role", roleText, null);           // ✅ 역할도 배지(요청 1)
+        const elem = badge("elem", c.element || "-", c.element_icon);
+        const faction = badge("faction", c.faction || "-", null);
+        const cls = badge("class", classLabel(c.class), c.class_icon);
+        const role = badge("role", roleLabel(c.role, c.class), null);
 
         const rarity = `<span class="${rarityClass(c.rarity)}">${(c.rarity || "-").toString().toUpperCase()}</span>`;
 
         const tr = document.createElement("tr");
+        tr.dataset.cid = c.id;
         tr.innerHTML = `
           <td class="col-check"><input type="checkbox" class="chk-owned" data-id="${c.id}" /></td>
           <td class="col-char">
-            <div class="char-cell">
+            <div class="char-cell clickable" data-cid="${c.id}">
               ${img}
               <div class="char-name">${name}</div>
             </div>
@@ -145,6 +150,134 @@
         tbody.appendChild(tr);
       }
     }
+
+    // ===== 모달 로직 =====
+    const backdrop = document.getElementById("modalBackdrop");
+    const modalBody = document.getElementById("modalBody");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalClose = document.getElementById("modalClose");
+
+    function openModal() {
+      backdrop.classList.add("show");
+      backdrop.setAttribute("aria-hidden", "false");
+    }
+    function closeModal() {
+      backdrop.classList.remove("show");
+      backdrop.setAttribute("aria-hidden", "true");
+      modalBody.innerHTML = `<div class="modal-loading">Loading…</div>`;
+    }
+
+    modalClose.addEventListener("click", closeModal);
+    backdrop.addEventListener("click", (e) => {
+      if (e.target === backdrop) closeModal();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && backdrop.classList.contains("show")) closeModal();
+    });
+
+    function kvTable(obj) {
+      const rows = Object.entries(obj || {}).map(([k, v]) => {
+        const vv = (typeof v === "object") ? JSON.stringify(v) : String(v);
+        return `<tr><td class="kv-k">${k}</td><td class="kv-v">${vv}</td></tr>`;
+      }).join("");
+      return `<table class="kv"><tbody>${rows}</tbody></table>`;
+    }
+
+    function renderDetail(resp) {
+      const c = resp.character || {};
+      const d = resp.detail;
+
+      modalTitle.textContent = c.name || c.id || "Character";
+
+      const header = `
+        <div class="detail-head">
+          <div class="detail-left">
+            ${c.image ? `<img class="detail-avatar" src="${c.image}" alt="" />` : `<div class="detail-avatar placeholder"></div>`}
+          </div>
+          <div class="detail-right">
+            <div class="detail-name">${c.name || c.id}</div>
+            <div class="detail-badges">
+              ${badge("elem", c.element || "-", c.element_icon)}
+              ${badge("faction", c.faction || "-", null)}
+              ${badge("class", classLabel(c.class), c.class_icon)}
+              ${badge("role", roleLabel(c.role, c.class), null)}
+              <span class="${rarityClass(c.rarity)}">${(c.rarity || "-").toString().toUpperCase()}</span>
+            </div>
+            <div class="detail-sub">ID: ${c.id || "-"}</div>
+            ${resp.detail_source ? `<div class="detail-sub">Detail: ${resp.detail_source}</div>` : `<div class="detail-sub">Detail: (none)</div>`}
+          </div>
+        </div>
+      `;
+
+      if (!d) {
+        modalBody.innerHTML = header + `<div class="detail-empty">상세 데이터 파일이 없습니다. (public/data/zone-nova/characters/${c.id}.json)</div>`;
+        return;
+      }
+
+      // 흔한 키 우선 렌더링
+      const stats = d.combat_stats || d.stats || d.combatStats || null;
+      const tags = d.tags || d.character_tags || d.characterTags || null;
+      const skills = d.skills || d.skill || d.abilities || null;
+
+      let body = header;
+
+      if (stats && typeof stats === "object") {
+        body += `<h3 class="detail-h3">Stats</h3>${kvTable(stats)}`;
+      }
+
+      if (Array.isArray(tags)) {
+        const chips = tags.map(t => `<span class="chip">${String(t)}</span>`).join("");
+        body += `<h3 class="detail-h3">Tags</h3><div class="chips">${chips}</div>`;
+      }
+
+      if (Array.isArray(skills)) {
+        const list = skills.map(s => `<li>${(typeof s === "object") ? JSON.stringify(s) : String(s)}</li>`).join("");
+        body += `<h3 class="detail-h3">Skills</h3><ul class="detail-ul">${list}</ul>`;
+      }
+
+      // 나머지는 raw JSON 제공(접기)
+      body += `
+        <h3 class="detail-h3">Raw</h3>
+        <details class="raw">
+          <summary>JSON 보기</summary>
+          <pre>${escapeHtml(JSON.stringify(d, null, 2))}</pre>
+        </details>
+      `;
+
+      modalBody.innerHTML = body;
+    }
+
+    function escapeHtml(str) {
+      return (str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    async function fetchAndOpen(cid) {
+      openModal();
+      modalBody.innerHTML = `<div class="modal-loading">Loading…</div>`;
+      try {
+        const r = await fetch(`/zones/zone-nova/characters/${encodeURIComponent(cid)}`, { cache: "no-store" });
+        const j = await r.json();
+        if (!j.ok) {
+          modalBody.innerHTML = `<div class="detail-empty">불러오기 실패: ${escapeHtml(j.error || "unknown")}</div>`;
+          return;
+        }
+        renderDetail(j);
+      } catch (e) {
+        modalBody.innerHTML = `<div class="detail-empty">불러오기 실패: ${escapeHtml(String(e))}</div>`;
+      }
+    }
+
+    // 클릭 이벤트: 체크박스 클릭은 제외하고, 캐릭터 셀 클릭만 상세 오픈
+    document.addEventListener("click", (e) => {
+      const chk = e.target.closest(".chk-owned");
+      if (chk) return;
+
+      const cell = e.target.closest(".char-cell.clickable");
+      if (!cell) return;
+
+      const cid = cell.dataset.cid;
+      if (cid) fetchAndOpen(cid);
+    });
 
     render();
   </script>
