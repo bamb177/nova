@@ -53,16 +53,20 @@
   <script>
     const CHARS = {{ chars_json|safe }};
 
-    function roleLabel(role) {
+    // ✅ 역할 표기: Disruptor(=debuffer 클래스)는 DPS로 표기(요청 3)
+    function roleLabel(role, cls) {
+      const c = (cls || "-").toString().toLowerCase();
+      if (c === "debuffer") return "DPS";
+
       const r = (role || "-").toString().toLowerCase();
-      if (r === "dps") return "DPS";              // 요청 3
+      if (r === "dps") return "DPS";
       if (r === "-" || r === "") return "-";
       return r.charAt(0).toUpperCase() + r.slice(1);
     }
 
     function classLabel(cls) {
       const c = (cls || "-").toString().toLowerCase();
-      if (c === "debuffer") return "Disruptor";   // 요청 4 (표기 변경)
+      if (c === "debuffer") return "Disruptor";
       if (c === "-" || c === "") return "-";
       return c.charAt(0).toUpperCase() + c.slice(1);
     }
@@ -70,7 +74,7 @@
     function rarityClass(r) {
       const x = (r || "-").toString().toUpperCase();
       if (x === "SSR") return "rarity ssr";
-      if (x === "SR")  return "rarity sr";        // 요청 7 (CSS에서 주황 그라데이션)
+      if (x === "SR")  return "rarity sr";
       if (x === "R")   return "rarity r";
       return "rarity none";
     }
@@ -93,7 +97,7 @@
         const elem = badge(c.element || "-", c.element_icon, "badge-elem");
         const faction = (c.faction || "-");
         const cls = badge(classLabel(c.class), c.class_icon, "badge-class");
-        const role = roleLabel(c.role);
+        const role = roleLabel(c.role, c.class);
         const rarity = `<span class="${rarityClass(c.rarity)}">${(c.rarity || "-").toString().toUpperCase()}</span>`;
 
         const tr = document.createElement("tr");
