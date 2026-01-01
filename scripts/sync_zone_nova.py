@@ -9,6 +9,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]  # /nova
 PUBLIC_DATA_DIR = REPO_ROOT / "public" / "data" / "zone-nova"
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 
+BASE_DIR = Path(__file__).resolve().parents[1]
+DATA_DIR = BASE_DIR / "public" / "data" / "zone-nova"
+
+NAMES_OVR_PATH = DATA_DIR / "overrides_names.json"
+FACTIONS_OVR_PATH = DATA_DIR / "overrides_factions.json"
+META_PATH = DATA_DIR / "characters_meta.json"
+
 # ✅ 파벌명 고정 변환 (동기화해도 원복 방지)
 FACTION_NAME_MAP = {
     "A.S.A": "Asa",
@@ -178,6 +185,59 @@ def main():
         pass
 
     print(f"[ok] characters_meta.json generated: count={meta['count']} factions={meta.get('factions_count')}")
+
+def _load_json(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _norm(s: str) -> str:
+    return (s or "").strip().lower()
+
+
+def apply_overrides(characters: list[dict]) -> list[dict]:
+    name_ovr_raw = _load_json(NAMES_OVR_PATH)
+    faction_ovr_raw = _load_json(FACTIONS_OVR_PATH)
+
+    # case-insensitive 매칭을 위해 정규화 맵 생성
+    name_ovr = {_norm(k): v for k, v in name_ovr_raw.items()}
+    faction_ovr = {_norm(k): v for k, v in faction_ovr_raw.items()}
+
+    for ch in characters:
+        # 원본 이름(업스트림 값) 기준으로 오버라이드 적용
+        src_name = ch.get("name") or ch.get("name_en") or ch.get("title") or ""
+        src_faction = ch.get("faction") or ""
+
+        # 표시용 필드에만 반영 (ID/slug 등 내부키는 유지)
+        display_name = name_ovr.get(_norm(src_name))
+        if display_name:
+            ch["display_name"] = display_name
+        else:
+            # 오버라이드 없으면 display_name을 원본으로 채워 UI에서 일관되게 사용 가능
+            ch.setdefault("display_name", src_name)
+
+        display_faction = faction_ovr.get(_norm(src_faction))
+        if display_faction:
+            ch["faction_display"] = display_faction
+        else:
+            ch.setdefault("faction_display", src_faction)
+
+    return characters
+
+
+def main():
+    # 1) 여기에서 업스트림 데이터 받아와서 characters 리스트 만든 뒤 (기존 로직)
+    # characters = fetch_and_build_characters()
+
+    # 2) 마지막에 무조건 오버라이드 적용
+    characters = apply_overrides(characters)
+
+    # 3) 저장
+    with META_PATH.open("w", encoding="utf-8") as f:
+        json.dump(characters, f, ensure_ascii=False, indent=2)
+
 
 if __name__ == "__main__":
     main()
