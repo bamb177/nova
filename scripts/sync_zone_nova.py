@@ -53,7 +53,7 @@ CLASS_TO_ROLE = {
     "Guardian": "Tank",
     "Healer": "Healer",
     "Buffer": "Buffer",
-    "Debuffer": "Debuffer",
+    "Debuffer": "DPS",
 }
 
 
