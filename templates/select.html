@@ -4,864 +4,153 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{{ title }}</title>
-  <style>
-    :root{
-      --bg:#0b1220;
-      --panel:rgba(255,255,255,.06);
-      --panel2:rgba(255,255,255,.08);
-      --line:rgba(255,255,255,.10);
-      --text:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.65);
-      --accent:rgba(96,165,250,.9);
-      --danger:rgba(248,113,113,.9);
-      --radius:14px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Apple SD Gothic Neo", "Noto Sans KR", Arial;
-      background:
-        radial-gradient(1200px 800px at 50% -10%, rgba(59,130,246,.25), transparent 60%),
-        radial-gradient(1000px 700px at 10% 10%, rgba(168,85,247,.18), transparent 55%),
-        var(--bg);
-      color:var(--text);
-    }
-    a{color:inherit; text-decoration:none}
-
-    .topbar{
-      position:sticky; top:0; z-index:50;
-      backdrop-filter: blur(14px);
-      background: rgba(5,10,20,.65);
-      border-bottom:1px solid var(--line);
-      padding:10px 14px;
-      display:flex; gap:10px; align-items:center; justify-content:space-between;
-    }
-    .brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.3px}
-    .pill{
-      border:1px solid var(--line);
-      background: var(--panel);
-      padding:6px 10px;
-      border-radius:999px;
-      font-size:12px;
-      color:var(--muted);
-      white-space:nowrap;
-    }
-    .btn{
-      border:1px solid var(--line);
-      background: var(--panel2);
-      padding:8px 12px;
-      border-radius:12px;
-      cursor:pointer;
-      color:var(--text);
-      font-weight:700;
-      user-select:none;
-    }
-    .btn:hover{border-color:rgba(255,255,255,.18)}
-    .btn.primary{border-color:rgba(96,165,250,.45); background:rgba(96,165,250,.18)}
-    .btn.danger{border-color:rgba(248,113,113,.45); background:rgba(248,113,113,.10)}
-
-    .wrap{
-      padding:14px;
-      display:grid;
-      grid-template-columns: 360px 1fr;
-      gap:14px;
-      align-items:start;
-    }
-    @media (max-width: 980px){
-      .wrap{grid-template-columns: 1fr; }
-    }
-    .card{
-      border:1px solid var(--line);
-      background: var(--panel);
-      border-radius: var(--radius);
-      padding:14px;
-      box-shadow: 0 18px 40px rgba(0,0,0,.35);
-    }
-    .title{
-      font-size:14px;
-      font-weight:900;
-      margin:0 0 10px 0;
-      color:rgba(255,255,255,.92);
-    }
-    .sub{font-size:12px; color:var(--muted); margin-top:6px;}
-    label{font-size:12px; color:var(--muted); display:block; margin-bottom:6px}
-    select,input{
-      width:100%;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(0,0,0,.25);
-      color:var(--text);
-      border-radius:12px;
-      padding:10px 12px;
-      outline:none;
-    }
-    .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
-
-    /* ====== 오른쪽(보유/결과) 공통 ====== */
-    .rightStack{
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-
-    .sectionBox{
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-      border-radius: var(--radius);
-      overflow:hidden;
-    }
-    .sectionHead{
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      padding:10px 12px;
-      border-bottom:1px solid rgba(255,255,255,.08);
-      background: rgba(10,16,28,.55);
-    }
-    .sectionHead .hTitle{font-weight:900; font-size:13px}
-    .sectionHead .hRight{display:flex; align-items:center; gap:8px}
-
-    /* ====== 테이블(게시판) ====== */
-    .tableWrap{
-      overflow:auto;
-    }
-    table{
-      width:100%;
-      border-collapse:separate;
-      border-spacing:0;
-      font-size:12px;
-      min-width: 860px;
-    }
-    thead th{
-      position:sticky; top:0;
-      background: rgba(10,16,28,.92);
-      color: rgba(255,255,255,.85);
-      text-align:left;
-      padding:10px 10px;
-      border-bottom:1px solid rgba(255,255,255,.10);
-      z-index:2;
-      font-weight:900;
-    }
-    tbody td{
-      padding:10px 10px;
-      border-bottom:1px solid rgba(255,255,255,.06);
-      vertical-align:middle;
-      color: rgba(255,255,255,.88);
-    }
-    tbody tr:hover{
-      background: rgba(255,255,255,.05);
-    }
-    .chk{
-      width:16px; height:16px;
-      accent-color: rgba(96,165,250,.95);
-    }
-    .rowFlex{display:flex; align-items:center; gap:10px;}
-    .avatar{
-      width:46px; height:34px;
-      border-radius:10px;
-      overflow:hidden;
-      background: rgba(0,0,0,.25);
-      border:1px solid rgba(255,255,255,.10);
-      flex:0 0 auto;
-    }
-    .avatar img{width:100%; height:100%; object-fit:cover; display:block;}
-    .nameCell{
-      font-weight:900;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      max-width: 230px;
-    }
-    .miniBadge{
-      display:inline-flex; align-items:center; gap:6px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      padding:4px 8px;
-      border-radius:999px;
-      font-size:11px;
-      white-space:nowrap;
-    }
-    .miniIcon{
-      width:16px; height:16px; object-fit:contain;
-      filter: drop-shadow(0 1px 2px rgba(0,0,0,.45));
-    }
-
-    .rarity-badge{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:3px 8px;
-      border-radius:8px;
-      font-weight:900;
-      letter-spacing:.2px;
-      border:1px solid rgba(255,255,255,.18);
-      box-shadow: 0 6px 16px rgba(0,0,0,.28);
-      line-height:1;
-      font-size:11px;
-      min-width: 42px;
-    }
-    .rarity-ssr{
-      color: #0b0f14;
-      background:
-        radial-gradient(circle at 20% 25%, rgba(255,255,255,.85), rgba(255,255,255,0) 42%),
-        linear-gradient(135deg,#ff4fd8,#7c5cff,#2fd3ff,#2dff88,#ffe65a,#ff8a3d);
-    }
-    .rarity-sr{
-      color: #0b0f14;
-      background: linear-gradient(135deg, #ffb152, #ff7a00);
-    }
-    .rarity-r{
-      color:#e9eef5;
-      background: linear-gradient(135deg, #6e7786, #424a57);
-    }
-
-    /* ====== 추천 결과(게시판) 전용 ====== */
-    .resultWrap{
-      max-height: 260px; /* 결과는 상단 고정 영역으로 '짤림' 방지 + 과도한 길이 제한 */
-      overflow:auto;
-    }
-    .analysisBox{
-      padding:10px 12px;
-      border-top:1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.12);
-    }
-    .analysisBox ul{margin:0; padding-left:18px; color:rgba(255,255,255,.86); font-size:12px;}
-    .analysisBox li{margin:6px 0}
-
-    /* ====== 보유 캐릭터 영역 ====== */
-    .filters{
-      display:grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;
-      gap:10px;
-      margin-bottom:10px;
-    }
-    @media (max-width: 980px){
-      .filters{grid-template-columns: 1fr 1fr;}
-      table{min-width: 780px;}
-    }
-    .tableActions{display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 0 0;}
-
-    /* 보유 테이블 높이: 결과 영역이 위에 생겨도 화면 전체에서 균형 유지 */
-    .ownedTableWrap{
-      height: calc(100vh - 280px);
-      overflow:auto;
-      border:1px solid rgba(255,255,255,.10);
-      border-radius: var(--radius);
-      background: rgba(0,0,0,.18);
-    }
-    @media (max-width: 980px){
-      .ownedTableWrap{height:auto; max-height: 70vh;}
-    }
-  </style>
+  <link rel="stylesheet" href="/css/style.css" />
 </head>
-
 <body>
-  <div class="topbar">
-    <div class="brand">
-      <div style="font-size:18px">{{ title }}</div>
-      <div class="pill">캐시 {{ cache_count }} · 보스 {{ boss_count }} · 갱신 {{ last_refresh }}</div>
-    </div>
-    <div style="display:flex; gap:8px; align-items:center">
-      <a class="btn" href="/refresh">새로고침</a>
-      <a class="btn" href="/meta">메타</a>
-      <a class="btn" href="/zones/zone-nova/characters">캐릭터 JSON</a>
-      <a class="btn" href="/zones/zone-nova/bosses">보스 JSON</a>
-    </div>
-  </div>
-
-  <div class="wrap">
-    <!-- LEFT: 옵션만 유지 -->
-    <div class="card">
-      <div class="title">추천 옵션</div>
-      {% if error %}
-        <div class="sub" style="color:var(--danger); font-weight:800">데이터 로드 오류: {{ error }}</div>
-      {% endif %}
-
-      <label>모드</label>
-      <select id="mode">
-        <option value="pve">일반(PvE)</option>
-        <option value="boss">보스</option>
-        <option value="pvp">PVP</option>
-      </select>
-
-      <div class="sub" style="margin:10px 0 6px 0; font-weight:800">보스 선택 시 약점/속성 자동 반영</div>
-
-      <label>보스 선택</label>
-      <select id="bossSelect">
-        <option value="">(선택 안 함)</option>
-      </select>
-
-      <div class="row" style="margin-top:10px">
-        <div>
-          <label>보스 약점 속성</label>
-          <select id="bossWeakness">
-            <option value="">(없음)</option>
-            <option>Fire</option><option>Wind</option><option>Ice</option><option>Holy</option><option>Chaos</option>
-          </select>
+  <div class="page">
+    <header class="topbar">
+      <div class="topbar__left">
+        <div class="brand">{{ title }}</div>
+        <div class="meta">
+          <span>캐릭터: <b>{{ cache_count }}</b></span>
+          <span class="dot">•</span>
+          <span>보스: <b>{{ boss_count }}</b></span>
+          <span class="dot">•</span>
+          <span>갱신: <b>{{ last_refresh }}</b></span>
         </div>
-        <div>
-          <label>상대(적) 속성</label>
-          <select id="enemyElement">
-            <option value="">(없음)</option>
-            <option>Fire</option><option>Wind</option><option>Ice</option><option>Holy</option><option>Chaos</option>
-          </select>
+      </div>
+      <div class="topbar__right">
+        <a class="btn" href="/refresh">Refresh</a>
+      </div>
+    </header>
+
+    {% if error %}
+      <div class="alert">데이터 로딩 오류: {{ error }}</div>
+    {% endif %}
+
+    <section class="panel">
+      <div class="panel__head">
+        <div class="panel__title">보유 캐릭터</div>
+        <div class="panel__tools">
+          <input id="q" class="input" placeholder="이름/속성/특성/클래스 검색" />
+          <span class="hint" id="count"></span>
         </div>
       </div>
 
-      <div class="actions">
-        <button class="btn primary" id="runBtn">추천 실행</button>
-        <button class="btn danger" id="clearBtn">초기화</button>
-        <button class="btn" id="copyBtn">JSON 복사</button>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th class="col-check">선택</th>
+              <th class="col-char">캐릭터</th>
+              <th class="col-elem">속성</th>
+              <th class="col-faction">Faction(특성)</th>
+              <th class="col-class">클래스</th>
+              <th class="col-role">역할</th>
+              <th class="col-rarity">등급</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
       </div>
-
-      <div class="sub" style="margin-top:10px" id="resultHint">
-        추천 결과는 오른쪽 상단 “추천 결과(게시판)” 영역에 표시됩니다.
-      </div>
-    </div>
-
-    <!-- RIGHT: 결과(상단) + 보유(하단) -->
-    <div class="rightStack">
-
-      <!-- ✅ 추천 결과(게시판) : 보유 캐릭터 상단 -->
-      <div class="sectionBox" id="resultBox">
-        <div class="sectionHead">
-          <div class="hTitle">추천 결과(게시판)</div>
-          <div class="hRight">
-            <div class="pill" id="partyCount">파티 0 / 4</div>
-          </div>
-        </div>
-
-        <div class="tableWrap resultWrap">
-          <table>
-            <thead>
-              <tr>
-                <th style="width:72px">순번</th>
-                <th style="width:320px">캐릭터</th>
-                <th style="width:160px">속성</th>
-                <th style="width:180px">클래스</th>
-                <th style="width:140px">역할</th>
-                <th style="width:140px">등급</th>
-              </tr>
-            </thead>
-            <tbody id="resultTbody">
-              <tr>
-                <td colspan="6" style="color:rgba(255,255,255,.55); font-weight:800;">
-                  (아직 없음) 왼쪽에서 “추천 실행”을 누르세요.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="analysisBox" id="analysisBox" style="display:none">
-          <div class="title" style="margin:0 0 8px 0">분석</div>
-          <ul id="analysisList"></ul>
-        </div>
-      </div>
-
-      <!-- 보유 캐릭터 -->
-      <div class="card">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
-          <div class="title" style="margin:0">보유 캐릭터 선택(게시판)</div>
-          <div class="pill" id="selectedCount">선택 0</div>
-        </div>
-
-        <div class="filters">
-          <div>
-            <label>검색(이름)</label>
-            <input id="qName" placeholder="예: Nina" />
-          </div>
-          <div>
-            <label>속성</label>
-            <select id="fElement">
-              <option value="">전체</option>
-              <option>Fire</option><option>Wind</option><option>Ice</option><option>Holy</option><option>Chaos</option>
-            </select>
-          </div>
-          <div>
-            <label>클래스</label>
-            <select id="fClass">
-              <option value="">전체</option>
-            </select>
-          </div>
-          <div>
-            <label>역할</label>
-            <select id="fRole">
-              <option value="">전체</option>
-              <option value="Buffer">Buffer</option>
-              <option value="DPS">DPS</option>
-              <option value="Debuffer">Debuffer</option>
-              <option value="Healer">Healer</option>
-              <option value="Tank">Tank</option>
-            </select>
-          </div>
-          <div>
-            <label>등급</label>
-            <select id="fRarity">
-              <option value="">전체</option>
-              <option>SSR</option><option>SR</option><option>R</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="tableActions">
-          <button class="btn" id="selAllBtn">전체 선택</button>
-          <button class="btn" id="selNoneBtn">전체 해제</button>
-          <button class="btn" id="selVisibleBtn">보이는 것만 선택</button>
-          <button class="btn" id="unselVisibleBtn">보이는 것만 해제</button>
-        </div>
-
-        <div class="ownedTableWrap" style="margin-top:10px;">
-          <table>
-            <thead>
-              <tr>
-                <th style="width:56px">선택</th>
-                <th style="width:320px">캐릭터</th>
-                <th style="width:160px">속성</th>
-                <th style="width:180px">클래스</th>
-                <th style="width:140px">역할</th>
-                <th style="width:140px">등급</th>
-              </tr>
-            </thead>
-            <tbody id="tbody"></tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
+    </section>
   </div>
 
   <script>
-    const CHARS = {{ chars_json | safe }};
-    const BOSSES = {{ bosses_json | safe }};
-    const $ = (id) => document.getElementById(id);
+    const CHARS = {{ chars_json|safe }};
+    const $tbody = document.getElementById("tbody");
+    const $q = document.getElementById("q");
+    const $count = document.getElementById("count");
 
-    const state = {
-      selected: new Set(),
-      visibleIds: [],
-      byId: new Map(),
-      bySlug: new Map(),
-      lastResult: null,
-    };
-
-    function slugId(s){
-      return (s || "").toString().trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-    }
-    function titleCase(s){
-      const v = (s || "").toString().trim();
-      if (!v) return "";
-      return v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
+    function escapeHtml(s) {
+      return String(s ?? "").replace(/[&<>"']/g, m => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[m]));
     }
 
-    // 아이콘 규칙(사용자 파일명 기준)
-    function elementIconPath(el){
-      const v = titleCase(el);
-      if (!v) return null;
-      return `/images/games/zone-nova/element/${v.toLowerCase()}.jpg`;
-    }
-    function classIconPath(cls){
-      const v = titleCase(cls);
-      if (!v) return null;
-      return `/images/games/zone-nova/classes/${v}.jpg`;
+    function rarityRank(r) {
+      const x = String(r || "-").toUpperCase();
+      if (x === "SSR") return 0;
+      if (x === "SR") return 1;
+      if (x === "R") return 2;
+      return 9;
     }
 
-    function rarityHtml(r){
-      const rr = (r || "").toString().trim().toUpperCase();
-      if (rr === "SSR") return `<span class="rarity-badge rarity-ssr">SSR</span>`;
-      if (rr === "SR")  return `<span class="rarity-badge rarity-sr">SR</span>`;
-      if (rr === "R")   return `<span class="rarity-badge rarity-r">R</span>`;
-      return `<span class="rarity-badge rarity-r">${rr || "-"}</span>`;
-    }
-
-    function makeIcon(src){
-      const img = document.createElement("img");
-      img.className = "miniIcon";
-      img.loading = "lazy";
-      img.src = src;
-      img.onerror = () => img.remove();
-      return img;
-    }
-    function makeBadge(iconSrc, text){
-      const span = document.createElement("span");
-      span.className = "miniBadge";
-      if (iconSrc){
-        span.appendChild(makeIcon(iconSrc));
-      }
-      const t = document.createElement("span");
-      t.textContent = text || "-";
-      span.appendChild(t);
-      return span;
-    }
-
-    function renderBosses(){
-      const sel = $("bossSelect");
-      for (const b of BOSSES){
-        const opt = document.createElement("option");
-        opt.value = b.id;
-        opt.textContent = b.name;
-        opt.dataset.weakness = b.weakness || "";
-        opt.dataset.enemy = b.enemy_element || "";
-        sel.appendChild(opt);
-      }
-      sel.addEventListener("change", () => {
-        const opt = sel.options[sel.selectedIndex];
-        const w = opt?.dataset?.weakness || "";
-        const e = opt?.dataset?.enemy || "";
-        if (w) $("bossWeakness").value = w;
-        if (e) $("enemyElement").value = e;
+    function sortChars(list) {
+      // 요구사항: 등급 1차, 이름 2차
+      return [...list].sort((a, b) => {
+        const ra = rarityRank(a.rarity), rb = rarityRank(b.rarity);
+        if (ra !== rb) return ra - rb;
+        const na = String(a.name || "").toLowerCase();
+        const nb = String(b.name || "").toLowerCase();
+        if (na < nb) return -1;
+        if (na > nb) return 1;
+        return String(a.id || "").localeCompare(String(b.id || ""));
       });
     }
 
-    function uniqueClasses(chars){
-      const s = new Set();
-      for (const c of chars){
-        const v = titleCase(c.class || "");
-        if (v) s.add(v);
-      }
-      return Array.from(s).sort();
-    }
-    function renderClassFilter(){
-      const sel = $("fClass");
-      while (sel.options.length > 1) sel.remove(1);
-      for (const c of uniqueClasses(CHARS)){
-        const opt = document.createElement("option");
-        opt.value = c;
-        opt.textContent = c;
-        sel.appendChild(opt);
-      }
+    function badge(html, cls) {
+      return `<span class="badge ${cls}">${html}</span>`;
     }
 
-    function indexChars(){
-      for (const c of CHARS){
-        state.byId.set(c.id, c);
-        state.bySlug.set(slugId(c.id), c);
-        state.bySlug.set(slugId(c.name), c);
-      }
+    function renderRow(c) {
+      const img = c.image ? `<img class="avatar" src="${escapeHtml(c.image)}" alt="">` : `<div class="avatar avatar--empty"></div>`;
+      const elem = c.element && c.element !== "-" ? badge(escapeHtml(c.element), `badge--elem badge--${String(c.element).toLowerCase()}`) : badge("-", "badge--muted");
+      const faction = c.faction ? badge(escapeHtml(c.faction), "badge--faction") : badge("-", "badge--muted");
+
+      const clsLabel = c.class_display || c.class || "-";
+      const roleLabel = c.role_display || c.role || "-";
+
+      const cls = clsLabel && clsLabel !== "-" ? badge(escapeHtml(clsLabel), "badge--class") : badge("-", "badge--muted");
+      const role = roleLabel && roleLabel !== "-" ? `<span class="role">${escapeHtml(roleLabel)}</span>` : `<span class="role role--muted">-</span>`;
+
+      const rar = String(c.rarity || "-").toUpperCase();
+      const rarityBadgeCls = (rar === "SSR") ? "badge--rarity badge--ssr" :
+                             (rar === "SR")  ? "badge--rarity badge--sr" :
+                             (rar === "R")   ? "badge--rarity badge--r" : "badge--rarity badge--muted";
+      const rarity = badge(escapeHtml(rar), rarityBadgeCls);
+
+      return `
+        <tr>
+          <td class="col-check"><input type="checkbox" class="chk" data-id="${escapeHtml(c.id)}"></td>
+          <td class="col-char">
+            <div class="char">
+              ${img}
+              <div class="char__text">
+                <div class="char__name">${escapeHtml(c.name || c.id)}</div>
+                <div class="char__sub">${escapeHtml(c.id)}</div>
+              </div>
+            </div>
+          </td>
+          <td class="col-elem">${elem}</td>
+          <td class="col-faction">${faction}</td>
+          <td class="col-class">${cls}</td>
+          <td class="col-role">${role}</td>
+          <td class="col-rarity">${rarity}</td>
+        </tr>
+      `;
     }
 
-    function updateSelectedCount(){
-      $("selectedCount").textContent = "선택 " + state.selected.size;
-    }
-
-    function setVisible(checked){
-      for (const id of state.visibleIds){
-        if (checked) state.selected.add(id);
-        else state.selected.delete(id);
-      }
-      renderTable();
-      updateSelectedCount();
-    }
-    function setAll(checked){
-      for (const c of CHARS){
-        if (checked) state.selected.add(c.id);
-        else state.selected.delete(c.id);
-      }
-      renderTable();
-      updateSelectedCount();
-    }
-
-    function applyFilters(list){
-      const q = ($("qName").value || "").trim().toLowerCase();
-      const fe = $("fElement").value;
-      const fc = $("fClass").value;
-      const fr = $("fRole").value;
-      const frr = $("fRarity").value;
+    function applyFilter(list, q) {
+      const k = String(q || "").trim().toLowerCase();
+      if (!k) return list;
 
       return list.filter(c => {
-        if (q && !(c.name || "").toLowerCase().includes(q)) return false;
-        if (fe && titleCase(c.element) !== fe) return false;
-        if (fc && titleCase(c.class) !== fc) return false;
-        if (fr && (c.role || "") !== fr) return false;
-        if (frr && (c.rarity || "").toUpperCase() !== frr) return false;
-        return true;
+        const s = [
+          c.name, c.id, c.element, c.faction, c.class_display, c.role_display, c.rarity
+        ].join(" ").toLowerCase();
+        return s.includes(k);
       });
     }
 
-    function renderTable(){
-      const tbody = $("tbody");
-      tbody.innerHTML = "";
-
-      const filtered = applyFilters(CHARS.slice());
-      state.visibleIds = filtered.map(x => x.id);
-
-      for (const c0 of filtered){
-        const c = {
-          ...c0,
-          element: titleCase(c0.element || ""),
-          class: titleCase(c0.class || ""),
-          rarity: (c0.rarity || "").toUpperCase(),
-        };
-
-        const tr = document.createElement("tr");
-
-        // 선택
-        const td0 = document.createElement("td");
-        const chk = document.createElement("input");
-        chk.type = "checkbox";
-        chk.className = "chk";
-        chk.checked = state.selected.has(c.id);
-        chk.addEventListener("change", (e) => {
-          if (e.target.checked) state.selected.add(c.id);
-          else state.selected.delete(c.id);
-          updateSelectedCount();
-        });
-        td0.appendChild(chk);
-
-        // 캐릭터
-        const td1 = document.createElement("td");
-        const rowFlex = document.createElement("div");
-        rowFlex.className = "rowFlex";
-
-        const av = document.createElement("div");
-        av.className = "avatar";
-        if (c.image){
-          const img = document.createElement("img");
-          img.loading = "lazy";
-          img.src = c.image;
-          img.alt = c.name;
-          av.appendChild(img);
-        }
-        rowFlex.appendChild(av);
-
-        const nm = document.createElement("div");
-        nm.className = "nameCell";
-        nm.textContent = c.name;
-        rowFlex.appendChild(nm);
-
-        td1.appendChild(rowFlex);
-
-        // 속성
-        const td2 = document.createElement("td");
-        td2.appendChild(makeBadge(elementIconPath(c.element), c.element || "-"));
-
-        // 클래스
-        const td3 = document.createElement("td");
-        td3.appendChild(makeBadge(classIconPath(c.class), c.class || "-"));
-
-        // 역할
-        const td4 = document.createElement("td");
-        td4.textContent = c.role || "-";
-
-        // 등급
-        const td5 = document.createElement("td");
-        td5.innerHTML = rarityHtml(c.rarity);
-
-        tr.appendChild(td0);
-        tr.appendChild(td1);
-        tr.appendChild(td2);
-        tr.appendChild(td3);
-        tr.appendChild(td4);
-        tr.appendChild(td5);
-
-        tr.addEventListener("click", (e) => {
-          if (e.target === chk) return;
-          chk.checked = !chk.checked;
-          chk.dispatchEvent(new Event("change"));
-        });
-
-        tbody.appendChild(tr);
-      }
+    function render() {
+      const list = sortChars(applyFilter(CHARS, $q.value));
+      $tbody.innerHTML = list.map(renderRow).join("");
+      $count.textContent = `${list.length} / ${CHARS.length}`;
     }
 
-    /* ===== 추천 결과(게시판) 렌더링 ===== */
-    function toChar(objOrStr){
-      if (!objOrStr) return null;
-
-      if (typeof objOrStr === "string"){
-        return state.byId.get(objOrStr) || state.bySlug.get(slugId(objOrStr)) || null;
-      }
-      if (typeof objOrStr === "object"){
-        const id = objOrStr.id || objOrStr.char_id || objOrStr.key || "";
-        const name = objOrStr.name || objOrStr.title || "";
-        return state.byId.get(id) || state.bySlug.get(slugId(id)) || state.bySlug.get(slugId(name)) || null;
-      }
-      return null;
-    }
-
-    function extractPartyList(data){
-      const candidates = [];
-
-      const bp = data?.best_party;
-      if (bp){
-        const arr = bp.party || bp.members || bp.team || bp.picks || bp.characters || null;
-        if (Array.isArray(arr)) candidates.push(arr);
-      }
-      if (Array.isArray(data?.party)) candidates.push(data.party);
-      if (Array.isArray(data?.members)) candidates.push(data.members);
-      if (Array.isArray(data?.team)) candidates.push(data.team);
-
-      if (Array.isArray(data?.parties)){
-        for (const p of data.parties){
-          const arr = p.party || p.members || p.team || p.characters || null;
-          if (Array.isArray(arr)) candidates.push(arr);
-        }
-      }
-      return candidates.length ? candidates[0] : [];
-    }
-
-    function extractAnalysis(data){
-      const out = [];
-      if (Array.isArray(data?.analysis)) out.push(...data.analysis);
-      if (Array.isArray(data?.best_party?.analysis)) out.push(...data.best_party.analysis);
-      if (typeof data?.comment === "string") out.push(data.comment);
-      if (typeof data?.best_party?.comment === "string") out.push(data.best_party.comment);
-      return out.filter(Boolean).map(x => x.toString());
-    }
-
-    function renderRecommendUI(data){
-      state.lastResult = data;
-
-      const tbody = $("resultTbody");
-      const analysisBox = $("analysisBox");
-      const analysisList = $("analysisList");
-      const partyCount = $("partyCount");
-
-      tbody.innerHTML = "";
-      analysisList.innerHTML = "";
-
-      const party = extractPartyList(data);
-      const chars = party.map(toChar).filter(Boolean).slice(0, 4);
-
-      partyCount.textContent = `파티 ${chars.length} / 4`;
-
-      if (!chars.length){
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = 6;
-        td.style.color = "rgba(255,255,255,.55)";
-        td.style.fontWeight = "800";
-        td.textContent = "추천 결과에서 파티를 찾지 못했습니다. (추천 JSON 구조 확인 필요)";
-        tr.appendChild(td);
-        tbody.appendChild(tr);
-      } else {
-        chars.forEach((c0, idx) => {
-          const c = {
-            ...c0,
-            element: titleCase(c0.element || ""),
-            class: titleCase(c0.class || ""),
-            rarity: (c0.rarity || "").toUpperCase(),
-          };
-
-          const tr = document.createElement("tr");
-
-          const td0 = document.createElement("td");
-          td0.textContent = (idx + 1) + "번";
-
-          const td1 = document.createElement("td");
-          const rowFlex = document.createElement("div");
-          rowFlex.className = "rowFlex";
-
-          const av = document.createElement("div");
-          av.className = "avatar";
-          if (c.image){
-            const img = document.createElement("img");
-            img.loading = "lazy";
-            img.src = c.image;
-            img.alt = c.name;
-            av.appendChild(img);
-          }
-          rowFlex.appendChild(av);
-
-          const nm = document.createElement("div");
-          nm.className = "nameCell";
-          nm.textContent = c.name;
-          rowFlex.appendChild(nm);
-
-          td1.appendChild(rowFlex);
-
-          const td2 = document.createElement("td");
-          td2.appendChild(makeBadge(elementIconPath(c.element), c.element || "-"));
-
-          const td3 = document.createElement("td");
-          td3.appendChild(makeBadge(classIconPath(c.class), c.class || "-"));
-
-          const td4 = document.createElement("td");
-          td4.textContent = c.role || "-";
-
-          const td5 = document.createElement("td");
-          td5.innerHTML = rarityHtml(c.rarity);
-
-          tr.appendChild(td0);
-          tr.appendChild(td1);
-          tr.appendChild(td2);
-          tr.appendChild(td3);
-          tr.appendChild(td4);
-          tr.appendChild(td5);
-
-          tbody.appendChild(tr);
-        });
-      }
-
-      const analysis = extractAnalysis(data);
-      if (analysis.length){
-        analysisBox.style.display = "";
-        analysis.forEach(a => {
-          const li = document.createElement("li");
-          li.textContent = a;
-          analysisList.appendChild(li);
-        });
-      } else {
-        analysisBox.style.display = "none";
-      }
-    }
-
-    function runRecommend(){
-      const payload = {
-        mode: $("mode").value,
-        owned: Array.from(state.selected),
-        boss_weakness: $("bossWeakness").value || null,
-        enemy_element: $("enemyElement").value || null,
-      };
-
-      fetch("/recommend/v3", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify(payload)
-      })
-      .then(r => r.json())
-      .then(j => renderRecommendUI(j))
-      .catch(err => renderRecommendUI({ error: (err?.message || err) }));
-    }
-
-    function copyJson(){
-      const txt = JSON.stringify(state.lastResult || {}, null, 2);
-      navigator.clipboard.writeText(txt).catch(()=>{});
-    }
-
-    function wireEvents(){
-      $("qName").addEventListener("input", () => renderTable());
-      $("fElement").addEventListener("change", () => renderTable());
-      $("fClass").addEventListener("change", () => renderTable());
-      $("fRole").addEventListener("change", () => renderTable());
-      $("fRarity").addEventListener("change", () => renderTable());
-
-      $("selAllBtn").addEventListener("click", () => { setAll(true); });
-      $("selNoneBtn").addEventListener("click", () => { setAll(false); });
-      $("selVisibleBtn").addEventListener("click", () => { setVisible(true); });
-      $("unselVisibleBtn").addEventListener("click", () => { setVisible(false); });
-
-      $("runBtn").addEventListener("click", runRecommend);
-      $("clearBtn").addEventListener("click", () => {
-        state.selected.clear();
-        state.lastResult = null;
-
-        $("resultTbody").innerHTML = `
-          <tr><td colspan="6" style="color:rgba(255,255,255,.55); font-weight:800;">
-            (아직 없음) 왼쪽에서 “추천 실행”을 누르세요.
-          </td></tr>`;
-        $("analysisBox").style.display = "none";
-        $("partyCount").textContent = "파티 0 / 4";
-
-        updateSelectedCount();
-        renderTable();
-      });
-      $("copyBtn").addEventListener("click", copyJson);
-    }
-
-    // init
-    indexChars();
-    renderBosses();
-    renderClassFilter();
-    wireEvents();
-    renderTable();
-    updateSelectedCount();
+    $q.addEventListener("input", render);
+    render();
   </script>
 </body>
 </html>
