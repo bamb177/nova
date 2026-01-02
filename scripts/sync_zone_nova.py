@@ -1,340 +1,295 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
+import argparse
+import hashlib
+import json
 import os
 import re
-import json
-import time
-import hashlib
-import argparse
+import shutil
 import subprocess
+import time
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, Tuple
 
+REPO_ROOT = Path(__file__).resolve().parents[1]  # /nova
+PUBLIC_DATA_DIR = REPO_ROOT / "public" / "data" / "zone-nova"
+DETAIL_DIR = PUBLIC_DATA_DIR / "characters"
+SCRIPTS_DIR = REPO_ROOT / "scripts"
 
-# =========================
-# Paths
-# =========================
-BASE_DIR = Path(__file__).resolve().parents[1]  # repo root
-PUBLIC_DATA_DIR = BASE_DIR / "public" / "data" / "zone-nova"
-DETAIL_OUT_DIR = PUBLIC_DATA_DIR / "characters"
+# ---- Local overrides (repo files) ----
+OVERRIDE_NAMES = PUBLIC_DATA_DIR / "overrides_names.json"
+OVERRIDE_FACTIONS = PUBLIC_DATA_DIR / "overrides_factions.json"
 
-OVERRIDES_NAMES = PUBLIC_DATA_DIR / "overrides_names.json"
-OVERRIDES_FACTIONS = PUBLIC_DATA_DIR / "overrides_factions.json"
-
-META_OUT = PUBLIC_DATA_DIR / "characters_meta.json"
-UNMATCHED_OUT = PUBLIC_DATA_DIR / "_unmatched_gacha_wiki.json"
-TRANSLATE_CACHE_OUT = PUBLIC_DATA_DIR / "_translate_cache_ko.json"
-
-
-# =========================
-# Defaults (user required)
-# =========================
-DEFAULT_NAME_OVERRIDES = {
-    "Greed Mammon": "Mammon",
-    "Kela": "Clara",
-    "Morgan": "Morgan Le Fay",
-    "Leviathan": "Behemoth",
-    "Snow Girl": "Yuki-onna",
-    "Shanna": "Saya",
-    "Naiya": "Naya",
-    "Afrodite": "Aphrodite",
-    "apep": "Apep",
-    "Belphegar": "Belphegor",
-    "Chiya": "Cynia",
-    "Freye": "Frigga",
-    "gaia": "Gaia",
-    "Jeanne D Arc": "Joan of Arc",
-    "Penny": "Pennie",
-    "Yuis": "Zeus",
+# ---- Element rename (game changed) ----
+ELEMENT_MAP = {
+    "Ice": "Frost",
+    "Wind": "Storm",
+    "Fire": "Blaze",
+    "Frost": "Frost",
+    "Storm": "Storm",
+    "Blaze": "Blaze",
+    "Holy": "Holy",
+    "Chaos": "Chaos",
 }
 
-DEFAULT_FACTION_OVERRIDES = {
+# ---- Faction rename (combo/faction fixed names) ----
+FACTION_NAME_MAP = {
     "A.S.A": "Asa",
     "Bicta Tower": "Bikta",
     "Chemic": "Kemich",
     "Monochrome Nation": "Monochrome Realm",
     "Oduis": "Otis",
+    "Odius": "Otis",  # upstream 오타 방어
     "Pingjing City": "Heikyo Castle",
     "Sapphire": "Safir",
 }
 
-# Element rename in your UI logic
-ELEM_REMAP = {
-    "Fire": "Blaze",
-    "Wind": "Storm",
-    "Ice": "Frost",
-    # keep others as-is
+# ---- Class normalize + Role mapping ----
+CLASS_ALIAS = {
+    "guard": "guardian",
+    "guardian": "guardian",
+    "tank": "guardian",
+
+    "healer": "healer",
+    "buffer": "buffer",
+    "support": "buffer",
+
+    "debuffer": "disruptor",
+    "debuff": "disruptor",
+    "disruptor": "disruptor",
+
+    "mage": "mage",
+    "rogue": "rogue",
+    "warrior": "warrior",
+
+    "dps": "warrior",  # 잘못 들어온 값 방어
 }
 
-# Translation mode: none | argos | openai
-DEFAULT_TRANSLATE_MODE = os.getenv("TRANSLATE_MODE", "none").strip().lower()
-
-
-# =========================
-# Utilities
-# =========================
-def slug_id(s: str) -> str:
-    s = (s or "").strip().lower().replace("’", "'")
-    s = re.sub(r"[\s'\"`]+", "", s)
-    s = re.sub(r"[^a-z0-9_-]", "", s)
-    return s
-
-
-def _load_json_if_exists(p: Path, default):
-    try:
-        if p.is_file():
-            return json.loads(p.read_text(encoding="utf-8"))
-    except Exception:
-        pass
-    return default
-
-
-def _save_json(p: Path, obj):
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
-def _sha1(s: str) -> str:
-    return hashlib.sha1(s.encode("utf-8")).hexdigest()
-
-
-def _read_overrides() -> Tuple[Dict[str, str], Dict[str, str]]:
-    names = dict(DEFAULT_NAME_OVERRIDES)
-    factions = dict(DEFAULT_FACTION_OVERRIDES)
-
-    names.update(_load_json_if_exists(OVERRIDES_NAMES, {}))
-    factions.update(_load_json_if_exists(OVERRIDES_FACTIONS, {}))
-
-    # normalize keys (keep original too; but add slug variants for robustness)
-    def expand(m: Dict[str, str]) -> Dict[str, str]:
-        out = dict(m)
-        for k, v in list(m.items()):
-            out[slug_id(k)] = v
-        return out
-
-    return expand(names), expand(factions)
-
-
-def _normalize_element(x: Any) -> str:
-    v = (x or "-")
-    if not isinstance(v, str):
-        v = str(v)
-    v = v.strip() or "-"
-    return ELEM_REMAP.get(v, v)
-
-
-def _normalize_str(x: Any, default: str = "-") -> str:
-    if x is None:
-        return default
-    if isinstance(x, str):
-        s = x.strip()
-        return s if s else default
-    return str(x).strip() or default
-
-
-# =========================
-# JS loader (gacha-wiki *.js)
-# =========================
-def load_js_as_json(fp: Path) -> Any:
-    """
-    Supports:
-      - ESM: export default {...}
-      - CJS: module.exports = {...}
-    Uses Node to load and JSON.stringify result.
-    """
-    js = r"""
-import { pathToFileURL } from 'url';
-import { createRequire } from 'module';
-const p = process.argv[1];
-let data = null;
-
-try {
-  const m = await import(pathToFileURL(p).href);
-  data = (m && (m.default ?? m)) ?? null;
-} catch (e) {
-  try {
-    const require = createRequire(import.meta.url);
-    const m2 = require(p);
-    data = (m2 && (m2.default ?? m2)) ?? null;
-  } catch (e2) {
-    console.error(String(e));
-    console.error(String(e2));
-    process.exit(2);
-  }
+CLASS_TO_ROLE = {
+    "guardian": "tank",
+    "healer": "healer",
+    "buffer": "buffer",
+    "mage": "dps",
+    "rogue": "dps",
+    "warrior": "dps",
+    "disruptor": "dps",  # 요구사항: Disruptor는 역할에서 DPS로 보이게
 }
 
-process.stdout.write(JSON.stringify(data));
-""".strip()
+VALID_RARITY = {"SSR", "SR", "R"}
 
-    proc = subprocess.run(
-        ["node", "--input-type=module", "-e", js, str(fp)],
-        capture_output=True,
-        text=True,
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(f"node import failed: {fp}\n{proc.stderr}")
+# ----------------------------
+# Translation controls
+# ----------------------------
+TRANSLATE_MODE = os.getenv("TRANSLATE_MODE", "none").strip().lower()  # none | openai
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
+TRANSLATE_CACHE = PUBLIC_DATA_DIR / "_translate_cache_ko.json"
 
-    try:
-        return json.loads(proc.stdout)
-    except Exception as e:
-        raise RuntimeError(f"node output is not json: {fp}\n{e}\n{proc.stdout[:2000]}")
+# “번역 대상 경로” (사용자 지정)
+# 1) skills/*/description
+# 2) teamSkill/*/description, teamSkill/*/alternativeConditions
+# 3) awakenings/*/effect
+# 4) memoryCard/effects/** (하위 모든 문자열)
+def _should_translate_path(path: Tuple[str, ...]) -> bool:
+    if not path:
+        return False
+    last = path[-1]
 
+    if "skills" in path and last == "description":
+        return True
 
-def find_upstream_char_dir(upstream_root: Path) -> Path:
-    """
-    Expected gacha-wiki structure:
-      gacha-wiki/src/data/zone-nova/characters/*.js
-    """
-    cands = [
-        upstream_root / "src" / "data" / "zone-nova" / "characters",
-        upstream_root / "src" / "data" / "zone_nova" / "characters",
-        upstream_root / "data" / "zone-nova" / "characters",
-    ]
-    for p in cands:
-        if p.is_dir():
-            return p
-    raise RuntimeError(f"Upstream characters dir not found. tried: {', '.join(str(x) for x in cands)}")
+    if "teamSkill" in path and last in ("description", "alternativeConditions"):
+        return True
 
+    if "awakenings" in path and last == "effect":
+        return True
 
-# =========================
-# Translation (zero-cost default: Argos)
-# =========================
-_argos_ready = False
+    if "memoryCard" in path:
+        try:
+            i = path.index("memoryCard")
+            if "effects" in path[i + 1:]:
+                return True
+        except ValueError:
+            pass
 
-def _argos_init():
-    global _argos_ready
-    if _argos_ready:
-        return
-
-    try:
-        import argostranslate.package
-        import argostranslate.translate
-    except Exception as e:
-        raise RuntimeError(
-            "Argos Translate not installed. Add to requirements.txt: argostranslate==1.6.1 "
-            f"(import error: {e})"
-        )
-
-    # Install en->ko model if not present
-    import argostranslate.package as pkg
-    import argostranslate.translate as tr
-
-    # Update package index (downloads metadata)
-    pkg.update_package_index()
-    available = pkg.get_available_packages()
-
-    target = None
-    for p in available:
-        if p.from_code == "en" and p.to_code == "ko":
-            target = p
-            break
-
-    if target:
-        installed_langs = tr.get_installed_languages()
-        have = any(l.code == "en" for l in installed_langs) and any(l.code == "ko" for l in installed_langs)
-        if not have:
-            # download + install model
-            model_path = target.download()
-            pkg.install_from_path(model_path)
-
-    _argos_ready = True
+    return False
 
 
-def _argos_translate(text: str) -> str:
-    _argos_init()
-    import argostranslate.translate as tr
-    return tr.translate(text, "en", "ko")
+_PROTECTED_SPAN_RE = re.compile(r"(`[^`]*`|\{[^{}]*\}|<[^<>]*>|\[[^\[\]]*\])")
 
-# =========================
-# Game Glossary Postprocess
-# =========================
-
-# 치환은 "순서"가 중요합니다(긴 표현 -> 짧은 표현).
-# 필요하면 여기만 계속 다듬으면 됩니다.
+# 게임 용어 사전(후처리): 필요하면 여기만 계속 만지면 됨
 _GAME_GLOSSARY_PATTERNS: list[tuple[str, str, int]] = [
-    # Cooldown / Duration
-    (r"\bCooldown\b", "쿨타임", re.IGNORECASE),
+    # cooldown / duration
     (r"재사용\s*대기\s*시간", "쿨타임", 0),
-    (r"\bCD\b", "쿨타임", 0),  # 문맥에 따라 오역 가능하면 제거하세요
+    (r"\bCooldown\b", "쿨타임", re.IGNORECASE),
     (r"지속\s*시간", "지속시간", 0),
 
-    # Buff/Debuff/Dispel/Immune
+    # buff/debuff/dispell/immune
     (r"\bBuffs?\b", "버프", re.IGNORECASE),
     (r"\bDebuffs?\b", "디버프", re.IGNORECASE),
-    (r"해제한다", "해제", 0),
     (r"\bDispel(s|led|ling)?\b", "해제", re.IGNORECASE),
+    (r"\bRemove(s|d)?\b", "제거", re.IGNORECASE),
     (r"\bImmune\b", "면역", re.IGNORECASE),
-    (r"면역\s*상태", "면역", 0),
 
-    # Stack / Turn
+    # stack/turn
     (r"\bStacks?\b", "중첩", re.IGNORECASE),
-    (r"턴\s*동안", "턴 동안", 0),
+    (r"\bTurn(s)?\b", "턴", re.IGNORECASE),
 
-    # Damage wording consistency
-    (r"추가\s*피해량", "추가 피해", 0),
-    (r"추가\s*피해를\s*입힌다", "추가 피해를 준다", 0),
+    # damage phrasing
     (r"피해를\s*입힌다", "피해를 준다", 0),
-    (r"피해량", "피해", 0),  # 원치 않으면 주석 처리
+    (r"추가\s*피해량", "추가 피해", 0),
     (r"받는\s*피해량", "받는 피해", 0),
     (r"가하는\s*피해량", "가하는 피해", 0),
 
-    # Heal / Shield
+    # heal/shield
     (r"\bHeal(s|ed|ing)?\b", "회복", re.IGNORECASE),
-    (r"체력을\s*회복한다", "체력을 회복한다", 0),
     (r"\bShield(s|ed|ing)?\b", "보호막", re.IGNORECASE),
     (r"\bBarrier\b", "보호막", re.IGNORECASE),
 
-    # Chance / Crit
-    (r"확률로", "확률로", 0),
-    (r"치명타\s*확률", "치명타 확률", 0),
-    (r"\bCrit(ical)?\s*Rate\b", "치명타 확률", re.IGNORECASE),
-    (r"\bCrit(ical)?\s*Damage\b", "치명타 피해", re.IGNORECASE),
-
-    # Common stats (keep abbreviations like HP/ATK as-is in prompt, but normalize KR if generated)
+    # stats consistency (번역 결과가 한글로 튀어나온 경우 정리)
     (r"공격\s*력", "공격력", 0),
     (r"방어\s*력", "방어력", 0),
     (r"체\s*력", "체력", 0),
+
+    # crit
+    (r"\bCrit(ical)?\s*Rate\b", "치명타 확률", re.IGNORECASE),
+    (r"\bCrit(ical)?\s*Damage\b", "치명타 피해", re.IGNORECASE),
 ]
 
-# 보호 구간: 번역/치환하면 안 되는 토큰들
-# - `code`
-# - {placeholders}
-# - <tags>
-# - [brackets]
-_PROTECTED_SPAN_RE = re.compile(r"(`[^`]*`|\{[^{}]*\}|<[^<>]*>|\[[^\[\]]*\])")
-
 def _apply_game_glossary(text: str) -> str:
-    """
-    Apply glossary replacements to translated KR text, while preserving protected tokens.
-    Formatting(개행/불릿)은 그대로 두고, 보호구간은 치환하지 않습니다.
-    """
     if not text:
         return text
-
     parts = _PROTECTED_SPAN_RE.split(text)
-    # split 결과: 보호구간은 그대로(parts에서 해당 조각이 통째로 남음)
     for i in range(len(parts)):
         seg = parts[i]
         if not seg or _PROTECTED_SPAN_RE.fullmatch(seg):
             continue
-
         for pat, rep, flags in _GAME_GLOSSARY_PATTERNS:
             seg = re.sub(pat, rep, seg, flags=flags)
-
         parts[i] = seg
-
     return "".join(parts)
 
+def _sha1(s: str) -> str:
+    return hashlib.sha1(s.encode("utf-8")).hexdigest()
 
-def _openai_translate(text: str, api_key: str, model: str) -> str:
+def _load_json(path: Path, default):
+    if not path.exists():
+        return default
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+def _save_json(path: Path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def normalize_rarity(v: str) -> str:
+    s = (v or "").strip().upper()
+    return s if s in VALID_RARITY else "-"
+
+def normalize_element(v: str) -> str:
+    s = (v or "").strip()
+    if not s:
+        return "-"
+    return ELEMENT_MAP.get(s, s)
+
+def normalize_class(v: str) -> str:
+    s = (v or "").strip().lower()
+    if not s:
+        return "-"
+    return CLASS_ALIAS.get(s, s)
+
+def class_to_role(cls: str) -> str:
+    c = normalize_class(cls)
+    return CLASS_TO_ROLE.get(c, "-")
+
+def apply_faction_map(faction: str, overrides_factions: dict) -> str:
+    f = (faction or "").strip()
+    if not f:
+        return ""
+    # 1) 사용자 overrides 우선
+    if f in overrides_factions:
+        f = overrides_factions[f]
+    # 2) 고정 변환
+    return FACTION_NAME_MAP.get(f, f)
+
+def apply_name_override(name: str, overrides_names: dict) -> str:
+    n = (name or "").strip()
+    if not n:
+        return n
+    return overrides_names.get(n, n)
+
+def run_node_extract(upstream_char_dir: Path, out_json: Path):
+    extractor = SCRIPTS_DIR / "extract_zone_nova_characters.mjs"
+    if not extractor.exists():
+        raise RuntimeError(f"extractor 파일이 없습니다: {extractor}")
+
+    cmd = ["node", str(extractor), "--dir", str(upstream_char_dir), "--out", str(out_json)]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError(
+            "Node 변환 실패:\n"
+            f"STDOUT:\n{proc.stdout}\n"
+            f"STDERR:\n{proc.stderr}\n"
+        )
+
+def _node_dump_js_to_json(js_file: Path) -> dict:
     """
-    Optional paid mode. Only used when TRANSLATE_MODE=openai.
-    Uses Requests-free urllib to avoid extra deps.
+    gacha-wiki의 character detail은 .js(ESM)로 되어 있으므로
+    Node로 dynamic import 후 JSON으로 덤프한다.
+    """
+    tmp_script = REPO_ROOT / ".tmp_dump_detail.mjs"
+    if not tmp_script.exists():
+        tmp_script.write_text(
+            """
+import { pathToFileURL } from "url";
+import path from "path";
+
+const p = process.argv[2];
+if (!p) {
+  console.error("missing file path");
+  process.exit(2);
+}
+const url = pathToFileURL(path.resolve(p)).href;
+
+try {
+  const mod = await import(url);
+  const data = mod?.default ?? mod?.character ?? mod?.data ?? mod;
+  process.stdout.write(JSON.stringify(data ?? {}, null, 2));
+} catch (e) {
+  console.error(String(e?.stack ?? e));
+  process.exit(1);
+}
+""".strip() + "\n",
+            encoding="utf-8",
+        )
+
+    proc = subprocess.run(
+        ["node", str(tmp_script), str(js_file)],
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(proc.stderr.strip() or "node import failed")
+    return json.loads(proc.stdout)
+
+def _should_translate_string(s: str) -> bool:
+    s2 = (s or "").strip()
+    if not s2:
+        return False
+    # 숫자/기호 위주면 패스
+    if re.fullmatch(r"[\d\s\W]+", s2):
+        return False
+    # 너무 짧으면 품질이 흔들려서(예: "Deal DMG") 굳이 번역 안함
+    if len(s2) <= 2:
+        return False
+    return True
+
+def _openai_translate_ko(text: str, api_key: str, model: str) -> str:
+    """
+    OpenAI Chat Completions API(기본)로 번역.
     """
     import urllib.request
 
-    url = "https://api.openai.com/v1/chat/completions"
     payload = {
         "model": model,
         "temperature": 0,
@@ -366,135 +321,47 @@ def _openai_translate(text: str, api_key: str, model: str) -> str:
                     "- Keep sentences concise. Do not add information not present in the source.\n"
                     "- Avoid overly literal translation; prefer natural KR phrasing while preserving meaning.\n"
                 ),
-
-
             },
             {"role": "user", "content": text},
         ],
     }
-    data = json.dumps(payload).encode("utf-8")
+
     req = urllib.request.Request(
-        url,
-        data=data,
+        "https://api.openai.com/v1/chat/completions",
+        data=json.dumps(payload).encode("utf-8"),
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
         },
         method="POST",
     )
+
     with urllib.request.urlopen(req, timeout=60) as resp:
-        raw = resp.read().decode("utf-8")
+        raw = resp.read().decode("utf-8", errors="ignore")
     j = json.loads(raw)
-   out = (
-        j.get("choices", [{}])[0]
-         .get("message", {})
-         .get("content", "")
-    )
-    out = (out or "").strip()
+    out = (j.get("choices", [{}])[0].get("message", {}).get("content", "") or "").strip()
     out = _apply_game_glossary(out)
     return out
 
-def _should_translate_string(s: str) -> bool:
-    if not s:
-        return False
-    t = s.strip()
-    if len(t) <= 1:
-        return False
-
-    # if already has Hangul, skip
-    if any("\uac00" <= ch <= "\ud7a3" for ch in t):
-        return False
-
-    # Looks like id/slug/path: skip
-    if len(t) < 40 and all(ch.isalnum() or ch in "-_./ " for ch in t):
-        return False
-
-    return True
-
-
-def translate_detail_object_to_ko(detail: Any, character_name: str, cache_path: Path, mode: str) -> Any:
-    """
-    Translate ONLY selected fields into Korean and keep everything else as-is (English).
-    Selected translation targets (requested):
-      1) skills -> description
-      2) teamSkill -> description, alternativeConditions
-      3) awakenings -> (each level) effect
-      4) memoryCard -> effects (all strings under this subtree)
-    Keep root detail['name'] (character name) as-is.
-    """
-    mode = (mode or "none").strip().lower()
-    if mode == "none":
-        return detail
-
-    cache = _load_json_if_exists(cache_path, default={})
-
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
-
-    def _should_translate_path(path: Tuple[str, ...]) -> bool:
-        """
-        path includes dict keys, and list markers as '[]'.
-        We translate only if path matches the user-approved scopes.
-        """
-        if not path:
-            return False
-
-        last = path[-1]
-
-        # 1) skills/*/description
-        if "skills" in path and last == "description":
-            return True
-
-        # 2) teamSkill/*/(description | alternativeConditions)
-        if "teamSkill" in path and last in ("description", "alternativeConditions"):
-            return True
-
-        # 3) awakenings/*/effect  (level-based arrays/maps are handled by 'effect' key)
-        if "awakenings" in path and last == "effect":
-            return True
-
-        # 4) memoryCard/effects/**  (translate all strings under this subtree)
-        # If path contains memoryCard and effects after it, translate strings in that subtree.
-        if "memoryCard" in path:
-            try:
-                i = path.index("memoryCard")
-                if "effects" in path[i + 1:]:
-                    return True
-            except ValueError:
-                pass
-
-        return False
-
+def _translate_detail_selected(detail: Any, cache: dict) -> Any:
     def tr(s: str, path: Tuple[str, ...]) -> str:
-        # not in scope => keep English
+        if TRANSLATE_MODE != "openai":
+            return s
         if not _should_translate_path(path):
             return s
-
-        # string-level heuristic filter
         if not _should_translate_string(s):
+            return s
+        if not OPENAI_API_KEY:
             return s
 
         key = _sha1(s)
         if key in cache:
             return cache[key]
 
-        # small sleep to avoid runaway in CI
+        # 과도한 호출 방지(액션 환경)
         time.sleep(0.05)
 
-        if mode == "openai":
-            if not api_key:
-                return s
-            # Higher-quality prompt: preserve numbers/tokens, keep skill/term casing as-is
-            ko = _openai_translate(
-                text=s,
-                api_key=api_key,
-                model=model,
-            )
-        elif mode == "argos":
-            ko = _argos_translate(s)
-        else:
-            return s
-
+        ko = _openai_translate_ko(s, OPENAI_API_KEY, OPENAI_MODEL)
         cache[key] = ko if ko else s
         return cache[key]
 
@@ -502,228 +369,181 @@ def translate_detail_object_to_ko(detail: Any, character_name: str, cache_path: 
         if isinstance(obj, dict):
             out = {}
             for k, v in obj.items():
-                # Keep character name at root
-                if isinstance(v, str) and k == "name" and len(path) == 0:
+                # 캐릭터명은 항상 영문 유지
+                if k == "name" and isinstance(v, str):
                     out[k] = v
                     continue
-
-                # Keep exact character name string anywhere
-                if isinstance(v, str) and character_name and v.strip() == character_name.strip():
-                    out[k] = v
-                    continue
-
                 out[k] = walk(v, path + (k,))
             return out
-
         if isinstance(obj, list):
             return [walk(x, path + ("[]",)) for x in obj]
-
         if isinstance(obj, str):
             return tr(obj, path)
-
         return obj
 
-    translated = walk(detail)
+    return walk(detail)
 
-    # persist cache for future runs (cost control)
-    _save_json(cache_path, cache)
-    return translated
+def build_characters_meta(raw_list: list, local_chars_json: list, overrides_names: dict, overrides_factions: dict) -> dict:
+    chars: list[dict] = []
 
+    def add_one(c: dict):
+        cid = (c.get("id") or "").strip()
+        if not cid:
+            return
 
-# =========================
-# Extraction helpers
-# =========================
-def _extract_meta_fields(raw: Any) -> Dict[str, Any]:
-    """
-    Heuristic extraction for meta fields from gacha-wiki detail object.
-    """
-    if not isinstance(raw, dict):
-        return {}
+        name = apply_name_override((c.get("name") or cid).strip(), overrides_names)
+        rarity = normalize_rarity(c.get("rarity") or "")
+        element = normalize_element(c.get("element") or "")
+        cls = normalize_class(c.get("class") or c.get("Class") or "")
+        faction = apply_faction_map(c.get("faction") or c.get("Faction") or "", overrides_factions)
+        role = class_to_role(cls)
 
-    # common candidates
-    name = raw.get("name") or raw.get("characterName") or raw.get("title") or ""
-    rarity = raw.get("rarity") or raw.get("grade") or raw.get("rank") or "-"
-    element = raw.get("element") or raw.get("attr") or raw.get("attribute") or "-"
-    faction = raw.get("faction") or raw.get("group") or raw.get("camp") or raw.get("tribe") or "-"
-    cls = raw.get("class") or raw.get("job") or raw.get("type") or raw.get("roleClass") or raw.get("Class") or "-"
-    role = raw.get("role") or raw.get("Role") or "-"  # optional
-
-    # normalize strings
-    return {
-        "name": _normalize_str(name, default=""),
-        "rarity": _normalize_str(rarity, default="-").upper(),
-        "element": _normalize_element(element),
-        "faction": _normalize_str(faction, default="-"),
-        "class": _normalize_str(cls, default="-").lower(),
-        "role": _normalize_str(role, default="-").lower(),
-    }
-
-
-def build_meta_and_details(
-    upstream_char_dir: Path,
-    name_overrides: Dict[str, str],
-    faction_overrides: Dict[str, str],
-    translate_mode: str,
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """
-    Returns:
-      meta_list: list of meta dicts (for characters_meta.json)
-      unmatched: list of problems
-    """
-    DETAIL_OUT_DIR.mkdir(parents=True, exist_ok=True)
-
-    meta_list: List[Dict[str, Any]] = []
-    unmatched: List[Dict[str, Any]] = []
-
-    js_files = sorted([p for p in upstream_char_dir.glob("*.js") if p.is_file()])
-    # ignore index.js or similar barrels
-    js_files = [p for p in js_files if p.stem.lower() not in ("index", "_index")]
-
-    for fp in js_files:
-        try:
-            raw = load_js_as_json(fp)
-        except Exception as e:
-            unmatched.append({"file": fp.name, "reason": "load_failed", "error": str(e)})
-            continue
-
-        meta = _extract_meta_fields(raw)
-
-        # id: prefer explicit id, else filename stem
-        rid = None
-        if isinstance(raw, dict):
-            rid = raw.get("id") or raw.get("_id") or raw.get("key")
-        rid = _normalize_str(rid, default=fp.stem)
-        cid = slug_id(rid) or slug_id(fp.stem)
-
-        # Name override (by original name or slug(original))
-        raw_name = meta.get("name") or fp.stem
-        canonical_name = name_overrides.get(raw_name) or name_overrides.get(slug_id(raw_name)) or raw_name
-
-        # apply faction override
-        raw_faction = meta.get("faction") or "-"
-        canonical_faction = faction_overrides.get(raw_faction) or faction_overrides.get(slug_id(raw_faction)) or raw_faction
-
-        # element remap already done in normalize_element
-        canonical_element = meta.get("element") or "-"
-
-        # Ensure raw detail is dict so we can enforce root name
-        if isinstance(raw, dict):
-            raw["id"] = raw.get("id") or rid
-            raw["name"] = canonical_name
-            # Align element/faction in detail too (optional but helps consistency)
-            if "element" in raw or canonical_element != "-":
-                raw["element"] = canonical_element
-            if "faction" in raw or canonical_faction != "-":
-                raw["faction"] = canonical_faction
-        else:
-            # wrap unknown types
-            raw = {"id": rid, "name": canonical_name, "element": canonical_element, "faction": canonical_faction, "data": raw}
-
-        # Translate detail (keep character name)
-        try:
-            raw_translated = translate_detail_object_to_ko(
-                raw,
-                character_name=canonical_name,
-                cache_path=TRANSLATE_CACHE_OUT,
-                mode=translate_mode,
-            )
-        except Exception as e:
-            # If translation fails, still write English detail to avoid losing data
-            unmatched.append({"id": cid, "name": canonical_name, "reason": "translate_failed", "error": str(e)})
-            raw_translated = raw
-
-        # write detail json
-        out_path = DETAIL_OUT_DIR / f"{cid}.json"
-        _save_json(out_path, raw_translated)
-
-        # build meta item
-        item = {
+        chars.append({
             "id": cid,
-            "name": canonical_name,             # keep EN name
-            "rarity": meta.get("rarity", "-"),
-            "element": canonical_element,
-            "faction": canonical_faction,
-            "class": meta.get("class", "-"),
-            "role": meta.get("role", "-"),
-        }
-
-        # sanity
-        if not item["name"]:
-            unmatched.append({"id": cid, "file": fp.name, "reason": "missing_name"})
-            item["name"] = cid
-        if item["rarity"] not in ("SSR", "SR", "R", "-"):
-            # do not fail; just note
-            unmatched.append({"id": cid, "name": item["name"], "reason": "unknown_rarity", "rarity": item["rarity"]})
-
-        meta_list.append(item)
-
-    # Deduplicate by id (first wins)
-    seen = set()
-    uniq = []
-    for c in meta_list:
-        if c["id"] in seen:
-            unmatched.append({"id": c["id"], "name": c.get("name"), "reason": "duplicate_id"})
-            continue
-        seen.add(c["id"])
-        uniq.append(c)
-
-    # Sort by rarity desc, then name asc
-    rarity_order = {"SSR": 3, "SR": 2, "R": 1, "-": 0}
-    uniq.sort(key=lambda x: (-rarity_order.get(x.get("rarity", "-"), 0), (x.get("name") or x.get("id") or "")))
-
-    return uniq, unmatched
-
-
-# =========================
-# CLI
-# =========================
-def parse_args():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--upstream", required=True, help="Path to gacha-wiki repo root (checked out by Actions)")
-    ap.add_argument("--write", action="store_true", help="Write outputs to public/data/zone-nova")
-    ap.add_argument("--sync-details", action="store_true", help="Generate public/data/zone-nova/characters/*.json")
-    ap.add_argument("--translate-mode", default=DEFAULT_TRANSLATE_MODE, help="none|argos|openai (default: env TRANSLATE_MODE or none)")
-    return ap.parse_args()
-
-
-def main():
-    args = parse_args()
-
-    upstream_root = Path(args.upstream).resolve()
-    upstream_char_dir = find_upstream_char_dir(upstream_root)
-
-    name_overrides, faction_overrides = _read_overrides()
-
-    if not args.sync_details:
-        print("Nothing to do: --sync-details not set.")
-        return
-
-    translate_mode = (args.translate_mode or "none").strip().lower()
-    if translate_mode not in ("none", "argos", "openai"):
-        raise RuntimeError(f"Invalid translate mode: {translate_mode}")
-
-    meta_list, unmatched = build_meta_and_details(
-        upstream_char_dir=upstream_char_dir,
-        name_overrides=name_overrides,
-        faction_overrides=faction_overrides,
-        translate_mode=translate_mode,
-    )
-
-    if args.write:
-        _save_json(META_OUT, {"characters": meta_list})
-        _save_json(UNMATCHED_OUT, {
-            "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-            "upstream": str(upstream_char_dir),
-            "translate_mode": translate_mode,
-            "detail_count": len(list(DETAIL_OUT_DIR.glob("*.json"))),
-            "unmatched_count": len(unmatched),
-            "items": unmatched,
+            "name": name,
+            "rarity": rarity,
+            "element": element,
+            "class": cls,
+            "role": role,
+            "faction": faction,
         })
 
-    print(f"[OK] meta_count={len(meta_list)} detail_dir={DETAIL_OUT_DIR} translate_mode={translate_mode}")
-    if unmatched:
-        print(f"[WARN] unmatched_count={len(unmatched)} -> {UNMATCHED_OUT.name}")
+    # 1) upstream extractor 결과
+    for c in raw_list:
+        if isinstance(c, dict):
+            add_one(c)
 
+    # 2) 로컬 characters.json 병합(업스트림 meta 누락(Apep/Gaia) 방어)
+    for c in (local_chars_json or []):
+        if isinstance(c, dict):
+            add_one(c)
+
+    # 3) 중복 제거(id 기준 최종)
+    dedup: dict[str, dict] = {}
+    for c in chars:
+        dedup[c["id"]] = c
+    chars = list(dedup.values())
+
+    # 4) 정렬: rarity(SSR>SR>R>-), 이름
+    rarity_rank = {"SSR": 0, "SR": 1, "R": 2, "-": 9}
+    chars.sort(key=lambda x: (rarity_rank.get(x.get("rarity", "-"), 9), (x.get("name") or "")))
+
+    last_refresh = datetime.now(timezone.utc).isoformat()
+    factions = sorted({c["faction"] for c in chars if c.get("faction")})
+    elements = sorted({c["element"] for c in chars if c.get("element")})
+    classes = sorted({c["class"] for c in chars if c.get("class")})
+
+    return {
+        "last_refresh": last_refresh,
+        "count": len(chars),
+        "factions_count": len(factions),
+        "factions": factions,
+        "elements": elements,
+        "classes": classes,
+        "characters": chars,
+    }
+
+def sync_details_from_upstream(upstream_char_dir: Path, out_dir: Path) -> dict:
+    """
+    upstream_char_dir: gacha-wiki/src/data/zone-nova/characters (JS files)
+    out_dir: public/data/zone-nova/characters (JSON)
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    cache = _load_json(TRANSLATE_CACHE, default={})
+
+    detail_count = 0
+    failed = []
+
+    # *.js 만 대상으로
+    for js_file in sorted(upstream_char_dir.glob("*.js")):
+        stem = js_file.stem.strip()
+        if not stem:
+            continue
+
+        try:
+            detail = _node_dump_js_to_json(js_file)
+            if not isinstance(detail, dict) or not detail:
+                raise RuntimeError("empty detail")
+
+            # 번역은 지정 범위만
+            if TRANSLATE_MODE == "openai":
+                detail = _translate_detail_selected(detail, cache)
+
+            out_path = out_dir / f"{stem}.json"
+            _save_json(out_path, detail)
+            detail_count += 1
+
+        except Exception as e:
+            failed.append({"file": str(js_file), "id": stem, "error": str(e)})
+
+    # cache 저장(비용 절감 핵심)
+    if TRANSLATE_MODE == "openai":
+        _save_json(TRANSLATE_CACHE, cache)
+
+    return {"detail_count": detail_count, "failed": failed}
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--write", action="store_true", help="write json into public/data/zone-nova")
+    ap.add_argument("--upstream", type=str, required=True, help="upstream repo folder name (cloned path)")
+    ap.add_argument("--sync-details", action="store_true", help="sync character detail files into public/data/zone-nova/characters")
+    ap.add_argument("--clean", action="store_true", help="delete generated outputs before syncing (fresh start)")
+    args = ap.parse_args()
+
+    upstream_root = REPO_ROOT / args.upstream
+    if not upstream_root.exists():
+        raise RuntimeError(f"업스트림 루트가 존재하지 않습니다: {upstream_root}")
+
+    upstream_char_dir = upstream_root / "src" / "data" / "zone-nova" / "characters"
+    if not upstream_char_dir.exists():
+        raise RuntimeError(f"업스트림 캐릭터 디렉터리가 없습니다: {upstream_char_dir}")
+
+    # ---- clean outputs (fresh restart) ----
+    if args.clean and args.write:
+        if DETAIL_DIR.exists():
+            shutil.rmtree(DETAIL_DIR)
+        tmp = REPO_ROOT / ".tmp_zone_nova_characters.json"
+        if tmp.exists():
+            tmp.unlink(missing_ok=True)
+
+    # ---- load overrides ----
+    overrides_names = _load_json(OVERRIDE_NAMES, default={})
+    overrides_factions = _load_json(OVERRIDE_FACTIONS, default={})
+
+    # ---- upstream meta extract via node (existing extractor) ----
+    tmp_out = REPO_ROOT / ".tmp_zone_nova_characters.json"
+    run_node_extract(upstream_char_dir, tmp_out)
+    raw = json.loads(tmp_out.read_text(encoding="utf-8"))
+    if not isinstance(raw, list):
+        raise RuntimeError("추출 결과 포맷 오류: list여야 합니다.")
+
+    # ---- local characters.json merge source ----
+    local_char_path = PUBLIC_DATA_DIR / "characters.json"
+    local_chars = _load_json(local_char_path, default=[])
+    if not isinstance(local_chars, list):
+        local_chars = []
+
+    meta = build_characters_meta(raw, local_chars, overrides_names, overrides_factions)
+
+    # ---- write outputs ----
+    if args.write:
+        PUBLIC_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        _save_json(PUBLIC_DATA_DIR / "characters_meta.json", meta)
+
+        # 디테일 동기화
+        detail_res = {"detail_count": 0, "failed": []}
+        if args.sync_details:
+            detail_res = sync_details_from_upstream(upstream_char_dir, DETAIL_DIR)
+
+        # 실패 목록 저장
+        _save_json(PUBLIC_DATA_DIR / "_unmatched_gacha_wiki.json", detail_res.get("failed", []))
+
+        print(f"[ok] characters_meta.json generated: count={meta['count']}")
+        print(f"[ok] detail_count={detail_res.get('detail_count', 0)} failed={len(detail_res.get('failed', []))}")
+
+    else:
+        print(json.dumps(meta, ensure_ascii=False, indent=2))
 
 if __name__ == "__main__":
     main()
