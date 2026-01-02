@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout (your repo)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -25,7 +25,16 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Build JSON from JS
+      - name: Install esbuild (for TS/JS transform)
+        run: npm i --no-save esbuild@0.21.5
+
+      - name: Clone upstream (GachaWiki source)
+        run: |
+          git clone --depth 1 https://github.com/boring877/gacha-wiki.git _upstream_gachawiki
+
+      - name: Build JSON from upstream JS/TS
+        env:
+          ZONE_NOVA_SEARCH_ROOT: _upstream_gachawiki
         run: node scripts/build_zone_nova_characters_json.mjs
 
       - name: Commit & push if changed
