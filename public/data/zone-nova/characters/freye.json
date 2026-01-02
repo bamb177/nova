@@ -1,82 +1,74 @@
 {
-  "name": "Frigga",
-  "image": "Freye",
-  "rarity": "SSR",
-  "element": "Chaos",
-  "class": "Debuffer",
-  "role": "Debuffer",
-  "faction": "Asa",
-  "stats": {
-    "hp": 9180,
-    "attack": 1184,
-    "defense": 729
-  },
-  "skills": {
-    "normal": {
-      "name": "Chaos Strike",
-      "description": "지정된 적 단위로 chaos 손상으로 공격력이 120% 증가합니다."
-    },
-    "auto": {
-      "name": "Attribute Break",
-      "cooldown": "5.0s",
-      "description": "지정된 적 단위에 약점 속성을 적용하고 팀의 4 캐릭터의 속성을 우선 순위화하고 10 초 동안 15 %의 해당 속성 저항을 감소시킵니다. 해당 속성의 360 % 공격 전력 손상을 대상에 제공합니다."
-    },
-    "ultimate": {
-      "name": "Dark Fate",
-      "energyCost": "3",
-      "description": "3 미터 범위 내에서 지정된 적 단위 및 주변 적에 손상을 주는 작은 검은 구멍으로 최대 12 배까지 타격합니다. 총 손상은 60 % 카오스 손상입니다. 적이 10 초 이내에 손상을 입으면 공격력이 36% 증가했습니다. 다음 궁극적 인 기술이 향상되었습니다. 향상된 얼티밋 : 지정된 적 단위와 주변 적에게 피해를 주는 큰 검은 구멍은 5 미터 범위 내에서 12 배까지 타격합니다. 총 손상은 180%년 chaos 손상입니다. 또한 10 초 이내에 적의 손상이 60 % 증가합니다. 이 효력은 정규적인 궁극적인 기술 효력으로 겹쳐 쌓일 수 없습니다."
-    },
-    "passive": {
-      "name": "Meteor Storm",
-      "description": "기본 공격이나 기술을 사용하여 손상을 처리 할 때, [Divine Meteor]의 하나의 스택을 적용합니다. 궁극적 인 기술을 사용하여 동일한 대상 4 번 손상을 처리 할 때, [Divine Meteor]의 하나의 스택을 적용합니다. 【Divine Meteor】: 각 3 초는 챠오 손상으로 19.2% 공격 힘을, 10배까지 겹쳐 쌓일 수 있습니다, 10 초를 지속합니다. 수동적인 효력: 큰 까만 구멍이 존재할 때 (Enhanced 궁극적인), 모든 적 단위는 50%에 의해 감소되고 총 방어는 10% 감소했습니다."
-    }
-  },
-  "teamSkill": {
-    "name": "Divine Protection",
-    "description": "전투가 시작되면 총 손상을 2.5%로 모든 적 단위로 감소시킵니다. 각 1000의 공격력 프레이에는, 이 효력은 100%년 (두 배), 300%의 최대 증가에 의하여 증가합니다. 3000+ 공격: 10%의 손상 감소 (최대).",
-    "requirements": {
-      "faction": "A.S.A",
-      "element": "Chaos"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "전투가 시작되면 즉시 캐스트 할 수 있습니다.[Enhanced Ultimate]."
+      "effect": "After combat starts, can immediately cast 【Enhanced Ultimate】.",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "궁극적인 기술 손상은 20% 증가. 【Enhanced Ultimate】 에너지 비용은 1로 감소했습니다. 향상된 패시브 : 큰 검은 구멍이 존재 할 때 모든 적 단위는 에너지가 100 % 감소하고 총 방어가 20 % 감소했습니다."
+      "effect": "Ultimate skill damage increased by 20%. 【Enhanced Ultimate】 energy cost reduced to 1. Enhanced Passive: When large black hole exists, all enemy units have energy gain reduced by 100% and total defense reduced by 20%.",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "[기본 공격], [Skill], [Ultimate] 및 [Passive] 레벨 및 레벨 캡 +2."
+      "effect": "[Basic Attack], [Skill], [Ultimate], and [Passive] level and level cap +2.",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "공격력이 30% 증가했습니다."
+      "effect": "Attack power increased by 30%.",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "[기본 공격], [Skill], [Ultimate] 및 [Passive] 레벨 및 레벨 캡 +2."
+      "effect": "[Basic Attack], [Skill], [Ultimate], and [Passive] level and level cap +2.",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "궁극적 인 기술에 의해 영향을받는 대상은 모든 저항이 20 % 감소했습니다."
+      "effect": "Targets affected by ultimate skills additionally have all resistance reduced by 20%.",
+      "level": 6
     }
   ],
+  "class": "Debuffer",
+  "element": "Chaos",
+  "faction": "A.S.A",
+  "image": "Freye",
   "memoryCard": {
-    "name": "Lamplight Study",
-    "image": "Freyecard",
-    "stats": {
-      "hp": 6000,
-      "attack": 600,
-      "defense": 600
-    },
     "effects": [
-      "공격력이 40% 증가했습니다.",
-      "궁극적인 기술 손상은 【Fate Bind】를 적용 할 수 있습니다. 【Fate Bind】의 각 더미는 3.6%, 지속 10 초, 최대 10 더미에 의해 촬영된 손상을 증가시킵니다"
-    ]
+      "Attack power increased by 40%",
+      "Ultimate skill damage can apply 【Fate Bind】. Each stack of 【Fate Bind】 increases damage taken by 3.6%, lasts 10 seconds, maximum 10 stacks"
+    ],
+    "image": "Freyecard",
+    "name": "Lamplight Study",
+    "stats": {
+      "attack": 600,
+      "defense": 600,
+      "hp": 6000
+    }
+  },
+  "name": "Freye",
+  "rarity": "SSR",
+  "role": "Debuffer",
+  "skills": {
+    "auto": {
+      "cooldown": "5.0s",
+      "description": "Applies a weakness attribute to the designated enemy unit, prioritizing the attribute of the 4th character in your team, and reduces the corresponding attribute resistance by 15% for 10 seconds. Deals 360% attack power damage of the corresponding attribute to that target.",
+      "name": "Attribute Break"
+    },
+    "normal": {
+      "description": "Deals 120% attack power as chaos damage to designated enemy unit.",
+      "name": "Chaos Strike"
+    },
+    "passive": {
+      "description": "When using basic attacks or skills to deal damage, applies one stack of 【Divine Meteor】. When using ultimate skill to deal damage to the same target 4 times, applies one stack of 【Divine Meteor】. 【Divine Meteor】: Every 3 seconds deals 19.2% attack power as chaos damage, can stack up to 10 times, lasts 10 seconds. Passive Effect: When a large black hole exists (Enhanced Ultimate), all enemy units have their energy gain reduced by 50% and total defense reduced by 10%.",
+      "name": "Meteor Storm"
+    },
+    "ultimate": {
+      "description": "Summons a small black hole that deals damage to designated enemy units and surrounding enemies within a 3-meter range, hitting up to 12 times. Total damage is 60% chaos damage. If the enemy takes damage within 10 seconds, damage taken is increased by 36%. Next ultimate skill is enhanced. Enhanced Ultimate: Summons a large black hole that deals damage to designated enemy units and surrounding enemies within a 5-meter range, hitting up to 12 times. Total damage is 180% chaos damage. Additionally, within 10 seconds, enemy damage taken is increased by 60%. This effect cannot stack with regular ultimate skill effects.",
+      "energyCost": "3",
+      "name": "Dark Fate"
+    }
+  },
+  "stats": {
+    "attack": 1184,
+    "defense": 729,
+    "hp": 9180
   },
   "tags": [
     "DOT",
@@ -87,5 +79,12 @@
     "debuff",
     "range"
   ],
-  "id": "freye"
+  "teamSkill": {
+    "description": "After combat starts, reduces total damage dealt by all enemy units by 2.5%. For every 1000 attack power Freye has, this effect increases by 100% (doubles), maximum increase of 300%. At 3000+ attack: 10% damage reduction (maximum).",
+    "name": "Divine Protection",
+    "requirements": {
+      "element": "Chaos",
+      "faction": "A.S.A"
+    }
+  }
 }

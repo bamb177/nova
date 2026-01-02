@@ -1,86 +1,85 @@
 {
-  "name": "Behemoth",
-  "image": "Leviathan",
-  "rarity": "SR",
-  "element": "Storm",
-  "class": "Rogue",
-  "role": "DPS",
-  "faction": "Bikta",
-  "stats": {
-    "hp": "6,694",
-    "attack": "1,088",
-    "defense": "442"
-  },
-  "skills": {
-    "normal": {
-      "name": "Leviathan's Kiss (利维坦之吻)",
-      "description": "거래 100 % ATK 적에게 바람 손상."
-    },
-    "auto": {
-      "name": "Abyss Roar (深渊之咆哮)",
-      "cooldown": "5.0s",
-      "description": "거래 100 % ATK 대상 적에게 바람 피해를 주고 2 마크를 얻습니다."
-    },
-    "ultimate": {
-      "name": "Seven Deadly Sins: Jiāolú (七大罪：娇炉)",
-      "energyCost": "5",
-      "description": "거래 100 % ATK 대상 적에게 바람 손상, 즉시 마크를 사용하지 않는 1 여분의 공격을 수행합니다."
-    },
-    "passive": {
-      "name": "Grudge Deep Chain (怨恨深链)",
-      "description": "우리의 연합 된 단위가 자동 기술을 사용 하 고 적을 명중, 1 마크를 사용 하 여 추가 공격을 수행 180 % ATK 바람 손상."
-    }
-  },
-  "teamSkill": {
-    "name": "Combination Skill",
-    "description": "자기 손상은 20% 증가.",
-    "requirements": {
-      "faction": "Bicta Tower",
-      "element": "Wind"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "자기가 [auto Skill]를 활성화하면 수동 효과를 유발할 수 있습니다."
+      "effect": "When self activates [auto Skill], can also trigger passive effects",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "추가 공격은 +20 %의 Crit 비율을 얻습니다."
+      "effect": "Extra attacks gain +20 % Crit Rate.",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "[Skills] 과 [Normal Attack] 레벨 및 레벨 캡 +4"
+      "effect": "[Skills] and [Normal Attack] level and level cap +4",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "추가 공격 거래 +20 % 손상."
+      "effect": "Extra attacks deal +20 % damage.",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4"
+      "effect": "[Ultimate] and [Passive] level and level cap +4",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "궁극적 인 기술을 사용할 때, 후속 공격의 수는 1 시간에서 2 배로 변경됩니다."
+      "effect": "When using ultimate skill, the number of follow-up attacks triggered changes from 1 time to 2 times.",
+      "level": 6
     }
   ],
+  "class": "Rogue",
+  "element": "Wind",
+  "faction": "Bicta Tower",
+  "image": "Leviathan",
   "memoryCard": {
-    "name": "Perverted Little Nurse (变态小护士)",
-    "image": "Leviathancard",
-    "stats": {
-      "hp": "4,200",
-      "attack": "650",
-      "defense": "395"
-    },
     "effects": [
-      "추가 공격을 착륙 한 후, 10 s의 +36 % Crit Rate를 얻습니다."
-    ]
+      "After landing an extra attack, gain +36 % Crit Rate for 10 s."
+    ],
+    "image": "Leviathancard",
+    "name": "Perverted Little Nurse (变态小护士)",
+    "stats": {
+      "attack": "650",
+      "defense": "395",
+      "hp": "4,200"
+    }
+  },
+  "name": "Leviathan",
+  "rarity": "SR",
+  "role": "DPS",
+  "skills": {
+    "auto": {
+      "cooldown": "5.0s",
+      "description": "Deals 120 % ATK Wind damage to the targeted enemy and gains 2 Marks.",
+      "name": "Abyss Roar (深渊之咆哮)"
+    },
+    "normal": {
+      "description": "Deals 120 % ATK Wind damage to the targeted enemy.",
+      "name": "Leviathan's Kiss (利维坦之吻)"
+    },
+    "passive": {
+      "description": "When our allied units use auto skills and hit enemies, consume 1 Mark to perform an extra attack dealing 180 % ATK Wind damage.",
+      "name": "Grudge Deep Chain (怨恨深链)"
+    },
+    "ultimate": {
+      "description": "Deals 600 % ATK Wind damage to the targeted enemy, then immediately performs 1 extra attack that does NOT consume a Mark.",
+      "energyCost": "5",
+      "name": "Seven Deadly Sins: Jiāolú (七大罪：娇炉)"
+    }
+  },
+  "stats": {
+    "attack": "1,088",
+    "defense": "442",
+    "hp": "6,694"
   },
   "tags": [
     "Melee",
     "Crit Rate",
     "Extra Attack"
   ],
-  "id": "leviathan"
+  "teamSkill": {
+    "description": "Self damage increased by 20%.",
+    "name": "Combination Skill",
+    "requirements": {
+      "element": "Wind",
+      "faction": "Bicta Tower"
+    }
+  }
 }

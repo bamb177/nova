@@ -1,84 +1,76 @@
 {
-  "name": "Arthur",
-  "image": "Arthur",
-  "rarity": "SSR",
-  "element": "Holy",
-  "class": "Mage",
-  "role": "DPS",
-  "faction": "Avalon",
-  "stats": {
-    "hp": "8,033",
-    "attack": "1,305",
-    "defense": "530",
-    "critRate": 15
-  },
-  "skills": {
-    "normal": {
-      "name": "Oath Victory Sword",
-      "description": "지정된 적에게 공격의 120%와 동일하게 손상을 줍니다."
-    },
-    "auto": {
-      "name": "King's Sword",
-      "cooldown": "5.0s",
-      "description": "앞 적 단위에 손상으로 240% 공격력. 손상된 각 표적을 위해, 12%의 최대 4개의 더미에 의하여 긴요한 손상 증가는, 5 초를 지속합니다"
-    },
-    "ultimate": {
-      "name": "Imperial Sacred Judgment",
-      "energyCost": "6",
-      "description": "공격의 600%와 적대 공격의 피해를 줍니다. 버퍼 유닛이 궁극적으로 사용되면 5 s 내에서 향상된 얼티밋을 트리거 할 수 있습니다. 향상된 얼티밋: ATK +36 % 10 s 및 처리 720 % ATK 앞의 적에게 거짓."
-    },
-    "passive": {
-      "name": "Royal Dominance",
-      "description": "각 궁극적인 사용: 공격력이 12% 증가하고 방어력이 5.6% 증가합니다. 최대 3개의 층은, 10 초 지속합니다. 전체 스택 잠재력: 36% 공격 + 16.8% 방어."
-    }
-  },
-  "teamSkill": {
-    "name": "Combination Skill",
-    "description": "자기 중요한 비율은 7.5%에 의하여 증가합니다. 전투 시작: 모든 15% 중요한 비율은 5% holy 손상, 최대 6배 추가합니다. 최대 잠재적인: 30% holy 손상은 최선 긴요한 비율로 증가합니다.",
-    "requirements": {
-      "faction": "Avalon",
-      "element": "Holy"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "중요한 비율은 15% 증가합니다."
+      "effect": "Critical rate increases by 15%.",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "[Enhanced Ultimate]를 활성화하면 30 %의 중요한 피해가 증가합니다."
+      "effect": "When activating [Enhanced Ultimate], critical hit damage increases by 30% .",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "[Skill] 과 [Normal Attack] 레벨과 레벨 캡 +4."
+      "effect": "[Skill] and [Normal Attack] level and level cap +4.",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "궁극적인 손상은 35% 증가합니다."
+      "effect": "Ultimate damage increases by 35%.",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4."
+      "effect": "[Ultimate] and [Passive] level and level cap +4.",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "[Enhanced Ultimate]는 타겟의 20 %의 원소 저항을 무시합니다."
+      "effect": "[Enhanced Ultimate] ignores target's 20% elemental resistance.",
+      "level": 6
     }
   ],
+  "class": "Mage",
+  "element": "Holy",
+  "faction": "Avalon",
+  "image": "Arthur",
   "memoryCard": {
-    "name": "Night of Bloody Storm",
-    "image": "Night-of-Bloody-Storm",
-    "stats": {
-      "hp": "5,040",
-      "attack": "780",
-      "defense": "474"
-    },
     "effects": [
-      "공격력이 40% 증가했습니다.",
-      "ally 버퍼가 궁극적 인 기술을 사용 한 후,이 문자의 궁극적 인 기술 손상은 40 %에서 5 초 동안 증가",
-      "총 잠재력 : 40 % 기본 공격 + 40 % 조건 궁극적 인 손상 부스트"
-    ]
+      "Attack power increased by 40%",
+      "After an ally buffers uses their ultimate skill, this character's ultimate skill damage increases by 40% for 5 seconds",
+      "Total Potential: 40% base attack + 40% conditional ultimate damage boost"
+    ],
+    "image": "Night-of-Bloody-Storm",
+    "name": "Night of Bloody Storm",
+    "stats": {
+      "attack": "780",
+      "defense": "474",
+      "hp": "5,040"
+    }
+  },
+  "name": "Arthur",
+  "rarity": "SSR",
+  "role": "DPS",
+  "skills": {
+    "auto": {
+      "cooldown": "5.0s",
+      "description": "Deal 240% attack power as holy damage to front enemy unit. For each target damaged, critical damage increases by 12%, maximum 4 stacks, lasts 5 seconds",
+      "name": "King's Sword"
+    },
+    "normal": {
+      "description": "Deals holy damage equal to 120% of Attack to designated enemy.",
+      "name": "Oath Victory Sword"
+    },
+    "passive": {
+      "description": "Each ultimate use: Increases attack by 12% and defense by 5.6%. Maximum 3 layers, lasts 10 seconds. Full Stack Potential: 36% attack + 16.8% defense.",
+      "name": "Royal Dominance"
+    },
+    "ultimate": {
+      "description": "Deals holy damage equal to 600% of Attack to frontal enemy units. After a Buffer unit uses their Ultimate, you can trigger an Enhanced Ultimate within 5 s. Enhanced Ultimate: ATK +36 % for 10 s and deal 720 % ATK Holy damage to enemies in front. ",
+      "energyCost": "6",
+      "name": "Imperial Sacred Judgment"
+    }
+  },
+  "stats": {
+    "attack": "1,305",
+    "critRate": 15,
+    "defense": "530",
+    "hp": "8,033"
   },
   "tags": [
     "Melee",
@@ -86,5 +78,12 @@
     "Crit Dmg",
     "Buff"
   ],
-  "id": "arthur"
+  "teamSkill": {
+    "description": "Self critical rate increases by 7.5%. Battle start: Every 15% critical rate adds 5% holy damage, maximum 6 times. Maximum Potential: 30% holy damage increase with optimal critical rate.",
+    "name": "Combination Skill",
+    "requirements": {
+      "element": "Holy",
+      "faction": "Avalon"
+    }
+  }
 }

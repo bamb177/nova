@@ -1,93 +1,133 @@
 {
-  "name": "Ibaraki-doji",
-  "image": "Ibaraki-doji",
-  "rarity": "SSR",
-  "element": "Blaze",
-  "class": "Debuffer",
-  "role": "Debuffer",
-  "faction": "Heikyo Castle",
-  "stats": {
-    "hp": "9,180",
-    "attack": "1,184",
-    "defense": "729",
-    "energyRecovery": "0.25/s",
-    "critRate": 0,
-    "critDamage": 50
-  },
-  "skills": {
-    "normal": {
-      "name": "Flame Arrow",
-      "level": "10+4",
-      "cooldown": "2.0s",
-      "description": "지정된 적 단위로 적대 손상으로 공격력의 120%를 줍니다."
-    },
-    "auto": {
-      "name": "Arrow of the Curse",
-      "level": "10+4",
-      "cooldown": "5.0s",
-      "description": "표적과 4 미터 반경에 공격 힘의 244.3%와 동등한 불 손상을 주고, 35.8%에 의하여 에너지 이익 효율성을 감소시키고 10 초를 위해 38.6%에 의해 촬영된 손상을 증가하는 [Curse Covenant]의 1개의 더미를 적용합니다."
-    },
-    "ultimate": {
-      "name": "Fire Phoenix Curse",
-      "level": "10+4",
-      "energyCost": "3",
-      "cooldown": "1.0s",
-      "description": "적 대상의 방향에서 화재 피닉스를 훼손하여 모든 적들에게 360 %의 화재 피해를 줍니다. 손상으로 인한 적분은 1 stack of [Flame Curse]로 인하여 10 초 동안 87.9%의 궁극적 인 기술로 인한 손상을 증가시킵니다. 이 손상은 [Interrupt] 대상에 의해 주조되는 기술."
-    },
-    "passive": {
-      "name": "Deboning",
-      "level": "10+4",
-      "description": "모든 공격은 적의 파괴에 [Eviscerate]을 공격하고 궁극적 인 능력을 3.6%, 5 초 지속 10까지 스택까지 공격합니다."
-    }
-  },
-  "teamSkill": {
-    "name": "Combo Skill",
-    "level": "1",
-    "description": "전투가 시작되면 총 손상을 2.5%로 모든 적 단위로 감소시킵니다. 각 1000의 공격력을 위해, 효력은 100%년까지, 최대 300%까지 증가합니다.",
-    "requirements": {
-      "faction": "Heikyo Castle",
-      "element": "Fire",
-      "alternativeRequirement": "2 [Heikyo Castle] characters or 2 [Fire] characters"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "전투의 시작에서 궁극적 인 스킬의 첫 번째 사용은 에너지를 소비하지 않습니다."
+      "effect": "At the start of battle, the first use of a Ultimate Skill does not consume energy.",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "궁극적인 기술이 적을 보았을 때, 적의 공격력을 3 초 동안 35 % 감소시킵니다."
+      "effect": "When your ultimate skill hits an enemy, it inflicts [Flame Pressure], reducing the enemy's attack power by 35% for 3 seconds.",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "[Normal Attack], [Skill], [ULT] 및 [Passive] 레벨 및 레벨 캡 +2."
+      "effect": "[Normal Attack], [Skill], [ULT] and [Passive] level and level cap +2.",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "공격력이 30% 증가했습니다."
+      "effect": "Attack power increased by 30%.",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "[Normal Attack], [Skill], [ULT] 및 [Passive] 레벨 및 레벨 캡 +2."
+      "effect": "[Normal Attack], [Skill], [ULT] and [Passive] level and level cap +2.",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "궁극적 인 기술에 의해 영향을받는 대상은 5 초 동안 추가 20 %로 감소했습니다."
+      "effect": "Targets affected by ultimate skills have their all resistances reduced by an additional 20% for 5 sec.",
+      "level": 6
     }
   ],
-  "memoryCard": {
-    "name": "A Perfect Makeup Look?",
-    "image": "Ibaraki-dojicard",
-    "stats": {
-      "hp": "6,000",
-      "attack": "600",
-      "defense": "600"
-    },
-    "effects": [
-      "공격력이 40% 증가했습니다.",
-      "얼티밋 스킬이 손상될 때, 대상은 36% 더 많은 피해를 주고 5초 동안 40% 덜 치유를 받을 수 있습니다."
+  "class": "Debuffer",
+  "damageAnalysis": {
+    "breakdown": [
+      {
+        "duration": "10s",
+        "source": "Skill: Arrow of the Curse",
+        "type": "All damage taken",
+        "value": "+38.6%"
+      },
+      {
+        "duration": "10s",
+        "source": "ULT: Fire Phoenix Curse",
+        "type": "Ultimate damage taken",
+        "value": "+87.9%"
+      },
+      {
+        "duration": "5s",
+        "source": "Passive: Deboning (max 10 stacks)",
+        "type": "Ultimate damage taken",
+        "value": "+36% (3.6% x 10)"
+      },
+      {
+        "duration": "5s",
+        "source": "Memory: A Perfect Makeup Look?",
+        "type": "All damage taken (on ULT hit)",
+        "value": "+36%"
+      },
+      {
+        "duration": "5s",
+        "source": "Awakening 6",
+        "type": "Multiplicative damage increase",
+        "value": "-20% All Resistances"
+      }
+    ],
+    "description": "Ibaraki-doji has alot of damage taken debuffs, however she need alot of investment to be effective. like full dupe and memory, and the damage difference between her and Buffer is like 60% to 80% at best.",
+    "title": "Total Damage Taken Debuffs",
+    "totals": [
+      {
+        "calculation": "38.6% + 87.9% + 36% + 36%",
+        "label": "Ultimate Skill Damage Taken",
+        "note": "Nearly triples damage from teammate ultimates",
+        "value": "+198.5%"
+      },
+      {
+        "calculation": "38.6% + 36%",
+        "label": "All Damage Taken",
+        "note": "Inculdes DOT Damage too",
+        "value": "+74.6%"
+      }
     ]
+  },
+  "element": "Fire",
+  "faction": "Pingjing City",
+  "image": "Ibaraki-doji",
+  "memoryCard": {
+    "effects": [
+      "Attack power increased by 40%",
+      "When a Ultimate Skill deals damage, the target takes 36% more damage and receives 40% less healing for 5 seconds"
+    ],
+    "image": "Ibaraki-dojicard",
+    "name": "A Perfect Makeup Look?",
+    "stats": {
+      "attack": "600",
+      "defense": "600",
+      "hp": "6,000"
+    }
+  },
+  "name": "Ibaraki-doji",
+  "rarity": "SSR",
+  "role": "Debuffer",
+  "skills": {
+    "auto": {
+      "cooldown": "5.0s",
+      "description": "Deals fire damage equal to 244.3% of attack power to the target and a 4-meter radius, and applies 1 stack of [Curse Covenant], reducing energy gain efficiency by 35.8% and increasing damage taken by 38.6% for 10 seconds.",
+      "level": "10+4",
+      "name": "Arrow of the Curse"
+    },
+    "normal": {
+      "cooldown": "2.0s",
+      "description": "Deals 120% of attack power as fiery damage to the designated enemy unit.",
+      "level": "10+4",
+      "name": "Flame Arrow"
+    },
+    "passive": {
+      "description": "All attacks inflict [Eviscerate] upon damaging enemies, increasing damage taken from ultimate skills by 3.6%, up to 10 stacks, lasting 5 seconds.",
+      "level": "10+4",
+      "name": "Deboning"
+    },
+    "ultimate": {
+      "cooldown": "1.0s",
+      "description": "Unleashes a Fire Phoenix in the direction of the enemy target, dealing 360% fire damage to all enemies in its path. Enemies hit by the damage will be inflicted with 1 stack of [Flame Curse], increasing their damage taken from ultimate skills by 87.9% for 10 seconds. This damage can [Interrupt] any skill being cast by the target.",
+      "energyCost": "3",
+      "level": "10+4",
+      "name": "Fire Phoenix Curse"
+    }
+  },
+  "stats": {
+    "attack": "1,184",
+    "critDamage": 50,
+    "critRate": 0,
+    "defense": "729",
+    "energyRecovery": "0.25/s",
+    "hp": "9,180"
   },
   "tags": [
     "Debuff",
@@ -100,55 +140,14 @@
     "Interrupt",
     "AoE"
   ],
-  "damageAnalysis": {
-    "title": "Total Damage Taken Debuffs",
-    "description": "Ibaraki-doji has alot of damage taken debuffs, however she need alot of investment to be effective. like full dupe and memory, and the damage difference between her and Buffer is like 60% to 80% at best.",
-    "breakdown": [
-      {
-        "source": "Skill: Arrow of the Curse",
-        "value": "+38.6%",
-        "type": "All damage taken",
-        "duration": "10s"
-      },
-      {
-        "source": "ULT: Fire Phoenix Curse",
-        "value": "+87.9%",
-        "type": "Ultimate damage taken",
-        "duration": "10s"
-      },
-      {
-        "source": "Passive: Deboning (max 10 stacks)",
-        "value": "+36% (3.6% x 10)",
-        "type": "Ultimate damage taken",
-        "duration": "5s"
-      },
-      {
-        "source": "Memory: A Perfect Makeup Look?",
-        "value": "+36%",
-        "type": "All damage taken (on ULT hit)",
-        "duration": "5s"
-      },
-      {
-        "source": "Awakening 6",
-        "value": "-20% All Resistances",
-        "type": "Multiplicative damage increase",
-        "duration": "5s"
-      }
-    ],
-    "totals": [
-      {
-        "label": "Ultimate Skill Damage Taken",
-        "value": "+198.5%",
-        "calculation": "38.6% + 87.9% + 36% + 36%",
-        "note": "Nearly triples damage from teammate ultimates"
-      },
-      {
-        "label": "All Damage Taken",
-        "value": "+74.6%",
-        "calculation": "38.6% + 36%",
-        "note": "Inculdes DOT Damage too"
-      }
-    ]
-  },
-  "id": "ibaraki-doji"
+  "teamSkill": {
+    "description": "After battle starts, reduces total damage dealt by all enemy units by 2.5%. For every 1000 Attack Power, the effect increases by 100%, up to a maximum of 300%.",
+    "level": "1",
+    "name": "Combo Skill",
+    "requirements": {
+      "alternativeRequirement": "2 [Heikyo Castle] characters or 2 [Fire] characters",
+      "element": "Fire",
+      "faction": "Heikyo Castle"
+    }
+  }
 }

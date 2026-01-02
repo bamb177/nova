@@ -1,82 +1,74 @@
 {
-  "name": "Athena",
-  "image": "Athena",
-  "rarity": "SSR",
-  "element": "Storm",
-  "class": "Buffer",
-  "role": "Buffer",
-  "faction": "Odius",
-  "stats": {
-    "hp": "9,564",
-    "attack": "1,004",
-    "defense": "672"
-  },
-  "skills": {
-    "normal": {
-      "name": "Shadowless Snipe (无影狙击)",
-      "description": "지정된 적 단위에 120% 공격력 바람 손상을 줍니다. 1.0s 재사용 대기시간."
-    },
-    "auto": {
-      "name": "Military Command (军神号令)",
-      "cooldown": "5.0s",
-      "description": "3×120% 공격력 바람 손상을 처리하는 지정된 적 단위 3배를 공격하십시오. 총 360 % 공격 전력 손상 출력."
-    },
-    "ultimate": {
-      "name": "Athena's Aegis (雅典娜的埃癸斯)",
-      "energyCost": "3",
-      "description": "즉시 3개의 층 [Aegis]를 얻습니다. [Aegis]를 갖는 때, 정상적인 공격은 가득 차있는 자동 형태가 되고, 기간 도중 지속적으로 탄알을 강화할 수 있습니다. 각 층 [Aegis]는 12의 강화한 탄알을 불을 수 있습니다. 정상적인 공격을 중단 한 후, 다시 다시 다시 1 층 [Aegis]을 소비해야합니다. 각 강화 된 총알은 60 %의 공격력 바람 손상을받습니다. 각 5는 표적에 탄알을 강화했습니다, 모든 친절한 문자 이익 +2.4% 혈중 비율 및 +4.6% 정상적인 공격 손상, 최대 10 더미, 지속 10 초"
-    },
-    "passive": {
-      "name": "Divine Combat Mastery (被动)",
-      "description": "Athena의 모든 손상은 정상 공격 손상으로 간주됩니다. Athena, 모든 친절한 문자 이익 +4.8% 공격 속도 및 기술 재사용 대기시간이 2.4%, 최대 10 스택으로 감소한 모든 5 정상 공격 손상은 10 초 지속됩니다. Athena, Athena의 각 10 정상 공격 손상은 1개의 층 [Typical]를 얻습니다. 다른 친절한 문자 거래가 정상 공격 손상될 때, Athena는 1개의 층 [Typical]를, 각 특성 두번 최대 당 한 번 방아쇠를 수 있습니다 얻습니다. 각 10개의 층 [Typical] Athena 이익, 모든 팀 에너지 +1 점"
-    }
-  },
-  "teamSkill": {
-    "name": "Combination Skill",
-    "description": "전투 시작: 모든 팀 손상 증가 10%. 각 500의 공격 전력을 위해, 모든 팀은 추가적으로 +5% (최대 6배, 합계 +40% 손상)를 손상시킵니다.",
-    "requirements": {
-      "faction": "Odius",
-      "element": "Wind"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "모든 allied 문자 거래 기본 공격 손상 후, Athena는 그 대상에 50% 공격력 바람 손상을 추가로 처리합니다. 이 손상은 크게 타격 할 수 없으며 각 문자는 두 번째 당 최대 한 번에이 효과를 트리거 할 수 있습니다."
+      "effect": "After any allied characters deal basic attack damage, Athena will additionally deal 50% attack power Wind damage to that target. This damage cannot critically hit, and each character can trigger this effect at most once per second.",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "궁극적 인 기술을 사용하여 6 층 [Aegis] 대신 3"
+      "effect": "Using ultimate skill gains 6 layers [Aegis] instead of 3",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "[Normal Attack], [Skill], [Ultimate] 및 [Passive] 레벨 캡 +4"
+      "effect": "[Normal Attack], [Skill], [Ultimate] and [Passive] level cap +4",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "Athena는 [Aegis] 활성 : 모든 동맹은 10 % 감소 된 손상, 전사 및 Rogues는 10 %의 손상 감소 (총 20 %)를 얻습니다."
+      "effect": "While Athena has [Aegis] active: All allies take 10% reduced damage, Warriors and Rogues gain an additional 10% damage reduction (total 20%).",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "[Normal Attack], [Skill], [Ultimate] 및 [Passive] 레벨 캡 +4"
+      "effect": "[Normal Attack], [Skill], [Ultimate] and [Passive] level cap +4",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "Athena의 향상된 총알 거래 두 배 손상 (120% 총알 당 공격력)"
+      "effect": "Athena's Enhanced bullets deal double damage (120% attack power per bullet)",
+      "level": 6
     }
   ],
+  "class": "Buffer",
+  "element": "Wind",
+  "faction": "Odius",
+  "image": "Athena",
   "memoryCard": {
-    "name": "Embarrassing Pattern (尴尬模样)",
-    "image": "Athenacard",
-    "stats": {
-      "hp": "6,000",
-      "attack": "600",
-      "defense": "600"
-    },
     "effects": [
-      "전투 시작 후: 모든 동맹 손상 +40%, 정상적인 공격 손상 +40%",
-      "갖춰진 문자는 5개의 정상적인 공격 손상을 줍니다: 5 초 동안 모든 팀 공격 힘 +40%"
-    ]
+      "After battle start: All allies damage +40%, normal attack damage +40%",
+      "When equipped character deals 5 normal attack damage: All team attack power +40% for 5 seconds"
+    ],
+    "image": "Athenacard",
+    "name": "Embarrassing Pattern (尴尬模样)",
+    "stats": {
+      "attack": "600",
+      "defense": "600",
+      "hp": "6,000"
+    }
+  },
+  "name": "Athena",
+  "rarity": "SSR",
+  "role": "Buffer",
+  "skills": {
+    "auto": {
+      "cooldown": "5.0s",
+      "description": "Attacks designated enemy unit 3 times, dealing 3×120% attack power wind damage. Total 360% attack power damage output.",
+      "name": "Military Command (军神号令)"
+    },
+    "normal": {
+      "description": "Deals 120% attack power wind damage to designated enemy unit. 1.0s cooldown.",
+      "name": "Shadowless Snipe (无影狙击)"
+    },
+    "passive": {
+      "description": "All damage from Athena is considered normal attack damage. Every 5 normal attack damage dealt by Athena, all friendly characters gain +4.8% attack speed and skill cooldown reduced by 2.4%, max 10 stacks, lasts 10 seconds. Every 10 normal attack damage dealt by Athena, Athena gains 1 layer [Typical]. When other friendly characters deal normal attack damage, Athena gains 1 layer [Typical], each character can trigger once per second maximum. Every 10 layers [Typical] Athena gains, all team energy +1 point",
+      "name": "Divine Combat Mastery (被动)"
+    },
+    "ultimate": {
+      "description": "Immediately gains 3 layers [Aegis]. When having [Aegis], normal attacks become full auto mode, can continuously fire Enhanced bullets during the period. Each layer [Aegis] can fire 12 Enhanced bullets. After interrupting normal attack, need to consume 1 layer [Aegis] again to reload. Each Enhanced bullet deals 60% attack power wind damage. Every 5 Enhanced bullet hits on targets, all friendly characters gain +2.4% crit rate and +4.6% normal attack damage, max 10 stacks, lasts 10 seconds",
+      "energyCost": "3",
+      "name": "Athena's Aegis (雅典娜的埃癸斯)"
+    }
+  },
+  "stats": {
+    "attack": "1,004",
+    "defense": "672",
+    "hp": "9,564"
   },
   "tags": [
     "Range",
@@ -86,5 +78,12 @@
     "Energy",
     "Damage Reduction"
   ],
-  "id": "athena"
+  "teamSkill": {
+    "description": "Battle start: All team Damage increases by 10%. For every 500 attack power, all team Damage additionally +5% (max 6 times, total +40% Damage).",
+    "name": "Combination Skill",
+    "requirements": {
+      "element": "Wind",
+      "faction": "Odius"
+    }
+  }
 }

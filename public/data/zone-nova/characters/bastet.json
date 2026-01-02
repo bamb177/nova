@@ -1,86 +1,85 @@
 {
-  "name": "Bastet",
-  "image": "Bastet",
-  "rarity": "SR",
-  "element": "Storm",
-  "class": "Mage",
-  "role": "DPS",
-  "faction": "Kemich",
-  "stats": {
-    "hp": "6,694",
-    "attack": "1,088",
-    "defense": "442"
-  },
-  "skills": {
-    "normal": {
-      "name": "Cat Shadow Arrow",
-      "description": "지정된 적 단위로 공격의 120%와 같은 바람 손상을 줍니다."
-    },
-    "auto": {
-      "name": "Cat! Bomb!",
-      "cooldown": "5.0s",
-      "description": "지정된 적 및 주변 4 미터 범위에 대한 공격의 72%와 같은 바람 손상."
-    },
-    "ultimate": {
-      "name": "Cat Bombing!",
-      "energyCost": "5",
-      "description": "지정된 적 및 주변 4 미터 범위에 대한 공격의 120%와 같은 바람 손상."
-    },
-    "passive": {
-      "name": "Cat Frenzy",
-      "description": "5개의 정상적인 공격, 다음 정상적인 공격은 지정된 적 및 주위 4 미터 범위에 공격의 120%와 동등한 바람 손상을 줍니다. Awakening 2 : 5에서 4 정상적인 공격에 트리거 요구 사항을 감소시킵니다."
-    }
-  },
-  "teamSkill": {
-    "name": "Storm Synergy",
-    "description": "자기 바람 손상은 20% 증가합니다.",
-    "requirements": {
-      "faction": "Chemic",
-      "element": "Wind"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "대상의 건강이 50 % 이상일 때, 모든 손상은 자기가 20 % 증가합니다."
+      "effect": "When the target's health is greater than 50%, all damage dealt by self increases by 20%.",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "수동적인 증진: 5에서 4.에 필수 정상적인 공격 조사 변화"
+      "effect": "Passive enhancement: Required normal attack count changes from 5 to 4.",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "[Skill] 과 [Normal Attack] 레벨과 레벨 캡 +4."
+      "effect": "[Skill] and [Normal Attack] level and level cap +4.",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "궁극적인 손상은 20% 증가합니다."
+      "effect": "Ultimate damage increases by 20%.",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4."
+      "effect": "[Ultimate] and [Passive] level and level cap +4.",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "궁극적인 사용 후: 공격력이 5초 동안 20% 증가합니다."
+      "effect": "After using ultimate: Attack increases by 20% for 5 seconds.",
+      "level": 6
     }
   ],
+  "class": "Mage",
+  "element": "Wind",
+  "faction": "Chemic",
+  "image": "Bastet",
   "memoryCard": {
-    "name": "Annoying Classroom",
-    "image": "Bastetcard",
-    "stats": {
-      "hp": "4,200",
-      "attack": "650",
-      "defense": "395"
-    },
     "effects": [
-      "궁극적인 기술을 풀어 놓을 때: 필드에 각 적을 위해, 궁극적인 기술 손상은 12%까지, 5개의 더미까지, 60% (12% × 5 더미의 5 초 최대 보너스를 지속하)"
-    ]
+      "When releasing ultimate skill: For each enemy on the field, ultimate skill damage increases by 12%, up to 5 stacks, lasting 5 seconds maximum bonus of 60% (12% × 5 stacks)"
+    ],
+    "image": "Bastetcard",
+    "name": "Annoying Classroom",
+    "stats": {
+      "attack": "650",
+      "defense": "395",
+      "hp": "4,200"
+    }
+  },
+  "name": "Bastet",
+  "rarity": "SR",
+  "role": "DPS",
+  "skills": {
+    "auto": {
+      "cooldown": "5.0s",
+      "description": "Deals wind damage equal to 72% of Attack to designated enemy and surrounding 4-meter range.",
+      "name": "Cat! Bomb!"
+    },
+    "normal": {
+      "description": "Deals wind damage equal to 120% of Attack to designated enemy unit.",
+      "name": "Cat Shadow Arrow"
+    },
+    "passive": {
+      "description": "Every 5 normal attacks, the next normal attack deals wind damage equal to 120% of Attack to designated enemy and surrounding 4-meter range. With Awakening 2: Reduces trigger requirement from 5 to 4 normal attacks.",
+      "name": "Cat Frenzy"
+    },
+    "ultimate": {
+      "description": "Deals wind damage equal to 120% of Attack to designated enemy and surrounding 4-meter range.",
+      "energyCost": "5",
+      "name": "Cat Bombing!"
+    }
+  },
+  "stats": {
+    "attack": "1,088",
+    "defense": "442",
+    "hp": "6,694"
   },
   "tags": [
     "Range",
     "Normal Attack",
     "AOE"
   ],
-  "id": "bastet"
+  "teamSkill": {
+    "description": "Self wind damage increases by 20%.",
+    "name": "Storm Synergy",
+    "requirements": {
+      "element": "Wind",
+      "faction": "Chemic"
+    }
+  }
 }

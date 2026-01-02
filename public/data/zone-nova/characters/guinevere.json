@@ -1,83 +1,75 @@
 {
-  "name": "Guinevere",
-  "image": "Guinevere",
-  "rarity": "SSR",
-  "element": "Blaze",
-  "class": "Guardian",
-  "role": "Tank",
-  "faction": "Avalon",
-  "stats": {
-    "hp": "10,520",
-    "attack": "734",
-    "defense": "1,232"
-  },
-  "skills": {
-    "normal": {
-      "name": "Inferno",
-      "description": "방어력의 120%와 같은 화재 손상"
-    },
-    "auto": {
-      "name": "Supreme Power",
-      "cooldown": "5.0s",
-      "description": "10 초 동안 58%의 블록 속도를 얻습니다. [블록]: 30%의 손상을 줄일 수있는 기회가 있습니다. 지속적인 손상은 구획을 무시합니다"
-    },
-    "ultimate": {
-      "name": "Devastating Heavenly Fire",
-      "energyCost": "3",
-      "description": "적 단위에 대한 [Extra Attack]을 시작합니다. 방어의 240%와 같은 화재 손상을 줍니다. [Domination Authority]의 1 층을 얻습니다. 공격력이 10초 동안 24% 감소했습니다. [Enhanced Ultimate] (Requires 10 지배 기관 스택) : 모든 [Domination Authority]을 클리어하여 수동 생활 복구 카운트를 얻습니다. 적 대상에 대한 [Extra Attack]을 시작합니다. 방어의 240%와 같은 화재 손상을 줍니다. 공격력이 10초 동안 24% 감소했습니다."
-    },
-    "passive": {
-      "name": "Evil Star Explosion",
-      "description": "효력 1: 성공적인 [Block] 후에, 10 초 동안 60%에 의하여 자신의 방위를 증가하십시오. 효력 2: 성공적인 [Block] 후에, 1개의 층을 얻습니다 [Domination 권위], 초당 최대 1개의 층. [Domination Authority]가 10 층에 도달하면 [Enhanced Ultimate]를 캐스팅 할 수 있습니다. 효력 3: HP가 40% 이하에 떨어질 때, 수명 회복을 방아쇠: 0.5 초 안에 58% 최대 HP를, 증가합니다 10 초 동안 100%에 구획 비율을, 증가합니다 10 초 동안 100%년으로 긴요한 저항. 이 효력에는 1개의 처음 방아쇠가, 한 번 축적될 수 있습니다 있습니다"
-    }
-  },
-  "teamSkill": {
-    "name": "Combination Skill",
-    "description": "효과 1: 자기 방어 증가 15%. 효력 2: 전투에 있는 각 500 방위를 위해, 1.5%에 의하여 전체적인 팀에 의해 촬영된 손상을 감소시킵니다. 최대 6개의 스택(3,000 방어) 최대 팀 손상 감소: 9%.",
-    "requirements": {
-      "faction": "Avalon",
-      "element": "Fire"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "[Block]가 성공한 후, 5초 동안 30 %의 자체 방어를 증가시킵니다. 수동적인 생활 회복 조사는 2배까지 축적될 수 있습니다 (두번째 책임을 복원하기 위하여 강화한 궁극적인을 허용하십시오)"
+      "effect": "After [Block] is successful, additionally increase own defense by 30% for 5 seconds. Passive life recovery count can be accumulated up to 2 times (allows Enhanced Ultimate to restore a second charge)",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "정상적인 궁극적인 기술을 발사하는 것은 추가적으로 [Domination Authority]의 1개의 층을 얻을 수 있습니다. 향상된 궁극적 인 기술을 출시 한 후, 즉시 [Domination Authority]의 2 층을 얻습니다."
+      "effect": "Launching normal ultimate skill can additionally gain 1 layer of [Domination Authority]. After launching enhanced ultimate skill, immediately gains 2 layers of [Domination Authority]",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "[Skill] 및 [Normal Attack] 레벨 및 레벨 캡 +4"
+      "effect": "[Skill] and [Normal Attack] level and level cap +4",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "방어 증가 45%"
+      "effect": "Defense increased by 45%",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4"
+      "effect": "[Ultimate] and [Passive] level and level cap +4",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "모든 저항 +15%의 내화성 추가 +15%. 수동 수명 복구 카운트가 2 배로 변경됩니다."
+      "effect": "All resistance +15%, Fire resistance additional +15%. Starting passive life recovery count changes to 2 times",
+      "level": 6
     }
   ],
+  "class": "Guardian",
+  "element": "Fire",
+  "faction": "Avalon",
+  "image": "Guinevere",
   "memoryCard": {
-    "name": "Simple Birdcage",
-    "image": "Guinevere-card",
-    "stats": {
-      "hp": "6,600",
-      "attack": "480",
-      "defense": "690"
-    },
     "effects": [
-      "방어 증가 64%",
-      "성공적인 블록 후, 손상은 10 % 감소, 5 초 지속",
-      "즉시 30% 최대 HP 차폐 후 전투 시작"
-    ]
+      "Defense increased by 64%",
+      "After successful block, damage taken decreases by 10%, lasting 5 seconds",
+      "Immediately gains 30% maximum HP shield after battle starts"
+    ],
+    "image": "Guinevere-card",
+    "name": "Simple Birdcage",
+    "stats": {
+      "attack": "480",
+      "defense": "690",
+      "hp": "6,600"
+    }
+  },
+  "name": "Guinevere",
+  "rarity": "SSR",
+  "role": "Tank",
+  "skills": {
+    "auto": {
+      "cooldown": "5.0s",
+      "description": "Gain 58% block rate for 10 seconds. [Block]: Has a chance to reduce incoming damage by 30%. Continuous damage ignores block ",
+      "name": "Supreme Power"
+    },
+    "normal": {
+      "description": "Deals fire damage equal to 120% of Defense to enemy unit",
+      "name": "Inferno"
+    },
+    "passive": {
+      "description": "Effect 1: After successful [Block], increases own defense by 60% for 10 seconds. Effect 2: After successful [Block], gains 1 layer of [Domination Authority], maximum 1 layer per second. When [Domination Authority] reaches 10 layers, can cast [Enhanced Ultimate]. Effect 3: When HP drops to 40% or below, triggers life recovery: Restores 58% max HP within 0.5 seconds, increases block rate to 100% for 10 seconds, increases critical resistance by 100% for 10 seconds. This effect has one initial trigger, can accumulate maximum once",
+      "name": "Evil Star Explosion"
+    },
+    "ultimate": {
+      "description": "Launches [Extra Attack] against enemy unit. Deals fire damage equal to 240% of Defense. Gains 1 layer of [Domination Authority]. Reduces damage taken by 24% for 10 seconds. [Enhanced Ultimate] (Requires 10 Domination Authority stacks): Clears all [Domination Authority] to gain one passive life recovery count. Launches [Extra Attack] against enemy target. Deals fire damage equal to 240% of Defense. Reduces damage taken by 24% for 10 seconds",
+      "energyCost": "3",
+      "name": "Devastating Heavenly Fire"
+    }
+  },
+  "stats": {
+    "attack": "734",
+    "defense": "1,232",
+    "hp": "10,520"
   },
   "tags": [
     "Melee",
@@ -88,5 +80,12 @@
     "Enhanced Ultimate",
     "Shield"
   ],
-  "id": "guinevere"
+  "teamSkill": {
+    "description": "Effect 1: Self defense increases by 15%. Effect 2: For every 500 defense in battle, reduces damage taken by the whole team by 1.5%. Maximum 6 stacks (3,000 defense). Maximum team damage reduction: 9%.",
+    "name": "Combination Skill",
+    "requirements": {
+      "element": "Fire",
+      "faction": "Avalon"
+    }
+  }
 }

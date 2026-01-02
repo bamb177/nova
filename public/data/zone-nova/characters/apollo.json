@@ -1,82 +1,74 @@
 {
-  "name": "Apollo",
-  "image": "Apollo",
-  "rarity": "SSR",
-  "element": "Blaze",
-  "class": "Buffer",
-  "role": "Buffer",
-  "faction": "Odius",
-  "stats": {
-    "hp": "9,564",
-    "attack": "1,004",
-    "defense": "672"
-  },
-  "skills": {
-    "normal": {
-      "name": "Day Brilliance Flash",
-      "description": "지정된 적에게 공격의 120%와 같은 화재 손상을 줍니다."
-    },
-    "auto": {
-      "name": "Divine Music Accompaniment",
-      "cooldown": "5.0s",
-      "description": "연합 단위 이익 24% 손상 증가. [사격의 종류: 추가 공격] 공격력이 36% 증가합니다."
-    },
-    "ultimate": {
-      "name": "Day Brilliance Chanting",
-      "energyCost": "8",
-      "description": "10 초 동안 [Day Brilliance] 상태를 입력하십시오. 변형 중 (State) : Allied 공격 전력은 120% 증가하며 Apollo는 팀메이트가 궁극적으로 사용 할 때 화재 손상으로 360 % ATK를 처리하는 여분의 타격을 발사하며 추가 손상 유형으로 계산됩니다. (한도: ally 당 1개의 추가 손상 각 5 s.)"
-    },
-    "passive": {
-      "name": "Brilliant Verdict",
-      "description": "각 자동 기술 사용 (자): 모든 동맹은 1개의 층 [Brilliant]를 얻습니다. [Brilliant] 효력: +2.4% 긴요한 비율 및 층 당 +4.8% 긴요한 손상. 최대 10개의 층 (24% 주름 비율 + 가득 차있는 더미에 48% 주름 손상). 추가 피해 시너지: Allied Extra Attacks은 추가적인 [Brilliant] 레이어를 부여하고 Apollo는 Radiance System의 1 스택을 얻습니다. [Radiance] 4개의 더미 +1 에너지."
-    }
-  },
-  "teamSkill": {
-    "name": "Combination Skill",
-    "description": "전투 시작: 팀 손상 증가 10%. 각 500의 공격 힘은 5% 팀 손상, 최대 6배 (최대 30%)를 추가합니다.",
-    "requirements": {
-      "faction": "Odius",
-      "element": "Fire"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "[Extra Attack]을 다루는 모든 문자는 누구나 [Brilliant]을 추가할 수 있습니다. 각 문자는 1 초 이내에 한 번 트리거 할 수 있습니다."
+      "effect": "Allied characters dealing [Extra Attack] can additionally gain add [Brilliant] to Everyone. Each character can trigger once within 1 second maximum.",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "[Day Brilliance] 상태 중 50% 감소한 손상."
+      "effect": "During [Day Brilliance] state, damage taken reduced by 50%.",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "[Skill] 과 [Normal Attack] 레벨과 레벨 캡 +4."
+      "effect": "[Skill] and [Normal Attack] level and level cap +4.",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "[Day Brilliance] 상태 중, allied 문자는 10 %의 원소 저항 침투를 얻습니다."
+      "effect": "During [Day Brilliance] state, allied characters gain 10% elemental resistance penetration.",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4."
+      "effect": "[Ultimate] and [Passive] level and level cap +4.",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "[Day Brilliance] 상태 중 Apollo 's [Extra Attack]은 50%의 중요한 손상을 추가로 얻습니다."
+      "effect": "During [Day Brilliance] state, Apollo's [Extra Attack] additionally gains 50% critical damage.",
+      "level": 6
     }
   ],
+  "class": "Buffer",
+  "element": "Fire",
+  "faction": "Odius",
+  "image": "Apollo",
   "memoryCard": {
-    "name": "The Loneliest Moment",
-    "image": "Apollocard",
-    "stats": {
-      "hp": "6,000",
-      "attack": "600",
-      "defense": "600"
-    },
     "effects": [
-      "배틀 시작: 모든 종자의 손상은 40% 증가, 추가 공격력이 40% 증가",
-      "갖춰진 캐릭터가 궁극적으로 출시될 때 그 비용 더 높은 다음 8 : 모든 allied 문자의 에너지 효율은 10 초 동안 100 % 증가"
-    ]
+      "Battle start: All allied characters' damage increases by 40%, Extra Attack damage additionally increases by 40%",
+      "When equipped character releases ultimate That cost higher then 8: All allied characters' energy efficiency increases by 100% for 10 seconds"
+    ],
+    "image": "Apollocard",
+    "name": "The Loneliest Moment",
+    "stats": {
+      "attack": "600",
+      "defense": "600",
+      "hp": "6,000"
+    }
+  },
+  "name": "Apollo",
+  "rarity": "SSR",
+  "role": "Buffer",
+  "skills": {
+    "auto": {
+      "cooldown": "5.0s",
+      "description": "Allied units gain 24% damage increase. [Type of Attack Called: Extra attacks] damage additionally increases by 36%.",
+      "name": "Divine Music Accompaniment"
+    },
+    "normal": {
+      "description": "Deals fire damage equal to 120% of Attack to designated enemy.",
+      "name": "Day Brilliance Flash"
+    },
+    "passive": {
+      "description": "Each auto skill use (Self): All allies gain 1 layer [Brilliant]. [Brilliant] Effect: +2.4% critical rate and +4.8% critical damage per layer. Maximum 10 layers (24% crit rate + 48% crit damage at full stacks). Extra Damage Synergy: Allied Extra Damage attacks grant additional [Brilliant] layers and Apollo gains 1 stack of Radiance System: gains [Radiance] Every 4 stacks +1 Energy .",
+      "name": "Brilliant Verdict"
+    },
+    "ultimate": {
+      "description": "Enters [Day Brilliance] state for 10 seconds. During transformation (State): Allied attack power increases by 120%, and Apollo launches an extra strike dealing 360 % ATK as fire damage when teammate use an ultimate, it will have 100% crit rate and going be counted as Extra damage type. (Rate limit: 1 Extra damage per ally every 5 s.)",
+      "energyCost": "8",
+      "name": "Day Brilliance Chanting"
+    }
+  },
+  "stats": {
+    "attack": "1,004",
+    "defense": "672",
+    "hp": "9,564"
   },
   "tags": [
     "Ranged",
@@ -84,5 +76,12 @@
     "Buff",
     "Energy Recovery"
   ],
-  "id": "apollo"
+  "teamSkill": {
+    "description": "Battle start: Team damage increases by 10%. Every 500 attack power adds 5% team damage, maximum 6 times (30% max).",
+    "name": "Combination Skill",
+    "requirements": {
+      "element": "Fire",
+      "faction": "Odius"
+    }
+  }
 }

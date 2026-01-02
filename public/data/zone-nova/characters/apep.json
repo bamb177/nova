@@ -1,105 +1,97 @@
 {
-  "apepData": {
-    "name": "Apep",
-    "image": "Apep",
-    "rarity": "SSR",
-    "element": "Wind",
-    "class": "Warrior",
-    "role": "DPS",
-    "faction": "Chemic",
-    "stats": {
-      "hp": "10,520",
-      "attack": "696",
-      "defense": "1,315",
-      "energyRecovery": "0.25/s",
-      "critRate": "0%",
-      "critDamage": "50%"
+  "awakenings": [
+    {
+      "effect": "Each time normal attack deals damage, increases defense by 5%, lasting 10 seconds, stacking up to 30%.",
+      "level": 1
     },
-    "skills": {
-      "normal": {
-        "name": "Gang Wind Strike",
-        "cooldown": "2.0s",
-        "description": "지정된 적단 단위로 방어의 120%와 동일한 바람 손상을 줍니다."
-      },
-      "auto": {
-        "name": "Wind Gang Wall",
-        "cooldown": "5.0s",
-        "description": "각자는 방어의 120%와 동등합니다."
-      },
-      "ultimate": {
-        "name": "Wind Blessing",
-        "energyCost": "2",
-        "cooldown": "1.0s",
-        "description": "HP가 50 % 미만일 때, 앞 평방 목표에 방어의 120%와 동등한 바람 손상을 주고 자신의 방어의 120%와 같은 건강을 회복합니다. HP가 50% 이상일 때, 앞 평방 목표의 주위에 3×3 지역에 방어의 120%와 동등한 바람 손상을 처리하는 기술을 강화하고 방어의 240%와 동등한 바람 손상을 줍니다."
-      },
-      "passive": {
-        "name": "Wind Wisdom",
-        "description": "전투를 입력하기 전에, 각 1000 방위는 4000의 최대 증가 20000 HP 모자에 의하여 최대 HP 모자를 증가할 수 있습니다. 기술 바람 갱 벽에 의해 보호 될 때, 24% 감소 손상, 48% 증가 손상."
-      }
+    {
+      "effect": "Casting enhanced ultimate skill also has recovery effect, recovery amount equal to the ultimate skill.",
+      "level": 2
     },
-    "teamSkill": {
-      "name": "Wind Chemic Alliance",
-      "description": "자신의 방어 증가 15%. 전투의 시작에서, 모든 500 방어는 1.5%에 의해 촬영된 손상을 줄일 수 있습니다, 최대 6 배.",
-      "requirements": {
-        "faction": "Chemic",
-        "element": "Wind",
-        "alternativeConditions": "팀은 2개의 Chemic 문자 또는 2개의 바람 문자를 포함합니다"
-      }
+    {
+      "effect": "[Basic Attack], [Skill], [Ultimate Skill], and [Passive] levels and level cap +2.",
+      "level": 3
     },
-    "awakenings": [
-      {
-        "level": 1,
-        "effect": "각 시간 정상 공격은 손상을, 증가합니다 5%, 지속 10 초, 30%까지 겹쳐 쌓입니다."
-      },
-      {
-        "level": 2,
-        "effect": "주물은 궁극적인 기술을 또한 회복 효력, 궁극적인 기술과 동등한 회복 총계가 강화했습니다."
-      },
-      {
-        "level": 3,
-        "effect": "[기본 공격], [Skill], [Ultimate Skill] 및 [Passive] 레벨 및 레벨 캡 +2."
-      },
-      {
-        "level": 4,
-        "effect": "방어력이 45% 증가했습니다."
-      },
-      {
-        "level": 5,
-        "effect": "[기본 공격], [Skill], [Ultimate Skill] 및 [Passive] 레벨 및 레벨 캡 +2."
-      },
-      {
-        "level": 6,
-        "effect": "모든 저항이 10 % 증가, 바람 저항은 10 % 증가. 모든 손상은 10% 바람 저항을 관통합니다."
-      }
+    {
+      "effect": "Defense increased by 45%.",
+      "level": 4
+    },
+    {
+      "effect": "[Basic Attack], [Skill], [Ultimate Skill], and [Passive] levels and level cap +2.",
+      "level": 5
+    },
+    {
+      "effect": "All resistance increased by 10%, wind resistance additionally increased by 10%. All damage dealt penetrates 10% wind resistance.",
+      "level": 6
+    }
+  ],
+  "class": "Warrior",
+  "element": "Wind",
+  "faction": "Chemic",
+  "image": "Apep",
+  "memoryCard": {
+    "effects": [
+      "Defense increased by 64%",
+      "When HP is above 50%, after the wearer attacks, recover 2% max HP",
+      "When HP is above 50%, damage taken reduced by 10%, damage dealt increased by 40%"
     ],
-    "memoryCard": {
-      "name": "Wrong Appearance Timing",
-      "image": "Apepcard",
-      "stats": {
-        "hp": "8,800",
-        "attack": "480",
-        "defense": "690"
-      },
-      "effects": [
-        "방어 증가 64%",
-        "HP가 50 % 이상이면 착용자 공격 후 최대 2 %의 HP를 회복하십시오.",
-        "HP가 50% 이상인 경우, 공격력이 10% 감소한 경우, 공격력이 40% 증가했습니다."
-      ]
+    "image": "Apepcard",
+    "name": "Wrong Appearance Timing",
+    "stats": {
+      "attack": "480",
+      "defense": "690",
+      "hp": "8,800"
+    }
+  },
+  "name": "Apep",
+  "rarity": "SSR",
+  "role": "DPS",
+  "skills": {
+    "auto": {
+      "cooldown": "5.0s",
+      "description": "Grants self a shield equal to 120% of defense.",
+      "name": "Wind Gang Wall"
     },
-    "tags": [
-      "Defense Scale",
-      "Shield",
-      "Tank",
-      "Self Healing",
-      "Wind Damage",
-      "HP Scaling",
-      "Conditional Enhancement"
-    ]
+    "normal": {
+      "cooldown": "2.0s",
+      "description": "Deals wind damage equal to 120% of defense to designated enemy single unit.",
+      "name": "Gang Wind Strike"
+    },
+    "passive": {
+      "description": "Before entering battle, every 1000 defense can increase max HP cap by 4000, max increase 20000 HP cap. When Shielded by the skill Wind Gang Wall, damage taken reduced by 24%, damage dealt increased by 48%.",
+      "name": "Wind Wisdom"
+    },
+    "ultimate": {
+      "cooldown": "1.0s",
+      "description": "When HP is below 50%, deals wind damage equal to 120% of defense to the front square target and recovers health equal to 120% of own defense. When HP is above 50%, can enhance the skill to deal wind damage equal to 120% of defense to all targets in a 3×3 area around the front square target, and deals wind damage equal to 240% of defense.",
+      "energyCost": "2",
+      "name": "Wind Blessing"
+    }
   },
-  "apepSEO": {
-    "title": "【Warrior】Apep - Zone Nova Character Guide | GachaWiki",
-    "description": "Complete guide for 【Warrior】Apep in Zone Nova. Learn about his wind-based tank abilities, Wind Gang Wall shield, conditional healing, awakening effects, and optimal build strategies for this powerful Chemic faction defender."
+  "stats": {
+    "attack": "696",
+    "critDamage": "50%",
+    "critRate": "0%",
+    "defense": "1,315",
+    "energyRecovery": "0.25/s",
+    "hp": "10,520"
   },
-  "id": "apep",
-  "name": "Apep"
+  "tags": [
+    "Defense Scale",
+    "Shield",
+    "Tank",
+    "Self Healing",
+    "Wind Damage",
+    "HP Scaling",
+    "Conditional Enhancement"
+  ],
+  "teamSkill": {
+    "description": "Own defense increased by 15%. At the start of battle, every 500 defense can reduce damage taken by 1.5%, stacking up to 6 times.",
+    "name": "Wind Chemic Alliance",
+    "requirements": {
+      "alternativeConditions": "Team contains 2 Chemic characters or 2 Wind characters",
+      "element": "Wind",
+      "faction": "Chemic"
+    }
+  }
 }

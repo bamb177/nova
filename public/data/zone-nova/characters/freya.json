@@ -1,83 +1,75 @@
 {
-  "name": "Freya",
-  "image": "Freya",
-  "rarity": "SSR",
-  "element": "Frost",
-  "class": "Mage",
-  "role": "DPS",
-  "faction": "Asa",
-  "stats": {
-    "hp": "7,308",
-    "attack": "1,193",
-    "defense": "474",
-    "critRate": 16.8
-  },
-  "skills": {
-    "normal": {
-      "name": "Golden Wind Assault (金风突袭)",
-      "description": "적에게 얼음 서리로 인한 공격력이 72% 증가합니다."
-    },
-    "auto": {
-      "name": "Golden Wind's Wild Poetry (金风狂诗)",
-      "cooldown": "5.0s",
-      "description": "적의 적과 다른 적을 지정하기 위해 얼음 서리로 120%의 공격력을 부여합니다. 이 손상은 정상 공격 손상으로 계산합니다."
-    },
-    "ultimate": {
-      "name": "Golden Wind's Bind (金风之缚)",
-      "energyCost": "3",
-      "description": "8 초 동안 [Golden Desire] 상태 입력 : 일반 공격은 60 %의 원래 공격 손상, 기본 공격 속도가 50 % 증가, 공격 속도가 60 % 증가합니다. [Golden Desire] 상태 : 다른 기술을 사용할 수 없지만 [Ice Star] 능력을 사용할 수 있습니다. [Ice Star] : 대상에 얼음 손상으로 480% 공격 전력을 제공합니다. 이 손상은 정상 공격 손상으로 계산합니다."
-    },
-    "passive": {
-      "name": "Goddess War Dance (女神战舞)",
-      "description": "얼음 증진: 모든 정상적인 공격은 추가적으로 얼음 서리 손상으로 24% 공격 힘을 취급합니다. Multi-Hit 결합: 10 정상적인 공격 또는 기술을 캐스팅 한 후, 주요 표적에 대한 정상적인 공격은 5 단계 공격이됩니다. 각 단계는 본래 정상적인 공격 손상의 20%를 거래합니다. 기간: 5 초."
-    }
-  },
-  "teamSkill": {
-    "name": "Combination Skill (组合技)",
-    "description": "긴요한 비율은 7.5%에 의하여 증가합니다. 전투 시작: 모든 15% 긴요한 비율을 위해, 이익 7.5% 긴요한 손상 (최대 6개의 더미, 45%까지 보너스 긴요한 손상).",
-    "requirements": {
-      "faction": "A.S.A",
-      "element": "Ice"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "[Golden Desire] 상태 중 : 공격력 + 30 % 및 공격력이 - 30 %로 증가했습니다."
+      "effect": "During [Golden Desire] state: Attack Power +30% and Damage Taken -30%.",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "즉시 입력 [Golden Desire] 전쟁에 상태. [Ice Star]를 사용하여 [Golden Desire] 기간을 새로 고침 할 수 있습니다. [골든 욕망] AoE 손상은 일반 공격 손상의 60 % → 80 %에서 증가합니다."
+      "effect": "Immediately enters [Golden Desire] state upon entering battle. Using [Ice Star] can refresh [Golden Desire] duration. [Golden Desire] AoE damage increases from 60% → 80% of normal attack damage.",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "[기본 공격], [Auto Skill], [Ultimate Skill] 및 [Passive] 레벨 & 최대 레벨 +2."
+      "effect": "[Basic Attack], [Auto Skill], [Ultimate Skill], and [Passive] levels & max levels +2.",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "모든 얼음 손상 +30%."
+      "effect": "All ice damage +30%.",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "[기본 공격], [Auto Skill], [Ultimate Skill] 및 [Passive] 레벨 & 최대 레벨 +2."
+      "effect": "[Basic Attack], [Auto Skill], [Ultimate Skill], and [Passive] levels & max levels +2.",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "정상 공격은 20% 얼음 저항을 관통합니다. 10개의 정상 공격/스킬 후에, 3m 범위 내의 표적과 적들에게 100% 공격력을 자동적으로 취급합니다."
+      "effect": "Normal attacks penetrate 20% ice resistance. After 10 normal attacks/skills, automatically deal 100% attack power as ice damage to target and enemies within 3m range.",
+      "level": 6
     }
   ],
+  "class": "Mage",
+  "element": "Ice",
+  "faction": "A.S.A",
+  "image": "Freya",
   "memoryCard": {
-    "name": "Slave's Original Wish (奴仆的原愿)",
-    "image": "Freyacard",
-    "stats": {
-      "hp": "5,040",
-      "attack": "780",
-      "defense": "474"
-    },
     "effects": [
-      "공격력이 72% 증가했습니다.",
-      "전장 각 적의 경우: 일반 공격력이 12%로 증가합니다. 최대 스택: 4 (최대 48% 보너스 정상 공격 손상)"
-    ]
+      "Critical Damage increased by 72%",
+      "For each enemy on the battlefield: Normal attack damage increases by 12% Maximum stacks: 4 (up to 48% bonus normal attack damage)"
+    ],
+    "image": "Freyacard",
+    "name": "Slave's Original Wish (奴仆的原愿)",
+    "stats": {
+      "attack": "780",
+      "defense": "474",
+      "hp": "5,040"
+    }
+  },
+  "name": "Freya",
+  "rarity": "SSR",
+  "role": "DPS",
+  "skills": {
+    "auto": {
+      "cooldown": "5.0s",
+      "description": "Deals 120% attack power as ice frost damage to designated enemy and other targets within 3m range around the target. This damage counts as normal attack damage.",
+      "name": "Golden Wind's Wild Poetry (金风狂诗)"
+    },
+    "normal": {
+      "description": "Deals 72% attack power as ice frost damage to designated enemy.",
+      "name": "Golden Wind Assault (金风突袭)"
+    },
+    "passive": {
+      "description": "Ice Enhancement: All normal attacks additionally deal 24% attack power as ice frost damage. Multi-Hit Combo: After casting 10 normal attacks or skills, normal attacks against the main target become 5-stage attacks. Each stage deals 20% of original normal attack damage. Duration: 5 seconds.",
+      "name": "Goddess War Dance (女神战舞)"
+    },
+    "ultimate": {
+      "description": "Enters [Golden Desire] State for 8 seconds: Normal attacks additionally hit targets within 5m range for 60% original attack damage, base attack speed increases by 50%, attack speed boost increases by 60%. During [Golden Desire] State: Cannot use other skills but can use [Ice Star] ability. [Ice Star]: Deals 480% attack power as ice damage to target. This damage counts as normal attack damage.",
+      "energyCost": "3",
+      "name": "Golden Wind's Bind (金风之缚)"
+    }
+  },
+  "stats": {
+    "attack": "1,193",
+    "critRate": 16.8,
+    "defense": "474",
+    "hp": "7,308"
   },
   "tags": [
     "Ranged",
@@ -87,5 +79,12 @@
     "Attack Speed",
     "AOE"
   ],
-  "id": "freya"
+  "teamSkill": {
+    "description": "Critical Rate increases by 7.5%. At combat start: For every 15% Critical Rate, gain 7.5% Critical Damage (maximum 6 stacks, up to 45% bonus critical damage).",
+    "name": "Combination Skill (组合技)",
+    "requirements": {
+      "element": "Ice",
+      "faction": "A.S.A"
+    }
+  }
 }

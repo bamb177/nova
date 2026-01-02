@@ -1,87 +1,84 @@
 {
-  "name": "Sigurd",
-  "image": "Sigurd",
-  "rarity": "SSR",
-  "element": "Blaze",
-  "class": "Rogue",
-  "role": "DPS",
-  "faction": "Asa",
-  "title": "Lord of the Underworld",
-  "lore": "One of Hela's servants, she was once bathed in dragon blood and possesses near-immortal defensive abilities. Frigga's adopted daughter, she also lives in [Asar Manor]. She is proud of her inherited heroic bloodline, sometimes to the point of being overly arrogant, but she is actually softhearted and easily hurt, and very kind. She doesn't want to be hurt, so she always adopts a defensive posture, speaking with pride while saying things she doesn't mean. Loki jokingly calls her \"the misunderstood fake heiress.\" She deeply values the members of the manor and would sacrifice herself to protect her family.",
-  "stats": {
-    "hp": "7,308",
-    "attack": "1,305",
-    "defense": "474",
-    "critRate": 16
-  },
-  "skills": {
-    "normal": {
-      "name": "Flame Slash",
-      "cooldown": "2.0s",
-      "description": "지정된 적 단위로 화재 손상으로 120% 공격 피해를 줍니다."
-    },
-    "auto": {
-      "name": "Flame Blade Thrust",
-      "cooldown": "5.0s",
-      "description": "지정된 적 단위로 화재 손상으로 629.6%의 공격 피해를 주고 4개의 스택까지 드래곤의 혈액 1 스택을 부여합니다."
-    },
-    "ultimate": {
-      "name": "Burning Dragon Blade",
-      "energyCost": "3",
-      "cooldown": "1.0s",
-      "description": "지정된 적 단위로 화재 손상으로 840% 공격력. 적을 물리 칠 때, 방아쇠 [Explosion], 610.1% 대상 단위에 중심 4의 반경과 원형 지역에 손상을 처리. [Enhanced Ultimate Skill]는 사용할 때 사용할 수 있습니다. [Dragon Blood]에는 2 개 이상의 스택이 있으며, 사용시 [Dragon Blood]의 2 개 스택을 구성합니다. [Enhanced Ultimate Skill] : 지정된 적 단위로 화재 손상으로 1200 %의 공격력을 제공합니다."
-    },
-    "passive": {
-      "name": "Flame Shadow Pursuit",
-      "description": "궁극적 인 기술 또는 기술 위기 때, 그것은 121.5% 공격력과 같은 화재 손상의 추가 인스턴스를 거래. 0.5 초마다 한 번만 트리거 할 수 있습니다."
-    }
-  },
-  "teamSkill": {
-    "name": "Combination Skill",
-    "description": "자기 중요한 비율은 7.5%에 의하여 증가합니다. 전투 시작시, 모든 15 % 임의 비율은 7.5%, 최대 6 배의 자기 심각한 손상을 증가시킵니다.",
-    "requirements": {
-      "faction": "A.S.A",
-      "element": "Fire"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "전투의 시작에서 하나의 [Enhanced Ultimate Skill]을 얻습니다. 10 %의 중요한 타격률을 증가시킵니다."
+      "effect": "Gain one [Enhanced Ultimate Skill] at the start of battle. Increase critical hit rate by 10%.",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "[Dragon Blood]의 2 스택을 매번 기술이 사용됩니다. 궁극적 인 기술을 사용 한 후 [Dragon Blood]의 1 스택을 얻습니다."
+      "effect": "Gain 2 stacks of [Dragon Blood] each time a skill is used. Gain 1 stack of [Dragon Blood] after using an ultimate skill.",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "[기본 공격], [Skill], [Ultimate Skill] 및 [Passive] 레벨 및 레벨 캡 +2."
+      "effect": "[Basic Attack], [Skill], [Ultimate Skill] and [Passive] level and level cap +2.",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "공격력이 30% 증가했습니다."
+      "effect": "Fire damage increased by 30%.",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "[기본 공격], [Skill], [Ultimate Skill] 및 [Passive] 레벨 및 레벨 캡 +2."
+      "effect": "[Basic Attack], [Skill], [Ultimate Skill] and [Passive] level and level cap +2.",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "궁극적 인 기술 손상은 대상의 원소 저항의 20 %를 무시합니다."
+      "effect": "Ultimate skill damage ignores 20% of the target's elemental resistance.",
+      "level": 6
     }
   ],
+  "banner": {
+    "endDate": "2025-12-30T03:59:00",
+    "eventPeriod": "December 16, 2025 14:15 - December 30, 2025 03:59",
+    "startDate": "2025-12-16T14:15:00",
+    "type": "Limited Character Gacha"
+  },
+  "class": "Rogue",
+  "element": "Fire",
+  "faction": "A.S.A",
+  "image": "Sigurd",
+  "lore": "One of Hela's servants, she was once bathed in dragon blood and possesses near-immortal defensive abilities. Frigga's adopted daughter, she also lives in [Asar Manor]. She is proud of her inherited heroic bloodline, sometimes to the point of being overly arrogant, but she is actually softhearted and easily hurt, and very kind. She doesn't want to be hurt, so she always adopts a defensive posture, speaking with pride while saying things she doesn't mean. Loki jokingly calls her \"the misunderstood fake heiress.\" She deeply values the members of the manor and would sacrifice herself to protect her family.",
   "memoryCard": {
-    "name": "I am your Christmas present.",
-    "image": "Sigurdcard",
-    "stats": {
-      "hp": "5,040",
-      "attack": "780",
-      "defense": "474"
-    },
     "effects": [
-      "치명적인 타격률이 34% 증가했으며, 궁극적인 기술은 40% 증가했습니다.",
-      "필드에 1 ATTACKER 만있을 때 궁극적 인 기술 손상은 추가 40 %로 증가했습니다."
-    ]
+      "Critical hit rate increased by 34%, ultimate skill damage increased by 40%.",
+      "When there is only 1 ATTACKER on the field, ultimate skill damage is increased by an additional 40%."
+    ],
+    "image": "Sigurdcard",
+    "name": "I am your Christmas present.",
+    "stats": {
+      "attack": "780",
+      "defense": "474",
+      "hp": "5,040"
+    }
+  },
+  "name": "Sigurd",
+  "rarity": "SSR",
+  "role": "DPS",
+  "skills": {
+    "auto": {
+      "cooldown": "5.0s",
+      "description": "Deals 629.6% attack damage as Fire damage to a designated enemy unit and grants the caster 1 stack of Dragon's Blood, up to a maximum of 4 stacks.",
+      "name": "Flame Blade Thrust"
+    },
+    "normal": {
+      "cooldown": "2.0s",
+      "description": "Deals 120% attack damage as Fire damage to the designated enemy unit.",
+      "name": "Flame Slash"
+    },
+    "passive": {
+      "description": "When a Ultimate Skill or skill crits, it deals an additional instance of Fire damage equal to 121.5% attack power. This can only be triggered once every 0.5 seconds.",
+      "name": "Flame Shadow Pursuit"
+    },
+    "ultimate": {
+      "cooldown": "1.0s",
+      "description": "Deals 840% attack power as Fire damage to a designated enemy unit. Upon defeating the enemy, triggers [Explosion], dealing 610.1% damage in a circular area with a radius of 4 centered on the target unit. [Enhanced Ultimate Skill] can be used when [Dragon Blood] has 2 or more stacks, consuming 2 stacks of [Dragon Blood] upon use. [Enhanced Ultimate Skill]: Deals 1200% attack power as Fire damage to a designated enemy unit.",
+      "energyCost": "3",
+      "name": "Burning Dragon Blade"
+    }
+  },
+  "stats": {
+    "attack": "1,305",
+    "critRate": 16,
+    "defense": "474",
+    "hp": "7,308"
   },
   "tags": [
     "Melee",
@@ -91,11 +88,13 @@
     "Fire Damage",
     "Dragon Blood"
   ],
-  "banner": {
-    "type": "Limited Character Gacha",
-    "startDate": "2025-12-16T14:15:00",
-    "endDate": "2025-12-30T03:59:00",
-    "eventPeriod": "December 16, 2025 14:15 - December 30, 2025 03:59"
+  "teamSkill": {
+    "description": "Self Critical Rate increases by 7.5%. At battle start, every 15% Critical Rate increases self Critical Damage by 7.5%, up to 6 times.",
+    "name": "Combination Skill",
+    "requirements": {
+      "element": "Fire",
+      "faction": "A.S.A"
+    }
   },
-  "id": "sigurd"
+  "title": "Lord of the Underworld"
 }

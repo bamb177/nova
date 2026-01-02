@@ -1,81 +1,73 @@
 {
-  "name": "Nini",
-  "image": "Nini",
-  "rarity": "SR",
-  "element": "Frost",
-  "class": "Debuffer",
-  "role": "Debuffer",
-  "faction": "Monochrome Realm",
-  "stats": {
-    "hp": "7,970",
-    "attack": "837",
-    "defense": "560"
-  },
-  "skills": {
-    "normal": {
-      "name": "Suppressive Fire (压制射击)",
-      "description": "적 단위에 얼음 손상으로 120% 공격력"
-    },
-    "auto": {
-      "name": "Steel Charge (钢铁冲锋)",
-      "cooldown": "Auto-trigger: 5.0s",
-      "description": "앞의 모든 적에게 얼음 손상으로 60 %의 공격력. 공격을 받는다: 적의 공격력이 5.8%로 감소한다. 최대 3개의 더미, 지속 10 초"
-    },
-    "ultimate": {
-      "name": "Black Nation's Glory (黑色带国的荣耀)",
-      "energyCost": "3",
-      "description": "앞의 모든 적에게 얼음 손상으로 84% 공격력을 줍니다. 공격력이 10초 동안 38% 증가했습니다."
-    },
-    "passive": {
-      "name": "Battle Fanatic (战斗狂热分子)",
-      "description": "부정적인 상태 효과로 적을 공격 할 때 : 공격력이 38%로 증가했습니다."
-    }
-  },
-  "teamSkill": {
-    "name": "Combination Skill (组合技)",
-    "description": "자기 손상은 20% 증가",
-    "requirements": {
-      "faction": "Monochrome Nation",
-      "element": "Ice"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "자동차가 부정적인 영향을 가진 표적을 공격하는 것을 사용하는 경우: 기술 손상은 30%에 의해 증가했습니다."
+      "effect": "When using auto kill to attack targets with negative effects: Skill damage increased by 30%.",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "[무게]는 5개의 층까지 겹쳐 쌓일 수 있습니다."
+      "effect": "[Weakness] can stack up to 5 layers.",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "[Skill] 및 [Normal Attack] 레벨 및 레벨 캡 +4"
+      "effect": "[Skill] and [Normal Attack] level and level cap +4",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "추가적으로 자동차 기술 대상은 10 % 더 얼음 손상을받습니다."
+      "effect": "Auto skill additionally makes target receive 10% more ice damage.",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4"
+      "effect": "[Ultimate] and [Passive] level and level cap +4",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "기술이 50% 미만의 HP로 대상을 표시할 때: 즉시 적용 [Weakness]."
+      "effect": "When skill hits target with HP below 50%: Immediately applies [Weakness].",
+      "level": 6
     }
   ],
+  "class": "Debuffer",
+  "element": "Ice",
+  "faction": "Monochrome Nation",
+  "image": "Nini",
   "memoryCard": {
-    "name": "Battlefield Flower",
-    "image": "ninicard",
-    "stats": {
-      "hp": "5,000",
-      "attack": "500",
-      "defense": "500"
-    },
     "effects": [
-      "공격 대상에 각 부정적인 영향을 위해이 문자 손상은 20 %, 최대 3 층 (60 %)로 증가합니다."
-    ]
+      "For each negative effect on the attacked target, this character damage increases by 20%, maximum stacking 3 layers (60%)"
+    ],
+    "image": "ninicard",
+    "name": "Battlefield Flower",
+    "stats": {
+      "attack": "500",
+      "defense": "500",
+      "hp": "5,000"
+    }
+  },
+  "name": "Nini",
+  "rarity": "SR",
+  "role": "Debuffer",
+  "skills": {
+    "auto": {
+      "cooldown": "Auto-trigger: 5.0s",
+      "description": "Deals 60% attack power as ice damage to all enemy in fronts. Applies Weakness debuff: Reduces enemy damage by 5.8% per stack. Maximum 3 stacks, lasts 10 seconds",
+      "name": "Steel Charge (钢铁冲锋)"
+    },
+    "normal": {
+      "description": "Deals 120% attack power as ice damage to enemy unit",
+      "name": "Suppressive Fire (压制射击)"
+    },
+    "passive": {
+      "description": "When attacking enemies with negative status effects: Damage increased by 38%.",
+      "name": "Battle Fanatic (战斗狂热分子)"
+    },
+    "ultimate": {
+      "description": "Deals 84% attack power as ice damage to all enemy in front. Increases damage taken by 38% for 10 seconds",
+      "energyCost": "3",
+      "name": "Black Nation's Glory (黑色带国的荣耀)"
+    }
+  },
+  "stats": {
+    "attack": "837",
+    "defense": "560",
+    "hp": "7,970"
   },
   "tags": [
     "Range",
@@ -83,5 +75,12 @@
     "Vulnerability",
     "Weakness"
   ],
-  "id": "nini"
+  "teamSkill": {
+    "description": "Self damage dealt increases by 20%",
+    "name": "Combination Skill (组合技)",
+    "requirements": {
+      "element": "Ice",
+      "faction": "Monochrome Nation"
+    }
+  }
 }

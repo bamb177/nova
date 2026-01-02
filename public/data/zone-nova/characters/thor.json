@@ -1,83 +1,75 @@
 {
-  "name": "Thor",
-  "image": "Thor",
-  "rarity": "SSR",
-  "element": "Holy",
-  "class": "Guardian",
-  "role": "Tank",
-  "faction": "Asa",
-  "stats": {
-    "hp": "10,520",
-    "attack": "698",
-    "defense": "1,315"
-  },
-  "skills": {
-    "normal": {
-      "name": "Justice Crush (正义碾压)",
-      "description": "지정된 적 단위에 자신의 방어의 120%와 같은 성령의 손상."
-    },
-    "auto": {
-      "name": "Divine Judgment Resonance (神罚共鸣)",
-      "cooldown": "10.0s",
-      "description": "번개 전력을 흡수하기 위해 햄머를 올리고, 모든 앨런 문자를 보조하여 방어의 60 %와 동일하며, 12%로 찍은 손상을 줄입니다. Connected allies는 추가 12%의 손상 감소를받습니다. Thor가이 기술을 캐스팅 한 후, 다음 3 기본 공격은 [Divine Judgment]로 강화됩니다."
-    },
-    "ultimate": {
-      "name": "Divine Punishment Hammer (神罚之锤)",
-      "energyCost": "2",
-      "description": "정상 궁극: 1 초 충전 후 대상의 머리에 점프, 현재의 목표와 [Interrupt]에 자신의 방어의 120%와 같은 성령의 손상을 처리. 강화 된 궁극적 인: 대상의 머리에 점프, 1 초 충전 후, 5 미터 내의 대상과 주변 적에 대한 자신의 방어의 24 %와 같은 거룩한 손상을, [Interrupt] 기술은 캐스팅되고, 10 초 동안 24%에 의해 피해를 증가. 이름 * 토르는 궁극적 인 기술을 캐스팅, allied 문자는 24% 10 초 동안 더 적은 손상을."
-    },
-    "passive": {
-      "name": "Lightning Extreme Orbit (极端雷电轨道)",
-      "description": "즉시 최대 체력의 30 %와 같은 방패를 얻을, 가장 낮은 방어와 두 동맹과 연결을 설정. 토르 또는 연결된 동맹은 손상을 입을 때, 토르는 [Lightning Extreme]의 1개의 더미를 얻습니다. 각 문자는 초당 최대 한 번에 트리거 할 수 있습니다. [Lightning Extreme] 10 스택에 도달하면 [Enhanced Ultimate]를 캐스트 할 수 있습니다. 강화된 궁극적인 던지기 때, 더 이상 축적되지 않는 [Lightning Extreme] 더미. 궁극적 인 기술로 손상을 처리 할 때, [Divine Judgment]를 적용 할 수 있습니다. [중앙화]: 각 3 초, 방어의 19.2%, 최대 5 스택과 같은 성 손상을 처리하십시오. 방패는 문자의 최대 건강의 최대 30%까지 겹쳐 쌓일 수 있습니다."
-    }
-  },
-  "teamSkill": {
-    "name": "Team Synergy",
-    "description": "팀은 2개의 [A.S.A] 문자 또는 2개의 [Holy] 문자를 포함할 때, 방어력이 15% 증가합니다. 전투의 시작에서, 모든 500 방어는 팀 손상을 1.5%, 최대 6 스택 감소.",
-    "requirements": {
-      "faction": "A.S.A",
-      "element": "Holy"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "즉시 승리 10 전투의 시작에 [Lightning Extreme]의 스택. 가장 낮은 방어와 두 동맹에 연결."
+      "effect": "Immediately gain 10 stacks of [Lightning Extreme] at the start of battle. Connect to the two allies with the lowest defense.",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "연결된 동맹국은 30% 증가한 공격을 얻습니다. 주물이 궁극적으로 강화 된 후, 모든 allied 문자를 10 초 동안 방어의 10 %와 동일하게 부여합니다."
+      "effect": "Connected allies gain 30% increased attack. After casting enhanced ultimate, grant all allied characters a shield equal to 10% of Defense every 2 seconds for 10 seconds.",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "[기본 공격], [Skill], [Ultimate] 및 [Passive] 레벨 및 레벨 캡 +2"
+      "effect": "[Basic Attack], [Skill], [Ultimate], and [Passive] level and level cap +2",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "방어 증가 45%"
+      "effect": "Defense increased by 45%",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "[기본 공격], [Skill], [Ultimate] 및 [Passive] 레벨 및 레벨 캡 +2"
+      "effect": "[Basic Attack], [Skill], [Ultimate], and [Passive] level and level cap +2",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "모든 저항은 15 % 증가, 성 저항은 15 % 증가. Thor의 궁극적 인 이익에 의해 충돌 대상 1 5 초 동안 초당 [Divine Judgment]의 추가 스택."
+      "effect": "All resistance increased by 15%, Holy resistance additionally increased by 15%. Targets hit by Thor's ultimate gain 1 additional stack of [Divine Judgment] per second for 5 seconds.",
+      "level": 6
     }
   ],
+  "class": "Guardian",
+  "element": "Holy",
+  "faction": "A.S.A",
+  "image": "Thor",
   "memoryCard": {
-    "name": "Night Assault Suspect",
-    "image": "Thorcard",
-    "stats": {
-      "hp": "6,600",
-      "attack": "480",
-      "defense": "690"
-    },
     "effects": [
-      "방어 증가 64%",
-      "방패로 된 문자가 손상되면 방어력이 64% 증가했습니다.",
-      "핸들러가 적의 대상에 대한 지속적인 피해를 줄 때, 5 초 동안 목표에 의해 15 %의 손상을 증가"
-    ]
+      "Defense increased by 64%",
+      "When allied characters with shields take damage, Defense increased by 64%",
+      "When the equipper deals continuous damage to enemy targets, increase damage taken by the target by 15% for 5 seconds"
+    ],
+    "image": "Thorcard",
+    "name": "Night Assault Suspect",
+    "stats": {
+      "attack": "480",
+      "defense": "690",
+      "hp": "6,600"
+    }
+  },
+  "name": "Thor",
+  "rarity": "SSR",
+  "role": "Tank",
+  "skills": {
+    "auto": {
+      "cooldown": "10.0s",
+      "description": "Raise the hammer to absorb lightning power, granting all allied characters a shield equal to 60% of own Defense, and reducing damage taken by 12%. Connected allies receive an additional 12% damage reduction. After Thor casts this skill, her next 3 basic attacks are enhanced with [Divine Judgment].",
+      "name": "Divine Judgment Resonance (神罚共鸣)"
+    },
+    "normal": {
+      "description": "Deal Holy damage equal to 120% of own Defense to designated enemy unit.",
+      "name": "Justice Crush (正义碾压)"
+    },
+    "passive": {
+      "description": "Immediately gain a shield equal to 30% of maximum health, and establish connections with the two allies with the lowest defense. When Thor or connected allies take damage, Thor gains 1 stack of [Lightning Extreme]. Each character can trigger this at most once per second. When [Lightning Extreme] reaches 10 stacks, can cast [Enhanced Ultimate]. When enhanced ultimate is cast, no longer accumulate [Lightning Extreme] stacks. When dealing damage with ultimate skill, can apply [Divine Judgment]. [Divine Judgment]: Every 3 seconds, deal Holy damage equal to 19.2% of Defense, maximum 5 stacks. Shield can stack up to maximum 30% of the character's maximum health.",
+      "name": "Lightning Extreme Orbit (极端雷电轨道)"
+    },
+    "ultimate": {
+      "description": "Normal Ultimate: Jump onto the target's head, after charging for 1 second, deal Holy damage equal to 120% of own Defense to the current target and [Interrupt] the skill being cast. Enhanced Ultimate: Jump onto the target's head, after charging for 1 second, deal Holy damage equal to 240% of own Defense to the target and surrounding enemies within 5 meters, [Interrupt] skills being cast, and increase damage taken by 24% for 10 seconds. After Thor casts the ultimate skill, all allied characters take 24% less damage for 10 seconds.",
+      "energyCost": "2",
+      "name": "Divine Punishment Hammer (神罚之锤)"
+    }
+  },
+  "stats": {
+    "attack": "698",
+    "defense": "1,315",
+    "hp": "10,520"
   },
   "tags": [
     "Enhanced Ultimate",
@@ -91,5 +83,12 @@
     "Damage Taken Increase",
     "AOE Shielding"
   ],
-  "id": "thor"
+  "teamSkill": {
+    "description": "When the team contains 2 [A.S.A] characters or 2 [Holy] characters: Own Defense increased by 15%. At the start of battle, every 500 Defense reduces team damage taken by 1.5%, maximum 6 stacks.",
+    "name": "Team Synergy",
+    "requirements": {
+      "element": "Holy",
+      "faction": "A.S.A"
+    }
+  }
 }

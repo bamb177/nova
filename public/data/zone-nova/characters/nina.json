@@ -1,96 +1,87 @@
 {
-  "name": "Nina",
-  "image": "Nina",
-  "rarity": "SSR",
-  "element": "Frost",
-  "class": "Warrior",
-  "role": "DPS",
-  "faction": "Safir",
-  "stats": {
-    "hp": "8,700",
-    "attack": "1,004",
-    "defense": "729",
-    "energyRecovery": "0.25/s",
-    "critRate": "6%",
-    "critDmg": "50%"
-  },
-  "skills": {
-    "normal": {
-      "name": "Frost Blood Thorn",
-      "cooldown": "2.0s",
-      "description": "적 단위를 대상으로 공격의 120%와 같은 얼음 손상을, 최대 건강의 12% 회복.",
-      "frostAshDescription": "【Frost Ash】State: Each hit removes 5% of max health. Deals ice damage equal to 240% of Attack to target enemy unit."
+  "awakenings": [
+    {
+      "effect": "After killing an enemy, immediately recovers 20% of max health. Enters 【Frost Ash】 state immediately upon entering battle. While in 【Frost Ash】 state, all damage is increased by 20%.",
+      "level": 1
     },
+    {
+      "effect": "When health drops to 35% or below, immediately recovers 50% of max health (can trigger once per battle). While in 【Frost Ash】 state, critical rate is additionally increased by 15%.",
+      "level": 2
+    },
+    {
+      "effect": "[Basic Attack], [Skill], [Ultimate Skill], and [Passive] level and level cap +2.",
+      "level": 3
+    },
+    {
+      "effect": "Ice damage increased by 30%.",
+      "level": 4
+    },
+    {
+      "effect": "[Basic Attack], [Skill], [Ultimate Skill], and [Passive] level and level cap +2.",
+      "level": 5
+    },
+    {
+      "effect": "While in 【Frost Ash】 state, all damage penetrates 20% ice resistance.",
+      "level": 6
+    }
+  ],
+  "class": "Warrior",
+  "element": "Ice",
+  "faction": "Sapphire",
+  "image": "Nina",
+  "memoryCard": {
+    "effects": [
+      "Critical damage increased by 60%.",
+      "When health is above 30%, equipped character recovers 2% of max health after attacking; all damage increased by 40%."
+    ],
+    "image": "Ninacard",
+    "name": "Halloween Candy",
+    "stats": {
+      "attack": "600",
+      "defense": "600",
+      "hp": "6,000"
+    },
+    "title": "Halloween Candy"
+  },
+  "name": "Nina",
+  "rarity": "SSR",
+  "role": "DPS",
+  "skills": {
     "auto": {
-      "name": "Blaze Burst",
       "cooldown": "5.0s",
-      "description": "적 단위를 대상으로 공격의 480%와 같은 얼음 손상을 주고 최대 생명력의 12%를 회복합니다.",
-      "frostAshDescription": "【Frost Ash】State: Each hit removes 5% of max health. Deals ice damage equal to 960% of Attack to target enemy unit and units behind it."
+      "description": "Deals ice damage equal to 480% of Attack to target enemy unit and units behind it, recovering 12% of max health.",
+      "frostAshDescription": "【Frost Ash】State: Each hit removes 5% of max health. Deals ice damage equal to 960% of Attack to target enemy unit and units behind it.",
+      "name": "Blaze Burst"
+    },
+    "normal": {
+      "cooldown": "2.0s",
+      "description": "Deals ice damage equal to 120% of Attack to target enemy unit, recovering 12% of max health.",
+      "frostAshDescription": "【Frost Ash】State: Each hit removes 5% of max health. Deals ice damage equal to 240% of Attack to target enemy unit.",
+      "name": "Frost Blood Thorn"
+    },
+    "passive": {
+      "description": "【Frost Ash】State: Damage taken reduced by 50%. Each attack increases own attack speed by 12%, lasting 5 seconds, stacking up to 5 times.",
+      "name": "Indestructible Frost Mark"
     },
     "ultimate": {
-      "name": "Frost Ash Liberation",
-      "cooldown": "1.0s",
-      "energyCost": "1",
-      "description": "[Frost Ash] 상태를 입력하십시오. 기본 공격 속도 50% 증가. 스킬 기반 재사용 대기시간이 3초로 감소했습니다. 치명적인 비율은 60%로 증가했습니다.",
       "additionalRules": [
         "Automatically exits 【Frost Ash】 state when health falls below 30%.",
         "Can re-cast the ultimate skill to exit 【Frost Ash】 state.",
         "Can re-cast the ultimate skill while in 【Frost Ash】 state."
-      ]
-    },
-    "passive": {
-      "name": "Indestructible Frost Mark",
-      "description": "【Frost Ash】스테이트: 50% 감소한 손상. 각 공격은 12%에 의해 자신의 공격 속도를 증가시키고, 5 초를 지속하고, 5 배까지 겹쳐 쌓입니다."
+      ],
+      "cooldown": "1.0s",
+      "description": "Enters the 【Frost Ash】 state. Basic attack speed increased by 50%. Skill base cooldown reduced to 3 seconds. Critical rate increased by 60%.",
+      "energyCost": "1",
+      "name": "Frost Ash Liberation"
     }
   },
-  "teamSkill": {
-    "name": "Combination Skill",
-    "description": "공격력이 10% 증가했습니다. 전투의 시작에서 모든 500 공격 전력은 7.5%에 의해 중요한 손상을 증가시키고, 6 배까지 겹쳐 쌓입니다.",
-    "requirements": {
-      "faction": "Sapphire",
-      "element": "Ice"
-    },
-    "activationCondition": "Team contains 2 【Sapphire】 characters OR 2 【Ice】 characters"
-  },
-  "awakenings": [
-    {
-      "level": 1,
-      "effect": "적을 죽일 후 즉시 최대 생명력의 20 %를 회복합니다. 입력 [Frost Ash] 상태 즉시 입력 전투. 【Frost Ash】 상태에서 모든 손상은 20 % 증가합니다."
-    },
-    {
-      "level": 2,
-      "effect": "건강이 35 % 이하로 떨어지면 즉시 최대 건강의 50 %를 회복합니다 (전투 당 한 번 트리거 할 수 있습니다). 【Frost Ash】 상태에서는 중요한 비율이 15% 증가합니다."
-    },
-    {
-      "level": 3,
-      "effect": "[기본 공격], [Skill], [Ultimate Skill] 및 [Passive] 레벨 및 레벨 캡 +2."
-    },
-    {
-      "level": 4,
-      "effect": "얼음 손상 30% 증가."
-    },
-    {
-      "level": 5,
-      "effect": "[기본 공격], [Skill], [Ultimate Skill] 및 [Passive] 레벨 및 레벨 캡 +2."
-    },
-    {
-      "level": 6,
-      "effect": "【Frost Ash】 상태에서 모든 손상은 20 %의 얼음 저항을 관통합니다."
-    }
-  ],
-  "memoryCard": {
-    "name": "Halloween Candy",
-    "image": "Ninacard",
-    "title": "Halloween Candy",
-    "stats": {
-      "hp": "6,000",
-      "attack": "600",
-      "defense": "600"
-    },
-    "effects": [
-      "긴요한 손상은 60%로 증가했습니다.",
-      "건강이 30% 이상 때, 장착 된 문자는 공격 후 최대 건강의 2 %를 회복합니다. 모든 손상은 40 % 증가했습니다."
-    ]
+  "stats": {
+    "attack": "1,004",
+    "critDmg": "50%",
+    "critRate": "6%",
+    "defense": "729",
+    "energyRecovery": "0.25/s",
+    "hp": "8,700"
   },
   "tags": [
     "Ice",
@@ -102,5 +93,13 @@
     "Warrior",
     "SSR"
   ],
-  "id": "nina"
+  "teamSkill": {
+    "activationCondition": "Team contains 2 【Sapphire】 characters OR 2 【Ice】 characters",
+    "description": "Own attack power increased by 10%. At the start of battle, every 500 attack power increases own critical damage by 7.5%, stacking up to 6 times.",
+    "name": "Combination Skill",
+    "requirements": {
+      "element": "Ice",
+      "faction": "Sapphire"
+    }
+  }
 }

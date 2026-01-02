@@ -1,87 +1,79 @@
 {
-  "name": "Odin",
-  "image": "Odin",
-  "rarity": "SSR",
-  "element": "Blaze",
-  "class": "Rogue",
-  "role": "DPS",
-  "faction": "Asa",
-  "stats": {
-    "hp": "7,308",
-    "attack": "1,305",
-    "defense": "530",
-    "energyRegen": "0.25/s",
-    "critRate": "0%",
-    "critDamage": "50%"
-  },
-  "skills": {
-    "normal": {
-      "name": "Soul Reap",
-      "cooldown": "1.0s",
-      "description": "한 번에 화재 손상으로 120% ATK를 거래하십시오."
-    },
-    "auto": {
-      "name": "Falling Flame",
-      "cooldown": "5.0s",
-      "description": "화재 손상으로 120% ATK의 3개가 1개의 스택을 적용합니다."
-    },
-    "ultimate": {
-      "name": "Judgment Strike",
-      "energyCost": "2",
-      "cooldown": "1.0s",
-      "description": "주물 후에, 당신은 4 s 내의 3개의 세그먼트를 사슬할지도 모릅니다:\n1. 대상에 대 한 대시, 480% ATK 화재 손상을 처리 + [변화 불꽃].\n2. Leap backward는, 480% ATK 불 손상 + 적용합니다 [이불 불꽃]를 취급합니다.\n3. 점프 & 책임은, 480% ATK 불 손상을 취급합니다; 표적에 각 도트 더미는 다른 48% ATK 불 손상을 추가합니다 (최대 20의 여분 안타깝게)."
-    },
-    "passive": {
-      "name": "Raven's Insight",
-      "description": "모든 Odin의 손상은 DoT로 계산되며 주름이 불가능합니다.\n전 배틀: 매 1% 주름 비율 -> +1% 불 dmg; 매 2% 주름 dmg -> +1% ATK.\n스킬 / 궁극적인 적용 [가열 불꽃]: 매 3 s 거래 36% ATK 화재 손상, 10까지 스택, 지속 10 s."
-    }
-  },
-  "teamSkill": {
-    "name": "Combination Skill",
-    "description": "파티가 2 A.S.A 또는 2 화재 문자가있는 경우 :\nATK + 10 %.\n전투 시작, 모든 500 ATK 보조금 +3 % 침투 (최대 6 회).",
-    "requirements": {
-      "faction": "A.S.A",
-      "element": "Fire"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "[이동 불꽃]없이 대상은 즉시 5 개의 스택을받습니다. 궁극적 인 5 s의 + 20 % 도트; 궁극적 인 50 % 손상 감소."
+      "effect": "Targets without [Divine Flame] instantly receive 5 stacks; +20 % DoT for 5 s after ultimate; 50 % damage reduction during ultimate.",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "궁극적 인 세 번째 세그먼트 여분의 히트 캡은 30로 올랐습니다. [횡단]과 적은 Odin에서 +20 % DoT를 취합니다."
+      "effect": "Ultimate third-segment extra hits cap raised to 30; enemies with [Divine Flame] take +20 % DoT from Odin.",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "정상 / 기술 / 궁극 / 수동 레벨 캡 +2."
+      "effect": "Normal / Skill / Ultimate / Passive level cap +2.",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "화재 손상 +30 %."
+      "effect": "Fire damage +30 %.",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "정상 / 기술 / 궁극 / 수동 레벨 캡 +2."
+      "effect": "Normal / Skill / Ultimate / Passive level cap +2.",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "각 3개의 궁극적인, 다음 정상적인 공격은 기술이 됩니다; Odin의 DoT는 20% 내화성을 무시합니다."
+      "effect": "Every 3 ultimates, next normal attack becomes a skill; Odin's DoT ignores 20 % Fire resistance.",
+      "level": 6
     }
   ],
+  "class": "Rogue",
+  "element": "Fire",
+  "faction": "A.S.A",
+  "image": "Odin",
   "memoryCard": {
-    "name": "Shared Bath Time",
-    "image": "Odincard",
-    "stats": {
-      "hp": "5,040",
-      "attack": "780",
-      "defense": "474"
-    },
     "effects": [
-      "ATK +40 %; 궁극적 인 손상 +40 % 캐스터.",
-      "각 궁극적인 후, 1 [Charge]를 얻습니다. 손상을 처리 할 때, [Charge]를 사용하여 1 stack of [Final Flame] : 거래 15 % ATK 화재 손상 각 2 s, 스택 최대 5, 지속 10 s."
-    ]
+      "ATK +40 %; ultimate damage +40 % for the caster.",
+      "After each ultimate, gain 1 [Charge]. When dealing damage, consume [Charge] to apply 1 stack of [Final Flame]: deals 15 % ATK Fire damage every 2 s, stacks up to 5, lasts 10 s."
+    ],
+    "image": "Odincard",
+    "name": "Shared Bath Time",
+    "stats": {
+      "attack": "780",
+      "defense": "474",
+      "hp": "5,040"
+    }
+  },
+  "name": "Odin",
+  "rarity": "SSR",
+  "role": "DPS",
+  "skills": {
+    "auto": {
+      "cooldown": "5.0s",
+      "description": "Deals 3 hits of 120% ATK as Fire damage and applies 1 stack of [Divine Flame].",
+      "name": "Falling Flame"
+    },
+    "normal": {
+      "cooldown": "1.0s",
+      "description": "Deals 120% ATK as Fire damage to a single target.",
+      "name": "Soul Reap"
+    },
+    "passive": {
+      "description": "All Odin's damage counts as DoT and cannot crit.\nPre-battle: every 1% crit rate -> +1% Fire dmg; every 2% crit dmg -> +1% ATK.\nSkills / ultimates apply [Divine Flame]: every 3 s deals 36% ATK Fire damage, stacks up to 10, lasts 10 s.",
+      "name": "Raven's Insight"
+    },
+    "ultimate": {
+      "cooldown": "1.0s",
+      "description": "After casting, you may chain three segments within 4 s:\n1. Dash to target, deal 480% ATK Fire damage + apply [Divine Flame].\n2. Leap backward, deal 480% ATK Fire damage + apply [Divine Flame].\n3. Jump & charge, deal 480% ATK Fire damage; each DoT stack on the target adds another 48% ATK Fire damage (max 20 extra hits).",
+      "energyCost": "2",
+      "name": "Judgment Strike"
+    }
+  },
+  "stats": {
+    "attack": "1,305",
+    "critDamage": "50%",
+    "critRate": "0%",
+    "defense": "530",
+    "energyRegen": "0.25/s",
+    "hp": "7,308"
   },
   "tags": [
     "Range",
@@ -89,5 +81,12 @@
     "Damage Reduction",
     "Penetration"
   ],
-  "id": "odin"
+  "teamSkill": {
+    "description": "If the party has 2 A.S.A or 2 Fire characters:\nATK +10%.\nAt battle start, every 500 ATK grants +3% Penetration (max 6 times).",
+    "name": "Combination Skill",
+    "requirements": {
+      "element": "Fire",
+      "faction": "A.S.A"
+    }
+  }
 }

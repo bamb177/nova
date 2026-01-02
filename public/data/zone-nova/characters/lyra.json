@@ -1,82 +1,74 @@
 {
-  "name": "Lyra",
-  "image": "Lyra",
-  "rarity": "SSR",
-  "element": "Blaze",
-  "class": "Mage",
-  "role": "DPS",
-  "faction": "Safir",
-  "stats": {
-    "hp": "8,033",
-    "attack": "1,305",
-    "defense": "530",
-    "critRate": 15
-  },
-  "skills": {
-    "normal": {
-      "name": "End Blade Continuous Strike",
-      "description": "적에게 공격의 120%와 같은 화재 손상"
-    },
-    "auto": {
-      "name": "Two-Blade Flow - End Blade - Continuous Slash",
-      "cooldown": "8.0s",
-      "description": "적에게 공격의 480%와 같은 화재 손상을 줍니다. 10 초 동안 [Fire Essence]를 적용합니다."
-    },
-    "ultimate": {
-      "name": "Two-Blade Flow - End Blade - Ghost Blade Flow",
-      "energyCost": "5",
-      "description": "적에게 공격의 360 %와 같은 화재 손상을 줍니다. 향상된 (대상이 화재 에센스가있는 경우) : Consumes [Fire Esssence] 및 공격의 360 %와 같은 화재 손상을 대상과 적 뒤에 적에게 제공합니다."
-    },
-    "passive": {
-      "name": "Black Armor Recommendation System",
-      "description": "필드의 모든 적 단위의 경우 공격력을 19% 증가시키고 최대 4배 증가시킬 수 있습니다."
-    }
-  },
-  "teamSkill": {
-    "name": "Combination Skill",
-    "description": "자기 중요한 비율은 7.5%에 의하여 증가합니다. 전투 시작: 각 15% 긴요한 비율은 추가할 수 있습니다 7.5% 긴요한 손상, 최대 6배.",
-    "requirements": {
-      "faction": "Sapphire",
-      "element": "Fire"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "중요한 비율은 15% 증가합니다."
+      "effect": "Critical rate increases by 15%.",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "자동 스킬 재사용 대기시간이 40% 감소했습니다."
+      "effect": "Auto Skill cooldown time reduced by 40%.",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "[Skill] 및 [Normal Attack] 레벨 및 레벨 캡 +4"
+      "effect": "[Skill] and [Normal Attack] level and level cap +4",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "화재 손상은 35 % 증가합니다."
+      "effect": "Fire damage increases by 35%.",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4"
+      "effect": "[Ultimate] and [Passive] level and level cap +4",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "궁극적인 손상은 표적의 20% 내화성을 무시합니다."
+      "effect": "Ultimate damage ignores target's 20% fire resistance.",
+      "level": 6
     }
   ],
+  "class": "Mage",
+  "element": "Fire",
+  "faction": "Sapphire",
+  "image": "Lyra",
   "memoryCard": {
-    "name": "Self-Release (自我放纵)",
-    "image": "Lyracard",
-    "stats": {
-      "hp": "5,040",
-      "attack": "780",
-      "defense": "474"
-    },
     "effects": [
-      "궁극적인 공격력: 40%로 증가했습니다. 필드의 모든 적을 위해 궁극적 인 기술은 10 %, 최대 4 배로 증가합니다."
-    ]
+      "Ultimate Damage: Ultimate damage increased by 40%. For every enemy on the field, ultimate skill damage additionally increases by 10%, maximum 4 times"
+    ],
+    "image": "Lyracard",
+    "name": "Self-Release (自我放纵)",
+    "stats": {
+      "attack": "780",
+      "defense": "474",
+      "hp": "5,040"
+    }
+  },
+  "name": "Lyra",
+  "rarity": "SSR",
+  "role": "DPS",
+  "skills": {
+    "auto": {
+      "cooldown": "8.0s",
+      "description": "Deals fire damage equal to 480% of Attack to enemy. Applies [Fire Essence] for 10 seconds.",
+      "name": "Two-Blade Flow - End Blade - Continuous Slash"
+    },
+    "normal": {
+      "description": "Deals fire damage equal to 120% of Attack to enemy",
+      "name": "End Blade Continuous Strike"
+    },
+    "passive": {
+      "description": "For every enemy unit on the field, increases attack power by 19%, can increase maximum 4 times",
+      "name": "Black Armor Recommendation System"
+    },
+    "ultimate": {
+      "description": "Deals fire damage equal to 360% of Attack to enemy. Enhanced (if target has Fire Essence): Consumes [Fire Essence] and deals fire damage equal to 360% of Attack to target and enemies behind.",
+      "energyCost": "5",
+      "name": "Two-Blade Flow - End Blade - Ghost Blade Flow"
+    }
+  },
+  "stats": {
+    "attack": "1,305",
+    "critRate": 15,
+    "defense": "530",
+    "hp": "8,033"
   },
   "tags": [
     "Melee",
@@ -86,5 +78,12 @@
     "Cooldown Reduction",
     "Increase Attack"
   ],
-  "id": "lyra"
+  "teamSkill": {
+    "description": "Self critical rate increases by 7.5%. Combat start: Each 15% critical rate can additionally add 7.5% critical damage, maximum 6 times.",
+    "name": "Combination Skill",
+    "requirements": {
+      "element": "Fire",
+      "faction": "Sapphire"
+    }
+  }
 }

@@ -1,81 +1,73 @@
 {
-  "name": "Zeus",
-  "image": "Yuis",
-  "rarity": "SSR",
-  "element": "Holy",
-  "class": "Rogue",
-  "role": "DPS",
-  "faction": "Odius",
-  "stats": {
-    "hp": "8,033",
-    "attack": "1,305",
-    "defense": "530"
-  },
-  "skills": {
-    "normal": {
-      "name": "Thunder Strike",
-      "description": "적 단위로 120% 공격력"
-    },
-    "auto": {
-      "name": "Divine Thunder",
-      "cooldown": "5.0s",
-      "description": "즉시 2 층 [Sky Extreme]을 얻고, 4 비행 칼을 불고, 현재 목표에 720% 공격 전력을 처리 하 고 손상"
-    },
-    "ultimate": {
-      "name": "Absolute Heaven's Punishment",
-      "energyCost": "4",
-      "description": "즉시 2 층 [Sky Extreme]을 얻을, 화재 1 큰 비행 칼, 처리 720% 공격 힘은 현재 대상에 손상. [Enhanced Ultimate Skill] : 모든 [Sky Extreme]를 소문하고, 현재 대상에 잠그고 지속적으로 낙하 검을 떨어 뜨리고, 총 1440% 공격의 힘을 소중히 피해를 입습니다. 이 손상은 [Extra Attack] 손상으로 간주됩니다. 타겟을 공격하는 궁극적 인 기술을 사용하여 반복적으로 재생할 수 있습니다 [Extra Attack] 지속 시간"
-    },
-    "passive": {
-      "name": "Heaven's Judgment",
-      "description": "다른 친절한 단위가 궁극적인 기술을 사용할 때, Yuis는 2개의 층 [Sky Extreme]를 얻습니다 다른 친절한 단위가 수행 할 때 [Extra Attack], Yuis는 2 층 [Sky Extreme] 16개의 레이어가 있을 때 [Sky Extreme]를 던질 수 있습니다. [Enhanced Ultimate Skill] 캐스트 할 때 [Enhanced Ultimate Skill], 더 이상 이득 [Sky Extreme] 주조 후 [Enhanced Ultimate Skill], 중요한 비율은 24% 증가하며 20 초 동안 48% 증가합니다."
-    }
-  },
-  "teamSkill": {
-    "name": "Combination Skill",
-    "description": "자기 공격력은 10 % 증가합니다. 전투 시작에서, 각 500의 공격 힘은 7.5%의 최대 6배 (최대 45%)에 의해 각자 주름 손상을 증가합니다",
-    "requirements": {
-      "faction": "Odius",
-      "element": "Holy"
-    }
-  },
   "awakenings": [
     {
-      "level": 1,
-      "effect": "전투 시작: 즉시 16 스택 [Heaven's Punishment]. [Enhanced Ultimate] 에너지 소비량이 3 감소했습니다."
+      "effect": "At battle start: Immediately gain 16 stacks of [Heaven's Punishment]. [Enhanced Ultimate] energy consumption reduced by 3",
+      "level": 1
     },
     {
-      "level": 2,
-      "effect": "주물이 궁극적인 기술을 강화한 후, 즉시 4개의 층 [Sky Extreme]를 얻고, 20 초 동안 30%의 긴 손상 증가"
+      "effect": "After casting enhanced ultimate skill, immediately gain 4 layers [Sky Extreme], and critical damage increases by 30% for 20 seconds",
+      "level": 2
     },
     {
-      "level": 3,
-      "effect": "[Skill] 및 [Normal Attack] 레벨 및 레벨 캡 +4"
+      "effect": "[Skill] and [Normal Attack] level and level cap +4",
+      "level": 3
     },
     {
-      "level": 4,
-      "effect": "신성한 피해가 30% 증가했습니다."
+      "effect": "Holy damage increased by 30%",
+      "level": 4
     },
     {
-      "level": 5,
-      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4"
+      "effect": "[Ultimate] and [Passive] level and level cap +4",
+      "level": 5
     },
     {
-      "level": 6,
-      "effect": "Yuis 거래 후 12 여분의 공격은 동일한 대상에 손상, 추가로 150% 공격력 손상을 처리,이 손상은 여분의 공격 손상 Yuis의 여분의 공격 손상으로 간주된다 20% 요소 저항"
+      "effect": "After Yuis deals 12 extra attack damages to the same target, additionally drop one large sword, dealing 150% attack power holy damage, this damage is considered extra attack damage Yuis's extra attack damage penetrates 20% elemental resistance",
+      "level": 6
     }
   ],
+  "class": "Rogue",
+  "element": "Holy",
+  "faction": "Odius",
+  "image": "Yuis",
   "memoryCard": {
-    "name": "Frozen Heart",
-    "image": "Yuiscard",
-    "stats": {
-      "hp": "5,040",
-      "attack": "780",
-      "defense": "474"
-    },
     "effects": [
-      "율이 34% 증가했습니다. 장비 착용자 여분 공격 손상, 긴요한 손상은 68%에 의하여 증가합니다"
-    ]
+      "Crit rate increased by 34%. Equipment wearers extra attack damage, critical damage increases by 68% "
+    ],
+    "image": "Yuiscard",
+    "name": "Frozen Heart",
+    "stats": {
+      "attack": "780",
+      "defense": "474",
+      "hp": "5,040"
+    }
+  },
+  "name": "Yuis",
+  "rarity": "SSR",
+  "role": "DPS",
+  "skills": {
+    "auto": {
+      "cooldown": "5.0s",
+      "description": "Immediately gain 2 layers [Sky Extreme], and fire 4 flying swords, deal 720% attack power to current target holy damage",
+      "name": "Divine Thunder"
+    },
+    "normal": {
+      "description": "Deals 120% attack power as Holy damage to enemy unit",
+      "name": "Thunder Strike"
+    },
+    "passive": {
+      "description": "When other friendly units use ultimate skills, Yuis gains 2 layers [Sky Extreme] When other friendly units perform [Extra Attack], Yuis gains 2 layers [Sky Extreme] When having 16 layers [Sky Extreme], can cast [Enhanced Ultimate Skill] When able to cast [Enhanced Ultimate Skill], no longer gain [Sky Extreme] After casting [Enhanced Ultimate Skill], critical rate increases by 24% and critical damage increases by 48% for 20 seconds",
+      "name": "Heaven's Judgment"
+    },
+    "ultimate": {
+      "description": "Immediately gain 2 layers [Sky Extreme], and fire 1 large flying sword, deal 720% attack power holy damage to current target. [Enhanced Ultimate Skill]: Consume all [Sky Extreme], lock onto current target and continuously drop flying swords, dealing a total of 1440% attack power holy damage, this damage is considered [Extra Attack] damage. Repeatedly using enhanced ultimate skill to attack target can refresh [Extra Attack] duration",
+      "energyCost": "4",
+      "name": "Absolute Heaven's Punishment"
+    }
+  },
+  "stats": {
+    "attack": "1,305",
+    "defense": "530",
+    "hp": "8,033"
   },
   "tags": [
     "Range",
@@ -84,5 +76,12 @@
     "Enhanced Ultimate",
     "Extra Attack"
   ],
-  "id": "yuis"
+  "teamSkill": {
+    "description": "Self attack power increases by 10%. At battle start, every 500 attack power increases self crit damage by 7.5%, maximum 6 times (45% max)",
+    "name": "Combination Skill",
+    "requirements": {
+      "element": "Holy",
+      "faction": "Odius"
+    }
+  }
 }
