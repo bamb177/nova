@@ -481,8 +481,8 @@ def sync_details_from_gacha_wiki(upstream_char_dir: Path):
             raw["_source_file"] = fp.name
             raw["_source_name"] = upstream_name
 
-        cache_path = DATA_DIR / "_translate_cache_ko.json"
-        detail_obj = translate_detail_object_to_ko(detail_obj, character_name=canon_name, cache_path=cache_path)
+        cache_path = PUBLIC_DATA_DIR / "_translate_cache_ko.json"
+        raw = translate_detail_object_to_ko(raw, character_name=canonical_name, cache_path=cache_path)
         
         out_path = out_dir / f"{chosen}.json"
         _save_json(out_path, raw)
