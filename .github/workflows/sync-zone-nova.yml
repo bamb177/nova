@@ -1,10 +1,10 @@
-name: sync
+name: Sync Zone Nova
 
 on:
   workflow_dispatch:
   schedule:
-    # 매일 03:10 UTC (KST 12:10)
-    - cron: "10 3 * * *"
+    # 매일 03:10 (KST 기준으로 맞추려면 GitHub는 UTC로 동작하므로 18:10 UTC = 03:10 KST)
+    - cron: "10 18 * * *"
 
 permissions:
   contents: write
@@ -18,49 +18,65 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout (your repo)
+      # 1) 내 레포 체크아웃
+      - name: Checkout nova
         uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          fetch-depth: 1
 
-      - name: Setup Python
+      # 2) gacha-wiki 레포를 같은 워크스페이스에 추가 체크아웃 (./gacha-wiki)
+      - name: Checkout gacha-wiki
+        uses: actions/checkout@v4
+        with:
+          repository: boring877/gacha-wiki
+          path: gacha-wiki
+          fetch-depth: 1
+
+      # 3) Python/Node 세팅
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install deps (Python)
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
-      - name: Clone upstream gacha-wiki (only for extraction)
+      # 4) Python 의존성 (requirements.txt 있으면 설치)
+      - name: Install Python deps (if any)
         run: |
-          rm -rf _upstream_gacha_wiki
-          git clone --depth 1 https://github.com/boring877/gacha-wiki.git _upstream_gacha_wiki
-          echo "Upstream root:"
-          ls -la _upstream_gacha_wiki
-          echo "Upstream src/data candidates:"
-          find _upstream_gacha_wiki/src -maxdepth 5 -type d | head -n 80
+          if [ -f requirements.txt ]; then
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
+          fi
 
-      - name: Run sync (extract Zone Nova)
+      # 5) 동기화 실행
+      # - scripts/sync_zone_nova.py 가 아래 옵션을 처리해야 함:
+      #   --upstream gacha-wiki --write --sync-details
+      - name: Sync Zone Nova (meta + details)
         run: |
-          python scripts/sync_zone_nova.py --write --upstream _upstream_gacha_wiki
+          node -v
+          python -V
+          python scripts/sync_zone_nova.py --upstream gacha-wiki --write --sync-details
 
-      - name: Commit & Push if changed
+      # 6) 변경분 커밋/푸시
+      - name: Commit & Push
         run: |
-          set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # 변경 사항이 없으면 종료
-          if git diff --quiet; then
+          git status
+
+          # 변경이 없으면 종료
+          if git diff --quiet && git diff --cached --quiet; then
             echo "No changes to commit."
             exit 0
           fi
 
-          git add public/data/zone-nova/characters.json public/data/zone-nova/characters_meta.json || true
-          git commit -m "sync(zone-nova): update characters data"
+          git add public/data/zone-nova/characters_meta.json || true
+          git add public/data/zone-nova/characters || true
+          git add public/data/zone-nova/_unmatched_gacha_wiki.json || true
+
+          git commit -m "Sync zone-nova data (meta + details)" || echo "Nothing to commit"
           git push
