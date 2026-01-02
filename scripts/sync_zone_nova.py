@@ -235,6 +235,33 @@ def _guess_name_from_detail(obj: dict, filename: str) -> str:
 
     return os.path.splitext(filename)[0]
 
+def load_js_default_export_as_json(fp: Path) -> dict:
+    """
+    gacha-wiki의 .js 파일(대부분 export default {...})을 Node로 import해서
+    JSON 문자열로 출력한 뒤 파이썬 dict로 변환한다.
+    """
+    import subprocess
+    from pathlib import Path
+
+    # Windows 경로/특수문자 대비: file URL로 변환해서 dynamic import
+    js = r"""
+import { pathToFileURL } from 'url';
+const p = process.argv[1];
+const m = await import(pathToFileURL(p).href);
+const data = m.default ?? m;
+process.stdout.write(JSON.stringify(data));
+""".strip()
+
+    proc = subprocess.run(
+        ["node", "--input-type=module", "-e", js, str(fp)],
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(f"node import failed: {fp.name}\n{proc.stderr}")
+
+    return json.loads(proc.stdout)
+
 def sync_details_from_gacha_wiki(upstream_char_dir: Path):
     """
     upstream_char_dir = gacha-wiki/src/data/zone-nova/characters
@@ -253,9 +280,9 @@ def sync_details_from_gacha_wiki(upstream_char_dir: Path):
     out_dir = PUBLIC_DATA_DIR / "characters"
     unmatched = []
 
-    for fp in sorted(upstream_char_dir.glob("*.json")):
+    for fp in sorted(upstream_char_dir.glob("*.js")):
         try:
-            raw = json.loads(fp.read_text(encoding="utf-8"))
+            raw = load_js_default_export_as_json(fp)
         except Exception as e:
             unmatched.append({"file": fp.name, "reason": f"json parse fail: {e}"})
             continue
@@ -308,7 +335,6 @@ def sync_details_from_gacha_wiki(upstream_char_dir: Path):
         _save_json(out_path, raw)
 
     # 리포트 저장
-    if unmatched:
         _save_json(PUBLIC_DATA_DIR / "_unmatched_gacha_wiki.json", {
             "generated_at": _now_iso(),
             "count": len(unmatched),
