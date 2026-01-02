@@ -4,53 +4,438 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{{ title }}</title>
+
   <link rel="stylesheet" href="/css/style.css" />
+
+  <!-- (선택) select.html 단독으로도 보기 좋게: 리스트/모달/탭 최소 스타일 포함 -->
+  <style>
+    :root{
+      --bg0:#070b14;
+      --bg1:#0b1222;
+      --line:rgba(255,255,255,.10);
+      --line2:rgba(255,255,255,.14);
+      --txt:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.70);
+      --muted2:rgba(255,255,255,.58);
+    }
+    body{
+      margin:0;
+      background: radial-gradient(1200px 600px at 30% -10%, #132246, transparent 60%),
+                  radial-gradient(900px 500px at 80% 0%, #1a2b55, transparent 55%),
+                  linear-gradient(180deg,var(--bg0),var(--bg1));
+      color:var(--txt);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
+    }
+    .wrap{ max-width: 1200px; margin: 0 auto; padding: 18px; }
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between; gap: 12px;
+      margin-bottom: 12px;
+    }
+    .title{
+      display:flex; flex-direction:column; gap: 4px;
+    }
+    .title h1{ margin:0; font-size: 20px; font-weight: 900; letter-spacing: .2px; }
+    .meta{
+      font-size: 12px; color: var(--muted2);
+    }
+    .actions{ display:flex; gap: 10px; align-items:center; flex-wrap: wrap; }
+    .btn{
+      appearance:none; border:1px solid var(--line2);
+      background: rgba(255,255,255,.06);
+      color: var(--txt);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 850;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex; align-items:center; gap:8px;
+    }
+    .btn:hover{ background: rgba(255,255,255,.10); }
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 850;
+      color: var(--muted);
+    }
+    .panel{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      border-radius: 16px;
+      padding: 14px;
+      margin-top: 12px;
+    }
+    .error{
+      border: 1px solid rgba(255,80,80,.35);
+      background: rgba(255,80,80,.10);
+      color: rgba(255,220,220,.92);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-top: 10px;
+      font-weight: 800;
+    }
+
+    .filters{
+      display:flex; flex-wrap: wrap; gap:10px;
+      align-items:center;
+    }
+    .input, .select{
+      border: 1px solid var(--line2);
+      background: rgba(0,0,0,.18);
+      color: var(--txt);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 800;
+      outline: none;
+    }
+    .input{ min-width: 260px; }
+    .select{ min-width: 160px; }
+
+    .table{
+      width:100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      margin-top: 12px;
+      background: rgba(255,255,255,.02);
+    }
+    .table thead th{
+      text-align:left;
+      padding: 12px 12px;
+      font-size: 13px;
+      color: rgba(255,255,255,.78);
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .table tbody td{
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      vertical-align: middle;
+      font-size: 15px;
+      color: rgba(255,255,255,.90);
+    }
+    .table tbody tr:hover{
+      background: rgba(255,255,255,.03);
+    }
+    .col-check{ width: 56px; }
+    .col-rarity{ width: 92px; }
+    .col-elem{ width: 160px; }
+    .col-faction{ width: 180px; }
+    .col-class{ width: 160px; }
+    .col-role{ width: 140px; }
+
+    .char-cell{
+      display:flex; align-items:center; gap: 12px;
+      cursor: pointer;
+      user-select:none;
+    }
+    .char-img{
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      object-fit: cover;
+      background: rgba(255,255,255,.05);
+      flex: 0 0 auto;
+    }
+    .char-name{
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: .2px;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      font-weight: 900;
+      font-size: 13px;
+      line-height: 1;
+      color: rgba(255,255,255,.90);
+      white-space: nowrap;
+    }
+    .pill img{
+      width: 16px; height: 16px;
+      border-radius: 999px;
+      object-fit: contain;
+      opacity: .95;
+    }
+
+    /* ✅ 속성만 "밝은" 컬러 */
+    .pill-elem{
+      border-color: rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+    }
+    .elem-blaze{ background: linear-gradient(90deg, rgba(255,120,60,.30), rgba(255,210,140,.20)); }
+    .elem-storm{ background: linear-gradient(90deg, rgba(120,220,255,.26), rgba(160,250,220,.18)); }
+    .elem-frost{ background: linear-gradient(90deg, rgba(160,210,255,.28), rgba(230,250,255,.18)); }
+    .elem-holy { background: linear-gradient(90deg, rgba(255,245,170,.30), rgba(255,255,230,.20)); }
+    .elem-chaos{ background: linear-gradient(90deg, rgba(200,170,255,.26), rgba(255,210,250,.18)); }
+
+    /* ✅ 등급은 아주 밝은 노란색/주황색 */
+    .pill-ssr{
+      border-color: rgba(255,255,255,.28);
+      background: linear-gradient(90deg, rgba(255,255,170,.95), rgba(255,240,110,.92));
+      color: rgba(0,0,0,.78);
+      text-shadow: none;
+    }
+    .pill-sr{
+      border-color: rgba(255,255,255,.22);
+      background: linear-gradient(90deg, rgba(255,180,70,.92), rgba(255,120,40,.90));
+      color: rgba(0,0,0,.80);
+      text-shadow: none;
+    }
+    .pill-r{
+      border-color: rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.86);
+    }
+    .pill-none{
+      border-color: rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      color: rgba(255,255,255,.58);
+    }
+
+    /* 특성/클래스/역할은 색상 제거(뉴트럴) */
+    .pill-neutral{
+      background: rgba(255,255,255,.04);
+      border-color: rgba(255,255,255,.12);
+      color: rgba(255,255,255,.86);
+    }
+
+    /* ===== Modal ===== */
+    .modal-backdrop{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 9999;
+    }
+    .modal-backdrop.show{ display:flex; }
+
+    .modal{
+      width: min(980px, 100%);
+      max-height: min(86vh, 920px);
+      overflow: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(18,28,45,.98), rgba(10,16,28,.98));
+      box-shadow: 0 20px 70px rgba(0,0,0,.45);
+    }
+
+    .modal-head{
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(6, 12, 24, .88);
+      backdrop-filter: blur(10px);
+    }
+
+    .modal-title{
+      font-size: 16px;
+      font-weight: 950;
+    }
+
+    .modal-close{
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .modal-body{ padding: 16px; }
+
+    .modal-loading{
+      padding: 18px;
+      color: rgba(255,255,255,.70);
+      font-weight: 800;
+    }
+
+    .detail-empty{
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.72);
+      font-weight: 800;
+    }
+
+    /* ===== Tabs + Cards ===== */
+    .tabs { display: flex; flex-direction: column; gap: 12px; }
+    .tab-bar{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+    }
+    .tab-btn{
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.82);
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .tab-btn.active{
+      background: rgba(255,255,255,.12);
+      border-color: rgba(255,255,255,.22);
+      color: rgba(255,255,255,.95);
+    }
+    .tab-panel{ display: none; }
+    .tab-panel.active{ display: block; }
+
+    .cards{
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .card{
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      padding: 12px;
+    }
+    .card-title{
+      font-size: 15px;
+      font-weight: 950;
+      margin-bottom: 6px;
+      color: rgba(255,255,255,.92);
+    }
+    .card-desc{
+      font-size: 14px;
+      color: rgba(255,255,255,.78);
+      line-height: 1.45;
+    }
+    .kv{ width:100%; border-collapse: collapse; margin-top: 8px; }
+    .kv td{
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding: 8px 6px;
+      font-size: 12px;
+      color: rgba(255,255,255,.78);
+      vertical-align: top;
+    }
+    .kv-k{ width: 180px; color: rgba(255,255,255,.86); font-weight: 900; }
+    .raw summary{
+      cursor:pointer;
+      color: rgba(255,255,255,.82);
+      font-weight: 900;
+      margin-top: 10px;
+    }
+    .raw pre{
+      margin: 8px 0 0 0;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.25);
+      overflow:auto;
+      font-size: 12px;
+      color: rgba(255,255,255,.78);
+    }
+    .detail-raw{
+      margin: 0;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.30);
+      overflow:auto;
+      font-size: 12px;
+      color: rgba(255,255,255,.78);
+    }
+  </style>
 </head>
+
 <body>
   <div class="wrap">
-    <header class="topbar">
+    <div class="topbar">
       <div class="title">
         <h1>{{ title }}</h1>
         <div class="meta">
-          <span>캐릭터: {{ cache_count }}</span>
-          <span>보스: {{ boss_count }}</span>
-          <span>갱신: {{ last_refresh }}</span>
-          {% if error %}
-            <span class="error">ERROR: {{ error }}</span>
-          {% endif %}
+          캐릭터 {{ cache_count }}명 · 보스 {{ boss_count }}개 · 갱신 {{ last_refresh }}
         </div>
       </div>
       <div class="actions">
-        <a class="btn" href="/refresh">Refresh</a>
+        <a class="btn" href="/refresh">새로고침</a>
+        <div class="badge">데이터: <span id="sourceHint">-</span></div>
       </div>
-    </header>
+    </div>
 
-    <section class="panel">
-      <div class="panel-head">
-        <div class="panel-title">캐릭터 목록</div>
-        <div class="panel-sub">체크박스로 보유(Owned) 캐릭터를 선택하세요. 캐릭터를 클릭하면 상세 정보를 봅니다.</div>
+    {% if error %}
+      <div class="error">로딩 오류: {{ error }}</div>
+    {% endif %}
+
+    <div class="panel">
+      <div class="filters">
+        <input id="q" class="input" type="text" placeholder="검색 (이름/ID/특성/속성)" autocomplete="off" />
+        <select id="rarityFilter" class="select">
+          <option value="">등급(전체)</option>
+          <option value="SSR">SSR</option>
+          <option value="SR">SR</option>
+          <option value="R">R</option>
+          <option value="-">-</option>
+        </select>
+        <select id="elemFilter" class="select">
+          <option value="">속성(전체)</option>
+        </select>
+        <select id="factionFilter" class="select">
+          <option value="">특성(전체)</option>
+        </select>
+        <select id="classFilter" class="select">
+          <option value="">클래스(전체)</option>
+        </select>
+        <select id="roleFilter" class="select">
+          <option value="">역할(전체)</option>
+        </select>
+
+        <button class="btn" id="btnAll" type="button">전체 선택</button>
+        <button class="btn" id="btnNone" type="button">전체 해제</button>
       </div>
 
-      <div class="table-wrap">
-        <table class="char-table" id="charTable">
-          <thead>
-            <tr>
-              <th class="col-check">선택</th>
-              <th class="col-char">캐릭터</th>
-              <th class="col-elem">속성</th>
-              <th class="col-faction">특성</th>
-              <th class="col-class">클래스</th>
-              <th class="col-role">역할</th>
-              <th class="col-rarity">등급</th>
-            </tr>
-          </thead>
-          <tbody id="charTbody"></tbody>
-        </table>
-      </div>
-    </section>
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="col-check">선택</th>
+            <th>캐릭터</th>
+            <th class="col-elem">속성</th>
+            <th class="col-faction">특성</th>
+            <th class="col-class">클래스</th>
+            <th class="col-role">역할</th>
+            <th class="col-rarity">등급</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
   </div>
 
-  <!-- ✅ 상세 모달 -->
+  <!-- ===== Modal ===== -->
   <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal-head">
@@ -64,94 +449,256 @@
   </div>
 
   <script>
-    const CHARS = {{ chars_json|safe }};
+    // 서버에서 주입된 캐시
+    const CHARS_RAW = {{ chars_json|safe }};
+    const SOURCE_CHARS = "{{ (cache_count and 'public/data/zone-nova/characters_meta.json') or '' }}";
 
-    function valueSlug(v) {
-      return (v || "")
-        .toString()
-        .trim()
-        .toLowerCase()
-        .replace(/[’']/g, "")
-        .replace(/[–—−]/g, "-")
-        .replace(/\s+/g, "-")
-        .replace(/[^a-z0-9\-]/g, "")
-        .replace(/\-+/g, "-");
+    // ===== 유틸 =====
+    function escapeHtml(str) {
+      return (str || "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#39;");
     }
 
-    function roleLabel(role, cls) {
-      const c = (cls || "-").toString().toLowerCase();
+    function slugId(s){
+      return (s || "").toString().trim().toLowerCase()
+        .replace(/[’']/g,"")
+        .replace(/[\s"_`]+/g,"")
+        .replace(/[^a-z0-9_-]/g,"");
+    }
+
+    function dedupeById(list){
+      const m = new Map();
+      for (const c of (list || [])){
+        if (!c) continue;
+        const id = (c.id || "").toString().trim();
+        if (!id) continue;
+        if (!m.has(id)) m.set(id, c);
+      }
+      return Array.from(m.values());
+    }
+
+    // ===== 표시 규칙 =====
+    const RARITY_ORDER = { "SSR": 3, "SR": 2, "R": 1, "-": 0 };
+
+    // 요소명 변경(표기만)
+    const ELEM_LABEL = {
+      "Fire": "Blaze",
+      "Wind": "Storm",
+      "Ice": "Frost",
+      "Holy": "Holy",
+      "Chaos": "Chaos",
+      "Blaze": "Blaze",
+      "Storm": "Storm",
+      "Frost": "Frost"
+    };
+
+    function elemClass(label){
+      const v = (label || "").toString();
+      const x = ELEM_LABEL[v] || v || "-";
+      const low = x.toLowerCase();
+      if (low === "blaze") return "elem-blaze";
+      if (low === "storm") return "elem-storm";
+      if (low === "frost") return "elem-frost";
+      if (low === "holy")  return "elem-holy";
+      if (low === "chaos") return "elem-chaos";
+      return "";
+    }
+
+    // 클래스 debuffer -> Disruptor (표기)
+    function classLabel(cls){
+      const v = (cls || "-").toString().trim().toLowerCase();
+      if (v === "debuffer") return "Disruptor";
+      if (v === "guardian") return "Guardian";
+      if (v === "healer") return "Healer";
+      if (v === "buffer") return "Buffer";
+      if (v === "mage") return "Mage";
+      if (v === "rogue") return "Rogue";
+      if (v === "warrior") return "Warrior";
+      return (cls && cls !== "-") ? (cls.charAt(0).toUpperCase() + cls.slice(1)) : "-";
+    }
+
+    // 역할: 첫 글자 대문자, dps는 DPS
+    // + Disruptor(원본 debuffer)면 역할은 DPS로 보이게
+    function roleLabel(role, cls){
+      const c = (cls || "-").toString().trim().toLowerCase();
       if (c === "debuffer") return "DPS";
-      const r = (role || "-").toString().toLowerCase();
+
+      const r = (role || "-").toString().trim().toLowerCase();
       if (r === "dps") return "DPS";
-      if (r === "-" || r === "") return "-";
+      if (r === "-" || !r) return "-";
       return r.charAt(0).toUpperCase() + r.slice(1);
     }
 
-    function classLabel(cls) {
-      const c = (cls || "-").toString().toLowerCase();
-      if (c === "debuffer") return "Disruptor";
-      if (c === "-" || c === "") return "-";
-      return c.charAt(0).toUpperCase() + c.slice(1);
+    function rarityPillClass(r){
+      const v = (r || "-").toString().trim().toUpperCase();
+      if (v === "SSR") return "pill-ssr";
+      if (v === "SR") return "pill-sr";
+      if (v === "R") return "pill-r";
+      return "pill-none";
     }
 
-    function rarityClass(r) {
-      const x = (r || "-").toString().toUpperCase();
-      if (x === "SSR") return "rarity ssr";
-      if (x === "SR")  return "rarity sr";
-      if (x === "R")   return "rarity r";
-      return "rarity none";
+    function normalizeFaction(f){
+      return (f || "-").toString().trim() || "-";
     }
 
-    function badge(kind, text, iconUrl) {
-      const t = (text || "-").toString().trim();
-      const slug = valueSlug(t);
-      const icon = iconUrl ? `<img class="badge-icon" src="${iconUrl}" alt="" />` : "";
+    function normalizeElem(e){
+      const v = (e || "-").toString().trim();
+      return ELEM_LABEL[v] || v || "-";
+    }
+
+    // ===== 상세 탭 렌더링 =====
+    function pick(obj, ...keys) {
+      for (const k of keys) {
+        const v = obj?.[k];
+        if (v !== undefined && v !== null) return v;
+      }
+      return null;
+    }
+
+    function isEmpty(v) {
+      if (v === null || v === undefined) return true;
+      if (Array.isArray(v)) return v.length === 0;
+      if (typeof v === "object") return Object.keys(v).length === 0;
+      if (typeof v === "string") return v.trim() === "";
+      return false;
+    }
+
+    function renderKV(obj) {
+      if (!obj || typeof obj !== "object") return `<div class="detail-empty">데이터 없음</div>`;
+      const rows = Object.entries(obj).map(([k, v]) => {
+        const vv = (typeof v === "object") ? JSON.stringify(v) : String(v);
+        return `<tr><td class="kv-k">${escapeHtml(k)}</td><td class="kv-v">${escapeHtml(vv)}</td></tr>`;
+      }).join("");
+      return `<table class="kv"><tbody>${rows}</tbody></table>`;
+    }
+
+    function renderItemCard(x) {
+      const title =
+        (typeof x?.name === "string" && x.name) ||
+        (typeof x?.title === "string" && x.title) ||
+        (typeof x?.skillName === "string" && x.skillName) ||
+        "-";
+
+      const desc =
+        (typeof x?.desc === "string" && x.desc) ||
+        (typeof x?.description === "string" && x.description) ||
+        (typeof x?.text === "string" && x.text) ||
+        "";
+
+      const extraObj =
+        (x && typeof x === "object" && (x.data || x.effect || x.effects || x.values || x.stats))
+          ? (x.data || x.effect || x.effects || x.values || x.stats)
+          : null;
+
+      const extra = extraObj ? `<div class="card-extra">${renderKV(extraObj)}</div>` : "";
+
+      const rawHint =
+        (!desc && !extraObj && x && typeof x === "object")
+          ? `<details class="raw"><summary>원문 보기</summary><pre>${escapeHtml(JSON.stringify(x, null, 2))}</pre></details>`
+          : "";
+
       return `
-        <span class="badge badge-${kind} badge-${kind}--${slug}">
-          ${icon}<span class="badge-text">${t || "-"}</span>
-        </span>
+        <div class="card">
+          <div class="card-title">${escapeHtml(String(title))}</div>
+          ${desc ? `<div class="card-desc">${escapeHtml(desc)}</div>` : ""}
+          ${extra}
+          ${rawHint}
+        </div>
       `;
     }
 
-    function render() {
-      const tbody = document.getElementById("charTbody");
-      tbody.innerHTML = "";
+    function renderList(data) {
+      if (isEmpty(data)) return `<div class="detail-empty">데이터 없음</div>`;
 
-      for (const c of CHARS) {
-        const img = c.image
-          ? `<img class="avatar" src="${c.image}" alt="" />`
-          : `<div class="avatar placeholder"></div>`;
-
-        const name = c.name || c.id || "-";
-
-        const elem = badge("elem", c.element || "-", c.element_icon);
-        const faction = badge("faction", c.faction || "-", null);
-        const cls = badge("class", classLabel(c.class), c.class_icon);
-        const role = badge("role", roleLabel(c.role, c.class), null);
-
-        const rarity = `<span class="${rarityClass(c.rarity)}">${(c.rarity || "-").toString().toUpperCase()}</span>`;
-
-        const tr = document.createElement("tr");
-        tr.dataset.cid = c.id;
-        tr.innerHTML = `
-          <td class="col-check"><input type="checkbox" class="chk-owned" data-id="${c.id}" /></td>
-          <td class="col-char">
-            <div class="char-cell clickable" data-cid="${c.id}">
-              ${img}
-              <div class="char-name">${name}</div>
-            </div>
-          </td>
-          <td class="col-elem">${elem}</td>
-          <td class="col-faction">${faction}</td>
-          <td class="col-class">${cls}</td>
-          <td class="col-role">${role}</td>
-          <td class="col-rarity">${rarity}</td>
-        `;
-        tbody.appendChild(tr);
+      if (Array.isArray(data)) {
+        const items = data.map((x) => renderItemCard(x)).join("");
+        return `<div class="cards">${items}</div>`;
       }
+
+      if (typeof data === "object") {
+        const looksLikeSingle =
+          typeof data.name === "string" ||
+          typeof data.title === "string" ||
+          typeof data.desc === "string" ||
+          typeof data.description === "string";
+
+        if (looksLikeSingle) {
+          return `<div class="cards">${renderItemCard(data)}</div>`;
+        }
+
+        const items = Object.entries(data).map(([k, v]) => {
+          return renderItemCard({ title: k, ...(typeof v === "object" ? { data: v } : { desc: String(v) }) });
+        }).join("");
+
+        return `<div class="cards">${items}</div>`;
+      }
+
+      return `<div class="detail-empty">${escapeHtml(String(data))}</div>`;
     }
 
-    // ===== 모달 로직 =====
+    function renderPanel(id, html, active=false) {
+      return `<div class="tab-panel ${active ? "active" : ""}" data-panel="${escapeHtml(id)}">${html}</div>`;
+    }
+
+    function renderDetailTabs(detail) {
+      // 요청하신 키들
+      const skills = pick(detail, "skills");
+      const auto = pick(detail, "auto");
+      const ultimate = pick(detail, "ultimate");
+      const passive = pick(detail, "passive");
+      const teamSkill = pick(detail, "teamSkill", "team_skill", "team");
+
+      const memoryCard = pick(detail, "memoryCard", "memory_card");
+      const effects = pick(detail, "effects", "effect");
+
+      const tabs = [
+        { id: "skills", label: "Skills", content: renderList(skills) },
+        { id: "auto", label: "Auto", content: renderList(auto) },
+        { id: "ultimate", label: "Ultimate", content: renderList(ultimate) },
+        { id: "passive", label: "Passive", content: renderList(passive) },
+        { id: "teamSkill", label: "Team Skill", content: renderList(teamSkill) },
+        { id: "memoryCard", label: "Memory Card", content: isEmpty(memoryCard) ? `<div class="detail-empty">데이터 없음</div>` : renderKV(memoryCard) },
+        { id: "effects", label: "Effects", content: renderList(effects) },
+        { id: "raw", label: "Raw", content: `<pre class="detail-raw">${escapeHtml(JSON.stringify(detail || {}, null, 2))}</pre>` },
+      ];
+
+      const firstActive = (!isEmpty(skills)) ? "skills" : "raw";
+
+      const tabBtns = tabs.map(t =>
+        `<button type="button" class="tab-btn ${t.id === firstActive ? "active" : ""}" data-tab="${escapeHtml(t.id)}">${escapeHtml(t.label)}</button>`
+      ).join("");
+
+      const panels = tabs.map(t => renderPanel(t.id, t.content, t.id === firstActive)).join("");
+
+      return `
+        <div class="tabs">
+          <div class="tab-bar">${tabBtns}</div>
+          <div class="tab-body">${panels}</div>
+        </div>
+      `;
+    }
+
+    function bindTabEvents() {
+      const root = document.getElementById("modalBody");
+      if (!root) return;
+
+      root.onclick = (e) => {
+        const btn = e.target.closest(".tab-btn");
+        if (!btn) return;
+
+        const tab = btn.dataset.tab;
+        if (!tab) return;
+
+        root.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+        root.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === tab));
+      };
+    }
+
+    // ===== 모달 =====
     const backdrop = document.getElementById("modalBackdrop");
     const modalBody = document.getElementById("modalBody");
     const modalTitle = document.getElementById("modalTitle");
@@ -166,90 +713,9 @@
       backdrop.setAttribute("aria-hidden", "true");
       modalBody.innerHTML = `<div class="modal-loading">Loading…</div>`;
     }
-
     modalClose.addEventListener("click", closeModal);
-    backdrop.addEventListener("click", (e) => {
-      if (e.target === backdrop) closeModal();
-    });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && backdrop.classList.contains("show")) closeModal();
-    });
-
-    function kvTable(obj) {
-      const rows = Object.entries(obj || {}).map(([k, v]) => {
-        const vv = (typeof v === "object") ? JSON.stringify(v) : String(v);
-        return `<tr><td class="kv-k">${k}</td><td class="kv-v">${vv}</td></tr>`;
-      }).join("");
-      return `<table class="kv"><tbody>${rows}</tbody></table>`;
-    }
-
-    function renderDetail(resp) {
-      const c = resp.character || {};
-      const d = resp.detail;
-
-      modalTitle.textContent = c.name || c.id || "Character";
-
-      const header = `
-        <div class="detail-head">
-          <div class="detail-left">
-            ${c.image ? `<img class="detail-avatar" src="${c.image}" alt="" />` : `<div class="detail-avatar placeholder"></div>`}
-          </div>
-          <div class="detail-right">
-            <div class="detail-name">${c.name || c.id}</div>
-            <div class="detail-badges">
-              ${badge("elem", c.element || "-", c.element_icon)}
-              ${badge("faction", c.faction || "-", null)}
-              ${badge("class", classLabel(c.class), c.class_icon)}
-              ${badge("role", roleLabel(c.role, c.class), null)}
-              <span class="${rarityClass(c.rarity)}">${(c.rarity || "-").toString().toUpperCase()}</span>
-            </div>
-            <div class="detail-sub">ID: ${c.id || "-"}</div>
-            ${resp.detail_source ? `<div class="detail-sub">Detail: ${resp.detail_source}</div>` : `<div class="detail-sub">Detail: (none)</div>`}
-          </div>
-        </div>
-      `;
-
-      if (!d) {
-        modalBody.innerHTML = header + `<div class="detail-empty">상세 데이터 파일이 없습니다. (public/data/zone-nova/characters/${c.id}.json)</div>`;
-        return;
-      }
-
-      // 흔한 키 우선 렌더링
-      const stats = d.combat_stats || d.stats || d.combatStats || null;
-      const tags = d.tags || d.character_tags || d.characterTags || null;
-      const skills = d.skills || d.skill || d.abilities || null;
-
-      let body = header;
-
-      if (stats && typeof stats === "object") {
-        body += `<h3 class="detail-h3">Stats</h3>${kvTable(stats)}`;
-      }
-
-      if (Array.isArray(tags)) {
-        const chips = tags.map(t => `<span class="chip">${String(t)}</span>`).join("");
-        body += `<h3 class="detail-h3">Tags</h3><div class="chips">${chips}</div>`;
-      }
-
-      if (Array.isArray(skills)) {
-        const list = skills.map(s => `<li>${(typeof s === "object") ? JSON.stringify(s) : String(s)}</li>`).join("");
-        body += `<h3 class="detail-h3">Skills</h3><ul class="detail-ul">${list}</ul>`;
-      }
-
-      // 나머지는 raw JSON 제공(접기)
-      body += `
-        <h3 class="detail-h3">Raw</h3>
-        <details class="raw">
-          <summary>JSON 보기</summary>
-          <pre>${escapeHtml(JSON.stringify(d, null, 2))}</pre>
-        </details>
-      `;
-
-      modalBody.innerHTML = body;
-    }
-
-    function escapeHtml(str) {
-      return (str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-    }
+    backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeModal(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && backdrop.classList.contains("show")) closeModal(); });
 
     async function fetchAndOpen(cid) {
       openModal();
@@ -261,13 +727,163 @@
           modalBody.innerHTML = `<div class="detail-empty">불러오기 실패: ${escapeHtml(j.error || "unknown")}</div>`;
           return;
         }
-        renderDetail(j);
+        modalTitle.textContent = j.character?.name || j.id || "Character";
+
+        const detail = j.detail || {};
+        modalBody.innerHTML = renderDetailTabs(detail);
+        bindTabEvents();
       } catch (e) {
         modalBody.innerHTML = `<div class="detail-empty">불러오기 실패: ${escapeHtml(String(e))}</div>`;
       }
     }
 
-    // 클릭 이벤트: 체크박스 클릭은 제외하고, 캐릭터 셀 클릭만 상세 오픈
+    // ===== 렌더 =====
+    const chars = dedupeById(CHARS_RAW || []);
+    document.getElementById("sourceHint").textContent = "zone-nova 캐릭터 캐시";
+
+    const $tbody = document.getElementById("tbody");
+    const $q = document.getElementById("q");
+    const $rarity = document.getElementById("rarityFilter");
+    const $elem = document.getElementById("elemFilter");
+    const $faction = document.getElementById("factionFilter");
+    const $class = document.getElementById("classFilter");
+    const $role = document.getElementById("roleFilter");
+
+    function uniqSorted(values){
+      return Array.from(new Set(values.filter(v => v && v !== "-")))
+        .sort((a,b) => a.localeCompare(b));
+    }
+
+    function fillSelect(sel, values){
+      for (const v of values){
+        const opt = document.createElement("option");
+        opt.value = v;
+        opt.textContent = v;
+        sel.appendChild(opt);
+      }
+    }
+
+    // 필터 옵션 채우기(표시 기준)
+    const elems = uniqSorted(chars.map(c => normalizeElem(c.element)));
+    const facts = uniqSorted(chars.map(c => normalizeFaction(c.faction)));
+    const classes = uniqSorted(chars.map(c => classLabel(c.class)));
+    const roles = uniqSorted(chars.map(c => roleLabel(c.role, c.class)));
+
+    fillSelect($elem, elems);
+    fillSelect($faction, facts);
+    fillSelect($class, classes);
+    fillSelect($role, roles);
+
+    function matchFilters(c){
+      const q = ($q.value || "").trim().toLowerCase();
+      const rarityV = ($rarity.value || "").trim().toUpperCase();
+      const elemV = ($elem.value || "").trim();
+      const factionV = ($faction.value || "").trim();
+      const classV = ($class.value || "").trim();
+      const roleV = ($role.value || "").trim();
+
+      const name = (c.name || "").toString().toLowerCase();
+      const id = (c.id || "").toString().toLowerCase();
+      const faction = normalizeFaction(c.faction).toLowerCase();
+      const elem = normalizeElem(c.element);
+      const cls = classLabel(c.class);
+      const role = roleLabel(c.role, c.class);
+
+      if (q){
+        const ok = name.includes(q) || id.includes(q) || faction.includes(q) || elem.toLowerCase().includes(q);
+        if (!ok) return false;
+      }
+      if (rarityV && (c.rarity || "-").toString().toUpperCase() !== rarityV) return false;
+      if (elemV && elem !== elemV) return false;
+      if (factionV && normalizeFaction(c.faction) !== factionV) return false;
+      if (classV && cls !== classV) return false;
+      if (roleV && role !== roleV) return false;
+
+      return true;
+    }
+
+    function sortChars(list){
+      return list.slice().sort((a,b) => {
+        const ra = RARITY_ORDER[(a.rarity || "-").toString().toUpperCase()] ?? 0;
+        const rb = RARITY_ORDER[(b.rarity || "-").toString().toUpperCase()] ?? 0;
+        if (rb !== ra) return rb - ra;
+
+        const na = (a.name || a.id || "").toString();
+        const nb = (b.name || b.id || "").toString();
+        return na.localeCompare(nb);
+      });
+    }
+
+    function render(){
+      const filtered = sortChars(chars.filter(matchFilters));
+      const rows = filtered.map(c => {
+        const cid = c.id;
+        const nm = c.name || cid;
+
+        const elem = normalizeElem(c.element);
+        const elemPill = (elem && elem !== "-")
+          ? `<span class="pill pill-elem ${elemClass(elem)}">${c.element_icon ? `<img src="${escapeHtml(c.element_icon)}" alt="">` : ""}${escapeHtml(elem)}</span>`
+          : `<span class="pill pill-none">-</span>`;
+
+        const faction = normalizeFaction(c.faction);
+        const factionPill = (faction && faction !== "-")
+          ? `<span class="pill pill-neutral">${escapeHtml(faction)}</span>`
+          : `<span class="pill pill-none">-</span>`;
+
+        const cls = classLabel(c.class);
+        const clsIcon = c.class_icon ? `<img src="${escapeHtml(c.class_icon)}" alt="">` : "";
+        const clsPill = (cls && cls !== "-")
+          ? `<span class="pill pill-neutral">${clsIcon}${escapeHtml(cls)}</span>`
+          : `<span class="pill pill-none">-</span>`;
+
+        const role = roleLabel(c.role, c.class);
+        const rolePill = (role && role !== "-")
+          ? `<span class="pill pill-neutral">${escapeHtml(role)}</span>`
+          : `<span class="pill pill-none">-</span>`;
+
+        const rar = (c.rarity || "-").toString().toUpperCase();
+        const rarPill = `<span class="pill ${rarityPillClass(rar)}">${escapeHtml(rar)}</span>`;
+
+        const img = c.image
+          ? `<img class="char-img" src="${escapeHtml(c.image)}" alt="">`
+          : `<div class="char-img"></div>`;
+
+        return `
+          <tr>
+            <td class="col-check"><input class="chk-owned" type="checkbox" data-cid="${escapeHtml(cid)}"></td>
+            <td>
+              <div class="char-cell clickable" data-cid="${escapeHtml(cid)}">
+                ${img}
+                <div class="char-name">${escapeHtml(nm)}</div>
+              </div>
+            </td>
+            <td class="col-elem">${elemPill}</td>
+            <td class="col-faction">${factionPill}</td>
+            <td class="col-class">${clsPill}</td>
+            <td class="col-role">${rolePill}</td>
+            <td class="col-rarity">${rarPill}</td>
+          </tr>
+        `;
+      }).join("");
+
+      $tbody.innerHTML = rows || `<tr><td colspan="7" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
+    }
+
+    // 이벤트: 필터 변경 시 렌더
+    [$q, $rarity, $elem, $faction, $class, $role].forEach(el => {
+      el.addEventListener("input", render);
+      el.addEventListener("change", render);
+    });
+
+    // 전체 선택/해제
+    document.getElementById("btnAll").addEventListener("click", () => {
+      document.querySelectorAll(".chk-owned").forEach(x => x.checked = true);
+    });
+    document.getElementById("btnNone").addEventListener("click", () => {
+      document.querySelectorAll(".chk-owned").forEach(x => x.checked = false);
+    });
+
+    // 클릭: 체크박스 클릭은 제외하고 캐릭터 셀 클릭 시 모달
     document.addEventListener("click", (e) => {
       const chk = e.target.closest(".chk-owned");
       if (chk) return;
