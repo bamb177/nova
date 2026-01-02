@@ -2,9 +2,6 @@ name: Build Zone Nova character JSON
 
 on:
   workflow_dispatch:
-  schedule:
-    # 매일 03:10 KST = 18:10 UTC
-    - cron: "10 18 * * *"
 
 permissions:
   contents: write
