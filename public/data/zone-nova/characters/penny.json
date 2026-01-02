@@ -1,39 +1,39 @@
 {
   "name": "Pennie",
-  "image": "/images/games/zone-nova/characters/penny.jpg",
+  "image": "/images/games/zone-nova/문자/penny.jpg",
   "rarity": "SSR",
-  "element": "Wind",
+  "element": "Storm",
   "class": "Guardian",
   "role": "Tank",
-  "faction": "Sapphire",
+  "faction": "Safir",
   "stats": {
-    "hp": "10,520",
+    "hp": "10,520 원",
     "attack": "794",
-    "defense": "1,232"
+    "defense": "1,232 원"
   },
   "skills": {
     "normal": {
       "name": "Shield Impact",
-      "description": "Deals Wind damage equal to 120% of own defense to target enemy."
+      "description": "(주) 적을 대상으로 자신의 방어의 120%와 같은 바람 손상."
     },
     "auto": {
       "name": "Divine Shield Wind",
       "cooldown": "5.0s",
-      "description": "Deals Wind damage equal to 120% of own defense to target enemy, and reduces damage taken by self for 10 seconds by 24%."
+      "description": "(주) 자신의 방어의 120%와 동등한 바람 손상은 적을 대상으로하고, 24%에 의해 10 초 동안 자기에 의해 촬영된 손상을 감소시킵니다."
     },
     "ultimate": {
       "name": "Shield of Aethyss",
       "energyCost": "5",
-      "description": "All allied characters gain a shield equal to 60% of your defense(Penny), and take 24% less damage for 10 seconds."
+      "description": "모든 allied 문자는 방어 (페니)의 60 %와 동일하며 10 초 동안 24% 적은 손상을받습니다."
     },
     "passive": {
-      "name": "Aethyss's Call for Help",
-      "description": "After taking damage, gain 1 stack of [Fortitude], increasing own defense by 4.8%, max 30 stacks."
+      "name": "Aethyss의 도움에 대한 호출",
+      "description": "손상을 입은 후, 1 stack of [Fortitude]를 얻고, 4.8%의 최대 30 stack로 자신의 방어를 증가시킵니다."
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "Own defense increases by 15%. At battle start, every 500 defense reduces team damage taken by 1.5%, max 6 times.",
+    "description": "방어 증가 15%. 전투 시작에서, 각 500 방어는 1.5%, 최대 6배로 찍은 팀 손상을 감소시킵니다.",
     "requirements": {
       "faction": "Sapphire",
       "element": "Wind"
@@ -42,41 +42,41 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "After taking damage, additionally gain 1 stack of [Fortitude]"
+      "effect": "손상을 입은 후, 추가로 1 stack of [Fortitude]"
     },
     {
       "level": 2,
-      "effect": "When [Fortitude] reaches 30 stacks, all allies get the same shield & damage-reduction as your Ultimate (60 % DEF shield + 24 % damage reduction for 10 s) Can only happen once per battle."
+      "effect": "[Fortitude]는 30개의 더미를 도달할 때, 모든 동맹은 당신의 궁극적인 (60 % DEF 방패 + 10 s를 위한 24 % 손상 감소로 동일한 방패 & 손상 감소를 얻습니다) 전투 당 한 번만 일어날 수 있습니다."
     },
     {
       "level": 3,
-      "effect": "[Skill] and [Normal Attack] level and level cap +4"
+      "effect": "[Skill] 및 [Normal Attack] 레벨 및 레벨 캡 +4"
     },
     {
       "level": 4,
-      "effect": "Defense increased by 45%"
+      "effect": "방어 증가 45%"
     },
     {
       "level": 5,
-      "effect": "[Ultimate] and [Passive] level and level cap +4"
+      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4"
     },
     {
       "level": 6,
-      "effect": "All resistance increased by 15%, Wind resistance additionally increased by 15%"
+      "effect": "모든 저항이 15 % 증가, 바람 저항은 15 % 증가"
     }
   ],
   "memoryCard": {
     "name": "Her Trainer",
     "image": "pennycard",
     "stats": {
-      "hp": "8,600",
+      "hp": "8,600원",
       "attack": "480",
       "defense": "690"
     },
     "effects": [
-      "Defense increased by 60%",
-      "After using ultimate skill, equipped character takes 10% less damage for 5 seconds",
-      "Shield amount applied by ultimate skills increased by 20%"
+      "방어 60% 증가",
+      "궁극적 인 기술을 사용 한 후, 장착 된 문자는 5 초 동안 10 % 적은 손상을받습니다.",
+      "궁극적인 기술에 의해 적용된 방패 총계는 20% 증가했습니다"
     ]
   },
   "tags": [
@@ -86,10 +86,5 @@
     "Buff",
     "Melee"
   ],
-  "id": "penny",
-  "_synced_at": "2026-01-02T04:47:50+00:00",
-  "_source_repo": "boring877/gacha-wiki",
-  "_source_path": "src/data/zone-nova/characters",
-  "_source_file": "penny.js",
-  "_source_name": "Penny"
+  "id": "penny"
 }

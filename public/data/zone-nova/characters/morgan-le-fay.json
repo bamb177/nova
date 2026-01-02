@@ -1,0 +1,92 @@
+{
+  "name": "Morgan Le Fay",
+  "image": "Morgan",
+  "rarity": "SSR",
+  "element": "Holy",
+  "class": "Buffer",
+  "role": "Buffer",
+  "faction": "Avalon",
+  "stats": {
+    "hp": "8,180명",
+    "attack": "1,004 원",
+    "defense": "728"
+  },
+  "skills": {
+    "normal": {
+      "name": "Crushing Strike",
+      "description": "적에게 성 DMG로 공격의 120%를 줍니다."
+    },
+    "auto": {
+      "name": "Glory Ode",
+      "cooldown": "5.0s",
+      "description": "모든 동맹국 [Blessing]. [Blessing]는 활성이지만 캐릭터의 DMG 거래가 36% 증가하며 DMG는 12% 감소합니다. [Blessing]는 DMG 또는 10 이후 5개의 인스턴스를 복용한 후 사라집니다."
+    },
+    "ultimate": {
+      "name": "Holy Sword Summon",
+      "energyCost": "3",
+      "description": "가장 높은 ATK와 ally의 위치에 [ 파괴 성검]을 떨어 뜨리고, 240% ATK를 5m 반경 내의 모든 적에게 거룩한 DMG로 처리하고, 범위의 ATK 내의 모든 동맹을 60 % 증가시키고 DMG는 10 년대 동안 48% 증가시킵니다.\n\n가장 높은 DEF와 동맹의 위치에 [Guardian Holy Sword]를 떨어 뜨리고, 5m 반경 내의 모든 적들에게 240% ATK를 처리하고, 범위의 DEF 내의 모든 동맹을 60 % 증가시키고 10 년대 동안 19%로 복용 한 DMG를 감소시킵니다."
+    },
+    "passive": {
+      "name": "왕의 모험",
+      "description": "전투를 입력하면 즉시 3 에너지 및 에너지 이득 효율이 10 년대 동안 30 % 감소합니다.\n\n전투를 입력하면 Morgan Le Fay의 ATK/DEF/HP의 29%는 각각 가장 높은 ATK/DEF/HP로 ally로 변환되고 전송됩니다.\n\n각 시간 Morgan Le Fay는 기술을 사용하여 즉시 1 에너지를 얻습니다."
+    }
+  },
+  "teamSkill": {
+    "name": "Team Tech",
+    "description": "팀은 2개의 [Avalon] 문자 또는 2개의 [Holy] 문자를 포함합니다:\n\n전투의 시작에서 모든 동맹의 DMG 거래는 10 % 증가합니다.\n\n각 500 ATK의 모든 동맹의 DMG 거래는 추가 5%, 최대 6배 증가합니다.",
+    "requirements": {
+      "faction": "Avalon",
+      "element": "Holy"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "패시브 효과 [전투 전투를 입력, 즉시 3 에너지와 에너지 이득 효율이 감소 30% 10s]로 변경됩니다 [전투 전투, 즉시 5 에너지]."
+    },
+    {
+      "level": 2,
+      "effect": "전투를 입력하면 모든 동맹은 즉시 [Blessing]을 얻습니다."
+    },
+    {
+      "level": 3,
+      "effect": "[Normal Attack], [Skill], [Ultimate] 및 [Passive] 레벨 및 레벨 캡 +2."
+    },
+    {
+      "level": 4,
+      "effect": "모든 동맹은 수동적인 효력에서 변환 능력을 얻을 수 있습니다."
+    },
+    {
+      "level": 5,
+      "effect": "[Normal Attack], [Skill], [Ultimate] 및 [Passive] 레벨 및 레벨 캡 +2."
+    },
+    {
+      "level": 6,
+      "effect": "[ 파괴 성검] 범위의 Elemental RES PEN 내의 모든 동맹을 10 % 증가시킵니다.\n\n[Guardian Holy Sword]는 범위의 Elemental RES 내의 모든 동맹을 10 % 증가시킵니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Absolutely Perfect Arms",
+    "image": "Morgancard",
+    "stats": {
+      "hp": "7,800 원",
+      "attack": "780",
+      "defense": "780"
+    },
+    "effects": [
+      "ATK 증가 30%",
+      "DEF 30% 증가",
+      "생명력이 30% 증가했습니다.",
+      "equipper가 성 속성의 때, 정상적인 공격 DMG를 처리 한 후, 모든 동맹의 에너지 이익 효율은 18% 증가, 최대 4 배까지 겹쳐, 지속 5s"
+    ]
+  },
+  "tags": [
+    "Melee",
+    "Buff",
+    "Attack Boost",
+    "Defense Boost",
+    "Support",
+    "Holy"
+  ],
+  "id": "morgan-le-fay"
+}

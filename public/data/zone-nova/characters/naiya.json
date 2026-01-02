@@ -2,38 +2,38 @@
   "name": "Naya",
   "image": "Naiya",
   "rarity": "SSR",
-  "element": "Ice",
+  "element": "Frost",
   "class": "Buffer",
   "role": "Buffer",
-  "faction": "Sapphire",
+  "faction": "Safir",
   "stats": {
-    "hp": "9,564",
-    "attack": "1,004",
+    "hp": "9,564 원",
+    "attack": "1,004 원",
     "defense": "672"
   },
   "skills": {
     "normal": {
       "name": "Frost Strike",
-      "description": "Deals 120% attack power as ice damage to enemy unit"
+      "description": "적 단위에 얼음 손상으로 120% 공격력"
     },
     "auto": {
       "name": "War Intent Detection",
-      "cooldown": "Auto-trigger: 5.0s",
-      "description": "The friendly character with the highest attack power gains [Battle Intent]. Increases attack power by 168%, but the increased attack power cannot exceed 84% of naiya attack power. Lasts 15 seconds"
+      "cooldown": "자동 트리거 : 5.0s",
+      "description": "가장 높은 공격력의 친근한 캐릭터 [Battle Intent]. 공격력이 168%로 증가하지만 증가된 공격력은 나야 공격력의 84%를 초과할 수 없습니다. 최후 15 초"
     },
     "ultimate": {
       "name": "Hyper-Carry Awakening",
       "energyCost": "3",
-      "description": "Deals 480% attack power Ice damage to  enemy unit. [Interrupts] their casting skill. Increases all friendly units' attack power by 36% and crit damage by 53.6% for 10 seconds"
+      "description": "적 단위로 480% 공격력 얼음 손상을 줍니다. [Interrupts] 그들의 주조 기술. 모든 친절한 단위의 공격 전력을 36% 증가시키고 10 초 동안 53.6%에 의하여 주름을 잡습니다"
     },
     "passive": {
       "name": "Tactical Analysis",
-      "description": "When a character with [Battle Intent] kills an enemy, damage increases by 17% for 10 seconds, max 3 stacks. Immediately recovers 1 energy point for the entire team, can trigger once per second maximum"
+      "description": "[Battle Intent]의 캐릭터가 적을 죽일 때 공격력이 10초 동안 17% 증가하면 최대 3개의 스택이 있습니다. 즉시 전체 팀의 1 에너지 포인트를 복구, 초당 한 번 트리거 할 수 있습니다"
     }
   },
   "teamSkill": {
-    "name": "Combination Skill (组合技)",
-    "description": " Battle Start: All team damage +10%. Every 500 attack power, all team damage additionally +5%, max 6 times (30%)",
+    "name": "조합 스킬 ()合)",
+    "description": "전투 시작: 모든 팀 손상 +10%. 각 500의 공격 힘, 모든 팀은 추가적으로 +5%, 최대 6배 (30%)를 손상시킵니다",
     "requirements": {
       "faction": "Sapphire",
       "element": "Ice"
@@ -42,39 +42,39 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "After using ultimate: All friendly units' attack power increased by 20% for 20 seconds. "
+      "effect": "궁극적인 사용 후: 모든 친절한 단위의 공격력은 20 초 동안 20% 증가했습니다."
     },
     {
       "level": 2,
-      "effect": "When characters with [Battle Intent] defeat an enemy: Recovers 1 energy for the team. can trigger at most once per second (with passive it become 2)."
+      "effect": "[Battle Intent]가 적을 물리칠 때 : 팀을 위해 1 에너지를 회복합니다. 초당 한 번에 트리거 할 수 있습니다 (수동으로 2)."
     },
     {
       "level": 3,
-      "effect": "Skill and Normal Attack: Level and level cap increased by +4"
+      "effect": "기술 및 일반 공격: 레벨 및 레벨 캡 증가 +4"
     },
     {
       "level": 4,
-      "effect": "Characters with [Battle Intent] when attacking: Deal an additional 500% attack power as ice damage. Triggers at most once every 10 seconds. "
+      "effect": "공격할 때 [Battle Intent]를 가진 특성: 얼음 손상으로 추가 500% 공격 힘을 분리하십시오. 최대 한 번에 트리거 10 초."
     },
     {
       "level": 5,
-      "effect": "Ultimate Skill and Passive: Level and level cap increased by +4"
+      "effect": "궁극적 인 기술 및 패시브 : 레벨 및 레벨 캡 증가 +4"
     },
     {
       "level": 6,
-      "effect": "Ultimate skill duration extended to 20 seconds. Damage increased by 100%. "
+      "effect": "궁극적 인 기술 기간은 20 초로 연장됩니다. 공격력이 100% 증가했습니다."
     }
   ],
   "memoryCard": {
     "name": "Frost Dominion",
     "image": "naiyacard",
     "stats": {
-      "hp": "6,000",
+      "hp": "6,000원",
       "attack": "600",
       "defense": "600"
     },
     "effects": [
-      " Attack power increased by 40%. After the equipped character releases ultimate skill, the entire team gains ultimate skill damage increased by 40%, lasting 30 seconds"
+      "공격력이 40% 증가했습니다. 장착 된 문자가 궁극적 인 기술을 출시 한 후, 전체 팀은 궁극적 인 기술 손상을 40 % 증가, 30 초 지속"
     ]
   },
   "tags": [
@@ -85,10 +85,5 @@
     "Atk Increases",
     "Damage Increases"
   ],
-  "id": "naiya",
-  "_synced_at": "2026-01-02T04:47:50+00:00",
-  "_source_repo": "boring877/gacha-wiki",
-  "_source_path": "src/data/zone-nova/characters",
-  "_source_file": "naiya.js",
-  "_source_name": "Naiya"
+  "id": "naiya"
 }

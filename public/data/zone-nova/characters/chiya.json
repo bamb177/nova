@@ -2,38 +2,38 @@
   "name": "Cynia",
   "image": "Chiya",
   "rarity": "SSR",
-  "element": "Ice",
+  "element": "Frost",
   "class": "Rogue",
   "role": "DPS",
-  "faction": "Sapphire",
+  "faction": "Safir",
   "stats": {
-    "hp": "8,033",
-    "attack": "1,305",
+    "hp": "8,033 원",
+    "attack": "1,305명",
     "defense": "530"
   },
   "skills": {
     "normal": {
       "name": "Heavy Hammer Strike",
-      "description": "Deals ice damage equal to 120% of Attack to designated enemy unit."
+      "description": "지정된 적 단위로 공격의 120%와 같은 얼음 손상을 줍니다."
     },
     "auto": {
       "name": "Cold Steel Combo",
       "cooldown": "5.0s",
-      "description": "Deals ice damage equal to 480% of Attack to enemy unit."
+      "description": "적에게 공격의 480%와 같은 얼음 손상을 줍니다."
     },
     "ultimate": {
-      "name": "Society Master's Fist",
+      "name": "학회 석사",
       "energyCost": "3",
-      "description": "Rush towards target, dealing 600% attack power ice damage [Enhanced Ultimate Skill]: Gain 100% critical rate, rush towards target dealing 840% attack power ice damage"
+      "description": "대상을 향한 러쉬, 600% 공격 전력 얼음 손상을 처리 [Enhanced Ultimate Skill]: 이익 100% 긴요한 비율, 840% 공격 힘 얼음 손상을 대우하는 표적을 향해 돌진"
     },
     "passive": {
       "name": "Beam Assist Framework",
-      "description": "After killing an enemy, enter [Focus] state for 10 seconds. All attacks additionally deal 36% attack power ice damage, and gain one [Enhanced Ultimate Skill]"
+      "description": "적을 죽이고 10 초 동안 [Focus] 상태를 입력하십시오. 모든 공격을 추가로 처리 36% 공격 전력 얼음 손상, 그리고 하나를 얻을 [Enhanced Ultimate Skill]"
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "Self attack power increased by 10%. At battle start, every 500 attack power can increase self critical damage by 7.5%, maximum 6 times (up to 45% critical damage).",
+    "description": "자기 공격 전력이 10 % 증가했습니다. 전투 시작시, 모든 500 공격 전력은 7.5%, 최대 6배 (최대 45% 긴요한 손상)에 의해 자기 중요한 손상을 증가시킬 수 있습니다.",
     "requirements": {
       "faction": "Sapphire",
       "element": "Ice"
@@ -42,39 +42,39 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "At battle start, immediately gains one [Enhanced Ultimate Skill]."
+      "effect": "전투 시작에서, 즉시 하나 얻을 [Enhanced Ultimate Skill]."
     },
     {
       "level": 2,
-      "effect": "During [Focus] state, attack speed increased by 50%."
+      "effect": "[Focus] 상태 동안 공격 속도가 50 % 증가했습니다."
     },
     {
       "level": 3,
-      "effect": "[Skill] and [Normal Attack] level and level cap +4."
+      "effect": "[Skill] 과 [Normal Attack] 레벨과 레벨 캡 +4."
     },
     {
       "level": 4,
-      "effect": "Ice damage increased by 30%."
+      "effect": "얼음 손상 30% 증가."
     },
     {
       "level": 5,
-      "effect": "[Ultimate] and [Passive] level and level cap +4."
+      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4."
     },
     {
       "level": 6,
-      "effect": "After using normal ultimate skill, gain one Enhanced Ultimate Skill, Ultimate skill damage increases by 30%"
+      "effect": "정상적인 궁극적인 기술을 사용하여, 1개의 강화한 궁극적인 기술, 궁극적인 기술 손상은 30%에 의하여 증가합니다"
     }
   ],
   "memoryCard": {
     "name": "Lonely Dark Deep Night",
     "image": "Chiyacard",
     "stats": {
-      "hp": "5,040",
+      "hp": "5,040 원",
       "attack": "780",
       "defense": "474"
     },
     "effects": [
-      "Critical damage increases by 60%. Attack power increases by 10% After the equipment wearer kills an enemy stacking up to 4 times,up to 40% attack power increase and stay until the end of the battle"
+      "긴 수명이 60 % 증가합니다. 공격력이 10 % 증가한 후 장비 착용자는 적을 4 번 겹쳐 쌓이면서 최대 40 %의 공격 전력 증가를 증가시키고 전투의 끝까지 유지하십시오."
     ]
   },
   "tags": [
@@ -84,10 +84,5 @@
     "Enhanced Ultimate",
     "Attack Speed"
   ],
-  "id": "chiya",
-  "_synced_at": "2026-01-02T04:47:49+00:00",
-  "_source_repo": "boring877/gacha-wiki",
-  "_source_path": "src/data/zone-nova/characters",
-  "_source_file": "chiya.js",
-  "_source_name": "Chiya"
+  "id": "chiya"
 }

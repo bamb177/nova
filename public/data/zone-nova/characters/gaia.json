@@ -8,33 +8,33 @@
     "role": "Healer",
     "faction": "Odius",
     "stats": {
-      "hp": "10,548",
+      "hp": "10,548 원",
       "attack": "580",
       "defense": "918"
     },
     "skills": {
       "normal": {
         "name": "Gene Split",
-        "description": "Deals Holy Damage to a target enemy, equal to 12% of the caster's max HP."
+        "description": "적에게 성한 피해를 주고 캐스터의 최대 HP의 12%와 동일합니다."
       },
       "auto": {
         "name": "Gene Collapse",
         "cooldown": "10.0s",
-        "description": "Deploys floating devices to other allied units. When the target takes damage, the floating device heals all allied characters every second for 5 seconds, restoring HP equal to 1% of Gaia's max HP + 120 HP. When Gaia uses her Ultimate Skill, she can replenish floating devices to other allied units."
+        "description": "다른 연합 단위로 부동 장치를 배포합니다. 대상이 손상되면 부동 장치가 5 초 동안 두 번째로 모든 종속 문자를 치유하고 Gaia의 최대 HP + 120 HP의 1 %와 동일합니다. Gaia가 궁극적 인 기술을 사용 할 때, 그녀는 다른 연합 단위로 부동 장치를 보충 할 수 있습니다."
       },
       "ultimate": {
-        "name": "Dominion: Primordial Order",
+        "name": "Dominion: 결정적인 순서",
         "energyCost": "3",
-        "description": "Increases max HP of all allied characters by 60%. The increased max HP cannot exceed 15% of Gaia's max HP at the start of the battle. Lasts 20 seconds. During the buff duration, Gaia can use [Emergency Treatment]. [Emergency Treatment]: Heals the allied unit with the lowest current HP percentage, restoring HP equal to 12% of Gaia's max HP."
+        "description": "60 %의 모든 allied 문자의 최대 HP를 증가시킵니다. 증가 된 최대 HP는 전투의 시작에서 가이아의 최대 HP의 15 %를 초과 할 수 없습니다. 마지막 20 초. 버프 기간 동안 Gaia는 [Emergency treatment]를 사용할 수 있습니다. [Emergency Treatment]: 가이아 최대 HP의 12%와 동일한 HP의 가장 낮은 전류 HP 비율을 가진 연합되는 단위를 치유합니다."
       },
       "passive": {
         "name": "Primordial Regression",
-        "description": "Upon entering battle, the ally with the lowest DEF gains [Motherly Love]. While [Motherly Love] is active: The target's max HP increases by 60% (increased max HP cannot exceed 15% of Gaia's max HP at battle start). When the [Motherly Love] holder would receive lethal damage: Triggers [Life Extension] effect - immediately restores HP to 100%, then gradually loses HP over time. HP loss accelerates each second. HP loss stops if the holder defeats an enemy during this state. Each ally can trigger this once per battle. [Motherly Love] disappears if Gaia is defeated."
+        "description": "전투를 입력하면 가장 낮은 DEF 이득 [Motherly Love]. 그러나 [Motherly Love]는 활성: 대상의 최대 HP는 60 % 증가 (최대 HP는 전투 시작시 Gaia의 최대 HP의 15 %를 초과 할 수 없습니다). [Motherly Love] 홀더가 잔류 손상을받을 때 : Triggers [Life Extension] 효과 - 즉시 HP를 100 %로 복원 한 다음 점차 시간이 지남에 따라 HP를 잃습니다. HP 손실은 각 초를 가속합니다. HP 손실은 홀더가이 상태 동안 적을 물리 칩니다. 각 ally는 한 번 전투 당 트리거 할 수 있습니다. [어머니 사랑] 가이아가 패배 한 경우 사라졌다."
       }
     },
     "teamSkill": {
       "name": "Maternal Guardian",
-      "description": "Gaia gains +10% Max HP. At battle start: For every 5,000 Max HP Gaia has, her healing output increases by 5% (up to 6 stacks, max +30%).",
+      "description": "가이아는 +10% 최대 HP를 얻습니다. 전투 시작: 모든 5,000 최대 HP 가이아에 대 한, 그녀의 치유 출력 증가 5% (최대 6 스택, 최대 +30%).",
       "requirements": {
         "faction": "Odius",
         "element": "Holy"
@@ -43,41 +43,41 @@
     "awakenings": [
       {
         "level": 1,
-        "effect": "Characters with [Motherly Love] gain +45% DEF. [Life Extension]'s HP loss duration capped at 10 seconds."
+        "effect": "[Motherly Love]를 가진 특성은 +45% DEF를 얻습니다. [Life Extension]의 10 초에 모자를 씌운 HP 손실 내구."
       },
       {
         "level": 2,
-        "effect": "Upon entering battle: Instantly cast Ultimate Skill with no energy cost. Using [Emergency Treatment] refreshes the duration of Ultimate Skill's buff."
+        "effect": "전투를 입력하면 : 즉시 에너지 비용없이 궁극적 인 기술을 던지기. [Emergency Treatment]를 사용하여 궁극적 인 스킬의 버프의 지속 시간을 새로 고침합니다."
       },
       {
         "level": 3,
-        "effect": "[Basic Attack], [Auto Skill], [Ultimate Skill], and [Passive] levels & max levels +2."
+        "effect": "[기본 공격], [Auto Skill], [Ultimate Skill] 및 [Passive] 레벨 & 최대 레벨 +2."
       },
       {
         "level": 4,
-        "effect": "Gaia's healing output +37.5%."
+        "effect": "가이아의 치유 출력 +37.5%."
       },
       {
         "level": 5,
-        "effect": "[Basic Attack], [Auto Skill], [Ultimate Skill], and [Passive] levels & max levels +2."
+        "effect": "[기본 공격], [Auto Skill], [Ultimate Skill] 및 [Passive] 레벨 & 최대 레벨 +2."
       },
       {
         "level": 6,
-        "effect": "Upon entering battle: Two lowest-DEF allies gain [Motherly Love]. [Motherly Love] holders gain +50% additional Max HP."
+        "effect": "전투에 들어갈 때 : 두 개의 가장 낮은 DEF allies 이득 [Motherly Love]. [Motherly Love] 홀더는 +50% 추가 최대 HP를 얻습니다."
       }
     ],
     "memoryCard": {
       "name": "A Smile That Topples Cities",
       "image": "Gaiacard",
       "stats": {
-        "hp": "6,300",
+        "hp": "6,300원",
         "attack": "580",
         "defense": "585"
       },
       "effects": [
-        "Max HP +40%",
-        "Healing output +40%",
-        "If wearer healed within last 1 second, additional +40% healing output"
+        "최대 HP +40%",
+        "치유 산출 +40%",
+        "지난 1 초 이내에 맹세 한 경우, 추가 +40% 치유 출력"
       ]
     },
     "tags": [
@@ -90,14 +90,9 @@
     ]
   },
   "gaiaSEO": {
-    "title": "【Matriarch】Gaia - Zone Nova Character Guide | GachaWiki",
-    "description": "Complete guide for 【Matriarch】Gaia in Zone Nova. Learn about her healing abilities, Motherly Love passive, team skills, awakening effects, and optimal build strategies for this powerful Odius faction support character."
+    "title": "【Matriarch】Gaia - 존 노바 캐릭터 가이드 | 가카위키",
+    "description": "[Matriarch]Gaia in Zone Nova에 대한 완전한 가이드. 치유 능력에 대해 알아보기, 어머니 사랑 수동, 팀 기술, awakening 효과, 그리고이 강력한 Odius faction 지원 문자에 대한 최적의 빌드 전략."
   },
   "id": "gaia",
-  "name": "Gaia",
-  "_synced_at": "2026-01-02T04:47:49+00:00",
-  "_source_repo": "boring877/gacha-wiki",
-  "_source_path": "src/data/zone-nova/characters",
-  "_source_file": "gaia.js",
-  "_source_name": "gaia"
+  "name": "Gaia"
 }

@@ -1,0 +1,89 @@
+{
+  "name": "Mammon",
+  "image": "GreedMammon",
+  "rarity": "SR",
+  "element": "Chaos",
+  "class": "Mage",
+  "role": "DPS",
+  "faction": "Bikta",
+  "stats": {
+    "hp": "6,694명",
+    "attack": "1,088 원",
+    "defense": "442"
+  },
+  "skills": {
+    "normal": {
+      "name": "더 당신은, 부자",
+      "description": "지정된 적 단위에 대한 공격의 120%와 동일한 캐노스 손상"
+    },
+    "auto": {
+      "name": "Golden Curse",
+      "cooldown": "5.0s",
+      "description": "Deal 96% 공격 힘은 각자의 3 미터 내의 주변 지역에 손상을 칩니다"
+    },
+    "ultimate": {
+      "name": "일곱 Deadly Sins: 그리스",
+      "energyCost": "5",
+      "description": "지정된 적 단위로 공격의 180%와 동일한 캐노스 손상을 줍니다. [Enhanced Ultimate] 버전 : 자기 주변의 4 미터 반경 내의 적에게 공격의 24 %와 동일합니다. [기타] ally는 궁극적 인 기술을 사용하여 5 초 이내에 한 번 [Enhanced Ultimate]를 활성화 할 수 있습니다."
+    },
+    "passive": {
+      "name": "Passive Tax Burden",
+      "description": "주물은 궁극적인 기술을 강화한 후에, 손상은 29%에 의하여 증가합니다"
+    }
+  },
+  "teamSkill": {
+    "name": "Combo Skill",
+    "description": "자기 손상은 20% 증가",
+    "requirements": {
+      "faction": "Bicta Tower",
+      "element": "Chaos"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "부유 한 효과가있을 때 : 궁극적 인 손상은 20 % 증가합니다."
+    },
+    {
+      "level": 2,
+      "effect": "궁극적 인 기술을 주조 한 후, 10 초 동안 10 % 감소"
+    },
+    {
+      "level": 3,
+      "effect": "[Skill] 및 [Normal Attack] 레벨 및 레벨 캡 +4"
+    },
+    {
+      "level": 4,
+      "effect": "궁극적인 기술 손상은 20% 증가"
+    },
+    {
+      "level": 5,
+      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4"
+    },
+    {
+      "level": 6,
+      "effect": "성공적으로 주물은 궁극적인 기술을 강화한 후에, 추가적으로 1개의 에너지 점을 얻습니다"
+    }
+  ],
+  "memoryCard": {
+    "name": "Method of Revenge",
+    "image": "Greed-Mammon-card",
+    "stats": {
+      "hp": "4,200원",
+      "attack": "650",
+      "defense": "395"
+    },
+    "effects": [
+      "버퍼 문자가 궁극적으로 사용되면 궁극적 인 손상이 10 초 동안 60 % 증가합니다."
+    ]
+  },
+  "tags": [
+    "Melee",
+    "AOE",
+    "Enhanced Ultimate",
+    "Crit Dmg",
+    "Energy",
+    "Damage Reduction"
+  ],
+  "id": "greed-mammon"
+}

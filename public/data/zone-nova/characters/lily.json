@@ -2,40 +2,40 @@
   "name": "Lily",
   "image": "Lily",
   "rarity": "SSR",
-  "element": "Ice",
+  "element": "Frost",
   "class": "Guardian",
   "role": "Tank",
-  "faction": "Sapphire",
+  "faction": "Safir",
   "stats": {
-    "hp": "10,520",
+    "hp": "10,520 원",
     "attack": "480",
-    "defense": "1,625"
+    "defense": "1,625 원"
   },
   "skills": {
     "normal": {
       "name": "Frost Armor Thorn",
       "cooldown": "2.0s",
-      "description": "Deals ice damage equal to 120% of own defense to a designated enemy unit."
+      "description": "지정된 적 단위에 자신의 방어의 120%와 동등한 얼음 손상을 줍니다."
     },
     "auto": {
       "name": "Frost Flow Defense Stance",
       "cooldown": "5.0s",
-      "description": "Grants 58% damage mitigation rate to self, lasting 5 seconds. [Mitigation]: Has a chance to reduce this damage by 30%; critical hit damage ignores mitigation."
+      "description": "자기에게 5 %의 손상 완화율, 5 초 지속. [송금]: 이 손상을 30 % 감소시킬 수있는 기회가 있습니다. 중요한 피해는 완화를 무시합니다."
     },
     "ultimate": {
-      "name": "Breaking Formation · Final Scene",
+      "name": "양식 · 최종 장면",
       "cooldown": "1.0s",
       "energyCost": "3",
-      "description": "Deals ice damage equal to 240% of own defense to a designated enemy unit, gains 1 stack of [Battle Intention], and reduces self-damage taken by 24% for 10 seconds.\n\n[Enhanced Ultimate]: Clear all [Battle Intention] stacks, gain a shield with an amount equal to 24% of max HP, and for 10 seconds, nullify all incoming damage (increased to 100%), remove all ongoing damage effects, deal ice damage equal to 480% of own defense to a designated enemy unit, and reduce self-damage taken by 24% for 10 seconds."
+      "description": "지정된 적 단위로 자신의 방어의 240%와 동등한 얼음 손상을 주고, [Battle Intention]의 1개의 더미를 얻고 10 초 동안 24%에 의해 촬영된 자체 손상을 감소시킵니다.\n\n[Enhanced Ultimate] : 모든 [Battle Intention] 스택을 지우고 최대 HP의 24%와 동일한 양의 방패를 얻습니다. 10 초 동안 모든 들어오는 손상 (100% 증가)을 무수화하여 모든 지속적인 손상 효과를 제거하고 지정된 적 단위로 480%의 얼음 손상을 처리하고 10 초 동안 24%에 의해 촬영 한 자체 손상을 줄일 수 있습니다."
     },
     "passive": {
       "name": "Hundred-Battle Ice Bone",
-      "description": "Effect 1: [Mitigation] After success, increase own defense by 60% for 5 seconds; repeated triggers can extend duration.\n\nEffect 2: [Mitigation] After success, gain 1 stack of [Battle Intention]; maximum 1 stack per second. When [Battle Intention] reaches 10 stacks, can cast [Enhanced Ultimate Skill].\n\nEffect 3: After entering battle and when own HP drops to 70%/40%/10% or below, gain a shield; each shield can trigger at most once. Shield amount equals 24% of max HP, and within 10 seconds, mitigation rate rises to 100%, removing all ongoing damage effects.\n\nEffect 4: After gaining a shield each time, instantly recover 10% of max HP."
+      "description": "효과 1: [Mitigation] 성공 후, 5 초 동안 60 %의 자체 방어 증가; 반복 된 트리거는 지속 시간을 연장 할 수 있습니다.\n\n효과 2: [Mitigation] 성공 후 1 stack of [Battle Intention]; 초당 최대 1 stack. [Battle Intention] 10 스택에 도달하면 [Enhanced Ultimate Skill]을 캐스트 할 수 있습니다.\n\n효력 3: 전투를 들어가기 후에 그리고 HP가 70%/40%/10% 이하에 떨어지면 방패를 얻습니다; 각 방패는 한 번에 트리거할 수 있습니다. 방패 양은 최대 HP의 24%, 그리고 10 초 안에, 완화 비율은 100%년으로, 모든 지속적인 손상 효력을 제거하.\n\n효력 4: 방패를 매번 얻기 후에, 즉시 최대 HP의 10%를 회복하십시오."
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "Effect 1: Own defense increases by 15%.\n\nEffect 2: At the start of battle, every 500 defense reduces team-wide damage taken by 1.5%, up to 6 times.",
+    "description": "효과 1: 방어 증가 15%.\n\n효력 2: 전투의 시작에, 각 500 방위는 1.5%, 6배까지 가지고 다니는 팀 넓은 손상을 감소시킵니다.",
     "requirements": {
       "faction": "Sapphire",
       "element": "Ice"
@@ -44,40 +44,40 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "[Mitigation] After success, additionally increase own defense by 30% for 5 seconds; casting a normal ultimate skill grants 1 extra stack of [Battle Intention]; after casting an enhanced ultimate skill, immediately obtain 2 stacks of [Battle Intention]."
+      "effect": "[송금] 성공 후, 추가로 5 초 동안 자신의 방어를 증가; 정상적인 궁극적 인 기술을 캐스팅 1 [Battle Intention]의 여분 스택; 강화 궁극적 인 기술을 캐스팅 한 후, 즉시 [Battle Intention]의 2 스택을 얻을."
     },
     {
       "level": 2,
-      "effect": "After entering battle, all units on my side gain 20 layers of [Frost Armor]; each time taking damage, remove 1 layer of [Frost Armor], reducing that damage by 50%; [Frost Armor] expires after 20 seconds."
+      "effect": "전투를 입력 한 후, 내 측면의 모든 단위는 20 층의 [Frost Armor]; 손상을 가지고 각 시간, 50 %의 손상을 감소 [Frost Armor]의 1 층을 제거; [Frost Armor] 20 초 후 만료."
     },
     {
       "level": 3,
-      "effect": "[Normal Attack], [Skill], [Ultimate Skill], and [Passive] level and level cap +2"
+      "effect": "[Normal Attack], [Skill], [Ultimate Skill], [Passive] 레벨 및 레벨 캡 +2"
     },
     {
       "level": 4,
-      "effect": "Defense increases by 45%"
+      "effect": "방어 증가 45%"
     },
     {
       "level": 5,
-      "effect": "[Normal Attack], [Skill], [Ultimate Skill], and [Passive] level and level cap +2"
+      "effect": "[Normal Attack], [Skill], [Ultimate Skill], [Passive] 레벨 및 레벨 캡 +2"
     },
     {
       "level": 6,
-      "effect": "All resistances increase by 15%, and ice resistance additionally increases by 15%."
+      "effect": "모든 저항은 15 % 증가, 얼음 저항은 15 % 증가."
     }
   ],
   "memoryCard": {
-    "name": "In the Cafe, Sneaking a Bite",
+    "name": "카페에서 Bite를 노래",
     "image": "Lilycard",
     "stats": {
-      "hp": "6,600",
+      "hp": "6,600원",
       "attack": "480",
       "defense": "690"
     },
     "effects": [
-      "Defense increases by 64%",
-      "After successful mitigation, damage taken is reduced by 10% for 5 seconds. When the wearer has a shield, damage taken is reduced by 18%."
+      "방어 증가 64%",
+      "성공적인 완화 후, 손상은 5 초 동안 10 % 감소했습니다. 착용자가 방패가있을 때, 손상은 18% 감소됩니다."
     ]
   },
   "tags": [
@@ -89,10 +89,5 @@
     "Ice",
     "Tank"
   ],
-  "id": "lily",
-  "_synced_at": "2026-01-02T04:47:50+00:00",
-  "_source_repo": "boring877/gacha-wiki",
-  "_source_path": "src/data/zone-nova/characters",
-  "_source_file": "lily.js",
-  "_source_name": "Lily"
+  "id": "lily"
 }

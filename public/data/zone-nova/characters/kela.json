@@ -5,35 +5,35 @@
   "element": "Holy",
   "class": "Healer",
   "role": "Healer",
-  "faction": "Sapphire",
+  "faction": "Safir",
   "stats": {
-    "hp": "7,650",
+    "hp": "7,650 원",
     "attack": "837",
     "defense": "608"
   },
   "skills": {
     "normal": {
       "name": "Divine Strike",
-      "description": "Deals 120% attack power as Holy damage to designated enemy unit"
+      "description": "지정된 적 단위로 120% 공격력"
     },
     "auto": {
       "name": "Sacred Healing",
       "cooldown": "5.0s",
-      "description": "Heal the friendly unit with the lowest current health percentage once, restore health equal to self attack power 69% + 335"
+      "description": "가장 낮은 현재 건강 비율을 가진 친절한 단위를 한 번 치유하십시오, 각자 공격 힘과 동등한 건강 69% + 335"
     },
     "ultimate": {
       "name": "Divine Intervention",
       "energyCost": "3",
-      "description": "Heal the friendly unit with the lowest current health percentage once, restore health equal to self attack power 128% + 682"
+      "description": "가장 낮은 현재 건강 비율을 가진 친절한 단위를 한 번 치유하고십시오, 각자 공격 힘과 동등한 건강 128% + 682"
     },
     "passive": {
-      "name": "Master of All (万事通之力)",
-      "description": "When healing friendly units whose current health is below 50%, healing amount increases by 24%"
+      "name": "of( All)",
+      "description": "현재 건강이 50% 이하인 친절한 단위를 치료할 때 치유량이 24% 증가합니다."
     }
   },
   "teamSkill": {
     "name": "Divine Sanctuary",
-    "description": "Self attack power increases by 10%, healing amount increases by 12.5%",
+    "description": "자기 공격력이 10 % 증가하여 치유량이 12.5% 증가합니다.",
     "requirements": {
       "faction": "Sapphire",
       "element": "Holy"
@@ -42,39 +42,39 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "After ultimate skill heals friendly units, additionally make the target take 5% reduced damage, lasts 5 seconds"
+      "effect": "궁극적인 기술 치유 친절한 단위 후에, 추가적으로 표적이 5% 감소된 손상을, 지속합니다 5 초 갑니다"
     },
     {
       "level": 2,
-      "effect": "When self health drops below 20% after taking damage, immediately restore health equal to self attack power 750%, can trigger at most once per battle"
+      "effect": "자기 건강이 손상을 복용 한 후 20 % 미만일 때, 즉시 자기 공격 힘과 동등한 건강을 복원 750%, 전투 당 한 번에 트리거 할 수 있습니다"
     },
     {
       "level": 3,
-      "effect": "[Skills] and [Normal Attack] level and level cap +4"
+      "effect": "[Skills] 과 [Normal Attack] 레벨 및 레벨 캡 +4"
     },
     {
       "level": 4,
-      "effect": "Healing amount increases by 20%"
+      "effect": "치유량이 20% 증가합니다."
     },
     {
       "level": 5,
-      "effect": "[Ultimate] and [Passive] level and level cap +4"
+      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4"
     },
     {
       "level": 6,
-      "effect": "Auto Skills healing friendly units can also trigger Awakening 1 effect. Awakening 1 effect is increased by 100% (It become 10%)"
+      "effect": "자동 기술 치료 친절한 단위는 또한 Awakening 1 효력을 방아쇠를 수 있습니다. Awakening 1 효과는 100 % 증가 (10%가됩니다)"
     }
   ],
   "memoryCard": {
-    "name": "Solitary Realm (一人之境)",
+    "name": "소litary Realm (一人之871)",
     "image": "kelacard",
     "stats": {
-      "hp": "5,000",
+      "hp": "5,000원",
       "attack": "500",
       "defense": "500"
     },
     "effects": [
-      "Healing amount increases by 30%. When healing targets below 50% maximum health, they get 8% reduced damage, lasts 10 seconds"
+      "치유량이 30% 증가합니다. 최대 50 % 미만의 치유 대상이되면 8 %의 피해를 얻고 10 초 지속됩니다."
     ]
   },
   "tags": [
@@ -82,10 +82,5 @@
     "Healing",
     "Reduce Damage"
   ],
-  "id": "kela",
-  "_synced_at": "2026-01-02T04:47:50+00:00",
-  "_source_repo": "boring877/gacha-wiki",
-  "_source_path": "src/data/zone-nova/characters",
-  "_source_file": "kela.js",
-  "_source_name": "Kela"
+  "id": "kela"
 }

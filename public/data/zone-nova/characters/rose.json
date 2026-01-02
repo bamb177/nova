@@ -2,38 +2,38 @@
   "name": "Rose",
   "image": "Rose",
   "rarity": "SR",
-  "element": "Ice",
+  "element": "Frost",
   "class": "Mage",
   "role": "DPS",
-  "faction": "Monochrome Nation",
+  "faction": "Monochrome Realm",
   "stats": {
-    "hp": "6,694",
-    "attack": "1,088",
+    "hp": "6,694명",
+    "attack": "1,088 원",
     "defense": "442"
   },
   "skills": {
     "normal": {
-      "name": "Shatter! Shatter! Shatter! (碎！碎！碎！)",
-      "description": "Deals ice damage equal to 96% of Attack to designated enemy. Enhanced (during Frost Cannon): Deals ice damage equal to 96% of Attack to enemy and surrounding 2-meter range"
+      "name": "인기 있는 인기 있는  Sha! ( Sha!)!)",
+      "description": "지정된 적에게 공격의 96%와 같은 얼음 손상을 줍니다. 향상된 (감리 대포 치료) : 적과 주변 2 미터 범위의 공격의 96%와 같은 얼음 손상"
     },
     "auto": {
-      "name": "Bullet Hell Scatter (弹幕散射)",
+      "name": "Bullet ( Bullet)",
       "cooldown": "10.0s",
-      "description": "Base: Deals ice damage equal to 180% of Attack to enemy. Enhanced (during Frost Cannon): Deals ice damage equal to 180% of Attack to enemy and surrounding 4-meter range"
+      "description": "기초: 적에게 공격의 180%와 동등한 얼음 손상을 줍니다. 강화된 (감리 대포 치료): 적과 주변 4미터 범위의 공격의 180%와 같은 얼음 손상"
     },
     "ultimate": {
       "name": "Frost Cannon Transformation",
       "energyCost": "8",
-      "description": "Enters [Frost Cannon] state for 10 seconds. Increases attack speed by 58%. Gains enhanced normal attacks and enhanced skills. All abilities become AoE during this state"
+      "description": "10 초 동안 [Frost Cannon] 상태를 입력하십시오. 공격 속도를 증가 58%. 향상된 정상적인 공격과 향상된 기술을 얻습니다. 모든 능력은이 상태 동안 AoE가됩니다."
     },
     "passive": {
-      "name": "Reckless Spirit's Foundation (冒失鬼的底蕴)",
-      "description": "Each normal attack increases critical rate by 2.4%. Maximum 20 stacks (48% maximum critical rate increase)."
+      "name": "Reckless Spirit의 기초 ( Re的))",
+      "description": "각 정상적인 공격은 2.4%에 의해 중요한 비율을 증가합니다. 최대 20개의 스택 (48% 최대 중요한 비율 증가)."
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "Self ice damage increases by 20%.",
+    "description": "자체 얼음 손상은 20% 증가합니다.",
     "requirements": {
       "faction": "Monochrome Nation",
       "element": "Ice"
@@ -42,39 +42,39 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "When in [Frost Cannon] state, critical rate increases by 15%."
+      "effect": "[Frost Cannon] 상태의 경우, 중요한 비율은 15 % 증가합니다."
     },
     {
       "level": 2,
-      "effect": "When in [Frost Cannon] state, damage taken reduced by 10%."
+      "effect": "[Frost Cannon] 상태의 경우, 10 % 감소한 손상."
     },
     {
       "level": 3,
-      "effect": "[Skill] and [Normal Attack] level and level cap +4. Essential skill level upgrade"
+      "effect": "[Skill] 과 [Normal Attack] 레벨과 레벨 캡 +4. 핵심 기술 수준 향상"
     },
     {
       "level": 4,
-      "effect": "Normal attack damage increases by 20%."
+      "effect": "일반 공격력이 20% 증가합니다."
     },
     {
       "level": 5,
-      "effect": "[Ultimate] and [Passive] level and level cap +4. Essential skill level upgrade"
+      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4. 핵심 기술 수준 향상"
     },
     {
       "level": 6,
-      "effect": "[Frost Cannon] state duration becomes 15 seconds."
+      "effect": "[Frost Cannon] 상태 지속 시간은 15 초입니다."
     }
   ],
   "memoryCard": {
     "name": "During Military Academy Training",
     "image": "Rosecard",
     "stats": {
-      "hp": "4,200",
+      "hp": "4,200원",
       "attack": "650",
       "defense": "395"
     },
     "effects": [
-      "After using ultimate skill, normal attack and Auto skill damage increased by 60% for 10 seconds"
+      "궁극적 인 기술을 사용 한 후, 정상 공격 및 자동 기술 손상은 10 초 동안 60 % 증가했습니다."
     ]
   },
   "tags": [
@@ -84,10 +84,5 @@
     "Normal Attack",
     "Speed Attack"
   ],
-  "id": "rose",
-  "_synced_at": "2026-01-02T04:47:50+00:00",
-  "_source_repo": "boring877/gacha-wiki",
-  "_source_path": "src/data/zone-nova/characters",
-  "_source_file": "rose.js",
-  "_source_name": "Rose"
+  "id": "rose"
 }

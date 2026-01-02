@@ -2,39 +2,39 @@
   "name": "Merlin",
   "image": "Merlin",
   "rarity": "SSR",
-  "element": "Fire",
+  "element": "Blaze",
   "class": "Rogue",
   "role": "DPS",
   "faction": "Avalon",
   "stats": {
-    "hp": "8,033",
-    "attack": "1,305",
+    "hp": "8,033 원",
+    "attack": "1,305명",
     "defense": "530",
     "critRate": 15
   },
   "skills": {
     "normal": {
       "name": "Flame Slash",
-      "description": "Deals fire damage equal to 120% of Attack to enemy unit"
+      "description": "공격의 120%와 같은 화재 손상을 적 단위로"
     },
     "auto": {
-      "name": "Magic Swordplay: Molten Core Burst",
+      "name": "Magic Swordplay: Molten 핵심 Burst",
       "cooldown": "5.0s",
-      "description": "Deals fire damage equal to 780% of Attack to enemy unit and applies [Mark]. When Merlin uses ultimate skill or attacks targets with [Mark], damage increases by 20%"
+      "description": "공격의 780%와 같은 화재 손상을 적 단위로 적용 [Mark]. Merlin이 궁극적 인 기술을 사용하거나 [Mark]와 표적을 공격 할 때, 20 %의 손상 증가"
     },
     "ultimate": {
-      "name": "Magic Swordplay: King's Sword",
+      "name": "Magic Swordplay: 왕의 검",
       "energyCost": "6",
-      "description": "Deals fire damage equal to 1080% of Attack to enemy unit. After [buffer] uses ultimate skill, can activate [Enhanced Ultimate Skill] once within 5 seconds. [Enhanced Ultimate Skill]: Deal 1200% attack power Fire damage to target enemy unit. When there is only one enemy unit on the field, damage is additionally increased by 30% "
+      "description": "공격의 1080%와 같은 화재 피해를 줍니다. [buffer]는 궁극적 인 기술을 사용하여 5 초 이내에 한 번 [Enhanced Ultimate Skill]을 활성화 할 수 있습니다. [Enhanced Ultimate Skill] : 적 단위를 대상으로 한 공격력 화재 손상을 치유합니다. 필드에 한 대의 적 단위가있을 때, 손상은 30% 증가"
     },
     "passive": {
       "name": "Rune Oscillation",
-      "description": "When ultimate skill critically hits, additionally deals Fire damage equal to 120% attack power"
+      "description": "궁극적 인 기술이 중요하게 보일 때, 추가적으로 화재 손상을 120% 공격력과 동일"
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "Self critical rate increased by 7.5%. At the start of battle, every 15% critical hit rate can increase own critical hit damage by 7.5%, maximum 6 times",
+    "description": "자체 중요한 비율이 7.5% 증가했습니다. 전투의 시작에서 모든 15 %의 중요한 타격률은 7.5%, 최대 6 배로 자신의 중요한 타격을 증가 할 수 있습니다.",
     "requirements": {
       "faction": "Avalon",
       "element": "Fire"
@@ -43,39 +43,39 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "Critical rate increased by 15%."
+      "effect": "긴요한 비율은 15% 증가했습니다."
     },
     {
       "level": 2,
-      "effect": "After [debuffer] uses ultimate skill, can also activate [Enhanced Ultimate Skill] once within 5 seconds. When activating [Enhanced Ultimate Skill], critical hit damage increases by 20%"
+      "effect": "[debuffer]는 궁극적 인 기술을 사용하여 5 초 이내에 [Enhanced Ultimate Skill]을 활성화 할 수 있습니다. [Enhanced Ultimate Skill]를 활성화 할 때 중요한 공격력이 20% 증가합니다."
     },
     {
       "level": 3,
-      "effect": "[Skills] and [Normal Attack] level and level cap +4"
+      "effect": "[Skills] 과 [Normal Attack] 레벨 및 레벨 캡 +4"
     },
     {
       "level": 4,
-      "effect": "Ultimate skill damage increased by 35%"
+      "effect": "궁극적인 기술 피해가 35% 증가했습니다."
     },
     {
       "level": 5,
-      "effect": "[Must Kill] and [Passive] level and level cap +4"
+      "effect": "[Must Kill] 및 [Passive] 레벨 및 레벨 캡 +4"
     },
     {
       "level": 6,
-      "effect": "[Enhanced Ultimate Skill] ignores targets 20% elemental resistance"
+      "effect": "[Enhanced Ultimate Skill]는 20 %의 원소 저항을 무시합니다"
     }
   ],
   "memoryCard": {
-    "name": "King's Sword",
+    "name": "왕의 검",
     "image": "Merlincard",
     "stats": {
-      "hp": "5,280",
+      "hp": "5,280원",
       "attack": "857",
       "defense": "348"
     },
     "effects": [
-      "Attack power increased by 40%, When there is only one enemy on the field, ultimate skill damage increased by 40%"
+      "공격력이 40%로 증가했습니다. 이 영역에서 한 적이있을 때 궁극적인 기술 공격력이 40% 증가했습니다."
     ]
   },
   "tags": [
@@ -85,10 +85,5 @@
     "Crit Rate",
     "Damage Increase"
   ],
-  "id": "merlin",
-  "_synced_at": "2026-01-02T04:47:50+00:00",
-  "_source_repo": "boring877/gacha-wiki",
-  "_source_path": "src/data/zone-nova/characters",
-  "_source_file": "merlin.js",
-  "_source_name": "Merlin"
+  "id": "merlin"
 }

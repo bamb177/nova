@@ -1,0 +1,88 @@
+{
+  "name": "Zashiki-warashi",
+  "image": "Zashiki-warashi",
+  "rarity": "SR",
+  "element": "Blaze",
+  "class": "Buffer",
+  "role": "Buffer",
+  "faction": "Heikyo Castle",
+  "stats": {
+    "hp": "7,970 원",
+    "attack": "837",
+    "defense": "560"
+  },
+  "skills": {
+    "normal": {
+      "name": "Housekeeper Guidance",
+      "description": "적에게 공격의 120%와 같은 화재 손상"
+    },
+    "auto": {
+      "name": "Five Grains Harvest",
+      "cooldown": "5.0s",
+      "description": "모든 연합 단위는 36% 공격력을 얻습니다. 공격 힘 모자: Zashiki-warashi의 입장 공격 힘의 36%를 초과할 수 없습니다. 최대 1개의 층, 지속 15 초"
+    },
+    "ultimate": {
+      "name": "행운을 빕니다! 공유 Hardship!",
+      "energyCost": "3",
+      "description": "모든 친절한 단위 손상은 36%, 15 초를 지속합니다"
+    },
+    "passive": {
+      "name": "어린이 축복",
+      "description": "자동 기술을 사용 한 후 : 가장 높은 공격력이있는 연합 된 단위는 1 층 [Blessing]을 얻습니다. [Blessing] 효과 : 15 초 동안 60 %의 공격 전력 증가"
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "팀 공격 전력은 10 % 증가합니다. 팀 방어 10% 증가",
+    "requirements": {
+      "faction": "Pingjing City",
+      "element": "Fire"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "전투를 입력 한 후 모든 친절한 단위 공격 전력이 15 % 증가하면 30 초 지속됩니다."
+    },
+    {
+      "level": 2,
+      "effect": "궁극적으로 사용할 때 : [Blessing]과 문자를 추가로 15 %의 손상 증가"
+    },
+    {
+      "level": 3,
+      "effect": "[Skill] 및 [Normal Attack] 레벨 및 레벨 캡 +4"
+    },
+    {
+      "level": 4,
+      "effect": "자동 기술을 사용 한 후 : 모든 연합 단위는 5 초 동안 10 %의 중요한 속도를 얻습니다."
+    },
+    {
+      "level": 5,
+      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4"
+    },
+    {
+      "level": 6,
+      "effect": "궁극적으로 사용할 때: [Blessing]와 문자는 두 배 궁극적인 효력을 얻습니다"
+    }
+  ],
+  "memoryCard": {
+    "name": "Sleep Treasure",
+    "image": "Zashiki-warashicard",
+    "stats": {
+      "hp": "5,000원",
+      "attack": "500",
+      "defense": "500"
+    },
+    "effects": [
+      "궁극적 인 기술을 주조 한 후, 팀 손상 증가를 24%, 지속 10 초; 추가로 50 % 확률이 20%, 10 초 지속"
+    ]
+  },
+  "tags": [
+    "Range",
+    "Buff",
+    "Atk Increase",
+    "Damage Increase",
+    "Crit Rate Increase"
+  ],
+  "id": "zashiki-warashi"
+}

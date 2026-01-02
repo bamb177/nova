@@ -7,33 +7,33 @@
   "role": "DPS",
   "faction": "Odius",
   "stats": {
-    "hp": "8,033",
-    "attack": "1,305",
+    "hp": "8,033 원",
+    "attack": "1,305명",
     "defense": "530"
   },
   "skills": {
     "normal": {
-      "name": "Love Fist (爱神之拳)",
-      "description": "Deals 120% attack power as holy damage to designated enemy unit."
+      "name": "Love Fist (비타 神之鶏)",
+      "description": "지정된 적 단위에 손상으로 120% 공격력."
     },
     "auto": {
-      "name": "Charm Impact (魅惑冲拳)",
+      "name": "())",
       "cooldown": "8.0s",
-      "description": "Automatically deals 816% attack power as holy damage to designated enemy. Increases self attack speed by 58%."
+      "description": "자동으로 지정된 적에게 손상으로 816%의 공격력을 제공합니다. 자체 공격 속도를 증가 58%."
     },
     "ultimate": {
-      "name": "Love and Beauty Waltz (爱与美之圆舞曲)",
+      "name": "사랑과 아름다움 Waltz (美之))",
       "energyCost": "8",
-      "description": "Normal Ultimate: Deals 1800% attack power as holy damage to designated enemy. Enhanced Ultimate (after 10 normal attacks): Deals 2160% attack power as holy damage to designated enemy, recovers 2 energy at the end, Counts as a basic-attack hit for any on-hit or combo effects."
+      "description": "정상적인 궁극적인: 지정된 적에게 손상으로 1800% 공격력을 줍니다. 강화된 궁극적인 (10 정상적인 공격 후에): 지정된 적에게 손상으로 2160% 공격력을 부여하고, 2개의 에너지를 결국 회복하고, 기본 공격 또는 콤보 효과에 대한 공격으로 계산합니다."
     },
     "passive": {
-      "name": "Beautiful Kill (美丽杀意)",
-      "description": "When HP is higher then 50%: +48 % Crit Rate on all outgoing damage. When HP is lower then 50%: +96 % Defense when taking damage."
+      "name": "아름다운 Kill (美))",
+      "description": "HP가 더 높을 때 50%: +48 % 모든 파기 손상에 대한 율. HP가 더 낮을 때 50%: +96 % 방어를 복용 할 때."
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "Self attack power increased by 10%. At battle start: For every 500 attack power, increase self holy damage by 5% (maximum 6 times). Maximum scaling: 30% holy damage boost at 3,000+ attack power.",
+    "description": "자기 공격 전력이 10 % 증가했습니다. 전투 시작: 모든 500의 공격력을 위해, 5% (최대 6 시간)에 의해 자기 거짓 손상을 증가. 최대 스케일링 : 3,000 + 공격 전력의 30 % 거짓 부스트.",
     "requirements": {
       "faction": "Odius",
       "element": "Holy"
@@ -42,40 +42,40 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "When you using auto skill (Self) it counts as 4 extra basic-attack hits toward the Enhanced Ultimate counter."
+      "effect": "자동 스킬(Self)을 사용하면 향상된 얼티밋 카운터를 통해 4개의 추가 기본 공격으로 계산됩니다."
     },
     {
       "level": 2,
-      "effect": "When using ultimate or auto skill: Damage taken reduced by 10%"
+      "effect": "궁극적으로 또는 자동 기술을 사용할 때: 공격력이 10% 감소했습니다."
     },
     {
       "level": 3,
-      "effect": "[Skills] and [Normal Attack] level and level cap +4"
+      "effect": "[Skills] 과 [Normal Attack] 레벨 및 레벨 캡 +4"
     },
     {
       "level": 4,
-      "effect": "Normal attack damage increased by 35%"
+      "effect": "일반 공격력이 35% 증가했습니다."
     },
     {
       "level": 5,
-      "effect": "[Ultimate] and [Passive] level and level cap +4"
+      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4"
     },
     {
       "level": 6,
-      "effect": "[Enhanced Ultimate] ignores 20% Holy resistance"
+      "effect": "[Enhanced Ultimate]는 20 %의 성저항을 무시합니다."
     }
   ],
   "memoryCard": {
     "name": "Secret Garden",
     "image": "Afroditecard",
     "stats": {
-      "hp": "6,400",
+      "hp": "6,400원",
       "attack": "784",
       "defense": "318"
     },
     "effects": [
-      "Attack power increased by 40%",
-      "If the equipped units Ultimate costs higher then 8 Energy and used ultimate : Damage increased by 40% for 10 seconds"
+      "공격력이 40% 증가했습니다.",
+      "장비 단위 궁극적인 비용 더 높은 경우 다음 8 에너지 사용 궁극적인 : 공격력이 10 초 동안 40% 증가했습니다."
     ]
   },
   "tags": [
@@ -84,10 +84,5 @@
     "Normal Atk",
     "Melee"
   ],
-  "id": "afrodite",
-  "_synced_at": "2026-01-02T04:47:49+00:00",
-  "_source_repo": "boring877/gacha-wiki",
-  "_source_path": "src/data/zone-nova/characters",
-  "_source_file": "afrodite.js",
-  "_source_name": "Afrodite"
+  "id": "afrodite"
 }

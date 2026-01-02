@@ -5,35 +5,35 @@
   "element": "Holy",
   "class": "Rogue",
   "role": "DPS",
-  "faction": "Chemic",
+  "faction": "Kemich",
   "stats": {
-    "hp": "6,694",
-    "attack": "1,088",
+    "hp": "6,694명",
+    "attack": "1,088 원",
     "defense": "442"
   },
   "skills": {
     "normal": {
       "name": "Claw Strike",
-      "description": "Deals 120% of Attack as holy damage to designated enemy unit"
+      "description": "지정된 적 단위에 손상으로 공격력의 120%"
     },
     "auto": {
       "name": "Ruthless Hunt",
       "cooldown": "5.0s",
-      "description": "Deals holy damage equal to 240% of Attack to designated enemy unit."
+      "description": "지정된 적 단위로 공격의 240%와 동일하게 손상을 줍니다."
     },
     "ultimate": {
       "name": "Bloodthirsty Killing",
       "energyCost": "8",
-      "description": "Jump towards designated enemy unit and deal 960% attack power holy damage When attacking targets with [Sacred Hatred] at maximum stacks, additionally apply [Light Erosion] [Light Erosion]: Deals damage every 3 seconds, each layer deals 180% attack power holy damage, maximum 1 layer"
+      "description": "지정된 적 단위를 향해 점프하고 최대 스택에서 대상을 공격 할 때 960% 공격력 거짓 손상을 추가로 적용 [Light Erosion] [Light Erosion] : 각 3 초마다 손상을, 각 층은 180%의 공격 힘 holy 손상, 최대 1개의 층을 줍니다"
     },
     "passive": {
       "name": "Bloodthirst",
-      "description": "Auto Skills can apply [Sacred Hatred][Sacred Hatred]: Deals damage every 2 seconds, each layer deals 24% attack power holy damage, maximum 5 layers"
+      "description": "자동 스킬을 적용할 수 있습니다 [Sacred Hatred]: 각 2 초마다 손상을 입히고, 각 층은 24% 공격 힘 holy 손상, 최대 5개의 층을 줍니다"
     }
   },
   "teamSkill": {
     "name": "Combo Skill",
-    "description": "Self damage dealt increases by 20%",
+    "description": "자기 손상은 20% 증가",
     "requirements": {
       "faction": "Chemic",
       "element": "Holy"
@@ -42,39 +42,39 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "When attacking targets that have [Continuous damage], penetration rate increases by 10%"
+      "effect": "공격 대상이 있는 경우 [지속적 손상], 침투율은 10% 증가"
     },
     {
       "level": 2,
-      "effect": "When self HP is 100%, attack power increases by 20%"
+      "effect": "자체 HP가 100 % 인 경우 공격 전력이 20 % 증가합니다."
     },
     {
       "level": 3,
-      "effect": "[Skills] and [Normal Attack] level and level cap +4"
+      "effect": "[Skills] 과 [Normal Attack] 레벨 및 레벨 캡 +4"
     },
     {
       "level": 4,
-      "effect": "[Continuous Damage] damage increased by 25%"
+      "effect": "[지속 피해] 공격력이 25% 증가했습니다."
     },
     {
       "level": 5,
-      "effect": "[Ultimate] and [Passive] level and level cap +4"
+      "effect": "[Ultimate] 및 [Passive] 레벨 및 레벨 캡 +4"
     },
     {
       "level": 6,
-      "effect": "[Ultimate skill] additionally makes the target take 20% increased [Continuous damage] damage, lasts 15 seconds"
+      "effect": "[Ultimate Skill] 추가적으로 대상이 20 % 증가 [지속적 손상] 손상, 지속 15 초"
     }
   ],
   "memoryCard": {
     "name": "Secret Room Reality",
     "image": "Tefnutcard",
     "stats": {
-      "hp": "4,200",
+      "hp": "4,200원",
       "attack": "650",
       "defense": "395"
     },
     "effects": [
-      "Continuous Damage Penetration Rate +36%"
+      "지속적인 피해율 +36%"
     ]
   },
   "tags": [
@@ -83,10 +83,5 @@
     "Penetration",
     "DOT Intake Increases"
   ],
-  "id": "tefnut",
-  "_synced_at": "2026-01-02T04:47:50+00:00",
-  "_source_repo": "boring877/gacha-wiki",
-  "_source_path": "src/data/zone-nova/characters",
-  "_source_file": "tefnut.js",
-  "_source_name": "Tefnut"
+  "id": "tefnut"
 }

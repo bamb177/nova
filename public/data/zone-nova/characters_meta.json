@@ -1,9 +1,418 @@
 {
-  "last_refresh": "2026-01-02T04:47:49+00:00",
-  "count": 0,
-  "factions_count": 0,
-  "factions": [],
-  "elements": [],
-  "classes": [],
-  "characters": []
+  "characters": [
+    {
+      "id": "anubis",
+      "name": "Anubis",
+      "rarity": "SSR",
+      "element": "Chaos",
+      "faction": "Kemich",
+      "class": "healer",
+      "role": "healer"
+    },
+    {
+      "id": "afrodite",
+      "name": "Aphrodite",
+      "rarity": "SSR",
+      "element": "Holy",
+      "faction": "Odius",
+      "class": "warrior",
+      "role": "dps"
+    },
+    {
+      "id": "apollo",
+      "name": "Apollo",
+      "rarity": "SSR",
+      "element": "Blaze",
+      "faction": "Odius",
+      "class": "buffer",
+      "role": "buffer"
+    },
+    {
+      "id": "artemis",
+      "name": "Artemis",
+      "rarity": "SSR",
+      "element": "Storm",
+      "faction": "Odius",
+      "class": "warrior",
+      "role": "dps"
+    },
+    {
+      "id": "arthur",
+      "name": "Arthur",
+      "rarity": "SSR",
+      "element": "Holy",
+      "faction": "Avalon",
+      "class": "mage",
+      "role": "dps"
+    },
+    {
+      "id": "athena",
+      "name": "Athena",
+      "rarity": "SSR",
+      "element": "Storm",
+      "faction": "Odius",
+      "class": "buffer",
+      "role": "buffer"
+    },
+    {
+      "id": "cleopatra",
+      "name": "Cleopatra",
+      "rarity": "SSR",
+      "element": "Chaos",
+      "faction": "Kemich",
+      "class": "mage",
+      "role": "dps"
+    },
+    {
+      "id": "chiya",
+      "name": "Cynia",
+      "rarity": "SSR",
+      "element": "Frost",
+      "faction": "Safir",
+      "class": "rogue",
+      "role": "dps"
+    },
+    {
+      "id": "freya",
+      "name": "Freya",
+      "rarity": "SSR",
+      "element": "Frost",
+      "faction": "Asa",
+      "class": "mage",
+      "role": "dps"
+    },
+    {
+      "id": "freye",
+      "name": "Frigga",
+      "rarity": "SSR",
+      "element": "Chaos",
+      "faction": "Asa",
+      "class": "debuffer",
+      "role": "debuffer"
+    },
+    {
+      "id": "guinevere",
+      "name": "Guinevere",
+      "rarity": "SSR",
+      "element": "Blaze",
+      "faction": "Avalon",
+      "class": "guardian",
+      "role": "tank"
+    },
+    {
+      "id": "hela",
+      "name": "Hela",
+      "rarity": "SSR",
+      "element": "Chaos",
+      "faction": "Asa",
+      "class": "rogue",
+      "role": "dps"
+    },
+    {
+      "id": "hera",
+      "name": "Hera",
+      "rarity": "SSR",
+      "element": "Chaos",
+      "faction": "Odius",
+      "class": "rogue",
+      "role": "dps"
+    },
+    {
+      "id": "horus",
+      "name": "Horus",
+      "rarity": "SSR",
+      "element": "Holy",
+      "faction": "Kemich",
+      "class": "debuffer",
+      "role": "debuffer"
+    },
+    {
+      "id": "ibaraki-doji",
+      "name": "Ibaraki-doji",
+      "rarity": "SSR",
+      "element": "Blaze",
+      "faction": "Heikyo Castle",
+      "class": "debuffer",
+      "role": "debuffer"
+    },
+    {
+      "id": "jeanne-darc",
+      "name": "Joan of Arc",
+      "rarity": "SSR",
+      "element": "Storm",
+      "faction": "Avalon",
+      "class": "healer",
+      "role": "healer"
+    },
+    {
+      "id": "jorogumo",
+      "name": "Jorogumo",
+      "rarity": "SSR",
+      "element": "Chaos",
+      "faction": "Heikyo Castle",
+      "class": "healer",
+      "role": "healer"
+    },
+    {
+      "id": "lavinia",
+      "name": "Lavinia",
+      "rarity": "SSR",
+      "element": "Blaze",
+      "faction": "Safir",
+      "class": "healer",
+      "role": "healer"
+    },
+    {
+      "id": "lily",
+      "name": "Lily",
+      "rarity": "SSR",
+      "element": "Frost",
+      "faction": "Safir",
+      "class": "guardian",
+      "role": "tank"
+    },
+    {
+      "id": "loki",
+      "name": "Loki",
+      "rarity": "SSR",
+      "element": "Chaos",
+      "faction": "Asa",
+      "class": "debuffer",
+      "role": "debuffer"
+    },
+    {
+      "id": "lyra",
+      "name": "Lyra",
+      "rarity": "SSR",
+      "element": "Blaze",
+      "faction": "Safir",
+      "class": "mage",
+      "role": "dps"
+    },
+    {
+      "id": "merlin",
+      "name": "Merlin",
+      "rarity": "SSR",
+      "element": "Blaze",
+      "faction": "Avalon",
+      "class": "rogue",
+      "role": "dps"
+    },
+    {
+      "id": "morgan-le-fay",
+      "name": "Morgan Le Fay",
+      "rarity": "SSR",
+      "element": "Holy",
+      "faction": "Avalon",
+      "class": "buffer",
+      "role": "buffer"
+    },
+    {
+      "id": "naiya",
+      "name": "Naya",
+      "rarity": "SSR",
+      "element": "Frost",
+      "faction": "Safir",
+      "class": "buffer",
+      "role": "buffer"
+    },
+    {
+      "id": "nina",
+      "name": "Nina",
+      "rarity": "SSR",
+      "element": "Frost",
+      "faction": "Safir",
+      "class": "warrior",
+      "role": "dps"
+    },
+    {
+      "id": "odin",
+      "name": "Odin",
+      "rarity": "SSR",
+      "element": "Blaze",
+      "faction": "Asa",
+      "class": "rogue",
+      "role": "dps"
+    },
+    {
+      "id": "penny",
+      "name": "Pennie",
+      "rarity": "SSR",
+      "element": "Storm",
+      "faction": "Safir",
+      "class": "guardian",
+      "role": "tank"
+    },
+    {
+      "id": "sigurd",
+      "name": "Sigurd",
+      "rarity": "SSR",
+      "element": "Blaze",
+      "faction": "Asa",
+      "class": "rogue",
+      "role": "dps"
+    },
+    {
+      "id": "thor",
+      "name": "Thor",
+      "rarity": "SSR",
+      "element": "Holy",
+      "faction": "Asa",
+      "class": "guardian",
+      "role": "tank"
+    },
+    {
+      "id": "yuis",
+      "name": "Zeus",
+      "rarity": "SSR",
+      "element": "Holy",
+      "faction": "Odius",
+      "class": "rogue",
+      "role": "dps"
+    },
+    {
+      "id": "bastet",
+      "name": "Bastet",
+      "rarity": "SR",
+      "element": "Storm",
+      "faction": "Kemich",
+      "class": "mage",
+      "role": "dps"
+    },
+    {
+      "id": "leviathan",
+      "name": "Behemoth",
+      "rarity": "SR",
+      "element": "Storm",
+      "faction": "Bikta",
+      "class": "rogue",
+      "role": "dps"
+    },
+    {
+      "id": "belphegar",
+      "name": "Belphegor",
+      "rarity": "SR",
+      "element": "Chaos",
+      "faction": "Bikta",
+      "class": "debuffer",
+      "role": "debuffer"
+    },
+    {
+      "id": "kela",
+      "name": "Clara",
+      "rarity": "SR",
+      "element": "Holy",
+      "faction": "Safir",
+      "class": "healer",
+      "role": "healer"
+    },
+    {
+      "id": "lancelot",
+      "name": "Lancelot",
+      "rarity": "SR",
+      "element": "Holy",
+      "faction": "Avalon",
+      "class": "guardian",
+      "role": "tank"
+    },
+    {
+      "id": "greed-mammon",
+      "name": "Mammon",
+      "rarity": "SR",
+      "element": "Chaos",
+      "faction": "Bikta",
+      "class": "mage",
+      "role": "dps"
+    },
+    {
+      "id": "mordred",
+      "name": "Mordred",
+      "rarity": "SR",
+      "element": "Blaze",
+      "faction": "Avalon",
+      "class": "warrior",
+      "role": "dps"
+    },
+    {
+      "id": "nini",
+      "name": "Nini",
+      "rarity": "SR",
+      "element": "Frost",
+      "faction": "Monochrome Realm",
+      "class": "debuffer",
+      "role": "debuffer"
+    },
+    {
+      "id": "rose",
+      "name": "Rose",
+      "rarity": "SR",
+      "element": "Frost",
+      "faction": "Monochrome Realm",
+      "class": "mage",
+      "role": "dps"
+    },
+    {
+      "id": "shanna",
+      "name": "Saya",
+      "rarity": "SR",
+      "element": "Blaze",
+      "faction": "Safir",
+      "class": "rogue",
+      "role": "dps"
+    },
+    {
+      "id": "shu",
+      "name": "Shu",
+      "rarity": "SR",
+      "element": "Storm",
+      "faction": "Kemich",
+      "class": "debuffer",
+      "role": "debuffer"
+    },
+    {
+      "id": "tefnut",
+      "name": "Tefnut",
+      "rarity": "SR",
+      "element": "Holy",
+      "faction": "Kemich",
+      "class": "rogue",
+      "role": "dps"
+    },
+    {
+      "id": "snow-girl",
+      "name": "Yuki-onna",
+      "rarity": "SR",
+      "element": "Frost",
+      "faction": "Heikyo Castle",
+      "class": "healer",
+      "role": "healer"
+    },
+    {
+      "id": "zashiki-warashi",
+      "name": "Zashiki-warashi",
+      "rarity": "SR",
+      "element": "Blaze",
+      "faction": "Heikyo Castle",
+      "class": "buffer",
+      "role": "buffer"
+    },
+    {
+      "id": "apep",
+      "name": "Apep",
+      "rarity": "-",
+      "element": "-",
+      "faction": "-",
+      "class": "-",
+      "role": "-"
+    },
+    {
+      "id": "gaia",
+      "name": "Gaia",
+      "rarity": "-",
+      "element": "-",
+      "faction": "-",
+      "class": "-",
+      "role": "-"
+    }
+  ]
 }

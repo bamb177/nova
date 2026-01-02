@@ -1,0 +1,106 @@
+{
+  "name": "Yuki-onna",
+  "chineseName": "雪女",
+  "image": "Snow",
+  "rarity": "SR",
+  "element": "Frost",
+  "class": "Healer",
+  "role": "Healer",
+  "faction": "Heikyo Castle",
+  "stats": {
+    "hp": "7,850 원",
+    "attack": "837",
+    "defense": "608",
+    "energyRecovery": "0.25/s",
+    "critRate": "100%년",
+    "critDamage": "50% 할인"
+  },
+  "skills": {
+    "normal": {
+      "name": "Snow Ghost Impact",
+      "chineseName": "雪鬼撞击",
+      "level": "10개 이상",
+      "cooldown": "2.0s",
+      "description": "적 단위로 120% 공격력 얼음 손상"
+    },
+    "auto": {
+      "name": "Ice Snow Healing",
+      "chineseName": "冰雪治愈",
+      "level": "10개 이상",
+      "cooldown": "5.0s",
+      "description": "모든 친절한 단위를 치유하고, 나머지 HP는 33.6% + 자신의 공격력의 182와 동일"
+    },
+    "ultimate": {
+      "name": "Ice Seal Protection",
+      "chineseName": "冰封庇护",
+      "level": "10개 이상",
+      "cooldown": "1.0s",
+      "energyCost": "3",
+      "description": "모든 친절한 단위를 치유하고, 나머지 HP는 47.2% + 자신의 공격력의 182와 동일"
+    },
+    "passive": {
+      "name": "Frost Blessing",
+      "chineseName": "冰霜祝福",
+      "level": "10개 이상",
+      "description": "궁극적인 기술 치유는 표적에 5 초 지속적인 회복 효력을 추가할 수 있습니다, 눈 소녀 공격 힘의 75%를 회복하는 + 초당 29 HP"
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "chineseName": "组合技",
+    "level": "1",
+    "description": "공격력이 10% 증가하여 치유량이 12.5% 증가했습니다.",
+    "requirements": {
+      "faction": "Pingjing City",
+      "element": "Ice",
+      "condition": "2 [핑징시] 또는 2 [이스]"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "궁극적인 기술 치유 친절한 단위 후에, 추가적으로 10 초 동안 10%에 의하여 표적 손상을 증가합니다"
+    },
+    {
+      "level": 2,
+      "effect": "일반 공격 거래 추가 서리 손상 같은 50% 자신의 공격의 힘"
+    },
+    {
+      "level": 3,
+      "effect": "[Skills] 과 [Normal Attack] 레벨 캡 +4"
+    },
+    {
+      "level": 4,
+      "effect": "치유량이 20% 증가했습니다."
+    },
+    {
+      "level": 5,
+      "effect": "[필수 스킬] 및 [Passive] 레벨 캡 +4"
+    },
+    {
+      "level": 6,
+      "effect": "자동 기술 heal 친절한 단위는 또한 수동적인 지속적인 회복 효력을 방아쇠를 끊을 수 있습니다"
+    }
+  ],
+  "memoryCard": {
+    "name": "The Beauty of Heijing Castle",
+    "chineseName": "平京城的绝美",
+    "image": "Snowcard",
+    "level": "80/80",
+    "stats": {
+      "hp": "5,000원",
+      "attack": "500",
+      "defense": "500"
+    },
+    "effects": [
+      "치유 대상 HP가 가득 차있을 때, 대상 손상은 10 초 동안 24% 증가"
+    ]
+  },
+  "tags": [
+    "Range",
+    "Healing Damage Increase",
+    "Continuously Heals",
+    "AOE Healing"
+  ],
+  "id": "snow-girl"
+}

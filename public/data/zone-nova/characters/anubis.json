@@ -6,80 +6,80 @@
   "element": "Chaos",
   "class": "Healer",
   "role": "Healer",
-  "faction": "Chemic",
+  "faction": "Kemich",
   "stats": {
-    "hp": "9,180",
-    "attack": "1,004",
+    "hp": "9,180명",
+    "attack": "1,004 원",
     "defense": "729",
     "energyRecovery": "0.25/s",
-    "critRate": "0%",
-    "critDamage": "50%"
+    "critRate": "100%년",
+    "critDamage": "50% 할인"
   },
   "skills": {
     "normal": {
       "name": "Underworld Touch",
       "chineseName": "冥神之触",
-      "level": "10+4",
+      "level": "10개 이상",
       "cooldown": "2.0s",
-      "description": "Deals 120% attack power Chaos damage to designated enemy unit."
+      "description": "적격 단위로 공격력이 120% 증가합니다."
     },
     "auto": {
       "name": "Divine Punishment Rain",
       "chineseName": "天罚之雨",
-      "level": "10+4",
+      "level": "10개 이상",
       "cooldown": "8.0s",
-      "description": "Call a meteor on the target and all enemies within 2 m, 96 % ATK as Chaos damage on impact. adding 1 layer [Nightmare]. [Nightmare]: Every 3 s deals 5.6 % ATK as Chaos damage per stack, Caps at 10 stacks (total 56 % ATK per tick at max)."
+      "description": "대상에 대한 유머를 호출하고 2 m 내의 모든 적, 96 % ATK는 차오 손상으로. 1개의 층 [Nightmare]를 추가하십시오. [밤나무]: 각 3개의 s는 5.6 % ATK를 쌓을 당 Chaos 손상, 10의 더미에 모자 (최대에 진드기에 당 합계 56 % ATK) 거래합니다."
     },
     "ultimate": {
       "name": "Destined Reversal",
       "chineseName": "命定逆转",
-      "level": "10+4",
+      "level": "10개 이상",
       "cooldown": "1.0s",
       "energyCost": "4",
-      "description": "Heal lowest-HP ally for 112.8 % ATK(HealerATK) + 668 HP. Enhancement: Heal all allies for 112.8 % ATK + 668 HP and give them 10 % damage reduction for 10 s."
+      "description": "112.8 % ATK (HealerATK) + 668 HP에 대한 최저 HP. 증진: 112.8 % ATK + 668 HP에 대한 모든 동맹을 치유하고 10 s의 % 손상 감소를 제공합니다."
     },
     "passive": {
       "name": "Soul Siphon",
       "chineseName": "灵魂虹吸",
-      "level": "10+4",
-      "description": "When using auto skill (only you) to attack targets with (20) with dupe 1 (15+) layers of DOT, heals entire team self attack power 97.2%+445 HP and Immediately gain one Empowered Ultimate charge, usable within 8 s."
+      "level": "10개 이상",
+      "description": "자동차 기술을 사용 할 때 (만 당신) 두피와 대상을 공격 (20) DOT의 1 (15 +) 레이어, 전체 팀 자기 공격력 97.2% + 445 HP 및 즉시 얻을 하나 Empowered 궁극적 인 충전, 8 s 내에서 사용."
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
     "chineseName": "组合技",
     "level": "1",
-    "description": "Passive: Self attack power +10%. Battle Start: Every 500 attack power increases self healing by 5%, max 6 times.",
+    "description": "수동적인: 각자 공격 힘 +10%. 전투 시작: 각 500의 공격 힘은 5%, 최대 6배에 의해 각자 치유를 증가합니다.",
     "requirements": {
       "faction": "Chemic",
       "element": "Chaos",
-      "condition": "2 [Chemic] colored or 2 [Chaos] colored characters"
+      "condition": "2 [Chemic] 컬러 또는 2 [Chaos] 컬러 문자"
     }
   },
   "awakenings": [
     {
       "level": 1,
-      "effect": "Passive skill conditions reduced from 20 layers to 15 layers"
+      "effect": "수동적인 기술은 20개의 층에서 15개의 층으로 감소했습니다"
     },
     {
       "level": 2,
-      "effect": "Every heal cast by Anubis (even from passives or ultimates) now applies a 5-second buff to the healed ally Incoming damage –10 % , Each new heal refreshes the 5-second duration."
+      "effect": "Anubis의 모든 치유 캐스트 (수동 또는 궁극적 인에서 일) 이제 치유 된 ally Incoming 손상에 5 초 버퍼를 적용합니다 -10 %, 각 새로운 치유는 5 초 지속 시간을 재생합니다."
     },
     {
       "level": 3,
-      "effect": "[Skills] and [Normal Attack] level cap +4"
+      "effect": "[Skills] 과 [Normal Attack] 레벨 캡 +4"
     },
     {
       "level": 4,
-      "effect": "Healing amount increased by 37.5%"
+      "effect": "치유량이 37.5% 증가했습니다."
     },
     {
       "level": 5,
-      "effect": "[Required Skills] and [Passive] level cap +4"
+      "effect": "[필수 스킬] 및 [Passive] 레벨 캡 +4"
     },
     {
       "level": 6,
-      "effect": "Auto Skill will summon additional meteors for consecutive attacks"
+      "effect": "Auto Skills는 연속 공격을 위한 추가적인 meteors를 요약할 것입니다"
     }
   ],
   "memoryCard": {
@@ -88,12 +88,12 @@
     "image": "Anubiscard",
     "level": "80/80",
     "stats": {
-      "hp": "6,000",
+      "hp": "6,000원",
       "attack": "800",
       "defense": "600"
     },
     "effects": [
-      "Healing amount +50%, each healing gives target +40% attack power for 3 seconds"
+      "치유량 +50%, 각 치유는 3 초 동안 표적 +40% 공격 힘을 줍니다"
     ]
   },
   "tags": [
@@ -102,10 +102,5 @@
     "Damage Reduction",
     "DOT"
   ],
-  "id": "anubis",
-  "_synced_at": "2026-01-02T04:47:49+00:00",
-  "_source_repo": "boring877/gacha-wiki",
-  "_source_path": "src/data/zone-nova/characters",
-  "_source_file": "anubis.js",
-  "_source_name": "Anubis"
+  "id": "anubis"
 }
