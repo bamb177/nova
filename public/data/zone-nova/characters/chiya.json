@@ -1,0 +1,93 @@
+{
+  "name": "Cynia",
+  "image": "Chiya",
+  "rarity": "SSR",
+  "element": "Ice",
+  "class": "Rogue",
+  "role": "DPS",
+  "faction": "Sapphire",
+  "stats": {
+    "hp": "8,033",
+    "attack": "1,305",
+    "defense": "530"
+  },
+  "skills": {
+    "normal": {
+      "name": "Heavy Hammer Strike",
+      "description": "Deals ice damage equal to 120% of Attack to designated enemy unit."
+    },
+    "auto": {
+      "name": "Cold Steel Combo",
+      "cooldown": "5.0s",
+      "description": "Deals ice damage equal to 480% of Attack to enemy unit."
+    },
+    "ultimate": {
+      "name": "Society Master's Fist",
+      "energyCost": "3",
+      "description": "Rush towards target, dealing 600% attack power ice damage [Enhanced Ultimate Skill]: Gain 100% critical rate, rush towards target dealing 840% attack power ice damage"
+    },
+    "passive": {
+      "name": "Beam Assist Framework",
+      "description": "After killing an enemy, enter [Focus] state for 10 seconds. All attacks additionally deal 36% attack power ice damage, and gain one [Enhanced Ultimate Skill]"
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "Self attack power increased by 10%. At battle start, every 500 attack power can increase self critical damage by 7.5%, maximum 6 times (up to 45% critical damage).",
+    "requirements": {
+      "faction": "Sapphire",
+      "element": "Ice"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "At battle start, immediately gains one [Enhanced Ultimate Skill]."
+    },
+    {
+      "level": 2,
+      "effect": "During [Focus] state, attack speed increased by 50%."
+    },
+    {
+      "level": 3,
+      "effect": "[Skill] and [Normal Attack] level and level cap +4."
+    },
+    {
+      "level": 4,
+      "effect": "Ice damage increased by 30%."
+    },
+    {
+      "level": 5,
+      "effect": "[Ultimate] and [Passive] level and level cap +4."
+    },
+    {
+      "level": 6,
+      "effect": "After using normal ultimate skill, gain one Enhanced Ultimate Skill, Ultimate skill damage increases by 30%"
+    }
+  ],
+  "memoryCard": {
+    "name": "Lonely Dark Deep Night",
+    "image": "Chiyacard",
+    "stats": {
+      "hp": "5,040",
+      "attack": "780",
+      "defense": "474"
+    },
+    "effects": [
+      "Critical damage increases by 60%. Attack power increases by 10% After the equipment wearer kills an enemy stacking up to 4 times,up to 40% attack power increase and stay until the end of the battle"
+    ]
+  },
+  "tags": [
+    "Melee",
+    "Crit Rate",
+    "Crit Dmg",
+    "Enhanced Ultimate",
+    "Attack Speed"
+  ],
+  "id": "chiya",
+  "_synced_at": "2026-01-02T04:47:49+00:00",
+  "_source_repo": "boring877/gacha-wiki",
+  "_source_path": "src/data/zone-nova/characters",
+  "_source_file": "chiya.js",
+  "_source_name": "Chiya"
+}

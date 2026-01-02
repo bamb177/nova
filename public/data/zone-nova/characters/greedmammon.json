@@ -1,0 +1,94 @@
+{
+  "name": "Mammon",
+  "image": "GreedMammon",
+  "rarity": "SR",
+  "element": "Chaos",
+  "class": "Mage",
+  "role": "DPS",
+  "faction": "Bicta Tower",
+  "stats": {
+    "hp": "6,694",
+    "attack": "1,088",
+    "defense": "442"
+  },
+  "skills": {
+    "normal": {
+      "name": "The More You Hit, The Richer",
+      "description": "Deals chaos damage equal to 120% of Attack to designated enemy unit"
+    },
+    "auto": {
+      "name": "Golden Curse",
+      "cooldown": "5.0s",
+      "description": "Deal 96% attack power chaos damage to surrounding area within 3 meters of self"
+    },
+    "ultimate": {
+      "name": "Seven Deadly Sins: Greed",
+      "energyCost": "5",
+      "description": "Deals chaos damage equal to 180% of Attack to designated enemy unit. [Enhanced Ultimate] Version: Deals chaos damage equal to 240% of Attack to enemies within a 4-meter radius around self. [Buffer] After an ally uses ultimate skill, can activate [Enhanced Ultimate] once within 5 seconds"
+    },
+    "passive": {
+      "name": "Passive Tax Burden",
+      "description": "After casting enhanced ultimate skill, damage increases by 29%"
+    }
+  },
+  "teamSkill": {
+    "name": "Combo Skill",
+    "description": "Own damage dealt increases by 20%",
+    "requirements": {
+      "faction": "Bicta Tower",
+      "element": "Chaos"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "When you have buff effects: Ultimate critical damage increases by 20%"
+    },
+    {
+      "level": 2,
+      "effect": "After casting ultimate skill, damage taken decreases by 10% for 10 seconds"
+    },
+    {
+      "level": 3,
+      "effect": "[Skill] and [Normal Attack] level and level cap +4"
+    },
+    {
+      "level": 4,
+      "effect": "Ultimate skill damage increases by 20%"
+    },
+    {
+      "level": 5,
+      "effect": "[Ultimate] and [Passive] level and level cap +4"
+    },
+    {
+      "level": 6,
+      "effect": "After successfully casting enhanced ultimate skill, additionally gain 1 energy point"
+    }
+  ],
+  "memoryCard": {
+    "name": "Method of Revenge",
+    "image": "Greed-Mammon-card",
+    "stats": {
+      "hp": "4,200",
+      "attack": "650",
+      "defense": "395"
+    },
+    "effects": [
+      "When a Buffer character uses their ultimate, own ultimate damage increases by 60% for 10 seconds"
+    ]
+  },
+  "tags": [
+    "Melee",
+    "AOE",
+    "Enhanced Ultimate",
+    "Crit Dmg",
+    "Energy",
+    "Damage Reduction"
+  ],
+  "id": "greedmammon",
+  "_synced_at": "2026-01-02T04:47:49+00:00",
+  "_source_repo": "boring877/gacha-wiki",
+  "_source_path": "src/data/zone-nova/characters",
+  "_source_file": "greed-mammon.js",
+  "_source_name": "Greed Mammon"
+}

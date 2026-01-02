@@ -1,0 +1,92 @@
+{
+  "name": "Tefnut",
+  "image": "Tefnut",
+  "rarity": "SR",
+  "element": "Holy",
+  "class": "Rogue",
+  "role": "DPS",
+  "faction": "Chemic",
+  "stats": {
+    "hp": "6,694",
+    "attack": "1,088",
+    "defense": "442"
+  },
+  "skills": {
+    "normal": {
+      "name": "Claw Strike",
+      "description": "Deals 120% of Attack as holy damage to designated enemy unit"
+    },
+    "auto": {
+      "name": "Ruthless Hunt",
+      "cooldown": "5.0s",
+      "description": "Deals holy damage equal to 240% of Attack to designated enemy unit."
+    },
+    "ultimate": {
+      "name": "Bloodthirsty Killing",
+      "energyCost": "8",
+      "description": "Jump towards designated enemy unit and deal 960% attack power holy damage When attacking targets with [Sacred Hatred] at maximum stacks, additionally apply [Light Erosion] [Light Erosion]: Deals damage every 3 seconds, each layer deals 180% attack power holy damage, maximum 1 layer"
+    },
+    "passive": {
+      "name": "Bloodthirst",
+      "description": "Auto Skills can apply [Sacred Hatred][Sacred Hatred]: Deals damage every 2 seconds, each layer deals 24% attack power holy damage, maximum 5 layers"
+    }
+  },
+  "teamSkill": {
+    "name": "Combo Skill",
+    "description": "Self damage dealt increases by 20%",
+    "requirements": {
+      "faction": "Chemic",
+      "element": "Holy"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "When attacking targets that have [Continuous damage], penetration rate increases by 10%"
+    },
+    {
+      "level": 2,
+      "effect": "When self HP is 100%, attack power increases by 20%"
+    },
+    {
+      "level": 3,
+      "effect": "[Skills] and [Normal Attack] level and level cap +4"
+    },
+    {
+      "level": 4,
+      "effect": "[Continuous Damage] damage increased by 25%"
+    },
+    {
+      "level": 5,
+      "effect": "[Ultimate] and [Passive] level and level cap +4"
+    },
+    {
+      "level": 6,
+      "effect": "[Ultimate skill] additionally makes the target take 20% increased [Continuous damage] damage, lasts 15 seconds"
+    }
+  ],
+  "memoryCard": {
+    "name": "Secret Room Reality",
+    "image": "Tefnutcard",
+    "stats": {
+      "hp": "4,200",
+      "attack": "650",
+      "defense": "395"
+    },
+    "effects": [
+      "Continuous Damage Penetration Rate +36%"
+    ]
+  },
+  "tags": [
+    "Melee",
+    "DOT",
+    "Penetration",
+    "DOT Intake Increases"
+  ],
+  "id": "tefnut",
+  "_synced_at": "2026-01-02T04:47:50+00:00",
+  "_source_repo": "boring877/gacha-wiki",
+  "_source_path": "src/data/zone-nova/characters",
+  "_source_file": "tefnut.js",
+  "_source_name": "Tefnut"
+}
