@@ -60,6 +60,14 @@ jobs:
           python -V
           python scripts/sync_zone_nova.py --upstream gacha-wiki --write --sync-details
 
+       - name: Check generated detail files
+         run: |
+          echo "== characters detail dir =="
+          ls -la public/data/zone-nova/characters || true
+          echo "== sample =="
+          test -f public/data/zone-nova/characters/anubis.json && echo "anubis.json exists" || echo "anubis.json missing"
+          test -f public/data/zone-nova/_unmatched_gacha_wiki.json && echo "_unmatched exists" || echo "_unmatched missing"
+
       # 6) 변경분 커밋/푸시
       - name: Commit & Push
         run: |
@@ -68,8 +76,13 @@ jobs:
 
           git status
 
-          # 변경이 없으면 종료
-          if git diff --quiet && git diff --cached --quiet; then
+          # ✅ 먼저 add를 해서 untracked(신규 파일)까지 포함시킨다
+          git add public/data/zone-nova/characters_meta.json || true
+          git add public/data/zone-nova/characters || true
+          git add public/data/zone-nova/_unmatched_gacha_wiki.json || true
+          
+          # ✅ staged 기준으로 변경 여부 판단 (untracked도 staged에 들어오면 감지됨)
+          if git diff --cached --quiet; then
             echo "No changes to commit."
             exit 0
           fi
@@ -81,11 +94,4 @@ jobs:
           git commit -m "Sync zone-nova data (meta + details)" || echo "Nothing to commit"
           git push
 
-      - name: Check generated detail files
-        run: |
-          echo "== characters detail dir =="
-          ls -la public/data/zone-nova/characters || true
-          echo "== sample =="
-          test -f public/data/zone-nova/characters/anubis.json && echo "anubis.json exists" || echo "anubis.json missing"
-          test -f public/data/zone-nova/_unmatched_gacha_wiki.json && echo "_unmatched exists" || echo "_unmatched missing"
-
+   
