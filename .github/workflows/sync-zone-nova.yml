@@ -54,13 +54,16 @@ jobs:
       # 5) 동기화 실행
       # - scripts/sync_zone_nova.py 가 아래 옵션을 처리해야 함:
       #   --upstream gacha-wiki --write --sync-details
-      - name: Sync Zone Nova (meta + details)
+    - name: Sync Zone Nova (meta + details)
         env:
-          TRANSLATE_MODE: argos
+          TRANSLATE_MODE: openai
+          OPENAI_MODEL: gpt-4.1-mini
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           node -v
           python -V
-          python scripts/sync_zone_nova.py --upstream gacha-wiki --write --sync-details
+          python scripts/sync_zone_nova.py --upstream gacha-wiki --write --sync-details --clean
+
 
 
       # ✅ (중요) 커밋 전에 생성 여부 확인
@@ -84,6 +87,7 @@ jobs:
           git add public/data/zone-nova/characters_meta.json || true
           git add public/data/zone-nova/characters || true
           git add public/data/zone-nova/_unmatched_gacha_wiki.json || true
+          git add public/data/zone-nova/_translate_cache_ko.json || true
 
           # ✅ staged 기준으로 변경 여부 판단
           if git diff --cached --quiet; then
