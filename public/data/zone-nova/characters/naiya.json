@@ -7,8 +7,8 @@
   "role": "Buffer",
   "faction": "Safir",
   "stats": {
-    "hp": "9,564 원",
-    "attack": "1,004 원",
+    "hp": "9,564",
+    "attack": "1,004",
     "defense": "672"
   },
   "skills": {
@@ -18,7 +18,7 @@
     },
     "auto": {
       "name": "War Intent Detection",
-      "cooldown": "자동 트리거 : 5.0s",
+      "cooldown": "Auto-trigger: 5.0s",
       "description": "가장 높은 공격력의 친근한 캐릭터 [Battle Intent]. 공격력이 168%로 증가하지만 증가된 공격력은 나야 공격력의 84%를 초과할 수 없습니다. 최후 15 초"
     },
     "ultimate": {
@@ -32,7 +32,7 @@
     }
   },
   "teamSkill": {
-    "name": "조합 스킬 ()合)",
+    "name": "Combination Skill (组合技)",
     "description": "전투 시작: 모든 팀 손상 +10%. 각 500의 공격 힘, 모든 팀은 추가적으로 +5%, 최대 6배 (30%)를 손상시킵니다",
     "requirements": {
       "faction": "Sapphire",
@@ -69,7 +69,7 @@
     "name": "Frost Dominion",
     "image": "naiyacard",
     "stats": {
-      "hp": "6,000원",
+      "hp": "6,000",
       "attack": "600",
       "defense": "600"
     },

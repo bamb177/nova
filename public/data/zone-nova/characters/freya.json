@@ -7,33 +7,33 @@
   "role": "DPS",
   "faction": "Asa",
   "stats": {
-    "hp": "7,308 원",
-    "attack": "1,193 원",
+    "hp": "7,308",
+    "attack": "1,193",
     "defense": "474",
     "critRate": 16.8
   },
   "skills": {
     "normal": {
-      "name": "골든 윈드 Assault (金))",
+      "name": "Golden Wind Assault (金风突袭)",
       "description": "적에게 얼음 서리로 인한 공격력이 72% 증가합니다."
     },
     "auto": {
-      "name": "골든 윈드 와일드 포테이 (金金)",
+      "name": "Golden Wind's Wild Poetry (金风狂诗)",
       "cooldown": "5.0s",
       "description": "적의 적과 다른 적을 지정하기 위해 얼음 서리로 120%의 공격력을 부여합니다. 이 손상은 정상 공격 손상으로 계산합니다."
     },
     "ultimate": {
-      "name": "골든 윈드 (Gold Wind)",
+      "name": "Golden Wind's Bind (金风之缚)",
       "energyCost": "3",
       "description": "8 초 동안 [Golden Desire] 상태 입력 : 일반 공격은 60 %의 원래 공격 손상, 기본 공격 속도가 50 % 증가, 공격 속도가 60 % 증가합니다. [Golden Desire] 상태 : 다른 기술을 사용할 수 없지만 [Ice Star] 능력을 사용할 수 있습니다. [Ice Star] : 대상에 얼음 손상으로 480% 공격 전력을 제공합니다. 이 손상은 정상 공격 손상으로 계산합니다."
     },
     "passive": {
-      "name": "Goddess 전쟁 춤 (神)",
+      "name": "Goddess War Dance (女神战舞)",
       "description": "얼음 증진: 모든 정상적인 공격은 추가적으로 얼음 서리 손상으로 24% 공격 힘을 취급합니다. Multi-Hit 결합: 10 정상적인 공격 또는 기술을 캐스팅 한 후, 주요 표적에 대한 정상적인 공격은 5 단계 공격이됩니다. 각 단계는 본래 정상적인 공격 손상의 20%를 거래합니다. 기간: 5 초."
     }
   },
   "teamSkill": {
-    "name": "조합 스킬 ()合)",
+    "name": "Combination Skill (组合技)",
     "description": "긴요한 비율은 7.5%에 의하여 증가합니다. 전투 시작: 모든 15% 긴요한 비율을 위해, 이익 7.5% 긴요한 손상 (최대 6개의 더미, 45%까지 보너스 긴요한 손상).",
     "requirements": {
       "faction": "A.S.A",
@@ -67,10 +67,10 @@
     }
   ],
   "memoryCard": {
-    "name": "노예의 Original Wish (原的原跡)",
+    "name": "Slave's Original Wish (奴仆的原愿)",
     "image": "Freyacard",
     "stats": {
-      "hp": "5,040 원",
+      "hp": "5,040",
       "attack": "780",
       "defense": "474"
     },

@@ -7,27 +7,27 @@
   "role": "Tank",
   "faction": "Asa",
   "stats": {
-    "hp": "10,520 원",
+    "hp": "10,520",
     "attack": "698",
-    "defense": "1,315 원"
+    "defense": "1,315"
   },
   "skills": {
     "normal": {
-      "name": "정의 크러시 ())",
+      "name": "Justice Crush (正义碾压)",
       "description": "지정된 적 단위에 자신의 방어의 120%와 같은 성령의 손상."
     },
     "auto": {
-      "name": "神 Ju(神神)",
+      "name": "Divine Judgment Resonance (神罚共鸣)",
       "cooldown": "10.0s",
       "description": "번개 전력을 흡수하기 위해 햄머를 올리고, 모든 앨런 문자를 보조하여 방어의 60 %와 동일하며, 12%로 찍은 손상을 줄입니다. Connected allies는 추가 12%의 손상 감소를받습니다. Thor가이 기술을 캐스팅 한 후, 다음 3 기본 공격은 [Divine Judgment]로 강화됩니다."
     },
     "ultimate": {
-      "name": "神神之)",
+      "name": "Divine Punishment Hammer (神罚之锤)",
       "energyCost": "2",
       "description": "정상 궁극: 1 초 충전 후 대상의 머리에 점프, 현재의 목표와 [Interrupt]에 자신의 방어의 120%와 같은 성령의 손상을 처리. 강화 된 궁극적 인: 대상의 머리에 점프, 1 초 충전 후, 5 미터 내의 대상과 주변 적에 대한 자신의 방어의 24 %와 같은 거룩한 손상을, [Interrupt] 기술은 캐스팅되고, 10 초 동안 24%에 의해 피해를 증가. 이름 * 토르는 궁극적 인 기술을 캐스팅, allied 문자는 24% 10 초 동안 더 적은 손상을."
     },
     "passive": {
-      "name": "Light( Light)",
+      "name": "Lightning Extreme Orbit (极端雷电轨道)",
       "description": "즉시 최대 체력의 30 %와 같은 방패를 얻을, 가장 낮은 방어와 두 동맹과 연결을 설정. 토르 또는 연결된 동맹은 손상을 입을 때, 토르는 [Lightning Extreme]의 1개의 더미를 얻습니다. 각 문자는 초당 최대 한 번에 트리거 할 수 있습니다. [Lightning Extreme] 10 스택에 도달하면 [Enhanced Ultimate]를 캐스트 할 수 있습니다. 강화된 궁극적인 던지기 때, 더 이상 축적되지 않는 [Lightning Extreme] 더미. 궁극적 인 기술로 손상을 처리 할 때, [Divine Judgment]를 적용 할 수 있습니다. [중앙화]: 각 3 초, 방어의 19.2%, 최대 5 스택과 같은 성 손상을 처리하십시오. 방패는 문자의 최대 건강의 최대 30%까지 겹쳐 쌓일 수 있습니다."
     }
   },
@@ -69,7 +69,7 @@
     "name": "Night Assault Suspect",
     "image": "Thorcard",
     "stats": {
-      "hp": "6,600원",
+      "hp": "6,600",
       "attack": "480",
       "defense": "690"
     },

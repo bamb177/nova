@@ -7,9 +7,9 @@
   "role": "Tank",
   "faction": "Avalon",
   "stats": {
-    "hp": "10,520 원",
+    "hp": "10,520",
     "attack": "734",
-    "defense": "1,232 원"
+    "defense": "1,232"
   },
   "skills": {
     "normal": {
@@ -69,7 +69,7 @@
     "name": "Simple Birdcage",
     "image": "Guinevere-card",
     "stats": {
-      "hp": "6,600원",
+      "hp": "6,600",
       "attack": "480",
       "defense": "690"
     },

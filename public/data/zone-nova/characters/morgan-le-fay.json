@@ -7,8 +7,8 @@
   "role": "Buffer",
   "faction": "Avalon",
   "stats": {
-    "hp": "8,180명",
-    "attack": "1,004 원",
+    "hp": "8,180",
+    "attack": "1,004",
     "defense": "728"
   },
   "skills": {
@@ -27,7 +27,7 @@
       "description": "가장 높은 ATK와 ally의 위치에 [ 파괴 성검]을 떨어 뜨리고, 240% ATK를 5m 반경 내의 모든 적에게 거룩한 DMG로 처리하고, 범위의 ATK 내의 모든 동맹을 60 % 증가시키고 DMG는 10 년대 동안 48% 증가시킵니다.\n\n가장 높은 DEF와 동맹의 위치에 [Guardian Holy Sword]를 떨어 뜨리고, 5m 반경 내의 모든 적들에게 240% ATK를 처리하고, 범위의 DEF 내의 모든 동맹을 60 % 증가시키고 10 년대 동안 19%로 복용 한 DMG를 감소시킵니다."
     },
     "passive": {
-      "name": "왕의 모험",
+      "name": "King's Advent",
       "description": "전투를 입력하면 즉시 3 에너지 및 에너지 이득 효율이 10 년대 동안 30 % 감소합니다.\n\n전투를 입력하면 Morgan Le Fay의 ATK/DEF/HP의 29%는 각각 가장 높은 ATK/DEF/HP로 ally로 변환되고 전송됩니다.\n\n각 시간 Morgan Le Fay는 기술을 사용하여 즉시 1 에너지를 얻습니다."
     }
   },
@@ -69,7 +69,7 @@
     "name": "Absolutely Perfect Arms",
     "image": "Morgancard",
     "stats": {
-      "hp": "7,800 원",
+      "hp": "7,800",
       "attack": "780",
       "defense": "780"
     },

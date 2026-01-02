@@ -7,7 +7,7 @@
   "role": "Buffer",
   "faction": "Heikyo Castle",
   "stats": {
-    "hp": "7,970 원",
+    "hp": "7,970",
     "attack": "837",
     "defense": "560"
   },
@@ -22,12 +22,12 @@
       "description": "모든 연합 단위는 36% 공격력을 얻습니다. 공격 힘 모자: Zashiki-warashi의 입장 공격 힘의 36%를 초과할 수 없습니다. 최대 1개의 층, 지속 15 초"
     },
     "ultimate": {
-      "name": "행운을 빕니다! 공유 Hardship!",
+      "name": "Share Fortune! Share Hardship!",
       "energyCost": "3",
       "description": "모든 친절한 단위 손상은 36%, 15 초를 지속합니다"
     },
     "passive": {
-      "name": "어린이 축복",
+      "name": "Child's Blessing",
       "description": "자동 기술을 사용 한 후 : 가장 높은 공격력이있는 연합 된 단위는 1 층 [Blessing]을 얻습니다. [Blessing] 효과 : 15 초 동안 60 %의 공격 전력 증가"
     }
   },
@@ -69,7 +69,7 @@
     "name": "Sleep Treasure",
     "image": "Zashiki-warashicard",
     "stats": {
-      "hp": "5,000원",
+      "hp": "5,000",
       "attack": "500",
       "defense": "500"
     },

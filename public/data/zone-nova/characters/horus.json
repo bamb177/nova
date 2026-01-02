@@ -7,8 +7,8 @@
   "role": "Debuffer",
   "faction": "Kemich",
   "stats": {
-    "hp": "8,033 원",
-    "attack": "1,461 원",
+    "hp": "8,033",
+    "attack": "1,461",
     "defense": "530",
     "energyRecovery": 0.25,
     "critRate": 0,
@@ -72,7 +72,7 @@
     "name": "Cute Little Thing",
     "image": "Horuscard",
     "stats": {
-      "hp": "5,040 원",
+      "hp": "5,040",
       "attack": "780",
       "defense": "474"
     },

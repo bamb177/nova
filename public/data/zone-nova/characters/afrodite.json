@@ -7,27 +7,27 @@
   "role": "DPS",
   "faction": "Odius",
   "stats": {
-    "hp": "8,033 원",
-    "attack": "1,305명",
+    "hp": "8,033",
+    "attack": "1,305",
     "defense": "530"
   },
   "skills": {
     "normal": {
-      "name": "Love Fist (비타 神之鶏)",
+      "name": "Love Fist (爱神之拳)",
       "description": "지정된 적 단위에 손상으로 120% 공격력."
     },
     "auto": {
-      "name": "())",
+      "name": "Charm Impact (魅惑冲拳)",
       "cooldown": "8.0s",
       "description": "자동으로 지정된 적에게 손상으로 816%의 공격력을 제공합니다. 자체 공격 속도를 증가 58%."
     },
     "ultimate": {
-      "name": "사랑과 아름다움 Waltz (美之))",
+      "name": "Love and Beauty Waltz (爱与美之圆舞曲)",
       "energyCost": "8",
       "description": "정상적인 궁극적인: 지정된 적에게 손상으로 1800% 공격력을 줍니다. 강화된 궁극적인 (10 정상적인 공격 후에): 지정된 적에게 손상으로 2160% 공격력을 부여하고, 2개의 에너지를 결국 회복하고, 기본 공격 또는 콤보 효과에 대한 공격으로 계산합니다."
     },
     "passive": {
-      "name": "아름다운 Kill (美))",
+      "name": "Beautiful Kill (美丽杀意)",
       "description": "HP가 더 높을 때 50%: +48 % 모든 파기 손상에 대한 율. HP가 더 낮을 때 50%: +96 % 방어를 복용 할 때."
     }
   },
@@ -69,7 +69,7 @@
     "name": "Secret Garden",
     "image": "Afroditecard",
     "stats": {
-      "hp": "6,400원",
+      "hp": "6,400",
       "attack": "784",
       "defense": "318"
     },

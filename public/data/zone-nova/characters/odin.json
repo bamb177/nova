@@ -7,12 +7,12 @@
   "role": "DPS",
   "faction": "Asa",
   "stats": {
-    "hp": "7,308 원",
-    "attack": "1,305명",
+    "hp": "7,308",
+    "attack": "1,305",
     "defense": "530",
     "energyRegen": "0.25/s",
-    "critRate": "100%년",
-    "critDamage": "50% 할인"
+    "critRate": "0%",
+    "critDamage": "50%"
   },
   "skills": {
     "normal": {
@@ -32,7 +32,7 @@
       "description": "주물 후에, 당신은 4 s 내의 3개의 세그먼트를 사슬할지도 모릅니다:\n1. 대상에 대 한 대시, 480% ATK 화재 손상을 처리 + [변화 불꽃].\n2. Leap backward는, 480% ATK 불 손상 + 적용합니다 [이불 불꽃]를 취급합니다.\n3. 점프 & 책임은, 480% ATK 불 손상을 취급합니다; 표적에 각 도트 더미는 다른 48% ATK 불 손상을 추가합니다 (최대 20의 여분 안타깝게)."
     },
     "passive": {
-      "name": "Raven의 통찰력",
+      "name": "Raven's Insight",
       "description": "모든 Odin의 손상은 DoT로 계산되며 주름이 불가능합니다.\n전 배틀: 매 1% 주름 비율 -> +1% 불 dmg; 매 2% 주름 dmg -> +1% ATK.\n스킬 / 궁극적인 적용 [가열 불꽃]: 매 3 s 거래 36% ATK 화재 손상, 10까지 스택, 지속 10 s."
     }
   },
@@ -74,7 +74,7 @@
     "name": "Shared Bath Time",
     "image": "Odincard",
     "stats": {
-      "hp": "5,040 원",
+      "hp": "5,040",
       "attack": "780",
       "defense": "474"
     },

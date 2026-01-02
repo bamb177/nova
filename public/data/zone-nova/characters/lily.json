@@ -7,9 +7,9 @@
   "role": "Tank",
   "faction": "Safir",
   "stats": {
-    "hp": "10,520 원",
+    "hp": "10,520",
     "attack": "480",
-    "defense": "1,625 원"
+    "defense": "1,625"
   },
   "skills": {
     "normal": {
@@ -23,7 +23,7 @@
       "description": "자기에게 5 %의 손상 완화율, 5 초 지속. [송금]: 이 손상을 30 % 감소시킬 수있는 기회가 있습니다. 중요한 피해는 완화를 무시합니다."
     },
     "ultimate": {
-      "name": "양식 · 최종 장면",
+      "name": "Breaking Formation · Final Scene",
       "cooldown": "1.0s",
       "energyCost": "3",
       "description": "지정된 적 단위로 자신의 방어의 240%와 동등한 얼음 손상을 주고, [Battle Intention]의 1개의 더미를 얻고 10 초 동안 24%에 의해 촬영된 자체 손상을 감소시킵니다.\n\n[Enhanced Ultimate] : 모든 [Battle Intention] 스택을 지우고 최대 HP의 24%와 동일한 양의 방패를 얻습니다. 10 초 동안 모든 들어오는 손상 (100% 증가)을 무수화하여 모든 지속적인 손상 효과를 제거하고 지정된 적 단위로 480%의 얼음 손상을 처리하고 10 초 동안 24%에 의해 촬영 한 자체 손상을 줄일 수 있습니다."
@@ -68,10 +68,10 @@
     }
   ],
   "memoryCard": {
-    "name": "카페에서 Bite를 노래",
+    "name": "In the Cafe, Sneaking a Bite",
     "image": "Lilycard",
     "stats": {
-      "hp": "6,600원",
+      "hp": "6,600",
       "attack": "480",
       "defense": "690"
     },

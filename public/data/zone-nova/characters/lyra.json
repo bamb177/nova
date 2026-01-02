@@ -7,8 +7,8 @@
   "role": "DPS",
   "faction": "Safir",
   "stats": {
-    "hp": "8,033 원",
-    "attack": "1,305명",
+    "hp": "8,033",
+    "attack": "1,305",
     "defense": "530",
     "critRate": 15
   },
@@ -18,12 +18,12 @@
       "description": "적에게 공격의 120%와 같은 화재 손상"
     },
     "auto": {
-      "name": "두 배 잎 교류 - 끝 잎 - 지속적인 슬래시",
+      "name": "Two-Blade Flow - End Blade - Continuous Slash",
       "cooldown": "8.0s",
       "description": "적에게 공격의 480%와 같은 화재 손상을 줍니다. 10 초 동안 [Fire Essence]를 적용합니다."
     },
     "ultimate": {
-      "name": "두 배 잎 교류 - 끝 잎 - 유령 잎 교류",
+      "name": "Two-Blade Flow - End Blade - Ghost Blade Flow",
       "energyCost": "5",
       "description": "적에게 공격의 360 %와 같은 화재 손상을 줍니다. 향상된 (대상이 화재 에센스가있는 경우) : Consumes [Fire Esssence] 및 공격의 360 %와 같은 화재 손상을 대상과 적 뒤에 적에게 제공합니다."
     },
@@ -67,10 +67,10 @@
     }
   ],
   "memoryCard": {
-    "name": "Self-Release (낭만주의)",
+    "name": "Self-Release (自我放纵)",
     "image": "Lyracard",
     "stats": {
-      "hp": "5,040 원",
+      "hp": "5,040",
       "attack": "780",
       "defense": "474"
     },

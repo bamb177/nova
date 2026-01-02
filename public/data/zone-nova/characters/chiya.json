@@ -7,8 +7,8 @@
   "role": "DPS",
   "faction": "Safir",
   "stats": {
-    "hp": "8,033 원",
-    "attack": "1,305명",
+    "hp": "8,033",
+    "attack": "1,305",
     "defense": "530"
   },
   "skills": {
@@ -22,7 +22,7 @@
       "description": "적에게 공격의 480%와 같은 얼음 손상을 줍니다."
     },
     "ultimate": {
-      "name": "학회 석사",
+      "name": "Society Master's Fist",
       "energyCost": "3",
       "description": "대상을 향한 러쉬, 600% 공격 전력 얼음 손상을 처리 [Enhanced Ultimate Skill]: 이익 100% 긴요한 비율, 840% 공격 힘 얼음 손상을 대우하는 표적을 향해 돌진"
     },
@@ -69,7 +69,7 @@
     "name": "Lonely Dark Deep Night",
     "image": "Chiyacard",
     "stats": {
-      "hp": "5,040 원",
+      "hp": "5,040",
       "attack": "780",
       "defense": "474"
     },

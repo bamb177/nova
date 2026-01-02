@@ -7,10 +7,10 @@
   "role": "DPS",
   "faction": "Asa",
   "title": "Lord of the Underworld",
-  "lore": "Hela의 종 중 하나, 그녀는 용혈에 한 번 입욕하고 주변의 방어 능력을 소유했다. Frigga의 채택 된 딸, 그녀는 또한 [Asar Manor]에 살고있다. 그녀는 그녀의 상속 된 영웅 혈통을 자랑스럽게 생각합니다. 때로는 지나치게 arrogant의 점에 있지만, 그녀는 실제로 부드럽고 쉽게 아프고, 매우 친절합니다. 그녀는 아프지 않습니다, 그래서 그녀는 항상 몹시 자세를 채택, 그녀가 의미하지 않는 것을 말하면서 자부심과 말하기. Loki jokingly call 그녀의 \"오만은 가짜 heiress.\" 그녀는 심리적으로 유머의 구성원을 가치하고 그녀의 가족을 보호하기 위해 자신을 희생 할 것입니다.",
+  "lore": "One of Hela's servants, she was once bathed in dragon blood and possesses near-immortal defensive abilities. Frigga's adopted daughter, she also lives in [Asar Manor]. She is proud of her inherited heroic bloodline, sometimes to the point of being overly arrogant, but she is actually softhearted and easily hurt, and very kind. She doesn't want to be hurt, so she always adopts a defensive posture, speaking with pride while saying things she doesn't mean. Loki jokingly calls her \"the misunderstood fake heiress.\" She deeply values the members of the manor and would sacrifice herself to protect her family.",
   "stats": {
-    "hp": "7,308 원",
-    "attack": "1,305명",
+    "hp": "7,308",
+    "attack": "1,305",
     "defense": "474",
     "critRate": 16
   },
@@ -74,7 +74,7 @@
     "name": "I am your Christmas present.",
     "image": "Sigurdcard",
     "stats": {
-      "hp": "5,040 원",
+      "hp": "5,040",
       "attack": "780",
       "defense": "474"
     },
@@ -95,7 +95,7 @@
     "type": "Limited Character Gacha",
     "startDate": "2025-12-16T14:15:00",
     "endDate": "2025-12-30T03:59:00",
-    "eventPeriod": "12월 16, 2025 14:15 - 12월 30, 2025 03:59"
+    "eventPeriod": "December 16, 2025 14:15 - December 30, 2025 03:59"
   },
   "id": "sigurd"
 }

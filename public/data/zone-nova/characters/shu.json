@@ -7,7 +7,7 @@
   "role": "Debuffer",
   "faction": "Kemich",
   "stats": {
-    "hp": "7,970 원",
+    "hp": "7,970",
     "attack": "837",
     "defense": "560"
   },
@@ -66,10 +66,10 @@
     }
   ],
   "memoryCard": {
-    "name": "(한국어)",
+    "name": "Busy Officer (忙里偷闲)",
     "image": "shucard",
     "stats": {
-      "hp": "5,000원",
+      "hp": "5,000",
       "attack": "500",
       "defense": "500"
     },

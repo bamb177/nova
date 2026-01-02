@@ -10,12 +10,12 @@
   "role": "DPS",
   "faction": "Asa",
   "stats": {
-    "hp": "7,308 원",
-    "attack": "1,193 원",
+    "hp": "7,308",
+    "attack": "1,193",
     "defense": "474",
     "energyRecovery": "0.25/s",
-    "critRate": "1.8% 할인",
-    "critDamage": "7.6% 할인"
+    "critRate": "16.8%",
+    "critDamage": "71.6%"
   },
   "skills": {
     "normal": {
@@ -55,7 +55,7 @@
     "requirements": {
       "faction": "A.S.A",
       "element": "Chaos",
-      "condition": "2 [Chaos] 속성 문자 및 [A.S.A] 문자"
+      "condition": "2 [Chaos] attribute characters and [A.S.A] characters"
     }
   },
   "awakenings": [
@@ -89,10 +89,10 @@
     "chineseName": "充满欲望的奇怪凝视",
     "image": "Helacard",
     "level": "80/80",
-    "rarity": "6성급 (SSR)",
+    "rarity": "6-star (SSR)",
     "class": "Rogue",
     "stats": {
-      "hp": "5,040 원",
+      "hp": "5,040",
       "attack": "780",
       "defense": "474"
     },
@@ -111,17 +111,17 @@
   ],
   "uniqueMechanics": {
     "modeSwitching": {
-      "description": "Hela는 Termination과 Death Silence 모드 사이에 궁극적으로 전환 할 수 있습니다.",
+      "description": "Hela can switch between Termination and Death Silence modes using her Ultimate",
       "modes": [
         "Termination",
         "Death Silence"
       ]
     },
     "enhancedUltimate": {
-      "description": "ally 궁극의 10 층에 도달하면 강화 된 궁극적 인 모든 층을 소비 할 수 있습니다."
+      "description": "When reaching 10 layers from ally ultimates, can consume all layers to cast Enhanced Ultimate"
     },
     "teamSynergy": {
-      "description": "Chaos 속성 팀 보너스는 Crit 손상을 증가"
+      "description": "Chaos attribute team bonus increases Crit Damage"
     }
   },
   "id": "hela"

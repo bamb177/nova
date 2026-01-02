@@ -7,27 +7,27 @@
   "role": "Buffer",
   "faction": "Odius",
   "stats": {
-    "hp": "9,564 원",
-    "attack": "1,004 원",
+    "hp": "9,564",
+    "attack": "1,004",
     "defense": "672"
   },
   "skills": {
     "normal": {
-      "name": "())",
+      "name": "Shadowless Snipe (无影狙击)",
       "description": "지정된 적 단위에 120% 공격력 바람 손상을 줍니다. 1.0s 재사용 대기시간."
     },
     "auto": {
-      "name": "군 명령 (鶏神神)",
+      "name": "Military Command (军神号令)",
       "cooldown": "5.0s",
       "description": "3×120% 공격력 바람 손상을 처리하는 지정된 적 단위 3배를 공격하십시오. 총 360 % 공격 전력 손상 출력."
     },
     "ultimate": {
-      "name": "Athena's Aegis ('的))",
+      "name": "Athena's Aegis (雅典娜的埃癸斯)",
       "energyCost": "3",
       "description": "즉시 3개의 층 [Aegis]를 얻습니다. [Aegis]를 갖는 때, 정상적인 공격은 가득 차있는 자동 형태가 되고, 기간 도중 지속적으로 탄알을 강화할 수 있습니다. 각 층 [Aegis]는 12의 강화한 탄알을 불을 수 있습니다. 정상적인 공격을 중단 한 후, 다시 다시 다시 1 층 [Aegis]을 소비해야합니다. 각 강화 된 총알은 60 %의 공격력 바람 손상을받습니다. 각 5는 표적에 탄알을 강화했습니다, 모든 친절한 문자 이익 +2.4% 혈중 비율 및 +4.6% 정상적인 공격 손상, 최대 10 더미, 지속 10 초"
     },
     "passive": {
-      "name": "Di ( Di)",
+      "name": "Divine Combat Mastery (被动)",
       "description": "Athena의 모든 손상은 정상 공격 손상으로 간주됩니다. Athena, 모든 친절한 문자 이익 +4.8% 공격 속도 및 기술 재사용 대기시간이 2.4%, 최대 10 스택으로 감소한 모든 5 정상 공격 손상은 10 초 지속됩니다. Athena, Athena의 각 10 정상 공격 손상은 1개의 층 [Typical]를 얻습니다. 다른 친절한 문자 거래가 정상 공격 손상될 때, Athena는 1개의 층 [Typical]를, 각 특성 두번 최대 당 한 번 방아쇠를 수 있습니다 얻습니다. 각 10개의 층 [Typical] Athena 이익, 모든 팀 에너지 +1 점"
     }
   },
@@ -66,10 +66,10 @@
     }
   ],
   "memoryCard": {
-    "name": "Embarrassing 패턴 ())",
+    "name": "Embarrassing Pattern (尴尬模样)",
     "image": "Athenacard",
     "stats": {
-      "hp": "6,000원",
+      "hp": "6,000",
       "attack": "600",
       "defense": "600"
     },

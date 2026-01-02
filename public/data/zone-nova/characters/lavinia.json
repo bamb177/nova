@@ -7,7 +7,7 @@
   "role": "Healer",
   "faction": "Safir",
   "stats": {
-    "hp": "8,700원",
+    "hp": "8,700",
     "attack": "956",
     "defense": "672",
     "critRate": 28.9
@@ -40,7 +40,7 @@
     "requirements": {
       "faction": "Sapphire",
       "element": "Fire",
-      "alternativeRequirement": "2 [Sapphire] 문자 또는 2 [Fire] 문자"
+      "alternativeRequirement": "2 [Sapphire] characters or 2 [Fire] characters"
     }
   },
   "awakenings": [
@@ -70,10 +70,10 @@
     }
   ],
   "memoryCard": {
-    "name": "진정한 몸은?",
+    "name": "Are the Glasses the True Body?",
     "image": "Laviniacard",
     "stats": {
-      "hp": "6,000원",
+      "hp": "6,000",
       "attack": "600",
       "defense": "600"
     },

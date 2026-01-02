@@ -7,8 +7,8 @@
   "role": "Debuffer",
   "faction": "Heikyo Castle",
   "stats": {
-    "hp": "9,180명",
-    "attack": "1,184 원",
+    "hp": "9,180",
+    "attack": "1,184",
     "defense": "729",
     "energyRecovery": "0.25/s",
     "critRate": 0,
@@ -17,26 +17,26 @@
   "skills": {
     "normal": {
       "name": "Flame Arrow",
-      "level": "10개 이상",
+      "level": "10+4",
       "cooldown": "2.0s",
       "description": "지정된 적 단위로 적대 손상으로 공격력의 120%를 줍니다."
     },
     "auto": {
       "name": "Arrow of the Curse",
-      "level": "10개 이상",
+      "level": "10+4",
       "cooldown": "5.0s",
       "description": "표적과 4 미터 반경에 공격 힘의 244.3%와 동등한 불 손상을 주고, 35.8%에 의하여 에너지 이익 효율성을 감소시키고 10 초를 위해 38.6%에 의해 촬영된 손상을 증가하는 [Curse Covenant]의 1개의 더미를 적용합니다."
     },
     "ultimate": {
       "name": "Fire Phoenix Curse",
-      "level": "10개 이상",
+      "level": "10+4",
       "energyCost": "3",
       "cooldown": "1.0s",
       "description": "적 대상의 방향에서 화재 피닉스를 훼손하여 모든 적들에게 360 %의 화재 피해를 줍니다. 손상으로 인한 적분은 1 stack of [Flame Curse]로 인하여 10 초 동안 87.9%의 궁극적 인 기술로 인한 손상을 증가시킵니다. 이 손상은 [Interrupt] 대상에 의해 주조되는 기술."
     },
     "passive": {
       "name": "Deboning",
-      "level": "10개 이상",
+      "level": "10+4",
       "description": "모든 공격은 적의 파괴에 [Eviscerate]을 공격하고 궁극적 인 능력을 3.6%, 5 초 지속 10까지 스택까지 공격합니다."
     }
   },
@@ -47,7 +47,7 @@
     "requirements": {
       "faction": "Heikyo Castle",
       "element": "Fire",
-      "alternativeRequirement": "2 [Heikyo Castle] 문자 또는 2 [Fire] 문자"
+      "alternativeRequirement": "2 [Heikyo Castle] characters or 2 [Fire] characters"
     }
   },
   "awakenings": [
@@ -77,10 +77,10 @@
     }
   ],
   "memoryCard": {
-    "name": "완벽한 메이크업 보기?",
+    "name": "A Perfect Makeup Look?",
     "image": "Ibaraki-dojicard",
     "stats": {
-      "hp": "6,000원",
+      "hp": "6,000",
       "attack": "600",
       "defense": "600"
     },
@@ -102,35 +102,35 @@
   ],
   "damageAnalysis": {
     "title": "Total Damage Taken Debuffs",
-    "description": "Ibaraki-doji는 부패를 찍은 손상의 구멍이 있지만, 그녀는 효과적인 투자의 구멍이 필요합니다. 가득 차있는 dupe 및 기억, 및 그녀의 버퍼 사이 손상 다름은 제일에 60%에서 80% 같이 입니다.",
+    "description": "Ibaraki-doji has alot of damage taken debuffs, however she need alot of investment to be effective. like full dupe and memory, and the damage difference between her and Buffer is like 60% to 80% at best.",
     "breakdown": [
       {
-        "source": "기술: Curse의 화살표",
-        "value": "+38.6% 할인",
+        "source": "Skill: Arrow of the Curse",
+        "value": "+38.6%",
         "type": "All damage taken",
         "duration": "10s"
       },
       {
-        "source": "ULT: 불 피닉스 Curse",
-        "value": "+87.9% 할인",
+        "source": "ULT: Fire Phoenix Curse",
+        "value": "+87.9%",
         "type": "Ultimate damage taken",
         "duration": "10s"
       },
       {
-        "source": "수동적인: Deboning (최대 10의 더미)",
+        "source": "Passive: Deboning (max 10 stacks)",
         "value": "+36% (3.6% x 10)",
         "type": "Ultimate damage taken",
         "duration": "5s"
       },
       {
-        "source": "기억: 완벽한 메이크업 보기?",
-        "value": "+36% 할인",
-        "type": "모든 손상 (ULT hit)",
+        "source": "Memory: A Perfect Makeup Look?",
+        "value": "+36%",
+        "type": "All damage taken (on ULT hit)",
         "duration": "5s"
       },
       {
         "source": "Awakening 6",
-        "value": "-20% 모든 저항",
+        "value": "-20% All Resistances",
         "type": "Multiplicative damage increase",
         "duration": "5s"
       }
@@ -138,13 +138,13 @@
     "totals": [
       {
         "label": "Ultimate Skill Damage Taken",
-        "value": "+198.5% 할인",
+        "value": "+198.5%",
         "calculation": "38.6% + 87.9% + 36% + 36%",
-        "note": "teammate 궁극의 거의 트리플 손상"
+        "note": "Nearly triples damage from teammate ultimates"
       },
       {
         "label": "All Damage Taken",
-        "value": "+74.6% 할인",
+        "value": "+74.6%",
         "calculation": "38.6% + 36%",
         "note": "Inculdes DOT Damage too"
       }

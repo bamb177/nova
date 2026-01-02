@@ -8,32 +8,32 @@
   "role": "Healer",
   "faction": "Avalon",
   "stats": {
-    "hp": "9,180명",
-    "attack": "1,004 원",
+    "hp": "9,180",
+    "attack": "1,004",
     "defense": "729",
     "energyRecovery": "0.25/s",
-    "critRate": "100%년",
-    "critDamage": "50% 할인"
+    "critRate": "0%",
+    "critDamage": "50%"
   },
   "skills": {
     "normal": {
       "name": "Sacred Banner Thrust",
       "chineseName": "圣旗突刺",
-      "level": "10개 이상",
+      "level": "10+4",
       "cooldown": "2.0s",
       "description": "지정된 적 단위로 120% 공격력 바람 손상"
     },
     "auto": {
       "name": "Holy Light Banner",
       "chineseName": "圣光旗帜",
-      "level": "10개 이상",
+      "level": "10+4",
       "cooldown": "8.0s",
       "description": "짧은 던지기 후에, 가장 낮은 현재 HP 비율을 가진 친절한 단위를, 각자 공격 힘 80.5%+445 HP, 지속적으로 치유합니다 3배 회복합니다"
     },
     "ultimate": {
       "name": "Sacred Heavenly ",
       "chineseName": "圣天神后",
-      "level": "10개 이상",
+      "level": "10+4",
       "cooldown": "1.0s",
       "energyCost": "8",
       "description": "각자 공격 힘 90.8% + 668와 동등한 모든 친절한 특성에 건강을 저장하고, 각자에 [Sacred Healing]의 3개의 층을, [Sacred Healing] 최대 4개의 층까지 겹쳐 쌓일 수 있습니다"
@@ -41,7 +41,7 @@
     "passive": {
       "name": "Sacred Blood Healing",
       "chineseName": "圣血治疗",
-      "level": "10개 이상",
+      "level": "10+4",
       "description": "친절한 문자가 공격 될 때, 1 층 [신성한 치유]을 소비하고 자기 공격 힘 91.2% + 445와 동등한 문자에 건강을 회복, 각 문자는 1 초 재사용 대기 시간 친화적 인 단위가 가까운 상태에 입력 할 때, 5 초가 그들과 자기 공격 힘 285.8% + 2709와 같은 건강을 회복, 전투 당 최대 한 번에 부활 할 수 있습니다"
     }
   },
@@ -53,7 +53,7 @@
     "requirements": {
       "faction": "Avalon",
       "element": "Wind",
-      "condition": "2 [Avalon] 컬러 또는 2 [Wind] 컬러 문자"
+      "condition": "2 [Avalon] colored or 2 [Wind] colored characters"
     }
   },
   "awakenings": [
@@ -88,7 +88,7 @@
     "image": "JoanofArccard",
     "level": "80/80",
     "stats": {
-      "hp": "6,000원",
+      "hp": "6,000",
       "attack": "600",
       "defense": "600"
     },

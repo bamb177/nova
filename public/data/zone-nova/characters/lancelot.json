@@ -7,7 +7,7 @@
   "role": "Tank",
   "faction": "Avalon",
   "stats": {
-    "hp": "10,857 원",
+    "hp": "10,857",
     "attack": "612",
     "defense": "957"
   },
@@ -22,12 +22,12 @@
       "description": "최대 HP의 5.1%에 해당하는 [Shield]를 자기에 추가합니다. [Shield]는 HP 한계의 30%까지 겹쳐 쌓일 수 있습니다."
     },
     "ultimate": {
-      "name": "Blooming Knight의 꽃",
+      "name": "Blooming Knight's Flower",
       "energyCost": "3",
       "description": "지정된 적 단위의 앞에 즉시 이동합니다. 모든 팀 문자는 15 초 동안 24% 적은 손상을받습니다."
     },
     "passive": {
-      "name": "성령의 축복",
+      "name": "Lake Spirit's Blessing",
       "description": "HP가 손상을 입은 후 50 % 미만의 경우 : 최대 HP의 9.6%를 매 3 초마다 복구하십시오. 효과는 15 초 동안 지속됩니다."
     }
   },
@@ -69,7 +69,7 @@
     "name": "Lancelot-HerTrainer",
     "image": "Lancelotcard",
     "stats": {
-      "hp": "5,500원",
+      "hp": "5,500",
       "attack": "400",
       "defense": "575"
     },

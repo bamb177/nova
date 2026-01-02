@@ -7,32 +7,32 @@
   "role": "Debuffer",
   "faction": "Monochrome Realm",
   "stats": {
-    "hp": "7,970 원",
+    "hp": "7,970",
     "attack": "837",
     "defense": "560"
   },
   "skills": {
     "normal": {
-      "name": "S ( S)",
+      "name": "Suppressive Fire (压制射击)",
       "description": "적 단위에 얼음 손상으로 120% 공격력"
     },
     "auto": {
-      "name": "강철 책임 ())",
-      "cooldown": "자동 트리거 : 5.0s",
+      "name": "Steel Charge (钢铁冲锋)",
+      "cooldown": "Auto-trigger: 5.0s",
       "description": "앞의 모든 적에게 얼음 손상으로 60 %의 공격력. 공격을 받는다: 적의 공격력이 5.8%로 감소한다. 최대 3개의 더미, 지속 10 초"
     },
     "ultimate": {
-      "name": "Black Nation의 영광 ('国的))",
+      "name": "Black Nation's Glory (黑色带国的荣耀)",
       "energyCost": "3",
       "description": "앞의 모든 적에게 얼음 손상으로 84% 공격력을 줍니다. 공격력이 10초 동안 38% 증가했습니다."
     },
     "passive": {
-      "name": "배틀 팬틱 ()分子)",
+      "name": "Battle Fanatic (战斗狂热分子)",
       "description": "부정적인 상태 효과로 적을 공격 할 때 : 공격력이 38%로 증가했습니다."
     }
   },
   "teamSkill": {
-    "name": "조합 스킬 ()合)",
+    "name": "Combination Skill (组合技)",
     "description": "자기 손상은 20% 증가",
     "requirements": {
       "faction": "Monochrome Nation",
@@ -69,7 +69,7 @@
     "name": "Battlefield Flower",
     "image": "ninicard",
     "stats": {
-      "hp": "5,000원",
+      "hp": "5,000",
       "attack": "500",
       "defense": "500"
     },

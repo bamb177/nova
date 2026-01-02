@@ -7,8 +7,8 @@
   "role": "DPS",
   "faction": "Avalon",
   "stats": {
-    "hp": "8,033 원",
-    "attack": "1,305명",
+    "hp": "8,033",
+    "attack": "1,305",
     "defense": "530",
     "critRate": 15
   },
@@ -18,7 +18,7 @@
       "description": "지정된 적에게 공격의 120%와 동일하게 손상을 줍니다."
     },
     "auto": {
-      "name": "왕의 검",
+      "name": "King's Sword",
       "cooldown": "5.0s",
       "description": "앞 적 단위에 손상으로 240% 공격력. 손상된 각 표적을 위해, 12%의 최대 4개의 더미에 의하여 긴요한 손상 증가는, 5 초를 지속합니다"
     },
@@ -70,7 +70,7 @@
     "name": "Night of Bloody Storm",
     "image": "Night-of-Bloody-Storm",
     "stats": {
-      "hp": "5,040 원",
+      "hp": "5,040",
       "attack": "780",
       "defense": "474"
     },

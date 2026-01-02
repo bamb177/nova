@@ -7,25 +7,25 @@
   "role": "DPS",
   "faction": "Safir",
   "stats": {
-    "hp": "8,700원",
-    "attack": "1,004 원",
+    "hp": "8,700",
+    "attack": "1,004",
     "defense": "729",
     "energyRecovery": "0.25/s",
-    "critRate": "6% 할인",
-    "critDmg": "50% 할인"
+    "critRate": "6%",
+    "critDmg": "50%"
   },
   "skills": {
     "normal": {
       "name": "Frost Blood Thorn",
       "cooldown": "2.0s",
       "description": "적 단위를 대상으로 공격의 120%와 같은 얼음 손상을, 최대 건강의 12% 회복.",
-      "frostAshDescription": "【Frost Ash】 단계 : 각 히트는 최대 건강의 5 %를 제거합니다. 적을 대상으로 공격의 240%와 같은 얼음 손상을 줍니다."
+      "frostAshDescription": "【Frost Ash】State: Each hit removes 5% of max health. Deals ice damage equal to 240% of Attack to target enemy unit."
     },
     "auto": {
       "name": "Blaze Burst",
       "cooldown": "5.0s",
       "description": "적 단위를 대상으로 공격의 480%와 같은 얼음 손상을 주고 최대 생명력의 12%를 회복합니다.",
-      "frostAshDescription": "【Frost Ash】 단계 : 각 히트는 최대 건강의 5 %를 제거합니다. 적의 단위와 단위를 대상으로하는 공격의 960%와 같은 얼음 손상을 줍니다."
+      "frostAshDescription": "【Frost Ash】State: Each hit removes 5% of max health. Deals ice damage equal to 960% of Attack to target enemy unit and units behind it."
     },
     "ultimate": {
       "name": "Frost Ash Liberation",
@@ -33,9 +33,9 @@
       "energyCost": "1",
       "description": "[Frost Ash] 상태를 입력하십시오. 기본 공격 속도 50% 증가. 스킬 기반 재사용 대기시간이 3초로 감소했습니다. 치명적인 비율은 60%로 증가했습니다.",
       "additionalRules": [
-        "자동 출구 【Frost Ash】 상태 때 건강은 30 % 미만입니다.",
-        "[Frost Ash] 상태를 종료 할 수있는 궁극적 인 기술을 재생할 수 있습니다.",
-        "[Frost Ash] 상태에서 궁극적 인 기술을 재연 할 수 있습니다."
+        "Automatically exits 【Frost Ash】 state when health falls below 30%.",
+        "Can re-cast the ultimate skill to exit 【Frost Ash】 state.",
+        "Can re-cast the ultimate skill while in 【Frost Ash】 state."
       ]
     },
     "passive": {
@@ -50,7 +50,7 @@
       "faction": "Sapphire",
       "element": "Ice"
     },
-    "activationCondition": "팀 포함 2 【Sapphire】 문자 또는 2 【Ice】 문자"
+    "activationCondition": "Team contains 2 【Sapphire】 characters OR 2 【Ice】 characters"
   },
   "awakenings": [
     {
@@ -83,7 +83,7 @@
     "image": "Ninacard",
     "title": "Halloween Candy",
     "stats": {
-      "hp": "6,000원",
+      "hp": "6,000",
       "attack": "600",
       "defense": "600"
     },

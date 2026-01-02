@@ -7,8 +7,8 @@
   "role": "DPS",
   "faction": "Avalon",
   "stats": {
-    "hp": "8,033 원",
-    "attack": "1,305명",
+    "hp": "8,033",
+    "attack": "1,305",
     "defense": "530",
     "critRate": 15
   },
@@ -18,12 +18,12 @@
       "description": "공격의 120%와 같은 화재 손상을 적 단위로"
     },
     "auto": {
-      "name": "Magic Swordplay: Molten 핵심 Burst",
+      "name": "Magic Swordplay: Molten Core Burst",
       "cooldown": "5.0s",
       "description": "공격의 780%와 같은 화재 손상을 적 단위로 적용 [Mark]. Merlin이 궁극적 인 기술을 사용하거나 [Mark]와 표적을 공격 할 때, 20 %의 손상 증가"
     },
     "ultimate": {
-      "name": "Magic Swordplay: 왕의 검",
+      "name": "Magic Swordplay: King's Sword",
       "energyCost": "6",
       "description": "공격의 1080%와 같은 화재 피해를 줍니다. [buffer]는 궁극적 인 기술을 사용하여 5 초 이내에 한 번 [Enhanced Ultimate Skill]을 활성화 할 수 있습니다. [Enhanced Ultimate Skill] : 적 단위를 대상으로 한 공격력 화재 손상을 치유합니다. 필드에 한 대의 적 단위가있을 때, 손상은 30% 증가"
     },
@@ -67,10 +67,10 @@
     }
   ],
   "memoryCard": {
-    "name": "왕의 검",
+    "name": "King's Sword",
     "image": "Merlincard",
     "stats": {
-      "hp": "5,280원",
+      "hp": "5,280",
       "attack": "857",
       "defense": "348"
     },

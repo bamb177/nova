@@ -8,32 +8,32 @@
   "role": "Healer",
   "faction": "Kemich",
   "stats": {
-    "hp": "9,180명",
-    "attack": "1,004 원",
+    "hp": "9,180",
+    "attack": "1,004",
     "defense": "729",
     "energyRecovery": "0.25/s",
-    "critRate": "100%년",
-    "critDamage": "50% 할인"
+    "critRate": "0%",
+    "critDamage": "50%"
   },
   "skills": {
     "normal": {
       "name": "Underworld Touch",
       "chineseName": "冥神之触",
-      "level": "10개 이상",
+      "level": "10+4",
       "cooldown": "2.0s",
       "description": "적격 단위로 공격력이 120% 증가합니다."
     },
     "auto": {
       "name": "Divine Punishment Rain",
       "chineseName": "天罚之雨",
-      "level": "10개 이상",
+      "level": "10+4",
       "cooldown": "8.0s",
       "description": "대상에 대한 유머를 호출하고 2 m 내의 모든 적, 96 % ATK는 차오 손상으로. 1개의 층 [Nightmare]를 추가하십시오. [밤나무]: 각 3개의 s는 5.6 % ATK를 쌓을 당 Chaos 손상, 10의 더미에 모자 (최대에 진드기에 당 합계 56 % ATK) 거래합니다."
     },
     "ultimate": {
       "name": "Destined Reversal",
       "chineseName": "命定逆转",
-      "level": "10개 이상",
+      "level": "10+4",
       "cooldown": "1.0s",
       "energyCost": "4",
       "description": "112.8 % ATK (HealerATK) + 668 HP에 대한 최저 HP. 증진: 112.8 % ATK + 668 HP에 대한 모든 동맹을 치유하고 10 s의 % 손상 감소를 제공합니다."
@@ -41,7 +41,7 @@
     "passive": {
       "name": "Soul Siphon",
       "chineseName": "灵魂虹吸",
-      "level": "10개 이상",
+      "level": "10+4",
       "description": "자동차 기술을 사용 할 때 (만 당신) 두피와 대상을 공격 (20) DOT의 1 (15 +) 레이어, 전체 팀 자기 공격력 97.2% + 445 HP 및 즉시 얻을 하나 Empowered 궁극적 인 충전, 8 s 내에서 사용."
     }
   },
@@ -53,7 +53,7 @@
     "requirements": {
       "faction": "Chemic",
       "element": "Chaos",
-      "condition": "2 [Chemic] 컬러 또는 2 [Chaos] 컬러 문자"
+      "condition": "2 [Chemic] colored or 2 [Chaos] colored characters"
     }
   },
   "awakenings": [
@@ -88,7 +88,7 @@
     "image": "Anubiscard",
     "level": "80/80",
     "stats": {
-      "hp": "6,000원",
+      "hp": "6,000",
       "attack": "800",
       "defense": "600"
     },

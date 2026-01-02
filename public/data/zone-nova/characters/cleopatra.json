@@ -7,8 +7,8 @@
   "role": "DPS",
   "faction": "Kemich",
   "stats": {
-    "hp": "8,033 원",
-    "attack": "1,461 원",
+    "hp": "8,033",
+    "attack": "1,461",
     "defense": "530"
   },
   "skills": {
@@ -69,7 +69,7 @@
     "name": "Revolutionary Restructuring",
     "image": "Cleopatracard",
     "stats": {
-      "hp": "5,040 원",
+      "hp": "5,040",
       "attack": "780",
       "defense": "474"
     },

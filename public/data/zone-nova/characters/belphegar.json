@@ -7,7 +7,7 @@
   "role": "Debuffer",
   "faction": "Bikta",
   "stats": {
-    "hp": "7,970 원",
+    "hp": "7,970",
     "attack": "837",
     "defense": "560"
   },
@@ -69,7 +69,7 @@
     "name": "Sleepy Guardian",
     "image": "Belphegarcard",
     "stats": {
-      "hp": "5,200원",
+      "hp": "5,200",
       "attack": "420",
       "defense": "380"
     },

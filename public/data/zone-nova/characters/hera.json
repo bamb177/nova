@@ -8,32 +8,32 @@
   "role": "DPS",
   "faction": "Odius",
   "stats": {
-    "hp": "8,033 원",
-    "attack": "1,461 원",
+    "hp": "8,033",
+    "attack": "1,461",
     "defense": "530",
     "energyRecovery": "0.25/s",
-    "critRate": "100%년",
-    "critDamage": "50% 할인"
+    "critRate": "0%",
+    "critDamage": "50%"
   },
   "skills": {
     "normal": {
-      "name": "여왕의 고문",
+      "name": "Queen's Torture",
       "chineseName": "天后酷刑",
-      "level": "10개 이상",
+      "level": "10+4",
       "cooldown": "2.0s",
       "description": "적격 단위로 공격력이 120% 증가합니다."
     },
     "auto": {
       "name": "Judgment Execution",
       "chineseName": "审判延戮",
-      "level": "10개 이상",
+      "level": "10+4",
       "cooldown": "8.0s",
       "description": "동시에 발사 주위에 8 개의 비행 칼, 720 %의 공격 파워 카오스 손상을 특정 적 단위로 처리"
     },
     "ultimate": {
       "name": "Despair Strangulation",
       "chineseName": "绝望绞杀",
-      "level": "10개 이상",
+      "level": "10+4",
       "cooldown": "1.0s",
       "energyCost": "6",
       "description": "지정된 적대를 공격하기 위해 거대한 비행 검을 소환, 1440% 공격력 챠오 손상을 처리. 적이 연속 손상 대상의 20 + 레이어가있을 때, 5 초 이내에 [Enhanced Ultimate]을 캐스팅 할 수 있습니다. [Enhanced Ultimate] : 지정된 적 단위를 공격하기 위해 더 많은 칼을 소환하고 1920 %의 공격 전력 챠오 손상을 치료합니다."
@@ -41,7 +41,7 @@
     "passive": {
       "name": "Strong Pressure",
       "chineseName": "女神威压",
-      "level": "10개 이상",
+      "level": "10+4",
       "description": "각 4 칼 공격 (기본 공격은 자동차 기술 8 칼과 같은 1 칼 공격으로 계산합니다.), 다음 공격은 [Void] 효과를 추가 할 수 있습니다. [Void]: 36% 공격 힘 샴스 손상을 층 당 초당, 최대 10개의 층, 지속 10 초"
     }
   },
@@ -53,7 +53,7 @@
     "requirements": {
       "faction": "Odius",
       "element": "Chaos",
-      "condition": "2 [Odius] 컬러 또는 2 [Chaos] 컬러 문자"
+      "condition": "2 [Odius] colored or 2 [Chaos] colored characters"
     }
   },
   "awakenings": [
@@ -88,7 +88,7 @@
     "image": "Heracard",
     "level": "80/80",
     "stats": {
-      "hp": "5,040 원",
+      "hp": "5,040",
       "attack": "780",
       "defense": "474"
     },

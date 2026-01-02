@@ -7,7 +7,7 @@
   "role": "Healer",
   "faction": "Safir",
   "stats": {
-    "hp": "7,650 원",
+    "hp": "7,650",
     "attack": "837",
     "defense": "608"
   },
@@ -27,7 +27,7 @@
       "description": "가장 낮은 현재 건강 비율을 가진 친절한 단위를 한 번 치유하고십시오, 각자 공격 힘과 동등한 건강 128% + 682"
     },
     "passive": {
-      "name": "of( All)",
+      "name": "Master of All (万事通之力)",
       "description": "현재 건강이 50% 이하인 친절한 단위를 치료할 때 치유량이 24% 증가합니다."
     }
   },
@@ -66,10 +66,10 @@
     }
   ],
   "memoryCard": {
-    "name": "소litary Realm (一人之871)",
+    "name": "Solitary Realm (一人之境)",
     "image": "kelacard",
     "stats": {
-      "hp": "5,000원",
+      "hp": "5,000",
       "attack": "500",
       "defense": "500"
     },

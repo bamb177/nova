@@ -8,12 +8,12 @@
     "role": "DPS",
     "faction": "Chemic",
     "stats": {
-      "hp": "10,520 원",
+      "hp": "10,520",
       "attack": "696",
-      "defense": "1,315 원",
+      "defense": "1,315",
       "energyRecovery": "0.25/s",
-      "critRate": "100%년",
-      "critDamage": "50% 할인"
+      "critRate": "0%",
+      "critDamage": "50%"
     },
     "skills": {
       "normal": {
@@ -76,7 +76,7 @@
       "name": "Wrong Appearance Timing",
       "image": "Apepcard",
       "stats": {
-        "hp": "8,800 원",
+        "hp": "8,800",
         "attack": "480",
         "defense": "690"
       },
@@ -97,8 +97,8 @@
     ]
   },
   "apepSEO": {
-    "title": "【Warrior】Apep - 존 노바 캐릭터 가이드 | GachaWiki",
-    "description": "[Warrior]Apep in Zone Nova에 대한 완전한 가이드. 그의 바람 기반 탱크 능력, 바람 갱 벽 방패, 상태 치유, awakening 효과에 대해 배우고이 강력한 Chemic faction 수비수에 대한 최적의 빌드 전략."
+    "title": "【Warrior】Apep - Zone Nova Character Guide | GachaWiki",
+    "description": "Complete guide for 【Warrior】Apep in Zone Nova. Learn about his wind-based tank abilities, Wind Gang Wall shield, conditional healing, awakening effects, and optimal build strategies for this powerful Chemic faction defender."
   },
   "id": "apep",
   "name": "Apep"

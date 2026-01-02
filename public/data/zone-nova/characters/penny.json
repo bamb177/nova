@@ -1,15 +1,15 @@
 {
   "name": "Pennie",
-  "image": "/images/games/zone-nova/문자/penny.jpg",
+  "image": "/images/games/zone-nova/characters/penny.jpg",
   "rarity": "SSR",
   "element": "Storm",
   "class": "Guardian",
   "role": "Tank",
   "faction": "Safir",
   "stats": {
-    "hp": "10,520 원",
+    "hp": "10,520",
     "attack": "794",
-    "defense": "1,232 원"
+    "defense": "1,232"
   },
   "skills": {
     "normal": {
@@ -27,7 +27,7 @@
       "description": "모든 allied 문자는 방어 (페니)의 60 %와 동일하며 10 초 동안 24% 적은 손상을받습니다."
     },
     "passive": {
-      "name": "Aethyss의 도움에 대한 호출",
+      "name": "Aethyss's Call for Help",
       "description": "손상을 입은 후, 1 stack of [Fortitude]를 얻고, 4.8%의 최대 30 stack로 자신의 방어를 증가시킵니다."
     }
   },
@@ -69,7 +69,7 @@
     "name": "Her Trainer",
     "image": "pennycard",
     "stats": {
-      "hp": "8,600원",
+      "hp": "8,600",
       "attack": "480",
       "defense": "690"
     },

@@ -8,32 +8,32 @@
   "role": "Healer",
   "faction": "Heikyo Castle",
   "stats": {
-    "hp": "9,180명",
-    "attack": "1,004 원",
+    "hp": "9,180",
+    "attack": "1,004",
     "defense": "728",
     "energyRecovery": "0.25/s",
-    "critRate": "100%년",
-    "critDamage": "50% 할인"
+    "critRate": "0%",
+    "critDamage": "50%"
   },
   "skills": {
     "normal": {
       "name": "Eclipse Silk",
       "chineseName": "日蚀丝",
-      "level": "10개 이상",
+      "level": "10+4",
       "cooldown": "2.0s",
       "description": "적에게 공격력이 120% 증가합니다."
     },
     "auto": {
       "name": "Blooming Sweet Rain",
       "chineseName": "甘露绽放",
-      "level": "10개 이상",
+      "level": "10+4",
       "cooldown": "3.0s",
       "description": "가장 낮은 현재 건강 비율을 가진 친절한 단위는 3 초 동안 그것의 자신의 공격 힘의 20.4% + 440의 지속적인 건강 재생을 얻습니다; 지속적인 재생 도중, 10% 모든 저항을 얻습니다."
     },
     "ultimate": {
       "name": "Umbrella Blossom",
       "chineseName": "伞花绽放",
-      "level": "10개 이상",
+      "level": "10+4",
       "cooldown": "1.0s",
       "energyCost": "2",
       "description": "짧은 주조 시간 후, 5의 범위와 치유 영역이 생성되고, 캐스터의 공격 전력을 46% + 243 5 초 동안 초당 HP로 회복합니다. 영역 내의 모든 문자는 1 스택 [Umbrella Blossom], 최대 5 스택."
@@ -41,7 +41,7 @@
     "passive": {
       "name": "Umbrella Heal",
       "chineseName": "伞花治愈",
-      "level": "10개 이상",
+      "level": "10+4",
       "description": "ally가 공격 한 후, HP가 30 % 미만인 경우, 1 초 이내에 15.1% 최대 HP의 3 급의 치유를 얻기 위해 [Umbrella Flower]의 1 스택을 소비합니다. 첫번째 2배 이익 6 급속한 치유."
     }
   },
@@ -53,7 +53,7 @@
     "requirements": {
       "faction": "Pingjing City",
       "element": "Chaos",
-      "condition": "2 [Pingjing City (平京城)] 또는 2 [Chaos] 문자"
+      "condition": "2 [Pingjing City (平京城)] or 2 [Chaos] characters"
     }
   },
   "awakenings": [
@@ -88,7 +88,7 @@
     "image": "Jorogumocard",
     "level": "80/80",
     "stats": {
-      "hp": "6,000원",
+      "hp": "6,000",
       "attack": "600",
       "defense": "600"
     },

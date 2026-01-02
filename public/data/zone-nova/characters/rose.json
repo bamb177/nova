@@ -7,17 +7,17 @@
   "role": "DPS",
   "faction": "Monochrome Realm",
   "stats": {
-    "hp": "6,694명",
-    "attack": "1,088 원",
+    "hp": "6,694",
+    "attack": "1,088",
     "defense": "442"
   },
   "skills": {
     "normal": {
-      "name": "인기 있는 인기 있는  Sha! ( Sha!)!)",
+      "name": "Shatter! Shatter! Shatter! (碎！碎！碎！)",
       "description": "지정된 적에게 공격의 96%와 같은 얼음 손상을 줍니다. 향상된 (감리 대포 치료) : 적과 주변 2 미터 범위의 공격의 96%와 같은 얼음 손상"
     },
     "auto": {
-      "name": "Bullet ( Bullet)",
+      "name": "Bullet Hell Scatter (弹幕散射)",
       "cooldown": "10.0s",
       "description": "기초: 적에게 공격의 180%와 동등한 얼음 손상을 줍니다. 강화된 (감리 대포 치료): 적과 주변 4미터 범위의 공격의 180%와 같은 얼음 손상"
     },
@@ -27,7 +27,7 @@
       "description": "10 초 동안 [Frost Cannon] 상태를 입력하십시오. 공격 속도를 증가 58%. 향상된 정상적인 공격과 향상된 기술을 얻습니다. 모든 능력은이 상태 동안 AoE가됩니다."
     },
     "passive": {
-      "name": "Reckless Spirit의 기초 ( Re的))",
+      "name": "Reckless Spirit's Foundation (冒失鬼的底蕴)",
       "description": "각 정상적인 공격은 2.4%에 의해 중요한 비율을 증가합니다. 최대 20개의 스택 (48% 최대 중요한 비율 증가)."
     }
   },
@@ -69,7 +69,7 @@
     "name": "During Military Academy Training",
     "image": "Rosecard",
     "stats": {
-      "hp": "4,200원",
+      "hp": "4,200",
       "attack": "650",
       "defense": "395"
     },
