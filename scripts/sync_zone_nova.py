@@ -261,11 +261,30 @@ def _openai_translate(text: str, api_key: str, model: str) -> str:
         "messages": [
             {
                 "role": "system",
-                "content": (
-                    "You are a translation engine. Translate the user's text into Korean. "
-                    "Do not add explanations. Preserve newlines/bullets. "
-                    "Keep proper nouns that look like character names as-is."
-                ),
+               "content": (
+                    "You are a professional game localization translator for Korean (ko-KR). "
+                    "Translate the user's English text into natural Korean suitable for in-game UI, skill tooltips, and effects.\n"
+                    "\n"
+                    "Hard rules:\n"
+                    "1) Output ONLY the translated text. No explanations, no quotes, no extra commentary.\n"
+                    "2) Preserve formatting exactly (line breaks, bullet points, punctuation, spacing). If the input uses Markdown, keep Markdown.\n"
+                    "3) Do NOT change numbers, percentages, units, or symbols (+, -, ×, /, =, →, ↑, ↓). Keep them exactly.\n"
+                    "4) Keep placeholders/tokens as-is: anything in backticks `...`, {braces}, <tags>, [brackets], or variables like %s, {0}, {value}.\n"
+                    "5) Keep proper nouns as-is when they look like names (character/skill/item names). If unsure, keep as-is.\n"
+                    "6) Keep ALL-CAPS abbreviations and stat tokens unchanged (e.g., HP, ATK, DEF, SPD, CRIT, DMG, DoT, AoE, CC, CD).\n"
+                    "\n"
+                    "Preferred KR terminology (be consistent):\n"
+                    "- damage → 피해, additional damage → 추가 피해, dealt/receive damage → 가하는/받는 피해\n"
+                    "- heal/restore → 회복, shield/barrier → 보호막\n"
+                    "- buff → 버프, debuff → 디버프, dispel/remove → 해제\n"
+                    "- stack → 중첩, turn → 턴, duration → 지속 시간, cooldown → 재사용 대기시간\n"
+                    "- chance/probability → 확률, immune → 면역\n"
+                    "\n"
+                    "Style:\n"
+                    "- Keep sentences concise. Do not add subjects or explanations not present in the source.\n"
+                    "- Avoid overly literal translation; prefer natural KR phrasing while preserving meaning.\n"
+                )
+
             },
             {"role": "user", "content": text},
         ],
@@ -307,9 +326,13 @@ def _should_translate_string(s: str) -> bool:
 
 def translate_detail_object_to_ko(detail: Any, character_name: str, cache_path: Path, mode: str) -> Any:
     """
-    Translate string values inside detail into Korean.
-    Keep root detail['name'] as-is (character name).
-    Also keep any string value exactly equal to character_name.
+    Translate ONLY selected fields into Korean and keep everything else as-is (English).
+    Selected translation targets (requested):
+      1) skills -> description
+      2) teamSkill -> description, alternativeConditions
+      3) awakenings -> (each level) effect
+      4) memoryCard -> effects (all strings under this subtree)
+    Keep root detail['name'] (character name) as-is.
     """
     mode = (mode or "none").strip().lower()
     if mode == "none":
@@ -320,9 +343,49 @@ def translate_detail_object_to_ko(detail: Any, character_name: str, cache_path: 
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
 
-    def tr(s: str) -> str:
+    def _should_translate_path(path: Tuple[str, ...]) -> bool:
+        """
+        path includes dict keys, and list markers as '[]'.
+        We translate only if path matches the user-approved scopes.
+        """
+        if not path:
+            return False
+
+        last = path[-1]
+
+        # 1) skills/*/description
+        if "skills" in path and last == "description":
+            return True
+
+        # 2) teamSkill/*/(description | alternativeConditions)
+        if "teamSkill" in path and last in ("description", "alternativeConditions"):
+            return True
+
+        # 3) awakenings/*/effect  (level-based arrays/maps are handled by 'effect' key)
+        if "awakenings" in path and last == "effect":
+            return True
+
+        # 4) memoryCard/effects/**  (translate all strings under this subtree)
+        # If path contains memoryCard and effects after it, translate strings in that subtree.
+        if "memoryCard" in path:
+            try:
+                i = path.index("memoryCard")
+                if "effects" in path[i + 1:]:
+                    return True
+            except ValueError:
+                pass
+
+        return False
+
+    def tr(s: str, path: Tuple[str, ...]) -> str:
+        # not in scope => keep English
+        if not _should_translate_path(path):
+            return s
+
+        # string-level heuristic filter
         if not _should_translate_string(s):
             return s
+
         key = _sha1(s)
         if key in cache:
             return cache[key]
@@ -330,28 +393,33 @@ def translate_detail_object_to_ko(detail: Any, character_name: str, cache_path: 
         # small sleep to avoid runaway in CI
         time.sleep(0.05)
 
-        if mode == "argos":
-            ko = _argos_translate(s)
-        elif mode == "openai":
+        if mode == "openai":
             if not api_key:
                 return s
-            ko = _openai_translate(s, api_key=api_key, model=model)
+            # Higher-quality prompt: preserve numbers/tokens, keep skill/term casing as-is
+            ko = _openai_translate(
+                text=s,
+                api_key=api_key,
+                model=model,
+            )
+        elif mode == "argos":
+            ko = _argos_translate(s)
         else:
             return s
 
         cache[key] = ko if ko else s
         return cache[key]
 
-    def walk(obj, path=()):
+    def walk(obj, path: Tuple[str, ...] = ()):
         if isinstance(obj, dict):
             out = {}
             for k, v in obj.items():
-                # Preserve character name only at root "name"
+                # Keep character name at root
                 if isinstance(v, str) and k == "name" and len(path) == 0:
                     out[k] = v
                     continue
 
-                # Preserve string equal to character_name (avoid changing name references)
+                # Keep exact character name string anywhere
                 if isinstance(v, str) and character_name and v.strip() == character_name.strip():
                     out[k] = v
                     continue
@@ -363,13 +431,13 @@ def translate_detail_object_to_ko(detail: Any, character_name: str, cache_path: 
             return [walk(x, path + ("[]",)) for x in obj]
 
         if isinstance(obj, str):
-            return tr(obj)
+            return tr(obj, path)
 
         return obj
 
     translated = walk(detail)
 
-    # save cache (so next run is cheap/fast)
+    # persist cache for future runs (cost control)
     _save_json(cache_path, cache)
     return translated
 
