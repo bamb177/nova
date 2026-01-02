@@ -56,14 +56,12 @@ jobs:
       #   --upstream gacha-wiki --write --sync-details
       - name: Sync Zone Nova (meta + details)
         env:
-        TRANSLATE_MODE: argos
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        OPENAI_MODEL: gpt-4o-mini
-          
+          TRANSLATE_MODE: argos
         run: |
           node -v
           python -V
           python scripts/sync_zone_nova.py --upstream gacha-wiki --write --sync-details
+
 
       # ✅ (중요) 커밋 전에 생성 여부 확인
       - name: Check generated detail files (before commit)
