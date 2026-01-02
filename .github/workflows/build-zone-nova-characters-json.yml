@@ -1,0 +1,46 @@
+name: Build Zone Nova character JSON
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 매일 03:10 KST = 18:10 UTC
+    - cron: "10 18 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-zone-nova-characters-json
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build JSON from JS
+        run: node scripts/build_zone_nova_characters_json.mjs
+
+      - name: Commit & push if changed
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add public/data/zone-nova/characters
+          git commit -m "sync(zone-nova): rebuild characters json"
+          git push
