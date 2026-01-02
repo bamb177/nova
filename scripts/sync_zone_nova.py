@@ -3,6 +3,10 @@ import json
 import os
 import re
 import subprocess
+import hashlib
+import time
+import urllib.request
+
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -262,6 +266,152 @@ process.stdout.write(JSON.stringify(data));
 
     return json.loads(proc.stdout)
 
+def _load_json_if_exists(p: Path, default):
+    try:
+        if p.is_file():
+            return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return default
+
+def _save_json(p: Path, obj):
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
+
+def _sha1(s: str) -> str:
+    return hashlib.sha1(s.encode("utf-8")).hexdigest()
+
+def _openai_translate_ko(text: str, api_key: str, model: str) -> str:
+    """
+    Chat Completions API 사용. (공식 엔드포인트)
+    POST https://api.openai.com/v1/chat/completions :contentReference[oaicite:1]{index=1}
+    """
+    url = "https://api.openai.com/v1/chat/completions"
+    payload = {
+        "model": model,
+        "temperature": 0,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are a translation engine. Translate the user's text into Korean. "
+                    "Do not add explanations. Preserve formatting such as newlines and bullet points. "
+                    "Keep proper nouns as-is when they look like character names."
+                ),
+            },
+            {"role": "user", "content": text},
+        ],
+    }
+
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+        method="POST",
+    )
+
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        raw = resp.read().decode("utf-8")
+    j = json.loads(raw)
+
+    # 안전 처리
+    out = (
+        j.get("choices", [{}])[0]
+         .get("message", {})
+         .get("content", "")
+    )
+    return (out or "").strip()
+
+def _should_translate_string(s: str) -> bool:
+    """
+    이미 한국어가 섞여있거나, 너무 짧거나, 코드/ID 같은 건 번역 안 함.
+    """
+    if not s:
+        return False
+    t = s.strip()
+    if len(t) <= 1:
+        return False
+
+    # 한글이 이미 포함되어 있으면 스킵(원본에 KO가 있는 경우)
+    if any("\uac00" <= ch <= "\ud7a3" for ch in t):
+        return False
+
+    # id/슬러그/파일명 같은 느낌이면 스킵
+    if len(t) < 40 and all(ch.isalnum() or ch in "-_./ " for ch in t):
+        return False
+
+    return True
+
+def translate_detail_object_to_ko(detail: dict, character_name: str, cache_path: Path) -> dict:
+    """
+    detail 내부의 '문장/설명' 스트링을 한국어로 번역해 저장.
+    단, 캐릭터명(character_name) 및 최상위 name은 유지.
+    """
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
+
+    # 키 없으면 번역 스킵(그대로 저장)
+    if not api_key:
+        return detail
+
+    cache = _load_json_if_exists(cache_path, default={})
+
+    def tr(s: str) -> str:
+        if not _should_translate_string(s):
+            return s
+        key = _sha1(s)
+        if key in cache:
+            return cache[key]
+        # 과금/레이트리밋 완화용 소량 sleep
+        time.sleep(0.2)
+        ko = _openai_translate_ko(s, api_key=api_key, model=model)
+        cache[key] = ko if ko else s
+        return cache[key]
+
+    def walk(obj, path=()):
+        if isinstance(obj, dict):
+            out = {}
+            for k, v in obj.items():
+                # 캐릭터명은 유지:
+                # - 최상위의 name
+                # - character.name (혹시 존재하면)
+                if (
+                    isinstance(v, str)
+                    and k == "name"
+                    and (
+                        len(path) == 0 or (len(path) == 1 and path[0] == "character")
+                    )
+                ):
+                    out[k] = v
+                    continue
+
+                # 캐릭터명이 값으로 등장해도 그대로 유지(동일 문자열이면)
+                if isinstance(v, str) and character_name and v.strip() == character_name.strip():
+                    out[k] = v
+                    continue
+
+                out[k] = walk(v, path + (k,))
+            return out
+
+        if isinstance(obj, list):
+            return [walk(x, path + ("[]",)) for x in obj]
+
+        if isinstance(obj, str):
+            return tr(obj)
+
+        return obj
+
+    translated = walk(detail)
+
+    # 캐시 저장(커밋 대상이 되게 public/data 아래에 두는 걸 권장)
+    _save_json(cache_path, cache)
+    return translated
+
+
 def sync_details_from_gacha_wiki(upstream_char_dir: Path):
     """
     upstream_char_dir = gacha-wiki/src/data/zone-nova/characters
@@ -331,6 +481,9 @@ def sync_details_from_gacha_wiki(upstream_char_dir: Path):
             raw["_source_file"] = fp.name
             raw["_source_name"] = upstream_name
 
+        cache_path = DATA_DIR / "_translate_cache_ko.json"
+        detail_obj = translate_detail_object_to_ko(detail_obj, character_name=canon_name, cache_path=cache_path)
+        
         out_path = out_dir / f"{chosen}.json"
         _save_json(out_path, raw)
 
