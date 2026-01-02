@@ -80,3 +80,12 @@ jobs:
 
           git commit -m "Sync zone-nova data (meta + details)" || echo "Nothing to commit"
           git push
+
+      - name: Check generated detail files
+        run: |
+          echo "== characters detail dir =="
+          ls -la public/data/zone-nova/characters || true
+          echo "== sample =="
+          test -f public/data/zone-nova/characters/anubis.json && echo "anubis.json exists" || echo "anubis.json missing"
+          test -f public/data/zone-nova/_unmatched_gacha_wiki.json && echo "_unmatched exists" || echo "_unmatched missing"
+
