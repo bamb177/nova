@@ -246,6 +246,86 @@ def _argos_translate(text: str) -> str:
     import argostranslate.translate as tr
     return tr.translate(text, "en", "ko")
 
+# =========================
+# Game Glossary Postprocess
+# =========================
+
+# 치환은 "순서"가 중요합니다(긴 표현 -> 짧은 표현).
+# 필요하면 여기만 계속 다듬으면 됩니다.
+_GAME_GLOSSARY_PATTERNS: list[tuple[str, str, int]] = [
+    # Cooldown / Duration
+    (r"\bCooldown\b", "쿨타임", re.IGNORECASE),
+    (r"재사용\s*대기\s*시간", "쿨타임", 0),
+    (r"\bCD\b", "쿨타임", 0),  # 문맥에 따라 오역 가능하면 제거하세요
+    (r"지속\s*시간", "지속시간", 0),
+
+    # Buff/Debuff/Dispel/Immune
+    (r"\bBuffs?\b", "버프", re.IGNORECASE),
+    (r"\bDebuffs?\b", "디버프", re.IGNORECASE),
+    (r"해제한다", "해제", 0),
+    (r"\bDispel(s|led|ling)?\b", "해제", re.IGNORECASE),
+    (r"\bImmune\b", "면역", re.IGNORECASE),
+    (r"면역\s*상태", "면역", 0),
+
+    # Stack / Turn
+    (r"\bStacks?\b", "중첩", re.IGNORECASE),
+    (r"턴\s*동안", "턴 동안", 0),
+
+    # Damage wording consistency
+    (r"추가\s*피해량", "추가 피해", 0),
+    (r"추가\s*피해를\s*입힌다", "추가 피해를 준다", 0),
+    (r"피해를\s*입힌다", "피해를 준다", 0),
+    (r"피해량", "피해", 0),  # 원치 않으면 주석 처리
+    (r"받는\s*피해량", "받는 피해", 0),
+    (r"가하는\s*피해량", "가하는 피해", 0),
+
+    # Heal / Shield
+    (r"\bHeal(s|ed|ing)?\b", "회복", re.IGNORECASE),
+    (r"체력을\s*회복한다", "체력을 회복한다", 0),
+    (r"\bShield(s|ed|ing)?\b", "보호막", re.IGNORECASE),
+    (r"\bBarrier\b", "보호막", re.IGNORECASE),
+
+    # Chance / Crit
+    (r"확률로", "확률로", 0),
+    (r"치명타\s*확률", "치명타 확률", 0),
+    (r"\bCrit(ical)?\s*Rate\b", "치명타 확률", re.IGNORECASE),
+    (r"\bCrit(ical)?\s*Damage\b", "치명타 피해", re.IGNORECASE),
+
+    # Common stats (keep abbreviations like HP/ATK as-is in prompt, but normalize KR if generated)
+    (r"공격\s*력", "공격력", 0),
+    (r"방어\s*력", "방어력", 0),
+    (r"체\s*력", "체력", 0),
+]
+
+# 보호 구간: 번역/치환하면 안 되는 토큰들
+# - `code`
+# - {placeholders}
+# - <tags>
+# - [brackets]
+_PROTECTED_SPAN_RE = re.compile(r"(`[^`]*`|\{[^{}]*\}|<[^<>]*>|\[[^\[\]]*\])")
+
+def _apply_game_glossary(text: str) -> str:
+    """
+    Apply glossary replacements to translated KR text, while preserving protected tokens.
+    Formatting(개행/불릿)은 그대로 두고, 보호구간은 치환하지 않습니다.
+    """
+    if not text:
+        return text
+
+    parts = _PROTECTED_SPAN_RE.split(text)
+    # split 결과: 보호구간은 그대로(parts에서 해당 조각이 통째로 남음)
+    for i in range(len(parts)):
+        seg = parts[i]
+        if not seg or _PROTECTED_SPAN_RE.fullmatch(seg):
+            continue
+
+        for pat, rep, flags in _GAME_GLOSSARY_PATTERNS:
+            seg = re.sub(pat, rep, seg, flags=flags)
+
+        parts[i] = seg
+
+    return "".join(parts)
+
 
 def _openai_translate(text: str, api_key: str, model: str) -> str:
     """
@@ -261,7 +341,7 @@ def _openai_translate(text: str, api_key: str, model: str) -> str:
         "messages": [
             {
                 "role": "system",
-               "content": (
+                "content": (
                     "You are a professional game localization translator for Korean (ko-KR). "
                     "Translate the user's English text into natural Korean suitable for in-game UI, skill tooltips, and effects.\n"
                     "\n"
@@ -273,17 +353,20 @@ def _openai_translate(text: str, api_key: str, model: str) -> str:
                     "5) Keep proper nouns as-is when they look like names (character/skill/item names). If unsure, keep as-is.\n"
                     "6) Keep ALL-CAPS abbreviations and stat tokens unchanged (e.g., HP, ATK, DEF, SPD, CRIT, DMG, DoT, AoE, CC, CD).\n"
                     "\n"
-                    "Preferred KR terminology (be consistent):\n"
-                    "- damage → 피해, additional damage → 추가 피해, dealt/receive damage → 가하는/받는 피해\n"
-                    "- heal/restore → 회복, shield/barrier → 보호막\n"
-                    "- buff → 버프, debuff → 디버프, dispel/remove → 해제\n"
-                    "- stack → 중첩, turn → 턴, duration → 지속 시간, cooldown → 재사용 대기시간\n"
-                    "- chance/probability → 확률, immune → 면역\n"
+                    "Terminology preferences:\n"
+                    "- cooldown → 쿨타임\n"
+                    "- duration → 지속시간\n"
+                    "- buff/debuff → 버프/디버프\n"
+                    "- dispel/remove → 해제\n"
+                    "- shield/barrier → 보호막\n"
+                    "- stack → 중첩\n"
+                    "- damage dealt / damage taken → 가하는 피해 / 받는 피해\n"
                     "\n"
                     "Style:\n"
-                    "- Keep sentences concise. Do not add subjects or explanations not present in the source.\n"
+                    "- Keep sentences concise. Do not add information not present in the source.\n"
                     "- Avoid overly literal translation; prefer natural KR phrasing while preserving meaning.\n"
-                )
+                ),
+
 
             },
             {"role": "user", "content": text},
@@ -302,9 +385,14 @@ def _openai_translate(text: str, api_key: str, model: str) -> str:
     with urllib.request.urlopen(req, timeout=60) as resp:
         raw = resp.read().decode("utf-8")
     j = json.loads(raw)
-    out = (j.get("choices", [{}])[0].get("message", {}) or {}).get("content", "")
-    return (out or "").strip()
-
+   out = (
+        j.get("choices", [{}])[0]
+         .get("message", {})
+         .get("content", "")
+    )
+    out = (out or "").strip()
+    out = _apply_game_glossary(out)
+    return out
 
 def _should_translate_string(s: str) -> bool:
     if not s:
