@@ -55,6 +55,10 @@ jobs:
       # - scripts/sync_zone_nova.py 가 아래 옵션을 처리해야 함:
       #   --upstream gacha-wiki --write --sync-details
       - name: Sync Zone Nova (meta + details)
+        env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        OPENAI_MODEL: gpt-4o-mini
+          
         run: |
           node -v
           python -V
