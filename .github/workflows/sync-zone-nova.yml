@@ -56,6 +56,7 @@ jobs:
       #   --upstream gacha-wiki --write --sync-details
       - name: Sync Zone Nova (meta + details)
         env:
+        TRANSLATE_MODE: argos
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         OPENAI_MODEL: gpt-4o-mini
           
