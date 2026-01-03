@@ -1,9 +1,29 @@
 {
-  "Crit Rate": "치명타 확률",
-  "Crit Damage": "치명타 피해",
-  "Atk Speed": "공격 속도",
-  "Normal Atk": "일반 공격",
-  "Ultimate": "궁극기",
-  "Passive": "패시브",
-  "Skills": "스킬"
+  "Attack": "공격력",
+  "ATK": "공격력",
+  "Defense": "방어력",
+  "DEF": "방어력",
+  "Max HP": "최대 HP",
+
+  "damage increase": "피해 증가",
+  "damage increases": "피해가 증가",
+  "damage taken": "받는 피해",
+  "damage reduction": "피해 감소",
+
+  "designated enemy": "지정한 적 1명",
+  "designated enemy unit": "지정한 적 1명",
+  "Allied units": "아군 전체",
+  "all allies": "아군 전체",
+  "all enemies": "모든 적",
+
+  "Extra Attack": "추가 공격",
+  "Extra attacks": "추가 공격",
+  "Extra damage": "추가 피해",
+
+  "Energy": "에너지",
+  "energy": "에너지",
+  "stack": "중첩",
+  "stacks": "중첩",
+  "layer": "중첩",
+  "layers": "중첩"
 }
