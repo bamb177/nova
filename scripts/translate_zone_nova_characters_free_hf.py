@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, Tuple, List, Optional
 
 import torch
 from transformers import MarianMTModel, MarianTokenizer
@@ -29,7 +29,7 @@ def save_cache(cache_path: Path, cache: Dict[str, str]) -> None:
 
 
 # -----------------------
-# Simple checks
+# Basic helpers
 # -----------------------
 def has_hangul(text: str) -> bool:
     return bool(re.search(r"[가-힣]", text or ""))
@@ -39,7 +39,7 @@ def normalize_out(text: str) -> str:
 
 
 # -----------------------
-# Token protection
+# Token protection (placeholders/tags)
 # -----------------------
 TOKEN_PATTERNS = [
     r"\{[^}]+\}",   # {x}
@@ -113,11 +113,13 @@ import(process.argv[1]).then((m) => {
         return json.loads(result.stdout)
 
 def select_character_data_export(module_obj: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+    # 1) default 우선
     if "default" in module_obj and isinstance(module_obj["default"], dict):
         d = module_obj["default"]
         if "name" in d and ("skills" in d or "teamSkill" in d):
             return ("default", d)
 
+    # 2) named exports 중 *Data 우선
     candidates: List[Tuple[int, str, Dict[str, Any]]] = []
     for k, v in module_obj.items():
         if isinstance(v, dict) and "name" in v and ("skills" in v or "teamSkill" in v):
@@ -141,10 +143,10 @@ def select_character_data_export(module_obj: Dict[str, Any]) -> Tuple[str, Dict[
 
 
 # -----------------------
-# HF Translator
+# HF Translator (OPUS-MT / MarianMT)
 # -----------------------
 class HFTranslator:
-    def __init__(self, model_name: str = "Helsinki-NLP/opus-mt-en-ko"):
+    def __init__(self, model_name: str):
         self.model_name = model_name
         self.tokenizer = MarianTokenizer.from_pretrained(model_name)
         self.model = MarianMTModel.from_pretrained(model_name)
@@ -152,7 +154,34 @@ class HFTranslator:
         self.device = torch.device("cpu")
         self.model.to(self.device)
 
-    def translate_batch(self, texts: List[str], max_length: int = 512) -> List[str]:
+        # multilingual target token auto-detection
+        self.tgt_token = self._pick_korean_target_token()
+
+    def _pick_korean_target_token(self) -> Optional[str]:
+        toks = getattr(self.tokenizer, "additional_special_tokens", []) or []
+        if not toks:
+            return None
+
+        candidates = []
+        for t in toks:
+            tt = t.lower()
+            # OPUS-MT tc-big 계열은 >>id<< 형태 토큰을 요구할 수 있음. :contentReference[oaicite:2]{index=2}
+            if tt.startswith(">>") and tt.endswith("<<") and ("kor" in tt or "ko" in tt):
+                score = 0
+                if "kor_hang" in tt or "kor-hang" in tt:
+                    score += 30
+                if "kor" in tt:
+                    score += 10
+                if "ko" in tt:
+                    score += 5
+                candidates.append((score, t))
+
+        if not candidates:
+            return None
+        candidates.sort(reverse=True)
+        return candidates[0][1]
+
+    def _generate(self, texts: List[str], max_length: int = 512) -> List[str]:
         encoded = self.tokenizer(
             texts,
             return_tensors="pt",
@@ -162,13 +191,28 @@ class HFTranslator:
         ).to(self.device)
 
         with torch.no_grad():
-            generated = self.model.generate(
-                **encoded,
-                max_length=max_length,
-                num_beams=4,
-            )
+            generated = self.model.generate(**encoded, max_length=max_length, num_beams=4)
+
         out = self.tokenizer.batch_decode(generated, skip_special_tokens=True)
         return [normalize_out(x) for x in out]
+
+    def translate_one(self, text: str) -> str:
+        # 1) auto token이 있으면 우선 사용
+        if self.tgt_token:
+            out = self._generate([f"{self.tgt_token} {text}"])[0]
+            if out:
+                return out
+
+        # 2) 그래도 비정상이면(비한글/빈값) 후보 토큰으로 재시도
+        # (환경/토크나이저에 따라 토큰 리스트가 비거나 감지 실패하는 케이스 방어)
+        fallback_tokens = [">>kor_Hang<<", ">>kor<<", ">>ko<<"]
+        for tok in fallback_tokens:
+            out = self._generate([f"{tok} {text}"])[0]
+            if out:
+                return out
+
+        # 3) 마지막: 토큰 없이
+        return self._generate([text])[0]
 
 
 def translate_text_hf(tr: HFTranslator, text: str, glossary: Dict[str, str], cache: Dict[str, str]) -> str:
@@ -182,22 +226,24 @@ def translate_text_hf(tr: HFTranslator, text: str, glossary: Dict[str, str], cac
         return cache[key]
 
     protected, ph = protect_tokens(text)
-    out = tr.translate_batch([protected])[0]
+    out = tr.translate_one(protected)
     out = restore_tokens(out, ph)
     out = apply_glossary(out, glossary).strip()
 
-    if out != text:
+    # “영문 그대로” 결과는 캐시에 저장하지 않음(고착 방지)
+    if out and out != text:
         cache[key] = out
-    return out
+
+    return out if out else text
 
 
 # -----------------------
-# Translate requested fields only
+# Translate requested fields only (overwrite existing keys)
 # -----------------------
 def translate_character_fields(tr: HFTranslator, obj: Dict[str, Any], glossary: Dict[str, str], cache: Dict[str, str]) -> int:
     changed = 0
 
-    # 1) skills.*.description
+    # 1) Skills description
     skills = obj.get("skills")
     if isinstance(skills, dict):
         for _, s in skills.items():
@@ -216,7 +262,7 @@ def translate_character_fields(tr: HFTranslator, obj: Dict[str, Any], glossary: 
                     s["description"] = dst
                     changed += 1
 
-    # 2) teamSkill.description (+ alternativeConditions)
+    # 2) Team Skill description (+ alternativeConditions if present)
     team = obj.get("teamSkill")
     if isinstance(team, dict):
         if isinstance(team.get("description"), str):
@@ -225,6 +271,7 @@ def translate_character_fields(tr: HFTranslator, obj: Dict[str, Any], glossary: 
             if dst != src:
                 team["description"] = dst
                 changed += 1
+
         req = team.get("requirements")
         if isinstance(req, dict) and isinstance(req.get("alternativeConditions"), str):
             src = req["alternativeConditions"]
@@ -233,7 +280,7 @@ def translate_character_fields(tr: HFTranslator, obj: Dict[str, Any], glossary: 
                 req["alternativeConditions"] = dst
                 changed += 1
 
-    # 3) awakenings/awakeningEffects effect
+    # 3) Awakening Effects (6 levels) effect
     for aw_key in ("awakenings", "awakeningEffects"):
         aw = obj.get(aw_key)
         if isinstance(aw, list):
@@ -245,7 +292,7 @@ def translate_character_fields(tr: HFTranslator, obj: Dict[str, Any], glossary: 
                         item["effect"] = dst
                         changed += 1
 
-    # 4) memoryCard.effects[]
+    # 4) Memory Card effects[]
     mc = obj.get("memoryCard")
     if isinstance(mc, dict):
         effects = mc.get("effects")
@@ -266,7 +313,7 @@ def main():
     ap.add_argument("--out", default="public/data/zone-nova/characters_ko")
     ap.add_argument("--cache", default=".cache/zone_nova_translate_cache_free_hf.json")
     ap.add_argument("--glossary", default="public/data/zone-nova/glossary_ko.json")
-    ap.add_argument("--model_name", default="Helsinki-NLP/opus-mt-en-ko")
+    ap.add_argument("--model_name", default="Helsinki-NLP/opus-mt-tc-big-en-ko")
     args = ap.parse_args()
 
     src_dir = Path(args.src)
