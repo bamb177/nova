@@ -1,16 +1,15 @@
-name: Zone Nova KR Translate (FREE, offline MT)
+name: Zone Nova KR Translate (FREE, HF MarianMT)
 
 on:
   workflow_dispatch:
   schedule:
-    # 매일 03:10 KST = 18:10 UTC
-    - cron: "10 18 * * *"
+    - cron: "10 18 * * *" # 03:10 KST
 
 permissions:
   contents: write
 
 concurrency:
-  group: zone-nova-kr-translate-free
+  group: zone-nova-kr-translate-free-hf
   cancel-in-progress: true
 
 jobs:
@@ -34,23 +33,28 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install deps (Argos Translate)
+      - name: Install deps (Transformers)
         run: |
           python -m pip install -U pip
-          pip install argostranslate
+          # CPU용 토치 + 번역 라이브러리
+          pip install torch transformers sentencepiece
 
-      # (선택) 캐시를 쓰고 싶으면 유지, 매번 새로 번역하려면 지우세요.
       - name: Reset translation cache (optional)
         run: |
-          rm -f .cache/zone_nova_translate_cache_free.json || true
+          rm -f .cache/zone_nova_translate_cache_free_hf.json || true
 
       - name: Translate KR fields -> characters_ko JSON (FREE)
+        env:
+          # 모델 다운로드 캐시 경로(다음 실행에 재사용 가능)
+          HF_HOME: .cache/huggingface
+          TRANSFORMERS_CACHE: .cache/huggingface
         run: |
-          python scripts/translate_zone_nova_characters_free.py \
+          python scripts/translate_zone_nova_characters_free_hf.py \
             --src public/data/zone-nova/characters \
             --out public/data/zone-nova/characters_ko \
-            --cache .cache/zone_nova_translate_cache_free.json \
-            --glossary public/data/zone-nova/glossary_ko.json
+            --cache .cache/zone_nova_translate_cache_free_hf.json \
+            --glossary public/data/zone-nova/glossary_ko.json \
+            --model_name Helsinki-NLP/opus-mt-en-ko
 
       - name: Commit and push if changed
         run: |
@@ -63,5 +67,5 @@ jobs:
           fi
 
           git add public/data/zone-nova/characters_ko || true
-          git commit -m "Update KR translations (FREE MT)"
+          git commit -m "Update KR translations (FREE HF)"
           git push
