@@ -1,9 +1,10 @@
-name: Zone Nova KR Translate (FREE, HF MarianMT)
+name: Zone Nova KR Translate (FREE, HF OPUS-MT)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "10 18 * * *" # 03:10 KST
+    # 매일 03:10 KST = 18:10 UTC
+    - cron: "10 18 * * *"
 
 permissions:
   contents: write
@@ -33,19 +34,27 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install deps (Transformers)
+      # HF 모델 다운로드 캐시 (다음 실행부터 훨씬 빨라짐)
+      - name: Cache Hugging Face model files
+        uses: actions/cache@v4
+        with:
+          path: .cache/huggingface
+          key: hf-cache-opusmt-enko-v1
+
+      - name: Install deps (Transformers CPU)
         run: |
           python -m pip install -U pip
-          # CPU용 토치 + 번역 라이브러리
-          pip install torch transformers sentencepiece
+          # CPU 전용 torch(환경에 따라 가장 안정적)
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install transformers sentencepiece
 
+      # (선택) 캐시를 매번 새로 만들려면 유지, 누적 캐시를 쓰려면 주석 처리
       - name: Reset translation cache (optional)
         run: |
           rm -f .cache/zone_nova_translate_cache_free_hf.json || true
 
       - name: Translate KR fields -> characters_ko JSON (FREE)
         env:
-          # 모델 다운로드 캐시 경로(다음 실행에 재사용 가능)
           HF_HOME: .cache/huggingface
           TRANSFORMERS_CACHE: .cache/huggingface
         run: |
@@ -54,7 +63,7 @@ jobs:
             --out public/data/zone-nova/characters_ko \
             --cache .cache/zone_nova_translate_cache_free_hf.json \
             --glossary public/data/zone-nova/glossary_ko.json \
-            --model_name Helsinki-NLP/opus-mt-en-ko
+            --model_name Helsinki-NLP/opus-mt-tc-big-en-ko
 
       - name: Commit and push if changed
         run: |
