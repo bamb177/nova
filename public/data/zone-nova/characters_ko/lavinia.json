@@ -15,7 +15,7 @@
   "skills": {
     "normal": {
       "name": "Flame Kiss",
-      "description": "Deals 120% attack power fire damage to specified enemy unit.",
+      "description": "대상에게 공격력의 120%만큼 화염 피해를 준다.",
       "cooldown": "2.0s"
     },
     "auto": {

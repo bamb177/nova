@@ -75,7 +75,7 @@
       "defense": "474"
     },
     "effects": [
-      "공격력이 40%증가한다.",
+      "Attack power increased by 40%",
       "After an ally buffers uses their ultimate skill, this character's ultimate skill damage increases by 40% for 5 seconds",
       "Total Potential: 40% base attack + 40% conditional ultimate damage boost"
     ]

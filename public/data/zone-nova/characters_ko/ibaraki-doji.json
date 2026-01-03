@@ -65,7 +65,7 @@
     },
     {
       "level": 4,
-      "effect": "Attack power increased by 30%."
+      "effect": "공격력이 30%증가한다."
     },
     {
       "level": 5,
@@ -85,7 +85,7 @@
       "defense": "600"
     },
     "effects": [
-      "공격력이 40%증가한다.",
+      "Attack power increased by 40%",
       "When a Ultimate Skill deals damage, the target takes 36% more damage and receives 40% less healing for 5 seconds"
     ]
   },

@@ -45,7 +45,7 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "공격력이 20%증가한다."
+      "effect": "Attack power increased by 20%"
     },
     {
       "level": 2,

@@ -21,7 +21,7 @@
       "chineseName": "冥神之触",
       "level": "10+4",
       "cooldown": "2.0s",
-      "description": "Deals 120% attack power Chaos damage to designated enemy unit."
+      "description": "지정한 적 1명에게 공격력의 120%만큼 혼돈 피해를 준다."
     },
     "auto": {
       "name": "Divine Punishment Rain",

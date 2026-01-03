@@ -14,7 +14,7 @@
   "skills": {
     "normal": {
       "name": "Shadowless Snipe (无影狙击)",
-      "description": "Deals 120% attack power wind damage to designated enemy unit. 1.0s cooldown."
+      "description": "지정한 적 1명에게 공격력의 120%만큼 풍속성 피해를 준다."
     },
     "auto": {
       "name": "Military Command (军神号令)",

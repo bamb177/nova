@@ -29,7 +29,7 @@
       "name": "Burning Dragon Blade",
       "energyCost": "3",
       "cooldown": "1.0s",
-      "description": "지정한 적 1명에게 공격력의 840%만큼 화염 피해를 준다."
+      "description": "Deals 840% attack power as Fire damage to a designated enemy unit. Upon defeating the enemy, triggers [Explosion], dealing 610.1% damage in a circular area with a radius of 4 centered on the target unit. [Enhanced Ultimate Skill] can be used when [Dragon Blood] has 2 or more stacks, consuming 2 stacks of [Dragon Blood] upon use. [Enhanced Ultimate Skill]: Deals 1200% attack power as Fire damage to a designated enemy unit."
     },
     "passive": {
       "name": "Flame Shadow Pursuit",

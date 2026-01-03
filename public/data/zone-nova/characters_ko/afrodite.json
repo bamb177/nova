@@ -14,26 +14,26 @@
   "skills": {
     "normal": {
       "name": "Love Fist (爱神之拳)",
-      "description": "지정한 적 1명에게 공격력의 120%만큼 성속성 피해를 준다."
+      "description": "Deals 120% attack power as holy damage to designated enemy unit."
     },
     "auto": {
       "name": "Charm Impact (魅惑冲拳)",
       "cooldown": "8.0s",
-      "description": "지정한 적 1명에게 공격력의 816%만큼 성속성 피해를 준다."
+      "description": "Automatically deals 816% attack power as holy damage to designated enemy. Increases self attack speed by 58%."
     },
     "ultimate": {
       "name": "Love and Beauty Waltz (爱与美之圆舞曲)",
       "energyCost": "8",
-      "description": "일반 궁극기: 지정한 적 1명에게 공격력의 1800%만큼 성속성 피해를 준다. 강화 궁극기(일반 공격 10회 후): 대상에게 공격력의 2160%만큼 성속성 피해를 준다. 효과 종료 시 에너지를 2 회복하며, 적중 시 기본 공격 1회로 간주되어 적중/연계(콤보) 효과 발동에 포함된다."
+      "description": "Normal Ultimate: Deals 1800% attack power as holy damage to designated enemy. Enhanced Ultimate (after 10 normal attacks): Deals 2160% attack power as holy damage to designated enemy, recovers 2 energy at the end, Counts as a basic-attack hit for any on-hit or combo effects."
     },
     "passive": {
       "name": "Beautiful Kill (美丽杀意)",
-      "description": "HP가 50%를 초과할 때: 자신이 주는 모든 피해의 치명타 확률이 48%증가한다. HP가 50%이하일 때: 피해를 받을 때 방어력이 96%증가한다."
+      "description": "When HP is higher then 50%: +48 % Crit Rate on all outgoing damage. When HP is lower then 50%: +96 % Defense when taking damage."
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "자신의 공격력이 10%증가한다. 전투 시작 시: 공격력 500마다 자신의 성속성 피해가 5%증가한다(최대 6회). 최대 적용: 공격력 3000 이상일 때 성속성 피해가 최대 30%증가한다.",
+    "description": "Self attack power increased by 10%. At battle start: For every 500 attack power, increase self holy damage by 5% (maximum 6 times). Maximum scaling: 30% holy damage boost at 3,000+ attack power.",
     "requirements": {
       "faction": "Odius",
       "element": "Holy"
@@ -42,11 +42,11 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "자신이 자동 스킬을 사용하면, 강화 궁극기 카운트용 기본 공격 적중 수에 추가로 4회가 더해진다."
+      "effect": "When you using auto skill (Self) it counts as 4 extra basic-attack hits toward the Enhanced Ultimate counter."
     },
     {
       "level": 2,
-      "effect": "궁극기 또는 자동 스킬 사용 시 받는 피해가 10%감소한다."
+      "effect": "When using ultimate or auto skill: Damage taken reduced by 10%"
     },
     {
       "level": 3,
@@ -54,7 +54,7 @@
     },
     {
       "level": 4,
-      "effect": "일반 공격 피해가 35%증가한다."
+      "effect": "Normal attack damage increased by 35%"
     },
     {
       "level": 5,
@@ -74,8 +74,8 @@
       "defense": "318"
     },
     "effects": [
-      "공격력이 40%증가한다.",
-      "장착 유닛의 궁극기 소모 에너지가 8을 초과하고 궁극기를 사용하면, 10초 동안 자신이 주는 피해가 40%증가한다."
+      "Attack power increased by 40%",
+      "If the equipped units Ultimate costs higher then 8 Energy and used ultimate : Damage increased by 40% for 10 seconds"
     ]
   },
   "tags": [

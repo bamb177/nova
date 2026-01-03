@@ -14,12 +14,12 @@
   "skills": {
     "normal": {
       "name": "Moon Rising Fist",
-      "description": "지정한 적 1명에게 공격력의 120%만큼 풍속성 피해를 준다."
+      "description": "Deals 120% attack power as wind damage to designated enemy unit."
     },
     "auto": {
       "name": "Moon Ancient Boxing",
       "cooldown": "5.0s",
-      "description": "지정한 적 1명에게 공격력의 240%만큼 풍속성 피해를 준다."
+      "description": "Automatically deals 240% attack power as wind damage to designated enemy and nearby enemies. Each hit restores 10% max HP."
     },
     "ultimate": {
       "name": "Silver Moon Judgment",
@@ -42,7 +42,7 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "Attack power increased by 20%."
+      "effect": "공격력이 20%증가한다."
     },
     {
       "level": 2,
@@ -74,7 +74,7 @@
       "defense": "474"
     },
     "effects": [
-      "공격력이 40%증가한다.",
+      "Attack power increased by 40%",
       "When HP is below 50%: All damage increased by 40%"
     ]
   },
