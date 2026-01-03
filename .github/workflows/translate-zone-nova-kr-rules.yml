@@ -1,0 +1,56 @@
+name: Zone Nova KR Translate (FREE, Rules Only)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 매일 03:10 KST = 18:10 UTC
+    - cron: "10 18 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zone-nova-kr-translate-rules
+  cancel-in-progress: true
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Translate KR fields -> characters_ko JSON (Rules)
+        run: |
+          python scripts/translate_zone_nova_characters_rules_ko.py \
+            --src public/data/zone-nova/characters \
+            --out public/data/zone-nova/characters_ko \
+            --glossary public/data/zone-nova/glossary_ko.json \
+            --fallback keep
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git add public/data/zone-nova/characters_ko public/data/zone-nova/glossary_ko.json || true
+          git commit -m "Update KR translations (Rules)"
+          git push
