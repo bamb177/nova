@@ -3,8 +3,7 @@ name: Zone Nova KR Translate (local characters -> JSON)
 on:
   workflow_dispatch:
   schedule:
-    # 매일 03:10 KST = 18:10 UTC
-    - cron: "10 18 * * *"
+    - cron: "10 18 * * *" # 03:10 KST
 
 permissions:
   contents: write
@@ -42,25 +41,28 @@ jobs:
           fi
           pip install openai
 
-      # 캐시가 영문→영문으로 굳어버린 경우를 원천 차단 (원하시면 추후 조건부로 바꿔도 됨)
       - name: Reset translation cache
         run: |
           rm -f .cache/zone_nova_translate_cache.json || true
 
-      # OPENAI_API_KEY 주입 여부를 "노출 없이" 확인
-      - name: Debug env (no secret leak)
+      # (중요) 이 스텝에 env로 키를 주입해야 길이가 찍힙니다.
+      - name: Verify OpenAI key (no secret leak)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           python - <<'PY'
-          import os
+          import os, sys
           k = os.getenv("OPENAI_API_KEY","")
           print("OPENAI_API_KEY length:", len(k))
-          print("TRANSLATE_MODEL:", os.getenv("TRANSLATE_MODEL","(not set)"))
+          if len(k) < 20:
+            print("ERROR: OPENAI_API_KEY is missing or too short. Check GitHub Secrets name/value.")
+            sys.exit(1)
           PY
 
       - name: Translate KR fields -> characters_ko JSON
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          # 필요시 레포 Variables로 관리하거나 여기서 고정
+          # 필요하면 고정:
           # TRANSLATE_MODEL: gpt-4.1
         run: |
           python scripts/translate_zone_nova_characters.py \
@@ -79,7 +81,6 @@ jobs:
             exit 0
           fi
 
-          # 캐시는 커밋하지 않음(고착 방지)
           git add public/data/zone-nova/characters_ko || true
           git commit -m "Update KR translations (characters_ko)"
           git push
