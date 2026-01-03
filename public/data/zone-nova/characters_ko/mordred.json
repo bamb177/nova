@@ -14,26 +14,26 @@
   "skills": {
     "normal": {
       "name": "Petty Sword",
-      "description": "적대에게 화재 손상으로 최대 HP의 120%를 줍니다."
+      "description": "Deals 120% of own maximum HP as Fire damage to enemy unit."
     },
     "auto": {
       "name": "Revenge Blade",
       "cooldown": "5.0s",
-      "description": "(주) 지정된 적 단위에 화재 손상은 최대 HP의 36%와 동일합니다."
+      "description": "Deals Fire damage to designated enemy unit equal to 36% of own maximum HP."
     },
     "ultimate": {
       "name": "Destructive Fury",
       "energyCost": "5",
-      "description": "스스로 36% 최대 HP를 복구합니다. 대상에 대한 화재 손상은 최대 HP의 144%와 동일합니다."
+      "description": "Recovers 36% max HP to self. Deals Fire damage to target equal to 144% of own max HP."
     },
     "passive": {
       "name": "Deep Hatred",
-      "description": "모든 정상 공격은 최대 5.8%를 회복합니다. HP가 50 % 미만의 경우 : 모든 치유가 60 % 증가했습니다."
+      "description": "Every normal attack recovers 5.8% max HP. When HP falls below 50%: All received healing increased by 60%."
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "자기 공격력이 10% 증가했습니다. 치유량이 12.5% 증가했습니다.",
+    "description": "Self attack increased by 10%. Healing amount increased by 12.5%.",
     "requirements": {
       "faction": "Avalon",
       "element": "Fire"
@@ -42,27 +42,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "공격력이 10% 감소했습니다."
+      "effect": "Damage taken reduced by 10%"
     },
     {
       "level": 2,
-      "effect": "각 정상적인 공격은 5%에 의하여 자신의 방위를, 최대 10배 겹쳐 쌓일 수 있습니다 증가합니다"
+      "effect": "Each normal attack increases own defense by 5%, can stack up to maximum 10 times"
     },
     {
       "level": 3,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4. 그녀의 핵심 능력에 걸쳐 손상 출력 증가"
+      "effect": "[Auto Skill] and [Normal Attack] level and level cap +4. Increases damage output across her core abilities"
     },
     {
       "level": 4,
-      "effect": "생명력이 30% 증가했습니다."
+      "effect": "HP increased by 30%."
     },
     {
       "level": 5,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4. 가장 큰 nuke와 지속적인 mechanics 강화"
+      "effect": "[Ultimate] and [Passive] level and level cap +4. Enhances her biggest nuke and sustain mechanics"
     },
     {
       "level": 6,
-      "effect": "일반 공격은 추가적으로 최대 HP의 5 %와 같은 화재 손상을 처리합니다."
+      "effect": "Normal attacks additionally deal Fire damage equal to 5% of own max HP."
     }
   ],
   "memoryCard": {
@@ -74,8 +74,8 @@
       "defense": "500"
     },
     "effects": [
-      "생명력이 24% 증가했습니다.",
-      "자기 치유량이 30% 증가했습니다."
+      "HP increased by 24%",
+      "Self healing amount increased by 30%"
     ]
   },
   "tags": [

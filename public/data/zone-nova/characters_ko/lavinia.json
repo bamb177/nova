@@ -15,28 +15,28 @@
   "skills": {
     "normal": {
       "name": "Flame Kiss",
-      "description": "지정된 적 단위로 공격력이 120% 증가합니다.",
+      "description": "Deals 120% attack power fire damage to specified enemy unit.",
       "cooldown": "2.0s"
     },
     "auto": {
       "name": "Blazing Sequential Healing",
       "cooldown": "10.0s",
-      "description": "지정된 적 단위에 5 단계 손상을, 총 720% 공격력 화재 손상. 각 손상 인스턴스 후, 자신의 공격 전력의 24%와 같은 건강에 대한 낮은 현재 건강 비율을 가진 ally 단위를 치유합니다."
+      "description": "Deals 5-stage damage to specified enemy unit, totaling 720% attack power fire damage. After each damage instance, heals the ally unit with lowest current health percentage for health equal to 24% of own attack power."
     },
     "ultimate": {
       "name": "Final Sacred Judgment",
       "energyCost": "3",
       "cooldown": "1.0s",
-      "description": "지정된 적 단위에 4의 손상을, 총 960% 공격력 손상. 각 손상 후, 적분의 적분의 공격력이 72%와 동일하게 회복합니다. 첫 번째 손상은 (interrupt) 기술이 현재 캐스팅됩니다. 최종 손상 단계가 고려됩니다 (Extra attack) 손상."
+      "description": "Deals 4-stage damage to specified enemy unit, totaling 960% attack power damage. After each damage instance, recovers health equal to 72% of own attack power from the enemy unit with lowest health percentage. First damage can (interrupt) skills currently being cast. Final damage stage is considered (Extra attack) damage."
     },
     "passive": {
       "name": "Critical Healing Grace",
-      "description": "모든 1% 중요한 비율 Lavinia는 전투에 들어갈 때, 그녀의 치유 효과는 0.5% 증가합니다. Lavinia가 기본 공격 / skill / ultimate를 사용 한 후, 그녀는 자신의 공격력의 24%와 같은 건강에 대한 최저 현재 건강 비율과 ally 단위를 치유 할 수 있습니다."
+      "description": "For every 1% critical rate Lavinia has when entering battle, her healing effectiveness increases by 0.5%. After Lavinia uses basic attack/skill/ultimate, she can heal the ally unit with the lowest current health percentage for health equal to 24% of her own attack power."
     }
   },
   "teamSkill": {
     "name": "Combo Skill",
-    "description": "중요한 비율이 7.5% 증가합니다. 전투 시작에서 모든 15 %의 중요한 비율은 5 %, 최대 6 배의 치유량이 증가합니다.",
+    "description": "Own critical rate increases by 7.5%. At battle start, every 15% critical rate increases own healing amount by 5%, up to 6 times maximum.",
     "requirements": {
       "faction": "Sapphire",
       "element": "Fire",
@@ -46,27 +46,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "치명적인 비율은 12% 증가했습니다. Lavinia의 모든 치유 효과는 표적을 5 초 동안 10% 감소된 손상을, 반복한 방아쇠는 내구를 확장할 수 있습니다."
+      "effect": "Critical rate increased by 12%. All healing effects from Lavinia can make targets take 10% reduced damage for 5 seconds, repeated triggers can extend duration."
     },
     {
       "level": 2,
-      "effect": "궁극적 인 기술 에너지 비용 감소 1. Lavinia가 기본 공격 / skill / ultimate를 사용 한 후 20 % 공격 전력 화재 손상을 추가로 처리 할 수 있습니다."
+      "effect": "Ultimate skill energy cost reduced by 1. After Lavinia uses basic attack/skill/ultimate, can additionally deal 20% attack power fire damage."
     },
     {
       "level": 3,
-      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2."
+      "effect": "[Basic Attack], [Skill], [Ultimate] and [Passive] level and level cap +2."
     },
     {
       "level": 4,
-      "effect": "치유량이 37.5% 증가했습니다."
+      "effect": "Healing amount increased by 37.5%."
     },
     {
       "level": 5,
-      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2."
+      "effect": "[Basic Attack], [Skill], [Ultimate] and [Passive] level and level cap +2."
     },
     {
       "level": 6,
-      "effect": "기술의 최종 단계 손상은   PH0   손상으로 간주됩니다. Lavinia의   PH1   손상은 대상의 모든 저항을 10 % 감소시키고, 5 초 지속되는 20 %의 추가 공격 손상을 증가시킵니다."
+      "effect": "The final stage damage of skills is considered [extra attack] damage. Lavinia's [Extra attack] damage can reduce target's all resistances by 10%, and increase extra attack damage taken by 20%, lasting 5 seconds."
     }
   ],
   "memoryCard": {
@@ -78,9 +78,9 @@
       "defense": "600"
     },
     "effects": [
-      "긴요한 비율이 34% 증가했습니다.",
-      "각 중요한 타격 후, 치유량이 50% 증가하여 3초 지속됩니다.",
-      "각 치유 후에, 모든 ally 표적의 공격 힘은 30%에 의하여, 3 초 지속합니다"
+      "Critical rate increased by 34%",
+      "After each critical hit, own healing amount increases by 50%, lasting 3 seconds",
+      "After each heal, all ally targets' attack power increases by 30%, lasting 3 seconds"
     ]
   },
   "tags": [

@@ -14,26 +14,26 @@
   "skills": {
     "normal": {
       "name": "Housekeeper Guidance",
-      "description": "적에게 공격의 120%와 같은 화재 손상"
+      "description": "Deals fire damage equal to 120% of Attack to enemy"
     },
     "auto": {
       "name": "Five Grains Harvest",
       "cooldown": "5.0s",
-      "description": "모든 연합 단위는 36% 공격력을 얻습니다. 공격 힘 모자: Zashiki-warashi의 입장 공격 힘의 36%를 초과할 수 없습니다. 최대 1개의 층, 지속 15 초"
+      "description": "All allied units gain 36% attack power. Attack power cap: Cannot exceed 36% of Zashiki-warashi's entry attack power. Maximum 1 layer, lasts 15 seconds"
     },
     "ultimate": {
       "name": "Share Fortune! Share Hardship!",
       "energyCost": "3",
-      "description": "모든 친절한 단위 손상은 36%, 15 초를 지속합니다"
+      "description": "All friendly units damage dealt increases by 36%, lasts 15 seconds"
     },
     "passive": {
       "name": "Child's Blessing",
-      "description": "자동 기술을 사용하는 후에: 가장 높은 공격력을 가진 연합된 단위는 1개의 층   PH0  를 얻습니다.   PH1   효력: 15 초 동안 공격 힘 60% 증가"
+      "description": "After using auto skill: The allied unit with highest attack power gains one layer [Blessing]. [Blessing] Effect: Increases attack power by 60% for 15 seconds"
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "팀 공격 전력은 10 % 증가합니다. 팀 방어 10% 증가",
+    "description": "Team attack power increases by 10%. Team defense increases by 10%",
     "requirements": {
       "faction": "Pingjing City",
       "element": "Fire"
@@ -42,27 +42,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "전투를 입력 한 후 모든 친절한 단위 공격 전력이 15 % 증가하면 30 초 지속됩니다."
+      "effect": "After entering battle, all friendly units attack power increases by 15%, lasts 30 seconds"
     },
     {
       "level": 2,
-      "effect": "궁극적으로 사용할 때 :   PH0  와 문자를 추가로 15 %의 손상 증가"
+      "effect": "When using ultimate: Characters with [Blessing] additionally gain 15% damage increase"
     },
     {
       "level": 3,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Skill] and [Normal Attack] level and level cap +4"
     },
     {
       "level": 4,
-      "effect": "자동 기술을 사용 한 후 : 모든 연합 단위는 5 초 동안 10 %의 중요한 속도를 얻습니다."
+      "effect": "After using Auto skill: All allied units gain 10% critical rate for 5 seconds"
     },
     {
       "level": 5,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Ultimate] and [Passive] level and level cap +4"
     },
     {
       "level": 6,
-      "effect": "궁극적으로 사용할 때 :   PH0   두 배 궁극적인 효과를 가진 캐릭터"
+      "effect": "When using ultimate: Characters with [Blessing] gain double ultimate effect"
     }
   ],
   "memoryCard": {
@@ -74,7 +74,7 @@
       "defense": "500"
     },
     "effects": [
-      "궁극적 인 기술을 주조 한 후, 팀 손상 증가를 24%, 지속 10 초; 추가로 50 % 확률이 20%, 10 초 지속"
+      "After casting ultimate skill, make team damage increase by 24%, lasts 10 seconds; additionally has 50% chance to make team critical damage additionally increase by 20%, lasts 10 seconds"
     ]
   },
   "tags": [

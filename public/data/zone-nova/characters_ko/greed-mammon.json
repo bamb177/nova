@@ -14,26 +14,26 @@
   "skills": {
     "normal": {
       "name": "The More You Hit, The Richer",
-      "description": "지정된 적 단위에 대한 공격의 120%와 동일한 캐노스 손상"
+      "description": "Deals chaos damage equal to 120% of Attack to designated enemy unit"
     },
     "auto": {
       "name": "Golden Curse",
       "cooldown": "5.0s",
-      "description": "Deal 96% 공격 힘은 각자의 3 미터 내의 주변 지역에 손상을 칩니다"
+      "description": "Deal 96% attack power chaos damage to surrounding area within 3 meters of self"
     },
     "ultimate": {
       "name": "Seven Deadly Sins: Greed",
       "energyCost": "5",
-      "description": "지정된 적 단위로 공격의 180%와 동일한 캐노스 손상을 줍니다.   PH0   버전: 자기 주변의 4미터 반경 내의 적에게 공격의 240%와 동일합니다. ₢ 킹 ally는 궁극적 인 기술을 사용 한 후 5 초 이내에   PH2  를 활성화 할 수 있습니다."
+      "description": "Deals chaos damage equal to 180% of Attack to designated enemy unit. [Enhanced Ultimate] Version: Deals chaos damage equal to 240% of Attack to enemies within a 4-meter radius around self. [Buffer] After an ally uses ultimate skill, can activate [Enhanced Ultimate] once within 5 seconds"
     },
     "passive": {
       "name": "Passive Tax Burden",
-      "description": "주물은 궁극적인 기술을 강화한 후에, 손상은 29%에 의하여 증가합니다"
+      "description": "After casting enhanced ultimate skill, damage increases by 29%"
     }
   },
   "teamSkill": {
     "name": "Combo Skill",
-    "description": "자기 손상은 20% 증가",
+    "description": "Own damage dealt increases by 20%",
     "requirements": {
       "faction": "Bicta Tower",
       "element": "Chaos"
@@ -42,27 +42,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "부유 한 효과가있을 때 : 궁극적 인 손상은 20 % 증가합니다."
+      "effect": "When you have buff effects: Ultimate critical damage increases by 20%"
     },
     {
       "level": 2,
-      "effect": "궁극적 인 기술을 주조 한 후, 10 초 동안 10 % 감소"
+      "effect": "After casting ultimate skill, damage taken decreases by 10% for 10 seconds"
     },
     {
       "level": 3,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Skill] and [Normal Attack] level and level cap +4"
     },
     {
       "level": 4,
-      "effect": "궁극적인 기술 손상은 20% 증가"
+      "effect": "Ultimate skill damage increases by 20%"
     },
     {
       "level": 5,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Ultimate] and [Passive] level and level cap +4"
     },
     {
       "level": 6,
-      "effect": "성공적으로 주물은 궁극적인 기술을 강화한 후에, 추가적으로 1개의 에너지 점을 얻습니다"
+      "effect": "After successfully casting enhanced ultimate skill, additionally gain 1 energy point"
     }
   ],
   "memoryCard": {
@@ -74,7 +74,7 @@
       "defense": "395"
     },
     "effects": [
-      "버퍼 문자가 궁극적으로 사용되면 궁극적 인 손상이 10 초 동안 60 % 증가합니다."
+      "When a Buffer character uses their ultimate, own ultimate damage increases by 60% for 10 seconds"
     ]
   },
   "tags": [

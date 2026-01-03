@@ -19,31 +19,31 @@
       "name": "Flame Arrow",
       "level": "10+4",
       "cooldown": "2.0s",
-      "description": "지정된 적 단위로 적대 손상으로 공격력의 120%를 줍니다."
+      "description": "Deals 120% of attack power as fiery damage to the designated enemy unit."
     },
     "auto": {
       "name": "Arrow of the Curse",
       "level": "10+4",
       "cooldown": "5.0s",
-      "description": "표적과 4 미터 반경에 공격 힘의 244.3%와 동등한 총 불 손상은,   PH0  의 1개의 더미를 적용하고, 35.8%에 의하여 에너지 이익 효율성을 감소시키고 10 초를 위해 38.6%에 의해 촬영된 손상을 증가합니다."
+      "description": "Deals fire damage equal to 244.3% of attack power to the target and a 4-meter radius, and applies 1 stack of [Curse Covenant], reducing energy gain efficiency by 35.8% and increasing damage taken by 38.6% for 10 seconds."
     },
     "ultimate": {
       "name": "Fire Phoenix Curse",
       "level": "10+4",
       "energyCost": "3",
       "cooldown": "1.0s",
-      "description": "적 대상의 방향에서 화재 피닉스를 훼손하여 모든 적들에게 360 %의 화재 피해를 줍니다. 손상에 의해 명중은   PH0  의 1개의 더미로, 10 초 동안 궁극적인 기술에서 가지고 가는 그들의 손상을 증가할 것입니다. 이 손상은   PH1   대상에 의해 주조되는 모든 기술."
+      "description": "Unleashes a Fire Phoenix in the direction of the enemy target, dealing 360% fire damage to all enemies in its path. Enemies hit by the damage will be inflicted with 1 stack of [Flame Curse], increasing their damage taken from ultimate skills by 87.9% for 10 seconds. This damage can [Interrupt] any skill being cast by the target."
     },
     "passive": {
       "name": "Deboning",
       "level": "10+4",
-      "description": "적을 파괴하는 모든 공격   PH0  , 궁극적 인 능력을 3.6%, 최대 10 스택, 지속 5 초."
+      "description": "All attacks inflict [Eviscerate] upon damaging enemies, increasing damage taken from ultimate skills by 3.6%, up to 10 stacks, lasting 5 seconds."
     }
   },
   "teamSkill": {
     "name": "Combo Skill",
     "level": "1",
-    "description": "전투가 시작되면 총 손상을 2.5%로 모든 적 단위로 감소시킵니다. 각 1000의 공격력을 위해, 효력은 100%년까지, 최대 300%까지 증가합니다.",
+    "description": "After battle starts, reduces total damage dealt by all enemy units by 2.5%. For every 1000 Attack Power, the effect increases by 100%, up to a maximum of 300%.",
     "requirements": {
       "faction": "Heikyo Castle",
       "element": "Fire",
@@ -53,27 +53,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "전투의 시작에서 궁극적 인 스킬의 첫 번째 사용은 에너지를 소비하지 않습니다."
+      "effect": "At the start of battle, the first use of a Ultimate Skill does not consume energy."
     },
     {
       "level": 2,
-      "effect": "궁극적인 기술이 적을 보았을 때, 적의 공격력을 3 초 동안 35 %로 줄입니다."
+      "effect": "When your ultimate skill hits an enemy, it inflicts [Flame Pressure], reducing the enemy's attack power by 35% for 3 seconds."
     },
     {
       "level": 3,
-      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2."
+      "effect": "[Normal Attack], [Skill], [ULT] and [Passive] level and level cap +2."
     },
     {
       "level": 4,
-      "effect": "공격력이 30% 증가했습니다."
+      "effect": "Attack power increased by 30%."
     },
     {
       "level": 5,
-      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2."
+      "effect": "[Normal Attack], [Skill], [ULT] and [Passive] level and level cap +2."
     },
     {
       "level": 6,
-      "effect": "궁극적 인 기술에 의해 영향을받는 대상은 5 초 동안 추가 20 %로 감소했습니다."
+      "effect": "Targets affected by ultimate skills have their all resistances reduced by an additional 20% for 5 sec."
     }
   ],
   "memoryCard": {
@@ -85,8 +85,8 @@
       "defense": "600"
     },
     "effects": [
-      "공격력이 40% 증가했습니다.",
-      "얼티밋 스킬이 손상될 때, 대상은 36% 더 많은 피해를 주고 5초 동안 40% 덜 치유를 받을 수 있습니다."
+      "공격력이 40%증가한다.",
+      "When a Ultimate Skill deals damage, the target takes 36% more damage and receives 40% less healing for 5 seconds"
     ]
   },
   "tags": [

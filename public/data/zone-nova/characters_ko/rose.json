@@ -14,26 +14,26 @@
   "skills": {
     "normal": {
       "name": "Shatter! Shatter! Shatter! (碎！碎！碎！)",
-      "description": "지정된 적에게 공격의 96%와 같은 얼음 손상을 줍니다. 향상된 (감리 대포 치료) : 적과 주변 2 미터 범위의 공격의 96%와 같은 얼음 손상"
+      "description": "Deals ice damage equal to 96% of Attack to designated enemy. Enhanced (during Frost Cannon): Deals ice damage equal to 96% of Attack to enemy and surrounding 2-meter range"
     },
     "auto": {
       "name": "Bullet Hell Scatter (弹幕散射)",
       "cooldown": "10.0s",
-      "description": "기초: 적에게 공격의 180%와 동등한 얼음 손상을 줍니다. 강화된 (감리 대포 치료): 적과 주변 4미터 범위의 공격의 180%와 같은 얼음 손상"
+      "description": "Base: Deals ice damage equal to 180% of Attack to enemy. Enhanced (during Frost Cannon): Deals ice damage equal to 180% of Attack to enemy and surrounding 4-meter range"
     },
     "ultimate": {
       "name": "Frost Cannon Transformation",
       "energyCost": "8",
-      "description": "10 초 동안   PH0   상태를 입력하십시오. 공격 속도를 증가 58%. 향상된 정상적인 공격과 향상된 기술을 얻습니다. 모든 능력은이 상태 동안 AoE가됩니다."
+      "description": "Enters [Frost Cannon] state for 10 seconds. Increases attack speed by 58%. Gains enhanced normal attacks and enhanced skills. All abilities become AoE during this state"
     },
     "passive": {
       "name": "Reckless Spirit's Foundation (冒失鬼的底蕴)",
-      "description": "각 정상적인 공격은 2.4%에 의해 중요한 비율을 증가합니다. 최대 20개의 스택 (48% 최대 중요한 비율 증가)."
+      "description": "Each normal attack increases critical rate by 2.4%. Maximum 20 stacks (48% maximum critical rate increase)."
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "자체 얼음 손상은 20% 증가합니다.",
+    "description": "Self ice damage increases by 20%.",
     "requirements": {
       "faction": "Monochrome Nation",
       "element": "Ice"
@@ -42,27 +42,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "PH0   상태의 경우, 중요한 비율은 15% 증가합니다."
+      "effect": "When in [Frost Cannon] state, critical rate increases by 15%."
     },
     {
       "level": 2,
-      "effect": "PH0   상태의 경우, 공격력이 10% 감소했습니다."
+      "effect": "When in [Frost Cannon] state, damage taken reduced by 10%."
     },
     {
       "level": 3,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4. 핵심 기술 수준 향상"
+      "effect": "[Skill] and [Normal Attack] level and level cap +4. Essential skill level upgrade"
     },
     {
       "level": 4,
-      "effect": "일반 공격력이 20% 증가합니다."
+      "effect": "Normal attack damage increases by 20%."
     },
     {
       "level": 5,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4. 핵심 기술 수준 향상"
+      "effect": "[Ultimate] and [Passive] level and level cap +4. Essential skill level upgrade"
     },
     {
       "level": 6,
-      "effect": "PH0   상태 지속 시간은 15 초입니다."
+      "effect": "[Frost Cannon] state duration becomes 15 seconds."
     }
   ],
   "memoryCard": {
@@ -74,7 +74,7 @@
       "defense": "395"
     },
     "effects": [
-      "궁극적 인 기술을 사용 한 후, 정상 공격 및 자동 기술 손상은 10 초 동안 60 % 증가했습니다."
+      "After using ultimate skill, normal attack and Auto skill damage increased by 60% for 10 seconds"
     ]
   },
   "tags": [

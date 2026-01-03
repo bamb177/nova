@@ -21,14 +21,14 @@
       "chineseName": "日蚀丝",
       "level": "10+4",
       "cooldown": "2.0s",
-      "description": "적에게 공격력이 120% 증가합니다."
+      "description": "Deals 120% ATK Chaos Damage to a target enemy."
     },
     "auto": {
       "name": "Blooming Sweet Rain",
       "chineseName": "甘露绽放",
       "level": "10+4",
       "cooldown": "3.0s",
-      "description": "가장 낮은 현재 건강 비율을 가진 친절한 단위는 3 초 동안 그것의 자신의 공격 힘의 20.4% + 440의 지속적인 건강 재생을 얻습니다; 지속적인 재생 도중, 10% 모든 저항을 얻습니다."
+      "description": "The friendly unit with the lowest current health percentage gains a continuous health regeneration of 20.4% + 440 of its own attack power for 3 seconds; during the continuous regeneration, gain 10% all resistance."
     },
     "ultimate": {
       "name": "Umbrella Blossom",
@@ -36,20 +36,20 @@
       "level": "10+4",
       "cooldown": "1.0s",
       "energyCost": "2",
-      "description": "짧은 주조 시간 후, 5의 범위와 치유 영역이 생성되고, 캐스터의 공격 전력을 46% + 243 5 초 동안 초당 HP로 회복합니다. 영역 내의 모든 문자는   PH0  의 1 stack, 최대 5 stacks를 얻습니다."
+      "description": "After a short casting time, a healing area with a range of 5 is created, restoring the caster's attack power by 46% + 243 HP per second for 5 seconds. Allied characters within the area gain 1 stack of [Umbrella Blossom], up to a maximum of 5 stacks."
     },
     "passive": {
       "name": "Umbrella Heal",
       "chineseName": "伞花治愈",
       "level": "10+4",
-      "description": "ally가 공격 한 후, HP가 30 % 미만인 경우   PH0  의 1 스택을 1 초 이내에 15.1% 최대 HP의 3 급 치유를 얻는다. 첫번째 2배 이익 6 급속한 치유."
+      "description": "After an ally is attacked, if HP is below 30%, consume 1 stack of [Umbrella Flower] to gain 3 rapid heals of 15.1% Max HP within 1 second. The first 2 times gain 6 rapid heals."
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
     "chineseName": "组合技",
     "level": "1",
-    "description": "전투의 시작에서 치유는 모든 500 공격력에 대해 5 % 증가, 최대 6 배. 자체 생성 된 에너지 이익 효율은 10 % 증가합니다.",
+    "description": "At the start of combat, healing is increased by 5% for every 500 attack power, up to 6 times. Self-generated energy gain efficiency is increased by 10%.",
     "requirements": {
       "faction": "Pingjing City",
       "element": "Chaos",
@@ -59,27 +59,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "궁극적인 범위가 7.로 증가했습니다."
+      "effect": "Ultimate range increased to 7."
     },
     {
       "level": 2,
-      "effect": "즉시 전투를 입력하지 않고 궁극적 인 활성화. Ultimate를 사용 한 후   PH0   : Allies의 비 진한 저항이 40 % 증가했으며 적 손상이 12.5% 감소했습니다 (마지막 5 초)."
+      "effect": "Immediately activates Ultimate without cost upon entering battle. After using Ultimate, gain [Umbrella Protection]: Allies' non-Dark resistance increased by 40%, enemy damage reduced by 12.5% (lasts 5 seconds)."
     },
     {
       "level": 3,
-      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2."
+      "effect": "[Basic Attack], [Skill], [Ultimate Skill] and [Passive] level and level cap +2."
     },
     {
       "level": 4,
-      "effect": "치유량이 45% 증가했습니다."
+      "effect": "Healing increased by 45%."
     },
     {
       "level": 5,
-      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2."
+      "effect": "[Basic Attack], [Skill], [Ultimate Skill] and [Passive] level and level cap +2."
     },
     {
       "level": 6,
-      "effect": "₢ 킹 수동적인 효력은 첫번째 2개의 활성화를 위해 한 번 추가되고, 또한 Jorogumo의 최대 HP의 50%와 동등한 방패를 보조합니다."
+      "effect": "[Umbrella Healing+] The passive effect is added once for the first two activations, and also grants a shield equal to 50% of Jorogumo's maximum HP."
     }
   ],
   "memoryCard": {
@@ -93,9 +93,9 @@
       "defense": "600"
     },
     "effects": [
-      "치유량이 35% 증가했습니다.",
-      "'지속적 손상'상태로 표적을 치유하면 치유량이 25% 증가합니다.",
-      "대상 HP가 50% 이하인 경우, 지속적인 치유 효과, 캐스터의 ATK의 9 %를 3 초 동안 초당 HP로 회복, 최대 1 스택."
+      "Healing increased by 35%.",
+      "When healing a target with 'Continuous Damage' status, healing is increased by an additional 25%.",
+      "If target HP is below 50%, grant continuous healing effect, restoring 9% of caster's ATK as HP per second for 3 seconds, max 1 stack."
     ]
   },
   "tags": [

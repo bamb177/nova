@@ -14,26 +14,26 @@
   "skills": {
     "normal": {
       "name": "Claw Strike",
-      "description": "지정된 적 단위에 손상으로 공격력의 120%"
+      "description": "Deals 120% of Attack as holy damage to designated enemy unit"
     },
     "auto": {
       "name": "Ruthless Hunt",
       "cooldown": "5.0s",
-      "description": "지정된 적 단위로 공격의 240%와 동일하게 손상을 줍니다."
+      "description": "Deals holy damage equal to 240% of Attack to designated enemy unit."
     },
     "ultimate": {
       "name": "Bloodthirsty Killing",
       "energyCost": "8",
-      "description": "지정된 적 단위를 향해 점프하고 960% 공격력 손상을 처리하십시오 최대 스택에서   PH0  로 타겟을 공격할 때,   PH1     PH2  를 추가로 적용합니다: 각 3 초마다 손상을, 각 층은 180%의 공격 힘 holy 손상, 최대 1개의 층을 줍니다"
+      "description": "Jump towards designated enemy unit and deal 960% attack power holy damage When attacking targets with [Sacred Hatred] at maximum stacks, additionally apply [Light Erosion] [Light Erosion]: Deals damage every 3 seconds, each layer deals 180% attack power holy damage, maximum 1 layer"
     },
     "passive": {
       "name": "Bloodthirst",
-      "description": "자동 기술   PH0    PH1  를 적용할 수 있습니다: 각 2 초마다 손상을, 각 층은 24% 공격 힘 holy 손상, 최대 5개의 층을 거래합니다"
+      "description": "Auto Skills can apply [Sacred Hatred][Sacred Hatred]: Deals damage every 2 seconds, each layer deals 24% attack power holy damage, maximum 5 layers"
     }
   },
   "teamSkill": {
     "name": "Combo Skill",
-    "description": "자기 손상은 20% 증가",
+    "description": "Self damage dealt increases by 20%",
     "requirements": {
       "faction": "Chemic",
       "element": "Holy"
@@ -42,27 +42,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "PH0  가 있는 표적을 공격할 때, 침투율은 10% 증가합니다."
+      "effect": "When attacking targets that have [Continuous damage], penetration rate increases by 10%"
     },
     {
       "level": 2,
-      "effect": "자체 HP가 100 % 인 경우 공격 전력이 20 % 증가합니다."
+      "effect": "When self HP is 100%, attack power increases by 20%"
     },
     {
       "level": 3,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Skills] and [Normal Attack] level and level cap +4"
     },
     {
       "level": 4,
-      "effect": "PH0   공격력이 25% 증가했습니다."
+      "effect": "[Continuous Damage] damage increased by 25%"
     },
     {
       "level": 5,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Ultimate] and [Passive] level and level cap +4"
     },
     {
       "level": 6,
-      "effect": "PH0  를 추가적으로 하면 대상이 20% 증가   PH1   손상, 지속 15 초"
+      "effect": "[Ultimate skill] additionally makes the target take 20% increased [Continuous damage] damage, lasts 15 seconds"
     }
   ],
   "memoryCard": {
@@ -74,7 +74,7 @@
       "defense": "395"
     },
     "effects": [
-      "지속적인 피해율 +36%"
+      "Continuous Damage Penetration Rate +36%"
     ]
   },
   "tags": [

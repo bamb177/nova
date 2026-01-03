@@ -18,27 +18,27 @@
     "normal": {
       "name": "Flame Slash",
       "cooldown": "2.0s",
-      "description": "지정된 적 단위로 화재 손상으로 120% 공격 피해를 줍니다."
+      "description": "Deals 120% attack damage as Fire damage to the designated enemy unit."
     },
     "auto": {
       "name": "Flame Blade Thrust",
       "cooldown": "5.0s",
-      "description": "지정된 적 단위로 화재 손상으로 629.6%의 공격 피해를 주고 4개의 스택까지 드래곤의 혈액 1 스택을 부여합니다."
+      "description": "Deals 629.6% attack damage as Fire damage to a designated enemy unit and grants the caster 1 stack of Dragon's Blood, up to a maximum of 4 stacks."
     },
     "ultimate": {
       "name": "Burning Dragon Blade",
       "energyCost": "3",
       "cooldown": "1.0s",
-      "description": "지정된 적 단위로 화재 손상으로 840% 공격력. 적을 물리 치고   PH0  를 트리거하여 610.1%의 원뿔 부위에 610.1%의 피해를 줍니다.   PH1  는   PH2  에는 2개 이상의 스택이 있고, 사용시   PH3  의 2개의 스택을 구성할 수 있습니다.   PH4  : 지정된 적 단위로 화재 손상으로 1200 %의 공격력을 제공합니다."
+      "description": "지정한 적 1명에게 공격력의 840%만큼 화염 피해를 준다."
     },
     "passive": {
       "name": "Flame Shadow Pursuit",
-      "description": "궁극적 인 기술 또는 기술 위기 때, 그것은 121.5% 공격력과 같은 화재 손상의 추가 인스턴스를 거래. 0.5 초마다 한 번만 트리거 할 수 있습니다."
+      "description": "When a Ultimate Skill or skill crits, it deals an additional instance of Fire damage equal to 121.5% attack power. This can only be triggered once every 0.5 seconds."
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "자기 중요한 비율은 7.5%에 의하여 증가합니다. 전투 시작시, 모든 15 % 임의 비율은 7.5%, 최대 6 배의 자기 심각한 손상을 증가시킵니다.",
+    "description": "Self Critical Rate increases by 7.5%. At battle start, every 15% Critical Rate increases self Critical Damage by 7.5%, up to 6 times.",
     "requirements": {
       "faction": "A.S.A",
       "element": "Fire"
@@ -47,27 +47,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "전투의 시작에 하나   PH0  를 얻습니다. 10 %의 중요한 타격률을 증가시킵니다."
+      "effect": "Gain one [Enhanced Ultimate Skill] at the start of battle. Increase critical hit rate by 10%."
     },
     {
       "level": 2,
-      "effect": "PH0  의 2개의 스택을 매번 기술이 사용됩니다.   PH1  의 1 스택을 궁극적인 기술을 사용 후 얻습니다."
+      "effect": "Gain 2 stacks of [Dragon Blood] each time a skill is used. Gain 1 stack of [Dragon Blood] after using an ultimate skill."
     },
     {
       "level": 3,
-      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2."
+      "effect": "[Basic Attack], [Skill], [Ultimate Skill] and [Passive] level and level cap +2."
     },
     {
       "level": 4,
-      "effect": "공격력이 30% 증가했습니다."
+      "effect": "Fire damage increased by 30%."
     },
     {
       "level": 5,
-      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2."
+      "effect": "[Basic Attack], [Skill], [Ultimate Skill] and [Passive] level and level cap +2."
     },
     {
       "level": 6,
-      "effect": "궁극적 인 기술 손상은 대상의 원소 저항의 20 %를 무시합니다."
+      "effect": "Ultimate skill damage ignores 20% of the target's elemental resistance."
     }
   ],
   "memoryCard": {
@@ -79,8 +79,8 @@
       "defense": "474"
     },
     "effects": [
-      "치명적인 타격률이 34% 증가했으며, 궁극적인 기술은 40% 증가했습니다.",
-      "필드에 1 ATTACKER 만있을 때 궁극적 인 기술 손상은 추가 40 %로 증가했습니다."
+      "Critical hit rate increased by 34%, ultimate skill damage increased by 40%.",
+      "When there is only 1 ATTACKER on the field, ultimate skill damage is increased by an additional 40%."
     ]
   },
   "tags": [

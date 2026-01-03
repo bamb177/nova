@@ -23,14 +23,14 @@
       "chineseName": "冥界之触",
       "level": "14",
       "cooldown": "2.0s",
-      "description": "₢ 킹 모드: 지정된 적 단위에 공격력이 120% 증가합니다.\n₢ 킹 모드: 가장 높은 ATK를 가진 적 단위의 앞에 이동하고 그(것)들에 120% 공격 힘 차오를 거래하십시오"
+      "description": "[Termination] Mode: Deals 120% attack power Chaos damage to designated enemy unit\n[Death Silence] Mode: Moves in front of the enemy unit with the highest ATK and deals 120% attack power Chaos damage to them"
     },
     "auto": {
       "name": "Death Silence Prelude",
       "chineseName": "死神序曲",
       "level": "14",
       "cooldown": "5.0s",
-      "description": "₢ 킹 모드: 360 %의 공격력 차오 손상을 지정 적 단위로\n₢ 킹 모드: 최대 ATK로 적 단위로 5m 이동하여 360 % 공격력 차오 손상을 줍니다."
+      "description": "[Termination] Mode: Deals 360% attack power Chaos damage to designated enemy unit\n[Death Silence] Mode: Moves 5 meters toward the enemy unit with the highest ATK and deals 360% attack power Chaos damage to them"
     },
     "ultimate": {
       "name": "Domination Authority - Chaotic Death",
@@ -38,20 +38,20 @@
       "level": "14",
       "cooldown": "1.0s",
       "energyCost": "1",
-      "description": "전투 시작시   PH0   모드를 입력하십시오. 궁극적으로   PH1   또는   PH2   모드 사이 전환할 수 있습니다. 전환 모드는 모든 기술을 변경합니다.\n\n PH3  : allies가 궁극적으로 던질 때, Hela는 에너지 소모 (캐스트 당 최대 5 층)와 동등한   PH4   층을 얻습니다. 10개의 층을 도달할 때,   PH5  를 던지기 위하여 모든 층을, 그 후에 엇바꾸기 형태 후에 층을 축적할 수 있습니다.\n\n PH6  :\n₢ 킹 모드: 2160% 공격력 차오 손상을 지정된 적 단위로\n₢ 킹 모드: 가장 높은 ATK와 적의 앞에 이동하고 지속적으로 공격, 총을 처리 2160% 공격력 Chaos 손상"
+      "description": "Enters [Termination] mode at the start of battle. Ultimate can switch between [Termination] or [Death Silence] modes. Switching modes changes all skills.\n\n[Passive Mechanic]: When allies cast their ultimates, Hela gains layers of [Domination Authority: Chaotic Death] equal to the energy consumed (max 5 layers per cast). Upon reaching 10 layers, can consume all layers to cast [Enhanced Ultimate], then reaccumulates layers after switching modes.\n\n[Enhanced Ultimate]:\n[Termination] Mode: Deals 2160% attack power Chaos damage to a specified enemy unit\n[Death Silence] Mode: Moves in front of the enemy with the highest ATK and continuously attacks them, dealing a total of 2160% attack power Chaos damage"
     },
     "passive": {
       "name": "Termination Echo",
       "chineseName": "终焉回响",
       "level": "14",
-      "description": "₢ 킹 형태: 모든 손상은 표적의 저항의 24%를 관통합니다\n₢ 킹 형태: 모든 손상은 표적의 총 손상 산출을 36% 감소시킵니다\n\n PH2  : Hela 외에 팀에서 적어도 1 다른 Chaos 속성 문자가 있다면 Hela의 Crit 손상은 60 % 증가합니다."
+      "description": "[Termination] Mode: All damage penetrates 24% of the target's resistance\n[Death Silence] Mode: All damage reduces the target's total damage output by 36%\n\n[Battle Start Bonus]: If there is at least 1 other Chaos attribute character in the team besides Hela, Hela's Crit Damage increases by 60%"
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
     "chineseName": "组合技",
     "level": "1",
-    "description": "ATK는 10% 증가합니다. 전투의 시작에서, 모든 500 ATK에 대 한, 5% (최대 6 스택, 최대 30% Chaos 손상 보너스)에 의해 Chaos 손상을 증가",
+    "description": "ATK increases by 10%. At the start of battle, for every 500 ATK, increases own Chaos damage by 5% (max 6 stacks, up to 30% Chaos damage bonus)",
     "requirements": {
       "faction": "A.S.A",
       "element": "Chaos",
@@ -61,27 +61,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "전투가 시작되면 ATK는 30 % 증가합니다. 전환 모드 때, 촬영된 손상은 50% 감소"
+      "effect": "After battle starts, ATK increases by 30%. When switching modes, damage taken is reduced by 50%"
     },
     {
       "level": 2,
-      "effect": "PH0   모드: 30 %의 공격 피해 증가.   PH1   모드: 공격력이 20% 감소했습니다."
+      "effect": "[Termination] Mode: Crit Damage increases by 30%. [Death Silence] Mode: Damage taken is reduced by 20%"
     },
     {
       "level": 3,
-      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2"
+      "effect": "[Basic Attack], [Skill], [Ultimate] and [Passive] level and level cap +2"
     },
     {
       "level": 4,
-      "effect": "차오 손상은 30% 증가합니다"
+      "effect": "Chaos damage increases by 30%"
     },
     {
       "level": 5,
-      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2"
+      "effect": "[Basic Attack], [Skill], [Ultimate] and [Passive] level and level cap +2"
     },
     {
       "level": 6,
-      "effect": "Hela의 모든 손상은 모든 저항의 20 %를 관통합니다."
+      "effect": "All damage dealt by Hela penetrates 20% of all resistances"
     }
   ],
   "memoryCard": {
@@ -97,8 +97,8 @@
       "defense": "474"
     },
     "effects": [
-      "율이 34% 증가합니다.",
-      "다른 동맹국이 궁극적으로 던질 때, 착용자의 손상은 5 초 동안 24% 증가합니다 (최대 3개의 더미, 최대 72% 보너스 손상)"
+      "Crit Rate increases by 34%",
+      "When other allies cast their ultimates, the wearer's damage dealt increases by 24% for 5 seconds (max 3 stacks, up to 72% bonus damage)"
     ]
   },
   "tags": [

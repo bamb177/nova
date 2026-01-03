@@ -21,14 +21,14 @@
       "chineseName": "天后酷刑",
       "level": "10+4",
       "cooldown": "2.0s",
-      "description": "적격 단위로 공격력이 120% 증가합니다."
+      "description": "Deals 120% attack power chaos damage to designated enemy unit"
     },
     "auto": {
       "name": "Judgment Execution",
       "chineseName": "审判延戮",
       "level": "10+4",
       "cooldown": "8.0s",
-      "description": "동시에 발사 주위에 8 개의 비행 칼, 720 %의 공격 파워 카오스 손상을 특정 적 단위로 처리"
+      "description": "8 flying swords around self simultaneously launch, dealing 720% attack power chaos damage to designated enemy unit"
     },
     "ultimate": {
       "name": "Despair Strangulation",
@@ -36,20 +36,20 @@
       "level": "10+4",
       "cooldown": "1.0s",
       "energyCost": "6",
-      "description": "지정된 적대를 공격하기 위해 거대한 비행 검을 소환, 1440% 공격력 챠오 손상을 처리. 적이 연속 손상 대상의 20 + 층을 가지고있을 때, 5 초 이내에   PH0  를 던질 수 있습니다.   PH1   : 지정된 적 단위를 공격하기 위해 더 많은 칼을 공격하고 1920 %의 공격력 챠오 손상을 치료합니다."
+      "description": "Summons giant flying sword to attack designated enemy unit, dealing 1440% attack power chaos damage. When the enemy has 20+ layers of continuous damage targets, can cast [Enhanced Ultimate] within 5 seconds. [Enhanced Ultimate]: Summons more swords to attack designated enemy unit, dealing 1920% attack power chaos damage"
     },
     "passive": {
       "name": "Strong Pressure",
       "chineseName": "女神威压",
       "level": "10+4",
-      "description": "각 4개의 칼 공격 (기본 공격은 또한 자동 기술 8 칼과 같은 1개의 칼 공격으로 조사합니다.), 다음 공격은   PH0   효력을 추가할 수 있습니다.   PH1  : 36% 공격력 샴스 손상을 초당 레이어, 최대 10 레이어, 지속 10 초"
+      "description": "Every 4 sword attacks (Basic Attack also count as 1 sword Attacks, same with Auto Skill 8 swords.), next attack can add [Void] effect. [Void]: Deals 36% attack power chaos damage per second per layer, max 10 layers, lasts 10 seconds"
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
     "chineseName": "组合技",
     "level": "1",
-    "description": "자기 공격 힘 +10%. 전투 시작: 각 500의 공격 힘은 3%, 최대 6배, 합계 18%에 의하여 각자 침투를 증가합니다.",
+    "description": "Self attack power +10%. Battle Start: Every 500 attack power increases self penetration by 3%, max 6 times, total 18%.",
     "requirements": {
       "faction": "Odius",
       "element": "Chaos",
@@ -59,27 +59,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "공격력 +20%"
+      "effect": "Attack power +20%"
     },
     {
       "level": 2,
-      "effect": "PH0   필수 공격 수 -1 추가"
+      "effect": "Add [Void] required attack count -1"
     },
     {
       "level": 3,
-      "effect": "PH0  와   PH1   레벨 캡 +4"
+      "effect": "[Skills] and [Normal Attack] level cap +4"
     },
     {
       "level": 4,
-      "effect": "혼 손상 +30%"
+      "effect": "Chaos damage +30%"
     },
     {
       "level": 5,
-      "effect": "PH0  와   PH1   레벨 캡 +4"
+      "effect": "[Required Skills] and [Passive] level cap +4"
     },
     {
       "level": 6,
-      "effect": "궁극적 인 기술은 대상의 20 % 카오스 저항을 무시합니다."
+      "effect": "Ultimate skill ignores target's 20% chaos resistance"
     }
   ],
   "memoryCard": {
@@ -93,7 +93,7 @@
       "defense": "474"
     },
     "effects": [
-      "공격 힘 +40%, 지속적인 손상 효력에 의해 영향을 받는 표적을 공격할 때, 40%에 의하여 손상 증가"
+      "Attack power +40%, When attacking targets affected by continuous damage effects, damage increases by 40%"
     ]
   },
   "tags": [

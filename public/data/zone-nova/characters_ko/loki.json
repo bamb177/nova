@@ -14,26 +14,26 @@
   "skills": {
     "normal": {
       "name": "Netherworld Fire",
-      "description": "지정된 적에게 공격의 120%와 같음 혼돈"
+      "description": "Deals chaos damage equal to 120% of Attack to designated enemy"
     },
     "auto": {
       "name": "Jormungandr's Poison",
       "cooldown": "10.0s",
-      "description": "모든 적 단위로 공격력이 120%이며,   PH0  를 적용하고, 5초 동안 지속되는 궁극적인 기술의 사용 방지"
+      "description": "Deal 120% attack power chaos damage to all enemy units and apply [Seal], preventing use of ultimate skills, lasting 5 seconds"
     },
     "ultimate": {
       "name": "Woeful Wrath",
       "energyCost": "5",
-      "description": "가장 높은 기본 공격력으로 적대 뒤에 적대에 흠뻑 빠릅니다. 적대 공격력이 240% 공격력으로 적대를 공격하고   PH0  를 적용하여 공격력이 36% 감소하며 10초 동안 지속됩니다."
+      "description": "Rush to behind the enemy unit with the highest base attack power, deal 240% attack power chaos damage to target and apply [Weakness], reducing their damage dealt by 36%, lasting 10 seconds"
     },
     "passive": {
       "name": "Art of Deception",
-      "description": "자동 기술은 5 초 동안 36% 취약점 debuff를 적용합니다. 상쾌한 내구: 새로운 신청은 타이머를 상쾌하게 합니다. 최대 더미: 2개의 층 (72%는 가득 차있는 더미에 손상을 증가시킵니다)."
+      "description": "auto skills apply 36% vulnerability debuff  for 5 seconds. Refreshable Duration: New applications refresh the timer. Maximum Stacks: 2 layers (72% increased damage at full stacks)."
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "자신의 공격 전력은 10 % 증가, 전투 시작에서, 모든 500 공격력은 5 %, 6 배까지 자신의 챠오 손상을 증가 할 수 있습니다",
+    "description": "Own attack power increases by 10%, At battle start, every 500 attack power can increase own chaos damage by 5%, up to 6 times",
     "requirements": {
       "faction": "A.S.A",
       "element": "Chaos"
@@ -42,27 +42,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "정상적인 공격과 궁극적으로는 수동적 기술 효과를 유발할 수 있습니다."
+      "effect": "Normal attacks and Ultimate can additionally trigger passive skill effects."
     },
     {
       "level": 2,
-      "effect": "손상을 입을 때, 공격자는 5 초 동안 10% 더 적은 손상을, 반복한 트리거는 내구를 재생할 수 있습니다"
+      "effect": "When taking damage, make the attacker deal 10% less damage for 5 seconds, repeated triggering can refresh the duration"
     },
     {
       "level": 3,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Skills] and [Normal Attack] level and level cap +4"
     },
     {
       "level": 4,
-      "effect": "적격 상태로 공격할 때, 공격력이 35% 증가합니다."
+      "effect": "When attacking enemies with debuff status, damage increases by 35%."
     },
     {
       "level": 5,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Ultimate] and [Passive] level and level cap +4"
     },
     {
       "level": 6,
-      "effect": "수동적인 취약점 효력은 2개의 추가 층을 겹쳐 쌓일 수 있습니다"
+      "effect": "The passives vulnerability effect can stack 2 additional layers"
     }
   ],
   "memoryCard": {
@@ -74,7 +74,7 @@
       "defense": "600"
     },
     "effects": [
-      "공격력은 40% 증가한 장비 착용자의 궁극적인 기술 손상을 겪은 마지막 표적은 24% 증가한 손상을 가지고 갔습니다"
+      "Attack power increases by 40% The last target that took ultimate skill damage from the equipment wearer takes 24% increased damage"
     ]
   },
   "tags": [

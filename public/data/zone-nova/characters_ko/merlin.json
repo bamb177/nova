@@ -15,26 +15,26 @@
   "skills": {
     "normal": {
       "name": "Flame Slash",
-      "description": "공격의 120%와 같은 화재 손상을 적 단위로"
+      "description": "Deals fire damage equal to 120% of Attack to enemy unit"
     },
     "auto": {
       "name": "Magic Swordplay: Molten Core Burst",
       "cooldown": "5.0s",
-      "description": "적 단위로 공격의 780%와 같은 화재 손상을 주고   PH0  를 적용합니다. Merlin이 궁극적 인 기술을 사용하거나   PH1  와 표적을 공격 할 때, 20 %의 손상 증가"
+      "description": "Deals fire damage equal to 780% of Attack to enemy unit and applies [Mark]. When Merlin uses ultimate skill or attacks targets with [Mark], damage increases by 20%"
     },
     "ultimate": {
       "name": "Magic Swordplay: King's Sword",
       "energyCost": "6",
-      "description": "공격의 1080%와 같은 화재 피해를 줍니다.   PH0  는 궁극적인 기술을 사용하고, 5 초 안에   PH1  를 한 번 활성화할 수 있습니다.   PH2  : 적 단위를 대상으로 한 공격력의 공격력이 1200% 감소했습니다. 필드에 한 대의 적 단위가있을 때, 손상은 30% 증가"
+      "description": "Deals fire damage equal to 1080% of Attack to enemy unit. After [buffer] uses ultimate skill, can activate [Enhanced Ultimate Skill] once within 5 seconds. [Enhanced Ultimate Skill]: Deal 1200% attack power Fire damage to target enemy unit. When there is only one enemy unit on the field, damage is additionally increased by 30%"
     },
     "passive": {
       "name": "Rune Oscillation",
-      "description": "궁극적 인 기술이 중요하게 보일 때, 추가적으로 화재 손상을 120% 공격력과 동일"
+      "description": "When ultimate skill critically hits, additionally deals Fire damage equal to 120% attack power"
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "자체 중요한 비율이 7.5% 증가했습니다. 전투의 시작에서 모든 15 %의 중요한 타격률은 7.5%, 최대 6 배로 자신의 중요한 타격을 증가 할 수 있습니다.",
+    "description": "Self critical rate increased by 7.5%. At the start of battle, every 15% critical hit rate can increase own critical hit damage by 7.5%, maximum 6 times",
     "requirements": {
       "faction": "Avalon",
       "element": "Fire"
@@ -43,27 +43,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "긴요한 비율은 15% 증가했습니다."
+      "effect": "Critical rate increased by 15%."
     },
     {
       "level": 2,
-      "effect": "PH0  는 궁극적인 기술을 사용하고, 5 초 안에   PH1  를 한 번 활성화할 수 있습니다.   PH2  를 활성화하면 중요한 피해가 20% 증가합니다."
+      "effect": "After [debuffer] uses ultimate skill, can also activate [Enhanced Ultimate Skill] once within 5 seconds. When activating [Enhanced Ultimate Skill], critical hit damage increases by 20%"
     },
     {
       "level": 3,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Skills] and [Normal Attack] level and level cap +4"
     },
     {
       "level": 4,
-      "effect": "궁극적인 기술 피해가 35% 증가했습니다."
+      "effect": "Ultimate skill damage increased by 35%"
     },
     {
       "level": 5,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Must Kill] and [Passive] level and level cap +4"
     },
     {
       "level": 6,
-      "effect": "PH0   대상을 무시 20% 원소 저항"
+      "effect": "[Enhanced Ultimate Skill] ignores targets 20% elemental resistance"
     }
   ],
   "memoryCard": {
@@ -75,7 +75,7 @@
       "defense": "348"
     },
     "effects": [
-      "공격력이 40%로 증가했습니다. 이 영역에서 한 적이있을 때 궁극적인 기술 공격력이 40% 증가했습니다."
+      "Attack power increased by 40%, When there is only one enemy on the field, ultimate skill damage increased by 40%"
     ]
   },
   "tags": [

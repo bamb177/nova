@@ -15,27 +15,27 @@
     "normal": {
       "name": "Frost Armor Thorn",
       "cooldown": "2.0s",
-      "description": "지정된 적 단위에 자신의 방어의 120%와 동등한 얼음 손상을 줍니다."
+      "description": "Deals ice damage equal to 120% of own defense to a designated enemy unit."
     },
     "auto": {
       "name": "Frost Flow Defense Stance",
       "cooldown": "5.0s",
-      "description": "자기에게 5 %의 손상 완화율, 5 초 지속.   PH0   : 30 %의이 손상을 줄일 수있는 기회가 있습니다. 중요한 손상은 완화를 무시합니다."
+      "description": "Grants 58% damage mitigation rate to self, lasting 5 seconds. [Mitigation]: Has a chance to reduce this damage by 30%; critical hit damage ignores mitigation."
     },
     "ultimate": {
       "name": "Breaking Formation · Final Scene",
       "cooldown": "1.0s",
       "energyCost": "3",
-      "description": "지정된 적 단위로 자신의 방어의 240%와 동등한 얼음 손상을 주고   PH0  의 1개의 더미를 얻고, 10 초 동안 24%에 의해 촬영된 각자 손상을 감소시킵니다.\n\n PH1  : 모든   PH2   스택을 지우며 최대 HP의 24%와 10초 동안 방패를 얻고, 모든 들어오는 손상 (100%로 증가)를 무수화하고, 모든 지속적인 손상 효과를 제거하고, 지정된 적 단위로 자신의 방어의 480%와 동등한 얼음 손상을 제거하고, 10 초 동안 24%에 의해 촬영된 자체 손상을 감소시킵니다."
+      "description": "Deals ice damage equal to 240% of own defense to a designated enemy unit, gains 1 stack of [Battle Intention], and reduces self-damage taken by 24% for 10 seconds.\n\n[Enhanced Ultimate]: Clear all [Battle Intention] stacks, gain a shield with an amount equal to 24% of max HP, and for 10 seconds, nullify all incoming damage (increased to 100%), remove all ongoing damage effects, deal ice damage equal to 480% of own defense to a designated enemy unit, and reduce self-damage taken by 24% for 10 seconds."
     },
     "passive": {
       "name": "Hundred-Battle Ice Bone",
-      "description": "효력 1:   PH0   성공 후, 5 초 동안 60 %의 자체 방어 증가; 반복 된 트리거는 지속 시간을 연장 할 수 있습니다.\n\n효력 2:   PH1   성공 후,   PH2  의 1 스택을 얻습니다. 초당 최대 1 스택.   PH3  가 10개의 더미를 도달할 때,   PH4  를 던질 수 있습니다.\n\n효력 3: 전투를 들어가기 후에 그리고 HP가 70%/40%/10% 이하에 떨어지면 방패를 얻습니다; 각 방패는 한 번에 트리거할 수 있습니다. 방패 양은 최대 HP의 24%, 그리고 10 초 안에, 완화 비율은 100%년으로, 모든 지속적인 손상 효력을 제거하.\n\n효력 4: 방패를 매번 얻기 후에, 즉시 최대 HP의 10%를 회복하십시오."
+      "description": "Effect 1: [Mitigation] After success, increase own defense by 60% for 5 seconds; repeated triggers can extend duration.\n\nEffect 2: [Mitigation] After success, gain 1 stack of [Battle Intention]; maximum 1 stack per second. When [Battle Intention] reaches 10 stacks, can cast [Enhanced Ultimate Skill].\n\nEffect 3: After entering battle and when own HP drops to 70%/40%/10% or below, gain a shield; each shield can trigger at most once. Shield amount equals 24% of max HP, and within 10 seconds, mitigation rate rises to 100%, removing all ongoing damage effects.\n\nEffect 4: After gaining a shield each time, instantly recover 10% of max HP."
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "효과 1: 방어 증가 15%.\n\n효력 2: 전투의 시작에, 각 500 방위는 1.5%, 6배까지 가지고 다니는 팀 넓은 손상을 감소시킵니다.",
+    "description": "Effect 1: Own defense increases by 15%.\n\nEffect 2: At the start of battle, every 500 defense reduces team-wide damage taken by 1.5%, up to 6 times.",
     "requirements": {
       "faction": "Sapphire",
       "element": "Ice"
@@ -44,27 +44,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "₢ 킹 성공 후, 추가로 5 초 동안 자신의 방어를 증가; 정상적인 궁극적 인 기술을 캐스팅 1   PH1  의 추가 스택; 강화 궁극적 인 기술을 주조 한 후, 즉시   PH2  의 2 스택을 얻을."
+      "effect": "[Mitigation] After success, additionally increase own defense by 30% for 5 seconds; casting a normal ultimate skill grants 1 extra stack of [Battle Intention]; after casting an enhanced ultimate skill, immediately obtain 2 stacks of [Battle Intention]."
     },
     {
       "level": 2,
-      "effect": "전투를 입력 한 후, 내면의 모든 단위는   PH0  의 20 층을 얻습니다. 각 시간이 손상을 입으면 1 층의   PH1  를 제거하여 50 %로 손상을 줄입니다.   PH2  는 20 초 후에 만료됩니다."
+      "effect": "After entering battle, all units on my side gain 20 layers of [Frost Armor]; each time taking damage, remove 1 layer of [Frost Armor], reducing that damage by 50%; [Frost Armor] expires after 20 seconds."
     },
     {
       "level": 3,
-      "effect": "PH0  ,   PH1  ,   PH2  ,   PH3   레벨 및 레벨 캡 +2"
+      "effect": "[Normal Attack], [Skill], [Ultimate Skill], and [Passive] level and level cap +2"
     },
     {
       "level": 4,
-      "effect": "방어 증가 45%"
+      "effect": "Defense increases by 45%"
     },
     {
       "level": 5,
-      "effect": "PH0  ,   PH1  ,   PH2  ,   PH3   레벨 및 레벨 캡 +2"
+      "effect": "[Normal Attack], [Skill], [Ultimate Skill], and [Passive] level and level cap +2"
     },
     {
       "level": 6,
-      "effect": "모든 저항은 15 % 증가, 얼음 저항은 15 % 증가."
+      "effect": "All resistances increase by 15%, and ice resistance additionally increases by 15%."
     }
   ],
   "memoryCard": {
@@ -76,8 +76,8 @@
       "defense": "690"
     },
     "effects": [
-      "방어 증가 64%",
-      "성공적인 완화 후, 손상은 5 초 동안 10 % 감소했습니다. 착용자가 방패가있을 때, 손상은 18% 감소됩니다."
+      "Defense increases by 64%",
+      "After successful mitigation, damage taken is reduced by 10% for 5 seconds. When the wearer has a shield, damage taken is reduced by 18%."
     ]
   },
   "tags": [

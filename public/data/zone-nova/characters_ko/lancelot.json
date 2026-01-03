@@ -14,26 +14,26 @@
   "skills": {
     "normal": {
       "name": "Lake Sword",
-      "description": "적 단위에 손상을 12% 자신의 최대 HP의"
+      "description": "Deals holy damage to enemy unit equal to 12% of own maximum HP"
     },
     "auto": {
       "name": "Lake Sacred Shield",
       "cooldown": "4.0s",
-      "description": "최대 HP의 5.1%에 해당하는   PH0  를 추가합니다.   PH1  는 HP 한계의 30%까지 겹쳐 쌓일 수 있습니다."
+      "description": "Adds a [Shield] equal to 5.1% of max HP to self. [Shield] can stack up to 30% of HP limit."
     },
     "ultimate": {
       "name": "Blooming Knight's Flower",
       "energyCost": "3",
-      "description": "지정된 적 단위의 앞에 즉시 이동합니다. 모든 팀 문자는 15 초 동안 24% 적은 손상을받습니다."
+      "description": "Immediately moves in front of specified enemy unit. All team characters receive 24% less damage for 15 seconds."
     },
     "passive": {
       "name": "Lake Spirit's Blessing",
-      "description": "HP가 손상을 입은 후 50 % 미만의 경우 : 최대 HP의 9.6%를 매 3 초마다 복구하십시오. 효과는 15 초 동안 지속됩니다."
+      "description": "When HP drops below 50% after taking damage: Recover 9.6% of maximum HP every 3 seconds. Effect lasts for 15 seconds."
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "최대 체력이 10% 증가합니다. 방어가 10 % 증가했습니다.",
+    "description": "Own maximum HP increased by 10%. Defense increased by 10%.",
     "requirements": {
       "faction": "Avalon",
       "element": "Holy"
@@ -42,27 +42,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "방어 증가 45%"
+      "effect": "Defense increased by 45%"
     },
     {
       "level": 2,
-      "effect": "공격할 때, 방패가있는 경우, 촬영 된 손상은 10 % 감소됩니다."
+      "effect": "When attacked, if having a shield, damage taken is reduced by 10%"
     },
     {
       "level": 3,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Skills] and [Normal Attack] level and level cap +4"
     },
     {
       "level": 4,
-      "effect": "생명력이 30% 증가했습니다."
+      "effect": "HP increased by 30%"
     },
     {
       "level": 5,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Ultimate] and [Passive] level and level cap +4"
     },
     {
       "level": 6,
-      "effect": "수동 효과의 회복량이 100% 증가했습니다.)"
+      "effect": "Recovery amount from passive effect increased by 100%.)"
     }
   ],
   "memoryCard": {
@@ -74,7 +74,7 @@
       "defense": "575"
     },
     "effects": [
-      "방어 증가 36%, 전투를 입력 한 후, 우리의 모든 문자는 8% 적은 손상을, 동일한 기술 효과 스택 할 수 없습니다"
+      "Defense increased by 36%, After entering battle, all our characters take 8% less damage, same skill effects cannot stack"
     ]
   },
   "tags": [

@@ -17,26 +17,26 @@
   "skills": {
     "normal": {
       "name": "Holy Radiance Arrow",
-      "description": "적에게 공격의 120%와 동일하게 대미지"
+      "description": "Deals holy damage equal to 120% of Attack to enemy"
     },
     "auto": {
       "name": "Arrow of Atum",
       "cooldown": "5.0s",
-      "description": "대상에서 화살표를 쏴. 120% 공격 힘은 표적과 2m 반경에 손상을 줍니다. 1 레이어   PH0  를 모든 적에게 추가합니다.   PH1   효력: 각 층은 19.2% 공격 힘 holy 각 3 초를 손상합니다. 최대 더미: 10 초 동안 지속적인 손상을 위한 10개의 층"
+      "description": "Shoots arrows at target. Deals 120% attack power holy damage to target and 2m radius. Adds 1 layer [Piercing] to all hit enemies. [Piercing] Effect: Each layer deals 19.2% attack power holy damage every 3 seconds. Maximum Stacks: 10 layers for continuous damage for 10 seconds"
     },
     "ultimate": {
       "name": "Eye of Wadjet",
       "energyCost": "3",
-      "description": "480% 공격 힘은 표적에 손상을 줍니다. 1개의 층   PH0   및 1개의 층   PH1  를 추가하십시오. 기술 Interrupt: 이 궁극적인은 기술 주물을 중단할 수 있습니다 (보스를 위한 PVE에서 좋은)"
+      "description": "Deals 480% attack power holy damage to target. Adds 1 layer [Seal] and 1 layer [Piercing]. Skill Interrupt: This Ultimate can interrupt Skill casting (Good in PVE for Boss)"
     },
     "passive": {
       "name": "Solar Divine Judgment",
-      "description": "PH0  를 가진 표적에 기술 (Ultimate & Auto 기술)를 사용할 때, 1개의 층을 소비하고 표적에 120% 공격 힘 holy 손상을 일으키는 원인이 되는 지역 폭발 (4m 반경)를 방아쇠를 칩니다. 1개의 층   PH1  를 얻습니다.   PH2   효력: 각 층은 19.2% 공격 힘 각 3 초를 손상합니다. 최대 더미: 10 초 동안 지속적인 손상을 위한 10개의 층"
+      "description": "When using skills (Ultimate & Auto skill) on targets with [Seal], consumes 1 layer and triggers area explosion (4m radius) that cause 120% attack power holy damage to targets. Hit targets gain 1 layer [Piercing]. [Piercing] Effect: Each layer deals 19.2% attack power holy damage every 3 seconds. Maximum Stacks: 10 layers for continuous damage for 10 seconds"
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "자기 공격력은 10 % 증가합니다. 전투 시작에서, 각 500의 공격 힘은 3% 침투, 최대 6배 (18% 최대)를 추가합니다",
+    "description": "Self attack power increases by 10%. At battle start, every 500 attack power adds 3% penetration, maximum 6 times (18% max)",
     "requirements": {
       "faction": "Chemic",
       "element": "Holy"
@@ -45,27 +45,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "공격력이 20% 증가했습니다."
+      "effect": "공격력이 20%증가한다."
     },
     {
       "level": 2,
-      "effect": "지속적인 손상이 지속될 때, 표적은 20%에 의해 지속적인 손상 증가를, 지속합니다 3 초, 반복한 방아쇠는 기간을 취급할 수 있습니다"
+      "effect": "When dealing continuous damage, make the targets received continuous damage increase by 20%, lasts 3 seconds, repeated triggers can refresh the duration"
     },
     {
       "level": 3,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Skill] and [Normal Attack] level and level cap +4"
     },
     {
       "level": 4,
-      "effect": "PH0   효과 거래 +35% 증가된 손상"
+      "effect": "[Continuous Damage] effects deal +35% increased damage"
     },
     {
       "level": 5,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Ultimate] and [Passive] level and level cap +4"
     },
     {
       "level": 6,
-      "effect": "PH0   상태가 있는 대상에 손상을 입을 때, 20% 내마모성 침투를 얻습니다."
+      "effect": "When dealing damage to targets that have [Continuous damage] status, gain 20% holy resistance penetration"
     }
   ],
   "memoryCard": {
@@ -77,7 +77,7 @@
       "defense": "474"
     },
     "effects": [
-      "공격력이 40% 증가합니다. (DOT) 지속적인 손상을 겪을 때 대상이 24% 증가한 손상을 3초 지속합니다."
+      "Attack power increases by 40%. When you have (DOT) continuous damage, Target take 24% increased damage, lasts 3 seconds"
     ]
   },
   "tags": [

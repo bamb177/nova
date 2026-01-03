@@ -21,14 +21,14 @@
       "chineseName": "圣旗突刺",
       "level": "10+4",
       "cooldown": "2.0s",
-      "description": "지정된 적 단위로 120% 공격력 바람 손상"
+      "description": "Deals 120% attack power wind damage to designated enemy unit"
     },
     "auto": {
       "name": "Holy Light Banner",
       "chineseName": "圣光旗帜",
       "level": "10+4",
       "cooldown": "8.0s",
-      "description": "짧은 던지기 후에, 가장 낮은 현재 HP 비율을 가진 친절한 단위를, 각자 공격 힘 80.5%+445 HP, 지속적으로 치유합니다 3배 회복합니다"
+      "description": "After short cast, recovers the friendly unit with lowest current HP ratio, self attack power 80.5%+445 HP, continuously heals 3 times"
     },
     "ultimate": {
       "name": "Sacred Heavenly ",
@@ -36,20 +36,20 @@
       "level": "10+4",
       "cooldown": "1.0s",
       "energyCost": "8",
-      "description": "각자 공격 힘 90.8% + 668와 동등한 모든 친절한 특성에 건강 저장하고,   PH0  의 3개의 층을 각자에 추가하고,   PH1  는 최대 4개의 층까지 겹쳐 쌓일 수 있습니다"
+      "description": "Restore health to all friendly characters equal to self attack power 90.8% + 668, and add 3 layers of [Sacred Healing] to self, [Sacred Healing] can stack up to maximum 4 layers"
     },
     "passive": {
       "name": "Sacred Blood Healing",
       "chineseName": "圣血治疗",
       "level": "10+4",
-      "description": "친절한 문자가 공격되면 1 층   PH0  을 소비하고 자기 공격 힘 91.2% + 445와 동등한 문자에 건강을 회복하십시오. 각 문자는 1 초 재사용 대기 시간이있을 때 친절한 단위가 5 초가 가까운 상태에 들어가고 자기 공격 힘 285.8% + 2709와 같은 건강을 회복할 수 있습니다."
+      "description": "When friendly characters are attacked, consume 1 layer [Sacred Healing] and restore health to that character equal to self attack power 91.2% + 445, each character has 1 second cooldown time When friendly units enter near-death state, after 5 seconds revive them and restore health equal to self attack power 285.8% + 2709, can revive at most once per battle"
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
     "chineseName": "组合技",
     "level": "1",
-    "description": "자기 공격 힘 +10%. 각 500의 공격 힘은 5%, 최대 6배에 의해 각자 치유를 증가합니다.",
+    "description": "Self attack power +10%. Every 500 attack power increases self healing by 5%, max 6 times.",
     "requirements": {
       "faction": "Avalon",
       "element": "Wind",
@@ -59,27 +59,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "최고의 기술을 주조 한 후   PH0  의 1 층을 추가로 추가하십시오."
+      "effect": "After casting ultimate skill, additionally add 1 layer of [Sacred Healing]"
     },
     {
       "level": 2,
-      "effect": "consuming   PH0   후 치유 대상에 10 %가 5 초 동안 손상을 줄이며 반복 트리거는 지속 시간을 연장 할 수 있습니다."
+      "effect": "After consuming [Sacred Healing] to heal target, that target takes 10% reduced damage for 5 seconds, repeated triggers can extend the duration"
     },
     {
       "level": 3,
-      "effect": "PH0  와   PH1   레벨 캡 +4"
+      "effect": "[Skills] and [Normal Attack] level cap +4"
     },
     {
       "level": 4,
-      "effect": "치유량이 37.5% 증가했습니다."
+      "effect": "Healing amount increased by 37.5%"
     },
     {
       "level": 5,
-      "effect": "PH0  와   PH1   레벨 캡 +4"
+      "effect": "[Required Skills] and [Passive] level cap +4"
     },
     {
       "level": 6,
-      "effect": "Revival 조사 증가 1"
+      "effect": "Revival count increased by 1"
     }
   ],
   "memoryCard": {
@@ -93,7 +93,7 @@
       "defense": "600"
     },
     "effects": [
-      "치유량이 50% 증가할 때 주물 기술 또는 궁극적인 기술 1/2/3 초 동안, 치유량이 25/50/75% 증가합니다."
+      "Healing amount increases by 50% When casting skills or ultimate skills for 1/2/3 seconds, healing amount additionally increases by 25/50/75%"
     ]
   },
   "tags": [

@@ -14,26 +14,26 @@
   "skills": {
     "normal": {
       "name": "Fatigue Bombardment",
-      "description": "지정된 적 단위로 공격의 120%와 동일한 캐노스 손상을 줍니다."
+      "description": "Deals chaos damage equal to 120% of Attack to designated enemy unit."
     },
     "auto": {
       "name": "Power of the Blanket",
       "cooldown": "5.0s",
-      "description": "가장 높은 공격력으로 적 표적을 공격하고 공격력을 120% 공격하고 24%로 중요한 비율과 긴요한 손상을 줄이며 10초 동안 지속됩니다."
+      "description": "Attack the enemy target with the highest attack power, dealing 120% attack power chaos damage and reducing their critical rate and critical damage by 24%, lasting 10 seconds."
     },
     "ultimate": {
       "name": "Drowsy Sleep",
       "energyCost": "5",
-      "description": "Deal 120% 공격 힘은 모든 표적에 손상하고 표적을 증가합니다 58%에 의하여 자동 기술 재사용 대기 시간, 10 초 지속"
+      "description": "Deal 120% attack power chaos damage to all targets and increase targets auto skill cooldown time by 58%, lasting 10 seconds"
     },
     "passive": {
       "name": "Sleepy Aura",
-      "description": "기술 또는 궁극적 인 기술로 손상을 입을 때, 추가로   PH0  를 적용, 목표의 공격 속도를 58% 감소, 10 초를 처리."
+      "description": "When dealing damage with skills or ultimate skills, additionally applies [Wrath], reducing target's attack speed by 58%, lasting 10 seconds."
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "손상을 최소화 20% 증가.",
+    "description": "Own damage dealt increases by 20%.",
     "requirements": {
       "faction": "Bicta Tower",
       "element": "Chaos"
@@ -42,27 +42,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "자동차 기술을 사용하여 공격 대상을 공격 할 때 부정적인 효과는 30 % 증가합니다."
+      "effect": "When using auto skills to attack targets that have negative effects on them, skill damage increases by 30%"
     },
     {
       "level": 2,
-      "effect": "기본 공격은 추가로 20 %의 공격 파워 카오스 손상을 처리합니다."
+      "effect": "Basic attacks additionally deal 20% attack power chaos damage."
     },
     {
       "level": 3,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4."
+      "effect": "[Skill] and [Normal Attack] level and level cap +4."
     },
     {
       "level": 4,
-      "effect": "공격력이 20% 증가합니다."
+      "effect": "Attack power increases by 20%."
     },
     {
       "level": 5,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4."
+      "effect": "[Ultimate] and [Passive] level and level cap +4."
     },
     {
       "level": 6,
-      "effect": "궁극적인 기술은 목표 궁극적인 기술 손상을 20%, 지속 5 초 감소시킬 수 있습니다."
+      "effect": "Ultimate skill can additionally reduce the targets ultimate skill damage by 20%, lasting 5 seconds."
     }
   ],
   "memoryCard": {
@@ -74,7 +74,7 @@
       "defense": "380"
     },
     "effects": [
-      "궁극적인 기술은 표적 에너지 재생량을 18% 감소시킬 수 있습니다"
+      "Ultimate skill can reduce targets energy regen by 18%"
     ]
   },
   "tags": [

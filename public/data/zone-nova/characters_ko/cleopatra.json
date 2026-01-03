@@ -14,26 +14,26 @@
   "skills": {
     "normal": {
       "name": "Mad Shadow Erosion",
-      "description": "지정된 적에게 공격의 120%와 같음 혼돈"
+      "description": "Deals chaos damage equal to 120% of Attack to designated enemy"
     },
     "auto": {
       "name": "Praise of Heretic Sect",
       "cooldown": "5.0s",
-      "description": "4 미터 내의 대상 및 주변 지역에 대한 Deal 168% 공격 전력 chaos 손상 및   PH0  의 하나의 스택 적용"
+      "description": "Deal 168% attack power chaos damage to target and surrounding area within 4 meters, and apply one stack of [Shifting Sorrow]"
     },
     "ultimate": {
       "name": "Cultural Authority - Supreme Rule",
       "energyCost": "8",
-      "description": "4 초를 위해 수로를 달기 후에, 480% 공격 힘은 모든 표적에 손상을 줍니다 대상이 이미 지속적인 손상의 한 스택을 가지고 있다면, 추가로 48%의 공격 파워 카오스 손상을 처리, 최대 20 배의 궁극적 인 기술 손상은 지속적인 손상 유형으로 간주됩니다"
+      "description": "After channeling for 4 seconds, deal 480% attack power chaos damage to all targets If targets already have one stack of continuous damage, additionally deal 48% attack power chaos damage, up to 20 times Ultimate skill damage is considered continuous damage type"
     },
     "passive": {
       "name": "Filthy Whispers",
-      "description": "자동 기술이 주조되고,   PH0  의 2개의 더미를, 최대 5개의 더미에 축적할 수 있습니다 얻습니다 allies가 궁극적 인 기술을 사용 하 고 손상을 처리 하는 경우,   PH1  을 추가로 처리할 수 있습니다 120% 공격력 오스 그들의 대상에 손상 하 고 대상에 대 한   PH2  의 하나의 스택을 적용. 지역 공격은 여러 표를 동시에 트리거 할 수 있습니다.   PH3  : 각 3 초 거래 19.2% 공격 힘 chaos 손상은, 최대 10배에 겹쳐 쌓일 수 있습니다"
+      "description": "Every time a auto skill is cast, gain 2 stacks of [Shifting], maximum can accumulate to 5 stacks When allies use ultimate skills and deal damage, can consume [Shifting] to additionally deal 120% attack power chaos damage to their target and apply one stack of [Shifting Sorrow] to hit targets. Area attacks can trigger multiple marks simultaneously. [Shifting Sorrow]: Every 3 seconds deal 19.2% attack power chaos damage, maximum can stack to 10 times"
     }
   },
   "teamSkill": {
     "name": "Combination Skill",
-    "description": "자기 공격 전력은 10 % 증가합니다. 전투 시작: 각 500의 공격은 3%의 침투율을, 최대 6배 추가합니다. 최대 침투 보너스 : 18% (3,000+ 공격)",
+    "description": "Self attack power increases by 10%. Battle start: Every 500 attack adds 3% penetration rate, maximum 6 times. Maximum penetration bonus: 18% (at 3,000+ attack)",
     "requirements": {
       "faction": "Chemic",
       "element": "Chaos"
@@ -42,27 +42,27 @@
   "awakenings": [
     {
       "level": 1,
-      "effect": "공격력이 20% 증가했습니다."
+      "effect": "Attack power increases by 20%"
     },
     {
       "level": 2,
-      "effect": "궁극적 인 기술을 주조 할 때, 손상은 궁극적 인 기술을 주조 한 후 20 % 감소, 2 에너지 포인트를 회복"
+      "effect": "When casting ultimate skill, damage taken decreases by 20% After casting ultimate skill, recover 2 energy points"
     },
     {
       "level": 3,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Skill] and [Normal Attack] level and level cap +4"
     },
     {
       "level": 4,
-      "effect": "PH0   공격력이 35% 증가합니다."
+      "effect": "[Continuous damage] damage increases by 35%"
     },
     {
       "level": 5,
-      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+      "effect": "[Ultimate] and [Passive] level and level cap +4"
     },
     {
       "level": 6,
-      "effect": "지속적인 손상은 20% chaos 저항을 무시합니다"
+      "effect": "Continuous damage ignores 20% chaos resistance"
     }
   ],
   "memoryCard": {
@@ -74,7 +74,7 @@
       "defense": "474"
     },
     "effects": [
-      "공격력이 40% 증가합니다.   PH0  의 1개의 더미를 적용하십시오 기술이 표적을 명중한 후.   PH1  : 각 1 초 거래 15% 챠오 손상은, 최대 5배, 10 초 지속될 수 있습니다"
+      "Attack power increases by 40%. Apply one stack of [Erosion] After skills hit targets. [Erosion]: Every 1 second deal 15% chaos damage, maximum can stack to 5 times, lasting 10 seconds"
     ]
   },
   "tags": [
