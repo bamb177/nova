@@ -8,8 +8,8 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, Tuple, List
 
-from argostranslate import package as argos_package
-from argostranslate import translate as argos_translate
+import torch
+from transformers import MarianMTModel, MarianTokenizer
 
 
 # -----------------------
@@ -34,21 +34,22 @@ def save_cache(cache_path: Path, cache: Dict[str, str]) -> None:
 def has_hangul(text: str) -> bool:
     return bool(re.search(r"[가-힣]", text or ""))
 
+def normalize_out(text: str) -> str:
+    return (text or "").strip()
+
 
 # -----------------------
-# Token protection (placeholders, tags, brackets, variables)
+# Token protection
 # -----------------------
 TOKEN_PATTERNS = [
-    r"\{[^}]+\}",        # {x}
-    r"\[[^\]]+\]",       # [Skill]
-    r"<[^>]+>",          # <tag>
-    r"__[^_]+__",         # __PLACEHOLDER__
+    r"\{[^}]+\}",   # {x}
+    r"\[[^\]]+\]",  # [Skill]
+    r"<[^>]+>",     # <tag>
 ]
 
 def protect_tokens(text: str) -> Tuple[str, Dict[str, str]]:
     if not text:
         return text, {}
-
     placeholders: Dict[str, str] = {}
     combined = re.compile("|".join(f"({p})" for p in TOKEN_PATTERNS))
 
@@ -64,52 +65,21 @@ def protect_tokens(text: str) -> Tuple[str, Dict[str, str]]:
 def restore_tokens(text: str, placeholders: Dict[str, str]) -> str:
     if not placeholders:
         return text
-    # 길이 긴 키부터 치환(안전)
     for k in sorted(placeholders.keys(), key=len, reverse=True):
         text = text.replace(k, placeholders[k])
     return text
 
 
 # -----------------------
-# Glossary post-process (free MT 품질 보정)
+# Glossary post-process
 # -----------------------
 def apply_glossary(text: str, glossary: Dict[str, str]) -> str:
     if not glossary:
         return text
-    # 간단 치환(필요 시 regex 강화 가능)
     for k, v in glossary.items():
         if k and v:
             text = text.replace(k, v)
     return text
-
-
-# -----------------------
-# Ensure Argos EN->KO model installed
-# -----------------------
-def ensure_argos_en_ko() -> None:
-    # 모델이 이미 설치되어 있으면 그대로 사용
-    installed = argos_translate.get_installed_languages()
-    if any(l.code == "en" for l in installed) and any(l.code == "ko" for l in installed):
-        # 설치된 언어만으로는 부족할 수 있어, 실제 en->ko 번역 가능 여부도 확인
-        # 간단 체크: en 언어의 translation list에 ko가 있는지
-        en_lang = next((l for l in installed if l.code == "en"), None)
-        if en_lang:
-            if any(t.to_lang.code == "ko" for t in en_lang.translations):
-                return
-
-    # 없으면 다운로드/설치
-    argos_package.update_package_index()
-    available = argos_package.get_available_packages()
-    target = None
-    for p in available:
-        if p.from_code == "en" and p.to_code == "ko":
-            target = p
-            break
-    if not target:
-        raise RuntimeError("Argos EN->KO package not found in index.")
-
-    download_path = target.download()
-    argos_package.install_from_path(download_path)
 
 
 # -----------------------
@@ -142,15 +112,12 @@ import(process.argv[1]).then((m) => {
 
         return json.loads(result.stdout)
 
-
 def select_character_data_export(module_obj: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
-    # 1) default 우선
     if "default" in module_obj and isinstance(module_obj["default"], dict):
         d = module_obj["default"]
         if "name" in d and ("skills" in d or "teamSkill" in d):
             return ("default", d)
 
-    # 2) named export 중 *Data 우선
     candidates: List[Tuple[int, str, Dict[str, Any]]] = []
     for k, v in module_obj.items():
         if isinstance(v, dict) and "name" in v and ("skills" in v or "teamSkill" in v):
@@ -174,101 +141,120 @@ def select_character_data_export(module_obj: Dict[str, Any]) -> Tuple[str, Dict[
 
 
 # -----------------------
-# Translate (FREE)
+# HF Translator
 # -----------------------
-def translate_text_free(text: str, glossary: Dict[str, str], cache: Dict[str, str]) -> str:
+class HFTranslator:
+    def __init__(self, model_name: str = "Helsinki-NLP/opus-mt-en-ko"):
+        self.model_name = model_name
+        self.tokenizer = MarianTokenizer.from_pretrained(model_name)
+        self.model = MarianMTModel.from_pretrained(model_name)
+        self.model.eval()
+        self.device = torch.device("cpu")
+        self.model.to(self.device)
+
+    def translate_batch(self, texts: List[str], max_length: int = 512) -> List[str]:
+        # MarianMT는 문장 길이가 길면 품질 급락하므로 필요하면 chunking 추가 가능
+        encoded = self.tokenizer(
+            texts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=max_length,
+        ).to(self.device)
+
+        with torch.no_grad():
+            generated = self.model.generate(
+                **encoded,
+                max_length=max_length,
+                num_beams=4,
+            )
+        out = self.tokenizer.batch_decode(generated, skip_special_tokens=True)
+        return [normalize_out(x) for x in out]
+
+
+def translate_text_hf(tr: HFTranslator, text: str, glossary: Dict[str, str], cache: Dict[str, str]) -> str:
     if not text or not isinstance(text, str):
         return text
     if has_hangul(text):
         return text
 
-    key = sha(text)
+    key = sha(tr.model_name + "|" + text)
     if key in cache:
         return cache[key]
 
     protected, ph = protect_tokens(text)
-
-    # Argos translate
-    out = argos_translate.translate(protected, "en", "ko")
+    out = tr.translate_batch([protected])[0]
     out = restore_tokens(out, ph)
-
-    # Glossary post-process + 가독성 보정(원하면 여기서 규칙 추가)
     out = apply_glossary(out, glossary).strip()
 
-    # 원문 그대로면 캐시 저장하지 않음(고착 방지)
+    # 원문 그대로면 캐시 저장하지 않음
     if out != text:
         cache[key] = out
-
     return out
 
 
 # -----------------------
-# Translate requested fields only (overwrite existing keys)
+# Translate requested fields only
 # -----------------------
-def translate_character_fields(obj: Dict[str, Any], glossary: Dict[str, str], cache: Dict[str, str]) -> int:
+def translate_character_fields(tr: HFTranslator, obj: Dict[str, Any], glossary: Dict[str, str], cache: Dict[str, str]) -> int:
     changed = 0
 
-    # 1) Skills description
+    # 1) skills.*.description
     skills = obj.get("skills")
-
-    # A) dict 형태 (normal/auto/ultimate/passive)
     if isinstance(skills, dict):
         for _, s in skills.items():
             if isinstance(s, dict) and isinstance(s.get("description"), str):
                 src = s["description"]
-                dst = translate_text_free(src, glossary, cache)
+                dst = translate_text_hf(tr, src, glossary, cache)
                 if dst != src:
                     s["description"] = dst
                     changed += 1
-
-    # B) list 형태
     if isinstance(skills, list):
         for s in skills:
             if isinstance(s, dict) and isinstance(s.get("description"), str):
                 src = s["description"]
-                dst = translate_text_free(src, glossary, cache)
+                dst = translate_text_hf(tr, src, glossary, cache)
                 if dst != src:
                     s["description"] = dst
                     changed += 1
 
-    # 2) Team Skill description (+ alternativeConditions)
+    # 2) teamSkill.description (+ alternativeConditions)
     team = obj.get("teamSkill")
     if isinstance(team, dict):
         if isinstance(team.get("description"), str):
             src = team["description"]
-            dst = translate_text_free(src, glossary, cache)
+            dst = translate_text_hf(tr, src, glossary, cache)
             if dst != src:
                 team["description"] = dst
                 changed += 1
-
         req = team.get("requirements")
         if isinstance(req, dict) and isinstance(req.get("alternativeConditions"), str):
             src = req["alternativeConditions"]
-            dst = translate_text_free(src, glossary, cache)
+            dst = translate_text_hf(tr, src, glossary, cache)
             if dst != src:
                 req["alternativeConditions"] = dst
                 changed += 1
 
-    # 3) Awakening Effects
+    # 3) awakenings/awakeningEffects effect
     for aw_key in ("awakenings", "awakeningEffects"):
         aw = obj.get(aw_key)
         if isinstance(aw, list):
             for item in aw:
                 if isinstance(item, dict) and isinstance(item.get("effect"), str):
                     src = item["effect"]
-                    dst = translate_text_free(src, glossary, cache)
+                    dst = translate_text_hf(tr, src, glossary, cache)
                     if dst != src:
                         item["effect"] = dst
                         changed += 1
 
-    # 4) Memory Card effects[]
+    # 4) memoryCard.effects[]
     mc = obj.get("memoryCard")
     if isinstance(mc, dict):
         effects = mc.get("effects")
         if isinstance(effects, list):
             for i, e in enumerate(effects):
                 if isinstance(e, str):
-                    dst = translate_text_free(e, glossary, cache)
+                    dst = translate_text_hf(tr, e, glossary, cache)
                     if dst != e:
                         effects[i] = dst
                         changed += 1
@@ -280,17 +266,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default="public/data/zone-nova/characters")
     ap.add_argument("--out", default="public/data/zone-nova/characters_ko")
-    ap.add_argument("--cache", default=".cache/zone_nova_translate_cache_free.json")
+    ap.add_argument("--cache", default=".cache/zone_nova_translate_cache_free_hf.json")
     ap.add_argument("--glossary", default="public/data/zone-nova/glossary_ko.json")
+    ap.add_argument("--model_name", default="Helsinki-NLP/opus-mt-en-ko")
     args = ap.parse_args()
 
     src_dir = Path(args.src)
     out_dir = Path(args.out)
     cache_path = Path(args.cache)
     glossary_path = Path(args.glossary)
-
-    if not src_dir.exists():
-        raise RuntimeError(f"Source directory not found: {src_dir}")
 
     glossary: Dict[str, str] = {}
     if glossary_path.exists():
@@ -299,8 +283,7 @@ def main():
     cache = load_cache(cache_path)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Argos EN->KO 설치 보장
-    ensure_argos_en_ko()
+    tr = HFTranslator(args.model_name)
 
     total_changed = 0
     files = sorted(src_dir.glob("*.js"))
@@ -309,7 +292,7 @@ def main():
         module_obj = import_js_module(js_file)
         export_key, data_obj = select_character_data_export(module_obj)
 
-        changed = translate_character_fields(data_obj, glossary, cache)
+        changed = translate_character_fields(tr, data_obj, glossary, cache)
         total_changed += changed
 
         out_path = out_dir / f"{js_file.stem}.json"
