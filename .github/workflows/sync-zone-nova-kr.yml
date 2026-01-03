@@ -33,8 +33,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-
+ 
       - name: Install Python dependencies
         run: |
           python -m pip install -U pip
