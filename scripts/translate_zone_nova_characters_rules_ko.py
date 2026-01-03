@@ -5,10 +5,11 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Tuple, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+
 
 # =========================================================
-# A) JS module import (default + named export)
+# JS module import (default + named export)
 # =========================================================
 def import_js_module(js_path: Path) -> Dict[str, Any]:
     js_path = js_path.resolve()
@@ -37,24 +38,27 @@ import(process.argv[1]).then((m) => {
 
         return json.loads(result.stdout)
 
+
 def select_character_data_export(module_obj: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
     if "default" in module_obj and isinstance(module_obj["default"], dict):
         d = module_obj["default"]
-        if "name" in d and ("skills" in d or "teamSkill" in d):
+        if "name" in d:
             return ("default", d)
 
     candidates: List[Tuple[int, str, Dict[str, Any]]] = []
     for k, v in module_obj.items():
-        if isinstance(v, dict) and "name" in v and ("skills" in v or "teamSkill" in v):
+        if isinstance(v, dict) and "name" in v:
             score = 0
             if k.lower().endswith("data"):
                 score += 10
-            if "rarity" in v:
-                score += 2
+            if "skills" in v:
+                score += 3
+            if "teamSkill" in v:
+                score += 3
             if "memoryCard" in v:
-                score += 1
+                score += 2
             if "awakenings" in v or "awakeningEffects" in v:
-                score += 1
+                score += 2
             candidates.append((score, k, v))
 
     if not candidates:
@@ -66,7 +70,7 @@ def select_character_data_export(module_obj: Dict[str, Any]) -> Tuple[str, Dict[
 
 
 # =========================================================
-# B) Glossary (string replace)
+# Glossary
 # =========================================================
 def load_glossary(path: Path) -> Dict[str, str]:
     if path.exists():
@@ -84,30 +88,29 @@ def apply_glossary(text: str, glossary: Dict[str, str]) -> str:
 
 
 # =========================================================
-# C) Token protection (avoid breaking placeholders/tags)
+# Token protection
 # =========================================================
 TOKEN_PATTERNS = [
-    r"\{[^}]+\}",   # {x}
-    r"\[[^\]]+\]",  # [Skill]
-    r"<[^>]+>",     # <tag>
+    r"\{[^}]+\}",
+    r"\[[^\]]+\]",
+    r"<[^>]+>",
 ]
 
-def protect_tokens(text: str) -> Tuple[str, Dict[str, str]]:
+def protect_tokens(text: str):
     if not text:
         return text, {}
-    placeholders: Dict[str, str] = {}
+    placeholders = {}
     combined = re.compile("|".join(f"({p})" for p in TOKEN_PATTERNS))
 
-    def repl(m: re.Match) -> str:
+    def repl(m):
         token = m.group(0)
         key = f"__PH{len(placeholders)}__"
         placeholders[key] = token
         return key
 
-    protected = combined.sub(repl, text)
-    return protected, placeholders
+    return combined.sub(repl, text), placeholders
 
-def restore_tokens(text: str, placeholders: Dict[str, str]) -> str:
+def restore_tokens(text: str, placeholders: Dict[str, str]):
     if not placeholders:
         return text
     for k in sorted(placeholders.keys(), key=len, reverse=True):
@@ -116,33 +119,19 @@ def restore_tokens(text: str, placeholders: Dict[str, str]) -> str:
 
 
 # =========================================================
-# D) Style post-process (remove honorifics, tooltip tone)
+# KO style post-process (tooltip tone)
 # =========================================================
 def postprocess_ko(text: str) -> str:
     t = (text or "").strip()
     if not t:
         return t
 
-    # honorific -> plain tooltip tone
-    rules = [
-        (re.compile(r"합니다\.", re.M), "한다."),
-        (re.compile(r"됩니다\.", re.M), "된다."),
-        (re.compile(r"입니다\.", re.M), "이다."),
-        (re.compile(r"합니다$", re.M), "한다"),
-        (re.compile(r"됩니다$", re.M), "된다"),
-        (re.compile(r"입니다$", re.M), "이다"),
-        (re.compile(r"합니다,", re.M), "한다,"),
-        (re.compile(r"됩니다,", re.M), "된다,"),
-        (re.compile(r"입니다,", re.M), "이다,"),
-    ]
-    for pat, rep in rules:
-        t = pat.sub(rep, t)
+    # honorific -> tooltip tone
+    t = re.sub(r"합니다\.", "한다.", t)
+    t = re.sub(r"됩니다\.", "된다.", t)
+    t = re.sub(r"입니다\.", "이다.", t)
 
-    # common unnatural phrases -> afrodite style
     t = re.sub(r"지정된 적", "지정한 적", t)
-    t = re.sub(r"지정된 대상", "지정한 대상", t)
-
-    # spacing
     t = re.sub(r"\s*%\s*", "%", t)
     t = re.sub(r"[ \t]+", " ", t)
     t = re.sub(r"\.\.+", ".", t)
@@ -150,7 +139,8 @@ def postprocess_ko(text: str) -> str:
 
 
 # =========================================================
-# E) Core: rule-based EN->KO tooltip translator (Afrodite-style)
+# RULE translator (Afrodite-style subset)
+# - 매칭되면 한국어 반환, 아니면 None
 # =========================================================
 DMG_TYPE = {
     "holy": "성속성",
@@ -182,288 +172,141 @@ def ko_target_from_en(s: str) -> str:
         return "적 1명"
     return "대상"
 
-def ko_element_from_phrase(phrase: str) -> Optional[str]:
-    # "holy damage" 등
-    m = re.search(r"\b(holy|chaos|fire|water|wind|dark|light|physical)\s+damage\b", phrase, re.I)
-    if not m:
-        return None
-    return DMG_TYPE.get(m.group(1).lower())
-
 def rule_translate_line(en: str) -> Optional[str]:
-    """
-    성공하면 Afrodite-style 한국어 한 줄 반환, 실패하면 None
-    """
     t = normalize_en(en)
 
-    # 1) Deals X% attack power as <elem> damage to <target>.
+    # Deals 120% attack power Chaos damage to designated enemy unit.
     m = re.match(
-        r"^Deals\s+(?P<pct>\d+(?:\.\d+)?)%\s*attack\s*power\s+as\s+(?P<elem>holy|chaos|fire|water|wind|dark|light|physical)\s+damage\s+to\s+(?P<tgt>.+?)\.$",
-        t, re.I
+        r"^Deals\s+(?P<pct>\d+(?:\.\d+)?)%\s*attack\s*power\s*(?P<dtype>(Holy|Chaos|Fire|Water|Wind|Dark|Light|Physical)\s+damage)?\s*to\s+(?P<tgt>.+?)\.$",
+        t,
+        re.I,
     )
     if m:
         pct = m.group("pct")
-        elem = DMG_TYPE[m.group("elem").lower()]
+        dtype = m.group("dtype") or ""
+        elem = None
+        if dtype:
+            elem = DMG_TYPE.get(dtype.split()[0].lower())
         tgt = ko_target_from_en(m.group("tgt"))
-        return f"{tgt}에게 공격력의 {pct}%만큼 {elem} 피해를 준다."
+        dmg = f"{elem} 피해" if elem else "피해"
+        return f"{tgt}에게 공격력의 {pct}%만큼 {dmg}를 준다."
 
-    # 2) Automatically deals X% attack power as <elem> damage to <target>.
-    m = re.match(
-        r"^Automatically\s+deals\s+(?P<pct>\d+(?:\.\d+)?)%\s*attack\s*power\s+as\s+(?P<elem>holy|chaos|fire|water|wind|dark|light|physical)\s+damage\s+to\s+(?P<tgt>.+?)\.$",
-        t, re.I
-    )
-    if m:
-        pct = m.group("pct")
-        elem = DMG_TYPE[m.group("elem").lower()]
-        tgt = ko_target_from_en(m.group("tgt"))
-        return f"{tgt}에게 공격력의 {pct}%만큼 {elem} 피해를 준다."
-
-    # 3) Increases self <stat> by X%.
-    m = re.match(
-        r"^Increases\s+self\s+(?P<stat>attack\s+speed|attack\s+power|defense|max\s+hp|critical\s+rate|critical\s+damage)\s+by\s+(?P<val>\d+(?:\.\d+)?)%\.$",
-        t, re.I
-    )
-    if m:
-        stat = m.group("stat").lower()
-        val = m.group("val")
-        stat_map = {
-            "attack speed": "공격 속도",
-            "attack power": "공격력",
-            "defense": "방어력",
-            "max hp": "최대 HP",
-            "critical rate": "치명타 확률",
-            "critical damage": "치명타 피해",
-        }
-        return f"또한 자신의 {stat_map[stat]}가 {val}% 증가한다."
-
-    # 4) Normal Ultimate: Deals ... Enhanced Ultimate (...): Deals ... , recovers ..., Counts as ...
-    if t.lower().startswith("normal ultimate:"):
-        # split into segments by ". " but keep meaning
-        # 기대 형태: "Normal Ultimate: ... . Enhanced Ultimate (...): ... , recovers ... , Counts as ..."
-        # 원문은 종종 마침표/콤마가 섞여 있으니 완전 엄격 파싱 대신 핵심 패턴만 추출
-        # Normal Ultimate dmg
-        n = re.search(
-            r"Normal\s+Ultimate:\s+Deals\s+(?P<p1>\d+(?:\.\d+)?)%\s*attack\s*power\s+as\s+(?P<e1>\w+)\s+damage\s+to\s+(?P<t1>.+?)\.",
-            t, re.I
-        )
-        e = re.search(
-            r"Enhanced\s+Ultimate\s*\(after\s+(?P<hits>\d+)\s+normal\s+attacks\):\s+Deals\s+(?P<p2>\d+(?:\.\d+)?)%\s*attack\s*power\s+as\s+(?P<e2>\w+)\s+damage\s+to\s+(?P<t2>.+?)(?:,|\.|\s)",
-            t, re.I
-        )
-        rec = re.search(r"recovers\s+(?P<eng>\d+)\s+energy\s+at\s+the\s+end", t, re.I)
-        cnt = re.search(r"Counts\s+as\s+a\s+basic-attack\s+hit\s+for\s+any\s+on-hit\s+or\s+combo\s+effects", t, re.I)
-
-        if n and e:
-            p1 = n.group("p1")
-            e1 = DMG_TYPE.get(n.group("e1").lower(), "성속성")
-            t1 = ko_target_from_en(n.group("t1"))
-            hits = e.group("hits")
-            p2 = e.group("p2")
-            e2 = DMG_TYPE.get(e.group("e2").lower(), e1)
-            t2 = ko_target_from_en(e.group("t2"))
-
-            out = f"일반 궁극기: {t1}에게 공격력의 {p1}%만큼 {e1} 피해를 준다. "
-            out += f"강화 궁극기(일반 공격 {hits}회 후): {t2}에게 공격력의 {p2}%만큼 {e2} 피해를 준다."
-            if rec:
-                out += f" 효과 종료 시 에너지를 {rec.group('eng')} 회복하며,"
-            if cnt:
-                out += " 적중 시 기본 공격 1회로 간주되어 적중/연계(콤보) 효과 발동에 포함된다."
-            return out.strip()
-
-    # 5) When HP is higher then 50%: ... When HP is lower then 50%: ...
-    m = re.match(
-        r"^When\s+HP\s+is\s+higher\s+then\s+50%:\s*\+?(?P<c1>\d+(?:\.\d+)?)\s*%?\s*Crit\s+Rate\s+on\s+all\s+outgoing\s+damage\.\s*When\s+HP\s+is\s+lower\s+then\s+50%:\s*\+?(?P<d1>\d+(?:\.\d+)?)\s*%?\s*Defense\s+when\s+taking\s+damage\.$",
-        t, re.I
-    )
-    if m:
-        c1 = m.group("c1")
-        d1 = m.group("d1")
-        return (
-            f"HP가 50%를 초과할 때: 자신이 주는 모든 피해의 치명타 확률이 {c1}% 증가한다. "
-            f"HP가 50% 이하일 때: 피해를 받을 때 방어력이 {d1}% 증가한다."
-        )
-
-    # 6) Team skill: Self attack power increased by X%. At battle start: For every A attack power, increase self <elem> damage by B% (maximum N times). Maximum scaling: ...
-    m = re.match(
-        r"^Self\s+attack\s+power\s+increased\s+by\s+(?P<x>\d+(?:\.\d+)?)%\.\s*At\s+battle\s+start:\s*For\s+every\s+(?P<a>\d+)\s+attack\s+power,\s*increase\s+self\s+(?P<elem>holy|chaos|fire|water|wind|dark|light|physical)\s+damage\s+by\s+(?P<b>\d+(?:\.\d+)?)%\s*\(maximum\s+(?P<n>\d+)\s+times\)\.\s*Maximum\s+scaling:\s*(?P<max>\d+(?:\.\d+)?)%\s+(?P<elem2>holy|chaos|fire|water|wind|dark|light|physical)\s+damage\s+boost\s+at\s+(?P<th>\d[\d,]*)\+\s+attack\s+power\.$",
-        t, re.I
-    )
-    if m:
-        x = m.group("x")
-        a = m.group("a")
-        elem = DMG_TYPE[m.group("elem").lower()]
-        b = m.group("b")
-        n = m.group("n")
-        maxv = m.group("max")
-        th = m.group("th").replace(",", "")
-        return (
-            f"자신의 공격력이 {x}% 증가한다. "
-            f"전투 시작 시: 공격력 {a}마다 자신의 {elem} 피해가 {b}% 증가한다(최대 {n}회). "
-            f"최대 적용: 공격력 {th} 이상일 때 {elem} 피해가 최대 {maxv}% 증가한다."
-        )
-
-    # 7) Awakenings samples (afrodite-like)
-    m = re.match(
-        r"^When\s+you\s+using\s+auto\s+skill\s+\(Self\)\s+it\s+counts\s+as\s+(?P<n>\d+)\s+extra\s+basic-attack\s+hits\s+toward\s+the\s+Enhanced\s+Ultimate\s+counter\.$",
-        t, re.I
-    )
-    if m:
-        n = m.group("n")
-        return f"자신이 자동 스킬을 사용하면, 강화 궁극기 카운트용 기본 공격 적중 수에 추가로 {n}회가 더해진다."
-
-    m = re.match(
-        r"^When\s+using\s+ultimate\s+or\s+auto\s+skill:\s*Damage\s+taken\s+reduced\s+by\s+(?P<x>\d+(?:\.\d+)?)%$",
-        t, re.I
-    )
-    if m:
-        x = m.group("x")
-        return f"궁극기 또는 자동 스킬 사용 시 받는 피해가 {x}% 감소한다."
-
-    m = re.match(
-        r"^\[Skills\]\s+and\s+\[Normal\s+Attack\]\s+level\s+and\s+level\s+cap\s+\+(?P<x>\d+)$",
-        t, re.I
-    )
-    if m:
-        x = m.group("x")
-        return f"[스킬]과 [일반 공격]의 레벨 및 레벨 상한이 {x} 증가한다."
-
-    m = re.match(r"^Normal\s+attack\s+damage\s+increased\s+by\s+(?P<x>\d+(?:\.\d+)?)%$", t, re.I)
-    if m:
-        x = m.group("x")
-        return f"일반 공격 피해가 {x}% 증가한다."
-
-    m = re.match(r"^\[Ultimate\]\s+and\s+\[Passive\]\s+level\s+and\s+level\s+cap\s+\+(?P<x>\d+)$", t, re.I)
-    if m:
-        x = m.group("x")
-        return f"[궁극기]와 [패시브]의 레벨 및 레벨 상한이 {x} 증가한다."
-
-    m = re.match(r"^\[Enhanced\s+Ultimate\]\s+ignores\s+(?P<x>\d+(?:\.\d+)?)%\s+Holy\s+resistance$", t, re.I)
-    if m:
-        x = m.group("x")
-        return f"[강화 궁극기]가 성속성 저항을 {x}% 무시한다."
-
-    # 8) Memory card effects
-    m = re.match(r"^Attack\s+power\s+increased\s+by\s+(?P<x>\d+(?:\.\d+)?)%$", t, re.I)
+    # Attack power increased by 40%.
+    m = re.match(r"^Attack\s+power\s+increased\s+by\s+(?P<x>\d+(?:\.\d+)?)%\.$", t, re.I)
     if m:
         x = m.group("x")
         return f"공격력이 {x}% 증가한다."
 
-    m = re.match(
-        r"^If\s+the\s+equipped\s+units\s+Ultimate\s+costs\s+higher\s+then\s+(?P<e>\d+)\s+Energy\s+and\s+used\s+ultimate\s*:\s*Damage\s+increased\s+by\s+(?P<x>\d+(?:\.\d+)?)%\s+for\s+(?P<s>\d+)\s+seconds$",
-        t, re.I
-    )
-    if m:
-        e = m.group("e")
-        x = m.group("x")
-        s = m.group("s")
-        return f"장착 유닛의 궁극기 소모 에너지가 {e}을 초과하고 궁극기를 사용하면, {s}초 동안 자신이 주는 피해가 {x}% 증가한다."
-
     return None
 
 
-def translate_text_rules_only(text: str, glossary: Dict[str, str], fallback: str = "keep") -> str:
+# =========================================================
+# IMPORTANT: Recursive field discovery + apply translation
+# =========================================================
+def path_has_ancestor(path: List[Any], ancestor: str) -> bool:
+    # ancestor must appear in the path (key names)
+    return any(isinstance(p, str) and p == ancestor for p in path)
+
+def is_target_field(path: List[Any], key: str, value: Any) -> bool:
     """
-    fallback:
-      - keep: 패턴 미매칭은 원문 유지
-      - mark: 미매칭은 '[UNTRANSLATED]' 접두어로 표시
+    Find requested fields robustly:
+    - skills/**/description (string)
+    - teamSkill/**/description (string)
+    - awakenings or awakeningEffects/**/effect (string)
+    - memoryCard/effects (list[str])
     """
-    if not isinstance(text, str) or not text.strip():
-        return text
+    if not isinstance(key, str):
+        return False
 
-    # line split preserve
-    lines = text.split("\n")
-    out_lines: List[str] = []
+    if key == "description" and isinstance(value, str):
+        if path_has_ancestor(path, "skills") or path_has_ancestor(path, "teamSkill"):
+            return True
 
-    for line in lines:
-        raw = line.strip()
-        if not raw:
-            out_lines.append(line)
-            continue
+    if key == "effect" and isinstance(value, str):
+        if path_has_ancestor(path, "awakenings") or path_has_ancestor(path, "awakeningEffects"):
+            return True
 
-        protected, ph = protect_tokens(raw)
-        ruled = rule_translate_line(protected)
+    if key == "effects" and isinstance(value, list) and all(isinstance(x, str) for x in value):
+        if path_has_ancestor(path, "memoryCard"):
+            return True
 
-        if ruled is None:
-            if fallback == "mark":
-                out = "[UNTRANSLATED] " + raw
+    return False
+
+def translate_value(value: Any, glossary: Dict[str, str], fallback: str) -> Any:
+    """
+    Translate a value according to our "Afrodite-like" style rules.
+    - For string: rule translate line-by-line; if not match, keep or mark.
+    - For list[str]: translate each element.
+    """
+    def translate_string(s: str) -> str:
+        lines = s.split("\n")
+        out_lines = []
+        for line in lines:
+            raw = line.strip()
+            if not raw:
+                out_lines.append(line)
+                continue
+
+            protected, ph = protect_tokens(raw)
+            ruled = rule_translate_line(protected)
+            if ruled is None:
+                out = raw if fallback == "keep" else "[UNTRANSLATED] " + raw
             else:
-                out = raw
-        else:
-            out = restore_tokens(ruled, ph)
-            out = apply_glossary(out, glossary)
-            out = postprocess_ko(out)
+                out = restore_tokens(ruled, ph)
+                out = apply_glossary(out, glossary)
+                out = postprocess_ko(out)
 
-        out_lines.append(out)
+            out_lines.append(out)
+        return "\n".join(out_lines)
 
-    return "\n".join(out_lines)
+    if isinstance(value, str):
+        return translate_string(value)
+
+    if isinstance(value, list) and all(isinstance(x, str) for x in value):
+        return [translate_string(x) for x in value]
+
+    return value
 
 
-# =========================================================
-# F) Apply only requested fields
-# =========================================================
-def translate_character_fields(obj: Dict[str, Any], glossary: Dict[str, str], fallback: str) -> int:
+def walk_and_translate(obj: Any, glossary: Dict[str, str], fallback: str) -> int:
+    """
+    Walk dict/list recursively, translate target fields in-place.
+    Returns number of modified fields (not strings).
+    """
     changed = 0
 
-    # 1) Skills.description
-    skills = obj.get("skills")
-    if isinstance(skills, dict):
-        for _, s in skills.items():
-            if isinstance(s, dict) and isinstance(s.get("description"), str):
-                src = s["description"]
-                dst = translate_text_rules_only(src, glossary, fallback=fallback)
-                if dst != src:
-                    s["description"] = dst
-                    changed += 1
-    if isinstance(skills, list):
-        for s in skills:
-            if isinstance(s, dict) and isinstance(s.get("description"), str):
-                src = s["description"]
-                dst = translate_text_rules_only(src, glossary, fallback=fallback)
-                if dst != src:
-                    s["description"] = dst
-                    changed += 1
+    def _walk(node: Any, path: List[Any]):
+        nonlocal changed
 
-    # 2) Team Skill.description
-    team = obj.get("teamSkill")
-    if isinstance(team, dict) and isinstance(team.get("description"), str):
-        src = team["description"]
-        dst = translate_text_rules_only(src, glossary, fallback=fallback)
-        if dst != src:
-            team["description"] = dst
-            changed += 1
-
-    # 3) Awakenings effect
-    for aw_key in ("awakenings", "awakeningEffects"):
-        aw = obj.get(aw_key)
-        if isinstance(aw, list):
-            for item in aw:
-                if isinstance(item, dict) and isinstance(item.get("effect"), str):
-                    src = item["effect"]
-                    dst = translate_text_rules_only(src, glossary, fallback=fallback)
-                    if dst != src:
-                        item["effect"] = dst
+        if isinstance(node, dict):
+            for k, v in list(node.items()):
+                # identify target
+                if is_target_field(path + [k], k, v):
+                    new_v = translate_value(v, glossary, fallback)
+                    if new_v != v:
+                        node[k] = new_v
                         changed += 1
+                # recurse
+                _walk(node[k], path + [k])
 
-    # 4) Memory Card effects[]
-    mc = obj.get("memoryCard")
-    if isinstance(mc, dict):
-        effects = mc.get("effects")
-        if isinstance(effects, list):
-            for i, e in enumerate(effects):
-                if isinstance(e, str):
-                    dst = translate_text_rules_only(e, glossary, fallback=fallback)
-                    if dst != e:
-                        effects[i] = dst
-                        changed += 1
+        elif isinstance(node, list):
+            for i in range(len(node)):
+                _walk(node[i], path + [i])
 
+    _walk(obj, [])
     return changed
 
 
+# =========================================================
+# Main
+# =========================================================
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default="public/data/zone-nova/characters")
     ap.add_argument("--out", default="public/data/zone-nova/characters_ko")
     ap.add_argument("--glossary", default="public/data/zone-nova/glossary_ko.json")
     ap.add_argument("--fallback", choices=["keep", "mark"], default="keep")
+    ap.add_argument("--debug", action="store_true")
     args = ap.parse_args()
 
     src_dir = Path(args.src)
@@ -483,14 +326,18 @@ def main():
         module_obj = import_js_module(js_file)
         export_key, data_obj = select_character_data_export(module_obj)
 
-        changed = translate_character_fields(data_obj, glossary, fallback=args.fallback)
+        changed = walk_and_translate(data_obj, glossary, fallback=args.fallback)
         total_changed += changed
 
         out_path = out_dir / f"{js_file.stem}.json"
         out_path.write_text(json.dumps(data_obj, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(f"[OK] {js_file.name} (export={export_key}) -> {out_path.name} | updated={changed}")
 
-    print(f"Done. Total updated fields: {total_changed}")
+        if args.debug:
+            print(f"[DEBUG] {js_file.name} export={export_key} changed_fields={changed}")
+        else:
+            print(f"[OK] {js_file.name} -> {out_path.name} | changed_fields={changed}")
+
+    print(f"Done. Total changed fields: {total_changed}")
 
 
 if __name__ == "__main__":
