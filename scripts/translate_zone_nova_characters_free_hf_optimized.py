@@ -1,10 +1,13 @@
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -20,7 +23,11 @@ def sha(s: str) -> str:
 
 def load_cache(cache_path: Path) -> Dict[str, str]:
     if cache_path.exists():
-        return json.loads(cache_path.read_text(encoding="utf-8"))
+        try:
+            return json.loads(cache_path.read_text(encoding="utf-8"))
+        except Exception:
+            print(f"[WARN] cache load failed, start empty: {cache_path}")
+            return {}
     return {}
 
 def save_cache(cache_path: Path, cache: Dict[str, str]) -> None:
@@ -168,12 +175,19 @@ class HFTranslator:
     def __init__(self, model_name: str, num_beams: int = 2):
         self.model_name = model_name
         self.num_beams = max(1, int(num_beams))
+
+        t0 = time.time()
+        print(f"[MODEL] loading tokenizer: {model_name}")
         self.tokenizer = MarianTokenizer.from_pretrained(model_name)
+        print(f"[MODEL] loading model: {model_name}")
         self.model = MarianMTModel.from_pretrained(model_name)
         self.model.eval()
         self.device = torch.device("cpu")
         self.model.to(self.device)
+
         self.tgt_token = self._pick_korean_target_token()
+        dt = time.time() - t0
+        print(f"[MODEL] ready in {dt:.1f}s | beams={self.num_beams} | tgt_token={self.tgt_token}")
 
     def _pick_korean_target_token(self) -> Optional[str]:
         toks = getattr(self.tokenizer, "additional_special_tokens", []) or []
@@ -214,6 +228,7 @@ class HFTranslator:
                 max_length=max_length,
                 num_beams=self.num_beams,
             )
+
         out = self.tokenizer.batch_decode(generated, skip_special_tokens=True)
         return [x.strip() for x in out]
 
@@ -243,14 +258,7 @@ def is_target_field(path: List[Any], key: str, value: Any) -> bool:
     return False
 
 
-# =========================
-# Collect & apply translations
-# =========================
 def collect_targets(obj: Any) -> List[Tuple[List[Any], str, Any]]:
-    """
-    Returns list of (path, key, value) for target fields.
-    Path includes keys/indexes leading to the field (excluding the field key itself).
-    """
     targets = []
 
     def _walk(node: Any, path: List[Any]):
@@ -273,66 +281,70 @@ def get_by_path(root: Any, path: List[Any]) -> Any:
     return cur
 
 
+# =========================
+# Translation bulk w/ heartbeat
+# =========================
 def translate_texts_bulk(
     translator: HFTranslator,
     texts: List[str],
     glossary: Dict[str, str],
     cache: Dict[str, str],
     batch_size: int,
-) -> List[str]:
-    # protect tokens per line; store placeholders
+    heartbeat: "Heartbeat",
+) -> Tuple[List[str], int, int]:
+    """
+    returns (translated_texts, cache_hit_count, generated_count)
+    """
     protected_list = []
     placeholders_list = []
     keys = []
 
     for t in texts:
-        # line split 유지
-        # 여기서는 “한 필드 전체”를 1문장으로 처리(속도 우선)
-        # 줄바꿈이 많으면 필드 자체에서 split해서 여러 건으로 넣는 구조로 확장 가능
         prot, ph = protect_tokens(t)
         protected_list.append(prot)
         placeholders_list.append(ph)
         keys.append(sha(translator.model_name + "|" + t))
 
-    results = [None] * len(texts)
+    results: List[Optional[str]] = [None] * len(texts)
 
-    # 1) cache hit 먼저 채우기
+    cache_hits = 0
     to_do_idx = []
     to_do_texts = []
     for i, k in enumerate(keys):
         if k in cache:
             results[i] = cache[k]
+            cache_hits += 1
         else:
             to_do_idx.append(i)
             to_do_texts.append(protected_list[i])
 
-    # 2) batch translate
+    generated = 0
+
     for start in range(0, len(to_do_texts), batch_size):
+        heartbeat.ping(extra=f"translating batch {start//batch_size + 1}/{(len(to_do_texts)+batch_size-1)//batch_size}")
         chunk = to_do_texts[start:start + batch_size]
         outs = translator.translate_batch(chunk)
+        generated += len(chunk)
+
         for j, out in enumerate(outs):
             idx = to_do_idx[start + j]
-            # restore tokens
             out = restore_tokens(out, placeholders_list[idx])
-            # glossary + postprocess
             out = postprocess_ko(apply_glossary(out, glossary))
 
-            # HF가 영문을 그대로 내놓는 케이스 방어: 한글 없으면 원문 유지
+            # 방어: 번역 결과에 한글이 거의 없으면 원문 유지
             if not has_hangul(out):
                 out = texts[idx]
 
             results[idx] = out
-            # cache store (원문과 동일한 경우는 저장하지 않음)
             if out != texts[idx]:
                 cache[keys[idx]] = out
 
-    return results
+    # type narrowing
+    final_results = [r if r is not None else texts[i] for i, r in enumerate(results)]
+    return final_results, cache_hits, generated
 
 
 def maybe_already_translated(out_json_path: Path) -> bool:
-    """
-    이미 생성된 json이 있고, 그 안의 target fields가 한글이면 스킵.
-    """
     if not out_json_path.exists():
         return False
     try:
@@ -340,13 +352,11 @@ def maybe_already_translated(out_json_path: Path) -> bool:
     except Exception:
         return False
 
-    # target fields 중 문자열이 하나라도 영문이면 재번역 필요
     targets = collect_targets(obj)
     if not targets:
         return False
 
-    for path, key, value in targets:
-        v = get_by_path(obj, path).get(key) if isinstance(get_by_path(obj, path), dict) else None
+    for _, _, value in targets:
         if isinstance(value, str):
             if not has_hangul(value):
                 return False
@@ -355,6 +365,25 @@ def maybe_already_translated(out_json_path: Path) -> bool:
                 return False
 
     return True
+
+
+# =========================
+# Heartbeat logger
+# =========================
+class Heartbeat:
+    def __init__(self, interval_sec: int = 30):
+        self.interval = max(5, int(interval_sec))
+        self.last = time.time()
+
+    def ping(self, extra: str = ""):
+        now = time.time()
+        if now - self.last >= self.interval:
+            msg = "[HEARTBEAT] still running"
+            if extra:
+                msg += f" | {extra}"
+            print(msg)
+            sys.stdout.flush()
+            self.last = now
 
 
 def main():
@@ -367,7 +396,17 @@ def main():
     ap.add_argument("--num_beams", type=int, default=2)
     ap.add_argument("--batch_size", type=int, default=16)
     ap.add_argument("--skip_if_translated", action="store_true")
+    ap.add_argument("--heartbeat_sec", type=int, default=30)
+    ap.add_argument("--flush_each_file", action="store_true", help="각 파일마다 캐시 저장(느리지만 안전)")
     args = ap.parse_args()
+
+    print("[START] translate_zone_nova_characters_free_hf_optimized.py")
+    print(f"[ENV] HF_HOME={os.getenv('HF_HOME')}")
+    print(f"[ARGS] src={args.src} out={args.out} cache={args.cache} glossary={args.glossary}")
+    print(f"[ARGS] model={args.model_name} beams={args.num_beams} batch={args.batch_size} skip={args.skip_if_translated}")
+    sys.stdout.flush()
+
+    heartbeat = Heartbeat(interval_sec=args.heartbeat_sec)
 
     src_dir = Path(args.src)
     out_dir = Path(args.out)
@@ -381,56 +420,77 @@ def main():
     cache = load_cache(cache_path)
     glossary = load_glossary(glossary_path)
 
+    print(f"[CACHE] loaded entries: {len(cache)}")
+    print(f"[GLOSSARY] loaded entries: {len(glossary)}")
+    sys.stdout.flush()
+
     translator = HFTranslator(args.model_name, num_beams=args.num_beams)
+    sys.stdout.flush()
 
     files = sorted(src_dir.glob("*.js"))
-    total_fields = 0
-    total_changed = 0
+    print(f"[SCAN] found {len(files)} js files under {src_dir}")
+    sys.stdout.flush()
 
-    for idx, js_file in enumerate(files, start=1):
+    total_targets = 0
+    total_changed = 0
+    total_cache_hits = 0
+    total_generated = 0
+
+    for i, js_file in enumerate(files, start=1):
+        heartbeat.ping(extra=f"file {i}/{len(files)}")
+
         out_path = out_dir / f"{js_file.stem}.json"
 
         if args.skip_if_translated and maybe_already_translated(out_path):
-            print(f"[SKIP] {idx}/{len(files)} {js_file.name} (already translated)")
+            print(f"[SKIP] {i}/{len(files)} {js_file.name} (already translated)")
+            sys.stdout.flush()
             continue
 
+        print(f"[FILE] {i}/{len(files)} loading {js_file.name}")
+        sys.stdout.flush()
+
+        t_file0 = time.time()
         module_obj = import_js_module(js_file)
         export_key, data_obj = select_character_data_export(module_obj)
 
         targets = collect_targets(data_obj)
 
-        # gather strings
-        field_refs = []  # (container, key, old_value)
-        texts = []
+        # gather references
+        field_refs = []  # (container, key_or_idx, old_value)
+        texts: List[str] = []
         for path, key, value in targets:
             container = get_by_path(data_obj, path)
             if isinstance(value, str):
                 field_refs.append((container, key, value))
                 texts.append(value)
             elif isinstance(value, list):
-                # list[str]
-                for i2, item in enumerate(value):
-                    # we update in-place by index
-                    # to keep ref simple: store (list_obj, index, old)
-                    field_refs.append((value, i2, item))
+                for idx2, item in enumerate(value):
+                    field_refs.append((value, idx2, item))
                     texts.append(item)
 
-        total_fields += len(texts)
+        total_targets += len(texts)
+
         if not texts:
             out_path.write_text(json.dumps(data_obj, ensure_ascii=False, indent=2), encoding="utf-8")
-            print(f"[OK] {idx}/{len(files)} {js_file.name} export={export_key} | targets=0")
+            dt = time.time() - t_file0
+            print(f"[OK] {i}/{len(files)} {js_file.name} export={export_key} | targets=0 | {dt:.1f}s")
+            sys.stdout.flush()
             continue
 
-        # translate bulk
-        translated = translate_texts_bulk(
+        # translate
+        t0 = time.time()
+        translated, cache_hits, generated = translate_texts_bulk(
             translator=translator,
             texts=texts,
             glossary=glossary,
             cache=cache,
             batch_size=max(1, args.batch_size),
+            heartbeat=heartbeat,
         )
+        dt_tr = time.time() - t0
+        total_cache_hits += cache_hits
+        total_generated += generated
 
-        # apply
         changed_here = 0
         for (container, key_or_idx, old), new in zip(field_refs, translated):
             if new != old:
@@ -440,16 +500,36 @@ def main():
         total_changed += changed_here
 
         out_path.write_text(json.dumps(data_obj, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(f"[OK] {idx}/{len(files)} {js_file.name} export={export_key} | targets={len(texts)} changed={changed_here}")
+        dt_file = time.time() - t_file0
 
-        # 중간 캐시 flush (긴 작업 중 안전)
-        if idx % 10 == 0:
+        print(
+            f"[OK] {i}/{len(files)} {js_file.name} export={export_key} | "
+            f"targets={len(texts)} changed={changed_here} | "
+            f"cache_hit={cache_hits} generated={generated} | "
+            f"tr={dt_tr:.1f}s file={dt_file:.1f}s"
+        )
+        sys.stdout.flush()
+
+        # cache flush policy
+        if args.flush_each_file:
             save_cache(cache_path, cache)
-            print(f"[PROGRESS] saved cache at file {idx}")
+            print(f"[CACHE] saved (flush_each_file) entries={len(cache)}")
+            sys.stdout.flush()
+        elif i % 10 == 0:
+            save_cache(cache_path, cache)
+            print(f"[CACHE] saved at file {i} entries={len(cache)}")
+            sys.stdout.flush()
 
     save_cache(cache_path, cache)
-    print(f"Done. files={len(files)} total_targets={total_fields} changed={total_changed}")
+    print(f"[DONE] files={len(files)} total_targets={total_targets} changed={total_changed}")
+    print(f"[DONE] cache_entries={len(cache)} total_cache_hits={total_cache_hits} total_generated={total_generated}")
+    sys.stdout.flush()
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print("[FATAL] translator crashed:")
+        print(str(e))
+        raise
