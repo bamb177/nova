@@ -64,3 +64,8 @@ jobs:
           git add public/data/zone-nova/characters_ko .cache/zone_nova_translate_cache.json || true
           git commit -m "Update KR translations (characters_ko)"
           git push
+
+      - name: Sync Zone Nova data
+        run: |
+          python scripts/sync_zone_nova.py --upstream public/data/zone-nova/upstream --write
+
