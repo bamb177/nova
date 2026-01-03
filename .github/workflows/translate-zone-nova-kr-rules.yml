@@ -1,10 +1,9 @@
-name: Zone Nova KR Translate (FREE, Rules Only)
+name: Zone Nova KR Translate (Rules, schema-robust)
 
 on:
   workflow_dispatch:
   schedule:
-    # 매일 03:10 KST = 18:10 UTC
-    - cron: "10 18 * * *"
+    - cron: "10 18 * * *" # 03:10 KST
 
 permissions:
   contents: write
@@ -16,12 +15,9 @@ concurrency:
 jobs:
   translate:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -33,13 +29,14 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Translate KR fields -> characters_ko JSON (Rules)
+      - name: Run translation (rules)
         run: |
           python scripts/translate_zone_nova_characters_rules_ko.py \
             --src public/data/zone-nova/characters \
             --out public/data/zone-nova/characters_ko \
             --glossary public/data/zone-nova/glossary_ko.json \
-            --fallback keep
+            --fallback keep \
+            --debug
 
       - name: Commit and push if changed
         run: |
@@ -52,5 +49,5 @@ jobs:
           fi
 
           git add public/data/zone-nova/characters_ko public/data/zone-nova/glossary_ko.json || true
-          git commit -m "Update KR translations (Rules)"
+          git commit -m "Update KR translations (rules, robust)"
           git push
