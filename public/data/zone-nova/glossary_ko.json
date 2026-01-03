@@ -1,6 +1,9 @@
 {
   "attack power": "공격력",
+  "Max HP": "최대 HP",
+  "Critical Rate": "치명타 확률",
+  "Critical Damage": "치명타 피해",
   "designated enemy unit": "지정한 적 1명",
-  "Chaos damage": "혼돈 피해",
-  "Holy damage": "성속성 피해"
+  "Holy damage": "성속성 피해",
+  "Chaos damage": "혼돈 피해"
 }
