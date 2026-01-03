@@ -1,0 +1,87 @@
+name: Zone Nova KR Translate (FREE Optimized)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 매일 03:10 KST = 18:10 UTC
+    - cron: "10 18 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zone-nova-kr-translate
+  cancel-in-progress: true
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Hugging Face 모델/토크나이저 캐시
+      - name: Cache Hugging Face
+        uses: actions/cache@v4
+        with:
+          path: .cache/huggingface
+          key: hf-cache-${{ runner.os }}-opusmt-enko-v2
+          restore-keys: |
+            hf-cache-${{ runner.os }}-
+
+      # 번역 문장 캐시(재번역 방지)
+      - name: Cache translation memory
+        uses: actions/cache@v4
+        with:
+          path: .cache/zone_nova_translate_cache_free_hf.json
+          key: tm-cache-${{ runner.os }}-v2
+          restore-keys: |
+            tm-cache-${{ runner.os }}-
+
+      - name: Install deps (Transformers CPU)
+        run: |
+          python -m pip install -U pip
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install transformers sentencepiece sacremoses
+
+      - name: Run optimized translator
+        env:
+          HF_HOME: .cache/huggingface
+        run: |
+          python scripts/translate_zone_nova_characters_free_hf_optimized.py \
+            --src public/data/zone-nova/characters \
+            --out public/data/zone-nova/characters_ko \
+            --cache .cache/zone_nova_translate_cache_free_hf.json \
+            --glossary public/data/zone-nova/glossary_ko.json \
+            --model_name Helsinki-NLP/opus-mt-tc-big-en-ko \
+            --num_beams 2 \
+            --batch_size 16 \
+            --skip_if_translated
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git add public/data/zone-nova/characters_ko .cache/zone_nova_translate_cache_free_hf.json public/data/zone-nova/glossary_ko.json || true
+          git commit -m "Update KR translations (FREE optimized)"
+          git push
