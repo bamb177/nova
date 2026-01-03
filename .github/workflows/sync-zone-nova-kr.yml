@@ -3,8 +3,7 @@ name: Zone Nova KR Translate (local characters -> JSON)
 on:
   workflow_dispatch:
   schedule:
-    # 매일 03:10 KST = 18:10 UTC
-    - cron: "10 18 * * *"
+    - cron: "10 18 * * *" # 03:10 KST
 
 permissions:
   contents: write
@@ -34,16 +33,19 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install Python dependencies
+      - name: Install Python deps
         run: |
           python -m pip install -U pip
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           fi
+          pip install openai
 
       - name: Translate KR fields -> characters_ko JSON
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # 필요하면 모델 변경: repo variables로 TRANSLATE_MODEL을 두거나 여기서 지정
+          # TRANSLATE_MODEL: gpt-4.1
         run: |
           python scripts/translate_zone_nova_characters.py \
             --src public/data/zone-nova/characters \
@@ -64,12 +66,3 @@ jobs:
           git add public/data/zone-nova/characters_ko .cache/zone_nova_translate_cache.json || true
           git commit -m "Update KR translations (characters_ko)"
           git push
-          
-      - name: Sync Zone Nova data (optional)
-        run: |
-          if [ -d "public/data/zone-nova/upstream" ]; then
-            python scripts/sync_zone_nova.py --upstream public/data/zone-nova/upstream --write
-          else
-            echo "Skip sync: upstream directory not found (public/data/zone-nova/upstream)"
-          fi
-
