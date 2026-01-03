@@ -97,3 +97,17 @@ jobs:
 
           git commit -m "Sync zone-nova data (meta + details)"
           git push
+        - name: Translate character fields (KR) to JSON
+          run: |
+            python -m pip install -U pip
+            # 번역 함수에서 OpenAI SDK 등을 쓸 경우 여기서 설치
+            # pip install openai
+            python scripts/translate_zone_nova_characters.py \
+              --src public/data/zone-nova/characters \
+              --out public/data/zone-nova/characters_ko
+    
+        - name: Commit translated JSON
+          run: |
+            git add public/data/zone-nova/characters_ko .cache/zone_nova_translate_cache.json || true
+            git commit -m "Update KR translations (characters_ko)" || echo "No changes"
+            git push
