@@ -153,7 +153,6 @@ class HFTranslator:
         self.model.to(self.device)
 
     def translate_batch(self, texts: List[str], max_length: int = 512) -> List[str]:
-        # MarianMT는 문장 길이가 길면 품질 급락하므로 필요하면 chunking 추가 가능
         encoded = self.tokenizer(
             texts,
             return_tensors="pt",
@@ -187,7 +186,6 @@ def translate_text_hf(tr: HFTranslator, text: str, glossary: Dict[str, str], cac
     out = restore_tokens(out, ph)
     out = apply_glossary(out, glossary).strip()
 
-    # 원문 그대로면 캐시 저장하지 않음
     if out != text:
         cache[key] = out
     return out
@@ -275,6 +273,9 @@ def main():
     out_dir = Path(args.out)
     cache_path = Path(args.cache)
     glossary_path = Path(args.glossary)
+
+    if not src_dir.exists():
+        raise RuntimeError(f"Source directory not found: {src_dir}")
 
     glossary: Dict[str, str] = {}
     if glossary_path.exists():
