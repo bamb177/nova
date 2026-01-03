@@ -64,3 +64,12 @@ jobs:
           git add public/data/zone-nova/characters_ko .cache/zone_nova_translate_cache.json || true
           git commit -m "Update KR translations (characters_ko)"
           git push
+          
+      - name: Sync Zone Nova data (optional)
+        run: |
+          if [ -d "public/data/zone-nova/upstream" ]; then
+            python scripts/sync_zone_nova.py --upstream public/data/zone-nova/upstream --write
+          else
+            echo "Skip sync: upstream directory not found (public/data/zone-nova/upstream)"
+          fi
+
