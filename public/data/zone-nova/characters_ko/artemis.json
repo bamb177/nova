@@ -1,0 +1,86 @@
+{
+  "name": "Artemis",
+  "image": "Artemis",
+  "rarity": "SSR",
+  "element": "Wind",
+  "class": "Warrior",
+  "role": "DPS",
+  "faction": "Odius",
+  "stats": {
+    "hp": "8,033",
+    "attack": "1,461",
+    "defense": "530"
+  },
+  "skills": {
+    "normal": {
+      "name": "Moon Rising Fist",
+      "description": "지정한 적 1명에게 공격력의 120%만큼 풍속성 피해를 준다."
+    },
+    "auto": {
+      "name": "Moon Ancient Boxing",
+      "cooldown": "5.0s",
+      "description": "지정한 적 1명에게 공격력의 240%만큼 풍속성 피해를 준다."
+    },
+    "ultimate": {
+      "name": "Silver Moon Judgment",
+      "energyCost": "3",
+      "description": "Consumes 50% current HP. Teleports in front of designated enemy. Deals 264% attack power as wind damage to target and nearby enemies."
+    },
+    "passive": {
+      "name": "Moon Shadow Hunt",
+      "description": "When HP is below 50%: All attacks deal additional 60% attack power as wind damage."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "Self max HP increased by 10%. At battle start: For every 4,000 max HP, increase self attack power by 5% (maximum 6 times). Maximum scaling: 30% attack power boost at 24,000+ max HP.",
+    "requirements": {
+      "faction": "Odius",
+      "element": "Wind"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "Attack power increased by 20%."
+    },
+    {
+      "level": 2,
+      "effect": "When HP is below 50%: Damage taken reduced by 10%."
+    },
+    {
+      "level": 3,
+      "effect": "[Skills] and [Normal Attack] level and level cap +4."
+    },
+    {
+      "level": 4,
+      "effect": "Wind damage increased by 35%."
+    },
+    {
+      "level": 5,
+      "effect": "[Ultimate] and [Passive] level and level cap +4."
+    },
+    {
+      "level": 6,
+      "effect": "When HP is below 50%: All damage ignores 20% elemental resistance."
+    }
+  ],
+  "memoryCard": {
+    "name": "The World Seems to Have Stopped",
+    "image": "Artemiscard",
+    "stats": {
+      "hp": "5,040",
+      "attack": "780",
+      "defense": "474"
+    },
+    "effects": [
+      "공격력이 40%증가한다.",
+      "When HP is below 50%: All damage increased by 40%"
+    ]
+  },
+  "tags": [
+    "Melee",
+    "Healing",
+    "HP Consume"
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "name": "Afrodite",
+  "image": "Afrodite",
+  "rarity": "SSR",
+  "element": "Holy",
+  "class": "Warrior",
+  "role": "DPS",
+  "faction": "Odius",
+  "stats": {
+    "hp": "8,033",
+    "attack": "1,305",
+    "defense": "530"
+  },
+  "skills": {
+    "normal": {
+      "name": "Love Fist (爱神之拳)",
+      "description": "지정한 적 1명에게 공격력의 120%만큼 성속성 피해를 준다."
+    },
+    "auto": {
+      "name": "Charm Impact (魅惑冲拳)",
+      "cooldown": "8.0s",
+      "description": "지정한 적 1명에게 공격력의 816%만큼 성속성 피해를 준다."
+    },
+    "ultimate": {
+      "name": "Love and Beauty Waltz (爱与美之圆舞曲)",
+      "energyCost": "8",
+      "description": "일반 궁극기: 지정한 적 1명에게 공격력의 1800%만큼 성속성 피해를 준다. 강화 궁극기(일반 공격 10회 후): 대상에게 공격력의 2160%만큼 성속성 피해를 준다. 효과 종료 시 에너지를 2 회복하며, 적중 시 기본 공격 1회로 간주되어 적중/연계(콤보) 효과 발동에 포함된다."
+    },
+    "passive": {
+      "name": "Beautiful Kill (美丽杀意)",
+      "description": "HP가 50%를 초과할 때: 자신이 주는 모든 피해의 치명타 확률이 48%증가한다. HP가 50%이하일 때: 피해를 받을 때 방어력이 96%증가한다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자신의 공격력이 10%증가한다. 전투 시작 시: 공격력 500마다 자신의 성속성 피해가 5%증가한다(최대 6회). 최대 적용: 공격력 3000 이상일 때 성속성 피해가 최대 30%증가한다.",
+    "requirements": {
+      "faction": "Odius",
+      "element": "Holy"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "자신이 자동 스킬을 사용하면, 강화 궁극기 카운트용 기본 공격 적중 수에 추가로 4회가 더해진다."
+    },
+    {
+      "level": 2,
+      "effect": "궁극기 또는 자동 스킬 사용 시 받는 피해가 10%감소한다."
+    },
+    {
+      "level": 3,
+      "effect": "[Skills] and [Normal Attack] level and level cap +4"
+    },
+    {
+      "level": 4,
+      "effect": "일반 공격 피해가 35%증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[Ultimate] and [Passive] level and level cap +4"
+    },
+    {
+      "level": 6,
+      "effect": "[Enhanced Ultimate] ignores 20% Holy resistance"
+    }
+  ],
+  "memoryCard": {
+    "name": "Secret Garden",
+    "image": "Afroditecard",
+    "stats": {
+      "hp": "6,400",
+      "attack": "784",
+      "defense": "318"
+    },
+    "effects": [
+      "공격력이 40%증가한다.",
+      "장착 유닛의 궁극기 소모 에너지가 8을 초과하고 궁극기를 사용하면, 10초 동안 자신이 주는 피해가 40%증가한다."
+    ]
+  },
+  "tags": [
+    "Crit Rate",
+    "Atk Speed",
+    "Normal Atk",
+    "Melee"
+  ]
+}
