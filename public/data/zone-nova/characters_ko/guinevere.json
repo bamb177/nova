@@ -1,0 +1,91 @@
+{
+  "name": "Guinevere",
+  "image": "Guinevere",
+  "rarity": "SSR",
+  "element": "Fire",
+  "class": "Guardian",
+  "role": "Tank",
+  "faction": "Avalon",
+  "stats": {
+    "hp": "10,520",
+    "attack": "734",
+    "defense": "1,232"
+  },
+  "skills": {
+    "normal": {
+      "name": "Inferno",
+      "description": "방어력의 120%와 같은 화재 손상"
+    },
+    "auto": {
+      "name": "Supreme Power",
+      "cooldown": "5.0s",
+      "description": "10 초 동안 58%의 블록 속도를 얻습니다.   PH0   : 30 %의 손상을 줄일 수있는 기회가 있습니다. 지속적인 손상은 구획을 무시합니다"
+    },
+    "ultimate": {
+      "name": "Devastating Heavenly Fire",
+      "energyCost": "3",
+      "description": "발사   PH0   적 단위. 방어의 240%와 같은 화재 손상을 줍니다.   PH1  의 1개의 층을 얻습니다. 공격력이 10초 동안 24% 감소했습니다.   PH2   (10개의 지배 권위 더미를 요구하십시오): 1개의 수동적인 생활 회복 조사를 얻기 위하여 모든   PH3  를 지우십시오. 발사   PH4   적 대상. 방어의 240%와 같은 화재 손상을 줍니다. 공격력이 10초 동안 24% 감소했습니다."
+    },
+    "passive": {
+      "name": "Evil Star Explosion",
+      "description": "효력 1: 성공적인   PH0   후에, 10 초 동안 60%에 의하여 자신의 방위를 증가하십시오. 효력 2: 성공적인   PH1   후에,   PH2  의 1개의 층을, 초당 최대 1개의 층 얻습니다.   PH3  가 10개의 층을 도달할 때,   PH4  를 던질 수 있습니다. 효력 3: HP가 40% 이하에 떨어질 때, 수명 회복을 방아쇠로 떨어뜨리십시오: 0.5 초 안에 58% 최대 HP를, 증가합니다 10 초를 위한 100%년에 구획 비율을, 증가합니다 10 초 동안 100%년. 이 효력에는 1개의 처음 방아쇠가, 한 번 축적될 수 있습니다 있습니다"
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "효과 1: 자기 방어 증가 15%. 효력 2: 전투에 있는 각 500 방위를 위해, 1.5%에 의하여 전체적인 팀에 의해 촬영된 손상을 감소시킵니다. 최대 6개의 스택(3,000 방어) 최대 팀 손상 감소: 9%.",
+    "requirements": {
+      "faction": "Avalon",
+      "element": "Fire"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "PH0  가 성공한 후, 5초 동안 30%씩 자신의 방어력을 증가시킵니다. 수동적인 생활 회복 조사는 2배까지 축적될 수 있습니다 (두번째 책임을 복원하기 위하여 강화한 궁극적인을 허용하십시오)"
+    },
+    {
+      "level": 2,
+      "effect": "정상적인 궁극적인 기술을 발사하면   PH0  의 1개의 층을 추가로 얻을 수 있습니다. 강화된 궁극적인 기술을 발사한 후에, 즉시   PH1  의 2개의 층을 얻습니다"
+    },
+    {
+      "level": 3,
+      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+    },
+    {
+      "level": 4,
+      "effect": "방어 증가 45%"
+    },
+    {
+      "level": 5,
+      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+    },
+    {
+      "level": 6,
+      "effect": "모든 저항 +15%의 내화성 추가 +15%. 수동 수명 복구 카운트가 2 배로 변경됩니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Simple Birdcage",
+    "image": "Guinevere-card",
+    "stats": {
+      "hp": "6,600",
+      "attack": "480",
+      "defense": "690"
+    },
+    "effects": [
+      "방어 증가 64%",
+      "성공적인 블록 후, 손상은 10 % 감소, 5 초 지속",
+      "즉시 30% 최대 HP 차폐 후 전투 시작"
+    ]
+  },
+  "tags": [
+    "Melee",
+    "Extra Attack",
+    "Block",
+    "Damage Reduction",
+    "Healing",
+    "Enhanced Ultimate",
+    "Shield"
+  ]
+}

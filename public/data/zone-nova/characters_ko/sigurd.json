@@ -1,0 +1,100 @@
+{
+  "name": "Sigurd",
+  "image": "Sigurd",
+  "rarity": "SSR",
+  "element": "Fire",
+  "class": "Rogue",
+  "role": "DPS",
+  "faction": "A.S.A",
+  "title": "Lord of the Underworld",
+  "lore": "One of Hela's servants, she was once bathed in dragon blood and possesses near-immortal defensive abilities. Frigga's adopted daughter, she also lives in [Asar Manor]. She is proud of her inherited heroic bloodline, sometimes to the point of being overly arrogant, but she is actually softhearted and easily hurt, and very kind. She doesn't want to be hurt, so she always adopts a defensive posture, speaking with pride while saying things she doesn't mean. Loki jokingly calls her \"the misunderstood fake heiress.\" She deeply values the members of the manor and would sacrifice herself to protect her family.",
+  "stats": {
+    "hp": "7,308",
+    "attack": "1,305",
+    "defense": "474",
+    "critRate": 16
+  },
+  "skills": {
+    "normal": {
+      "name": "Flame Slash",
+      "cooldown": "2.0s",
+      "description": "지정된 적 단위로 화재 손상으로 120% 공격 피해를 줍니다."
+    },
+    "auto": {
+      "name": "Flame Blade Thrust",
+      "cooldown": "5.0s",
+      "description": "지정된 적 단위로 화재 손상으로 629.6%의 공격 피해를 주고 4개의 스택까지 드래곤의 혈액 1 스택을 부여합니다."
+    },
+    "ultimate": {
+      "name": "Burning Dragon Blade",
+      "energyCost": "3",
+      "cooldown": "1.0s",
+      "description": "지정된 적 단위로 화재 손상으로 840% 공격력. 적을 물리 치고   PH0  를 트리거하여 610.1%의 원뿔 부위에 610.1%의 피해를 줍니다.   PH1  는   PH2  에는 2개 이상의 스택이 있고, 사용시   PH3  의 2개의 스택을 구성할 수 있습니다.   PH4  : 지정된 적 단위로 화재 손상으로 1200 %의 공격력을 제공합니다."
+    },
+    "passive": {
+      "name": "Flame Shadow Pursuit",
+      "description": "궁극적 인 기술 또는 기술 위기 때, 그것은 121.5% 공격력과 같은 화재 손상의 추가 인스턴스를 거래. 0.5 초마다 한 번만 트리거 할 수 있습니다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자기 중요한 비율은 7.5%에 의하여 증가합니다. 전투 시작시, 모든 15 % 임의 비율은 7.5%, 최대 6 배의 자기 심각한 손상을 증가시킵니다.",
+    "requirements": {
+      "faction": "A.S.A",
+      "element": "Fire"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "전투의 시작에 하나   PH0  를 얻습니다. 10 %의 중요한 타격률을 증가시킵니다."
+    },
+    {
+      "level": 2,
+      "effect": "PH0  의 2개의 스택을 매번 기술이 사용됩니다.   PH1  의 1 스택을 궁극적인 기술을 사용 후 얻습니다."
+    },
+    {
+      "level": 3,
+      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2."
+    },
+    {
+      "level": 4,
+      "effect": "공격력이 30% 증가했습니다."
+    },
+    {
+      "level": 5,
+      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2."
+    },
+    {
+      "level": 6,
+      "effect": "궁극적 인 기술 손상은 대상의 원소 저항의 20 %를 무시합니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "I am your Christmas present.",
+    "image": "Sigurdcard",
+    "stats": {
+      "hp": "5,040",
+      "attack": "780",
+      "defense": "474"
+    },
+    "effects": [
+      "치명적인 타격률이 34% 증가했으며, 궁극적인 기술은 40% 증가했습니다.",
+      "필드에 1 ATTACKER 만있을 때 궁극적 인 기술 손상은 추가 40 %로 증가했습니다."
+    ]
+  },
+  "tags": [
+    "Melee",
+    "Crit Dmg",
+    "Enhanced Ultimate",
+    "Crit Rate",
+    "Fire Damage",
+    "Dragon Blood"
+  ],
+  "banner": {
+    "type": "Limited Character Gacha",
+    "startDate": "2025-12-16T14:15:00",
+    "endDate": "2025-12-30T03:59:00",
+    "eventPeriod": "December 16, 2025 14:15 - December 30, 2025 03:59"
+  }
+}

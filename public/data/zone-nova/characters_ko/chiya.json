@@ -1,0 +1,87 @@
+{
+  "name": "Chiya",
+  "image": "Chiya",
+  "rarity": "SSR",
+  "element": "Ice",
+  "class": "Rogue",
+  "role": "DPS",
+  "faction": "Sapphire",
+  "stats": {
+    "hp": "8,033",
+    "attack": "1,305",
+    "defense": "530"
+  },
+  "skills": {
+    "normal": {
+      "name": "Heavy Hammer Strike",
+      "description": "지정된 적 단위로 공격의 120%와 같은 얼음 손상을 줍니다."
+    },
+    "auto": {
+      "name": "Cold Steel Combo",
+      "cooldown": "5.0s",
+      "description": "적에게 공격의 480%와 같은 얼음 손상을 줍니다."
+    },
+    "ultimate": {
+      "name": "Society Master's Fist",
+      "energyCost": "3",
+      "description": "대상을 향해 러쉬, 600% 공격 전력 얼음 손상   PH0  을 처리 , 대상을 향해 100 % 임의 비율을 얻을 840% 공격 전력 얼음 손상"
+    },
+    "passive": {
+      "name": "Beam Assist Framework",
+      "description": "적을 죽이고 10 초 동안   PH0   상태를 입력하십시오. 추가적으로 36% 공격 전력 얼음 손상을 처리하고 1   PH1  를 얻습니다"
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자기 공격 전력이 10 % 증가했습니다. 전투 시작시, 모든 500 공격 전력은 7.5%, 최대 6배 (최대 45% 긴요한 손상)에 의해 자기 중요한 손상을 증가시킬 수 있습니다.",
+    "requirements": {
+      "faction": "Sapphire",
+      "element": "Ice"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "전투 시작에서 즉시 1   PH0  을 얻습니다."
+    },
+    {
+      "level": 2,
+      "effect": "PH0   상태에서 공격 속도가 50% 증가합니다."
+    },
+    {
+      "level": 3,
+      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4."
+    },
+    {
+      "level": 4,
+      "effect": "얼음 손상 30% 증가."
+    },
+    {
+      "level": 5,
+      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4."
+    },
+    {
+      "level": 6,
+      "effect": "정상적인 궁극적인 기술을 사용하여, 1개의 강화한 궁극적인 기술, 궁극적인 기술 손상은 30%에 의하여 증가합니다"
+    }
+  ],
+  "memoryCard": {
+    "name": "Lonely Dark Deep Night",
+    "image": "Chiyacard",
+    "stats": {
+      "hp": "5,040",
+      "attack": "780",
+      "defense": "474"
+    },
+    "effects": [
+      "긴 수명이 60 % 증가합니다. 공격력이 10 % 증가한 후 장비 착용자는 적을 4 번 겹쳐 쌓이면서 최대 40 %의 공격 전력 증가를 증가시키고 전투의 끝까지 유지하십시오."
+    ]
+  },
+  "tags": [
+    "Melee",
+    "Crit Rate",
+    "Crit Dmg",
+    "Enhanced Ultimate",
+    "Attack Speed"
+  ]
+}

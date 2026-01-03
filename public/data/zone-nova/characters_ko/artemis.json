@@ -1,0 +1,86 @@
+{
+  "name": "Artemis",
+  "image": "Artemis",
+  "rarity": "SSR",
+  "element": "Wind",
+  "class": "Warrior",
+  "role": "DPS",
+  "faction": "Odius",
+  "stats": {
+    "hp": "8,033",
+    "attack": "1,461",
+    "defense": "530"
+  },
+  "skills": {
+    "normal": {
+      "name": "Moon Rising Fist",
+      "description": "지정된 적 단위로 바람 손상으로 120% 공격력."
+    },
+    "auto": {
+      "name": "Moon Ancient Boxing",
+      "cooldown": "5.0s",
+      "description": "자동으로 지정된 적 및 주변 적에게 바람 손상으로 240% 공격력을 제공합니다. 각 히트는 최대 10 %의 HP를 복원합니다."
+    },
+    "ultimate": {
+      "name": "Silver Moon Judgment",
+      "energyCost": "3",
+      "description": "50% 현재 HP를 소비합니다. 지정된 적 앞에서 텔레포트. 대상 및 인근 적에게 바람 피해로 264%의 공격력을 제공합니다."
+    },
+    "passive": {
+      "name": "Moon Shadow Hunt",
+      "description": "HP가 50% 이하일 때: 모든 공격은 바람 손상으로 추가 60 % 공격력을 처리합니다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "최대 체력 10% 증가. 전투 시작: 모든 4,000 최대 HP에 대 한, 증가 자기 공격 전력 5% (최대 6 시간). 최대 스케일링 : 24,000 + 최대 HP의 30 % 공격 전력 부스트.",
+    "requirements": {
+      "faction": "Odius",
+      "element": "Wind"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "공격력이 20% 증가했습니다."
+    },
+    {
+      "level": 2,
+      "effect": "HP가 50% 이하인 경우: 공격력이 10% 감소했습니다."
+    },
+    {
+      "level": 3,
+      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4."
+    },
+    {
+      "level": 4,
+      "effect": "바람 손상이 35 % 증가했습니다."
+    },
+    {
+      "level": 5,
+      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4."
+    },
+    {
+      "level": 6,
+      "effect": "HP가 50% 이하인 경우: 모든 손상은 20%의 원소 저항을 무시합니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "The World Seems to Have Stopped",
+    "image": "Artemiscard",
+    "stats": {
+      "hp": "5,040",
+      "attack": "780",
+      "defense": "474"
+    },
+    "effects": [
+      "공격력이 40% 증가했습니다.",
+      "HP가 50% 이하인 경우: 모든 손상이 40% 증가했습니다."
+    ]
+  },
+  "tags": [
+    "Melee",
+    "Healing",
+    "HP Consume"
+  ]
+}

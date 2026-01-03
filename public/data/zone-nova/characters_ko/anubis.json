@@ -1,0 +1,105 @@
+{
+  "name": "Anubis",
+  "chineseName": "阿努比斯",
+  "image": "Anubis",
+  "rarity": "SSR",
+  "element": "Chaos",
+  "class": "Healer",
+  "role": "Healer",
+  "faction": "Chemic",
+  "stats": {
+    "hp": "9,180",
+    "attack": "1,004",
+    "defense": "729",
+    "energyRecovery": "0.25/s",
+    "critRate": "0%",
+    "critDamage": "50%"
+  },
+  "skills": {
+    "normal": {
+      "name": "Underworld Touch",
+      "chineseName": "冥神之触",
+      "level": "10+4",
+      "cooldown": "2.0s",
+      "description": "적격 단위로 공격력이 120% 증가합니다."
+    },
+    "auto": {
+      "name": "Divine Punishment Rain",
+      "chineseName": "天罚之雨",
+      "level": "10+4",
+      "cooldown": "8.0s",
+      "description": "대상에 대한 유머를 호출하고 2 m 내의 모든 적, 96 % ATK는 차오 손상으로. 1개의 층   PH0  를 추가하십시오.   PH1  : 각 3개의 s는 더미 당 차오 손상으로 5.6 % ATK를, 10의 더미에 모자 (최대에 진드기 당 합계 56 % ATK) 거래합니다."
+    },
+    "ultimate": {
+      "name": "Destined Reversal",
+      "chineseName": "命定逆转",
+      "level": "10+4",
+      "cooldown": "1.0s",
+      "energyCost": "4",
+      "description": "112.8 % ATK (HealerATK) + 668 HP에 대한 최저 HP. 증진: 112.8 % ATK + 668 HP에 대한 모든 동맹을 치유하고 10 s의 % 손상 감소를 제공합니다."
+    },
+    "passive": {
+      "name": "Soul Siphon",
+      "chineseName": "灵魂虹吸",
+      "level": "10+4",
+      "description": "자동차 기술을 사용 할 때 (만 당신) 두피와 대상을 공격 (20) DOT의 1 (15 +) 레이어, 전체 팀 자기 공격력 97.2% + 445 HP 및 즉시 얻을 하나 Empowered 궁극적 인 충전, 8 s 내에서 사용."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "chineseName": "组合技",
+    "level": "1",
+    "description": "수동적인: 각자 공격 힘 +10%. 전투 시작: 각 500의 공격 힘은 5%, 최대 6배에 의해 각자 치유를 증가합니다.",
+    "requirements": {
+      "faction": "Chemic",
+      "element": "Chaos",
+      "condition": "2 [Chemic] colored or 2 [Chaos] colored characters"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "수동적인 기술은 20개의 층에서 15개의 층으로 감소했습니다"
+    },
+    {
+      "level": 2,
+      "effect": "Anubis의 모든 치유 캐스트 (수동 또는 궁극적 인에서 일) 이제 치유 된 ally Incoming 손상에 5 초 버퍼를 적용합니다 -10 %, 각 새로운 치유는 5 초 지속 시간을 재생합니다."
+    },
+    {
+      "level": 3,
+      "effect": "PH0  와   PH1   레벨 캡 +4"
+    },
+    {
+      "level": 4,
+      "effect": "치유량이 37.5% 증가했습니다."
+    },
+    {
+      "level": 5,
+      "effect": "PH0  와   PH1   레벨 캡 +4"
+    },
+    {
+      "level": 6,
+      "effect": "Auto Skills는 연속 공격을 위한 추가적인 meteors를 요약할 것입니다"
+    }
+  ],
+  "memoryCard": {
+    "name": "Midnight Work",
+    "chineseName": "熬夜工作",
+    "image": "Anubiscard",
+    "level": "80/80",
+    "stats": {
+      "hp": "6,000",
+      "attack": "800",
+      "defense": "600"
+    },
+    "effects": [
+      "치유량 +50%, 각 치유는 3 초 동안 표적 +40% 공격 힘을 줍니다"
+    ]
+  },
+  "tags": [
+    "Healing",
+    "Ranged",
+    "Damage Reduction",
+    "DOT"
+  ]
+}

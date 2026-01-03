@@ -1,0 +1,92 @@
+{
+  "name": "Odin",
+  "image": "Odin",
+  "rarity": "SSR",
+  "element": "Fire",
+  "class": "Rogue",
+  "role": "DPS",
+  "faction": "A.S.A",
+  "stats": {
+    "hp": "7,308",
+    "attack": "1,305",
+    "defense": "530",
+    "energyRegen": "0.25/s",
+    "critRate": "0%",
+    "critDamage": "50%"
+  },
+  "skills": {
+    "normal": {
+      "name": "Soul Reap",
+      "cooldown": "1.0s",
+      "description": "한 번에 화재 손상으로 120% ATK를 거래하십시오."
+    },
+    "auto": {
+      "name": "Falling Flame",
+      "cooldown": "5.0s",
+      "description": "화재 손상으로 120% ATK의 3개의 조회를 주고   PH0  의 1개의 더미를 적용합니다."
+    },
+    "ultimate": {
+      "name": "Judgment Strike",
+      "energyCost": "2",
+      "cooldown": "1.0s",
+      "description": "주물 후에, 당신은 4 s 내의 3개의 세그먼트를 사슬할지도 모릅니다:\n1. 대상에 대 한 대시, 480% ATK 화재 손상 + 적용   PH0  .\n2. Leap 뒤로, 480% ATK 불 손상 + 적용   PH1  .\n3. 점프 & 책임은, 480% ATK 불 손상을 취급합니다; 표적에 각 도트 더미는 다른 48% ATK 불 손상을 추가합니다 (최대 20의 여분 안타깝게)."
+    },
+    "passive": {
+      "name": "Raven's Insight",
+      "description": "모든 Odin의 손상은 DoT로 계산되며 주름이 불가능합니다.\n전 배틀: 매 1% 주름 비율 -> +1% 불 dmg; 매 2% 주름 dmg -> +1% ATK.\n스킬 / 궁극적인 적용   PH0  : 매 3 s 거래 36% ATK 화재 손상, 10까지 스택, 지속 10 s."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "파티가 2 A.S.A 또는 2 화재 문자가있는 경우 :\nATK + 10 %.\n전투 시작, 모든 500 ATK 보조금 +3 % 침투 (최대 6 회).",
+    "requirements": {
+      "faction": "A.S.A",
+      "element": "Fire"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "PH0  없이 대상은 즉시 5 개의 스택을받습니다. 궁극적 인 5 s의 +20 % DoT; 궁극적 인 50 % 손상 감소."
+    },
+    {
+      "level": 2,
+      "effect": "궁극적 인 세 번째 세그먼트 여분의 히트 캡은 30로 올랐습니다.   PH0  의 적은 Odin에서 +20 % DoT를 취합니다."
+    },
+    {
+      "level": 3,
+      "effect": "정상 / 기술 / 궁극 / 수동 레벨 캡 +2."
+    },
+    {
+      "level": 4,
+      "effect": "화재 손상 +30 %."
+    },
+    {
+      "level": 5,
+      "effect": "정상 / 기술 / 궁극 / 수동 레벨 캡 +2."
+    },
+    {
+      "level": 6,
+      "effect": "각 3개의 궁극적인, 다음 정상적인 공격은 기술이 됩니다; Odin의 DoT는 20% 내화성을 무시합니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Shared Bath Time",
+    "image": "Odincard",
+    "stats": {
+      "hp": "5,040",
+      "attack": "780",
+      "defense": "474"
+    },
+    "effects": [
+      "ATK +40 %; 궁극적 인 손상 +40 % 캐스터.",
+      "각 궁극적인 후, 1   PH0  를 얻습니다. 손상을 처리 할 때   PH1  을 1 stack of   PH2  를 적용하십시오. 15 % ATK를 거래하십시오. 화재 손상 각 2 s, 스택 최대 5, 지속 10 s."
+    ]
+  },
+  "tags": [
+    "Range",
+    "DOT",
+    "Damage Reduction",
+    "Penetration"
+  ]
+}

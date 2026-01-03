@@ -1,0 +1,87 @@
+{
+  "name": "Loki",
+  "image": "Loki",
+  "rarity": "SSR",
+  "element": "Chaos",
+  "class": "Debuffer",
+  "role": "Debuffer",
+  "faction": "A.S.A",
+  "stats": {
+    "hp": "9,564",
+    "attack": "1,004",
+    "defense": "672"
+  },
+  "skills": {
+    "normal": {
+      "name": "Netherworld Fire",
+      "description": "지정된 적에게 공격의 120%와 같음 혼돈"
+    },
+    "auto": {
+      "name": "Jormungandr's Poison",
+      "cooldown": "10.0s",
+      "description": "모든 적 단위로 공격력이 120%이며,   PH0  를 적용하고, 5초 동안 지속되는 궁극적인 기술의 사용 방지"
+    },
+    "ultimate": {
+      "name": "Woeful Wrath",
+      "energyCost": "5",
+      "description": "가장 높은 기본 공격력으로 적대 뒤에 적대에 흠뻑 빠릅니다. 적대 공격력이 240% 공격력으로 적대를 공격하고   PH0  를 적용하여 공격력이 36% 감소하며 10초 동안 지속됩니다."
+    },
+    "passive": {
+      "name": "Art of Deception",
+      "description": "자동 기술은 5 초 동안 36% 취약점 debuff를 적용합니다. 상쾌한 내구: 새로운 신청은 타이머를 상쾌하게 합니다. 최대 더미: 2개의 층 (72%는 가득 차있는 더미에 손상을 증가시킵니다)."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자신의 공격 전력은 10 % 증가, 전투 시작에서, 모든 500 공격력은 5 %, 6 배까지 자신의 챠오 손상을 증가 할 수 있습니다",
+    "requirements": {
+      "faction": "A.S.A",
+      "element": "Chaos"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "정상적인 공격과 궁극적으로는 수동적 기술 효과를 유발할 수 있습니다."
+    },
+    {
+      "level": 2,
+      "effect": "손상을 입을 때, 공격자는 5 초 동안 10% 더 적은 손상을, 반복한 트리거는 내구를 재생할 수 있습니다"
+    },
+    {
+      "level": 3,
+      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+    },
+    {
+      "level": 4,
+      "effect": "적격 상태로 공격할 때, 공격력이 35% 증가합니다."
+    },
+    {
+      "level": 5,
+      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+    },
+    {
+      "level": 6,
+      "effect": "수동적인 취약점 효력은 2개의 추가 층을 겹쳐 쌓일 수 있습니다"
+    }
+  ],
+  "memoryCard": {
+    "name": "True Order (真正的秩序)",
+    "image": "Lokicard",
+    "stats": {
+      "hp": "6,000",
+      "attack": "600",
+      "defense": "600"
+    },
+    "effects": [
+      "공격력은 40% 증가한 장비 착용자의 궁극적인 기술 손상을 겪은 마지막 표적은 24% 증가한 손상을 가지고 갔습니다"
+    ]
+  },
+  "tags": [
+    "Range",
+    "Debuff",
+    "Stop Ultimate",
+    "Reduce Damage",
+    "Damage Increase"
+  ]
+}

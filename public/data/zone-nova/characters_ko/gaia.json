@@ -1,0 +1,90 @@
+{
+  "name": "Gaia",
+  "image": "Gaia",
+  "rarity": "SSR",
+  "element": "Holy",
+  "class": "Healer",
+  "role": "Healer",
+  "faction": "Odius",
+  "stats": {
+    "hp": "10,548",
+    "attack": "580",
+    "defense": "918"
+  },
+  "skills": {
+    "normal": {
+      "name": "Gene Split",
+      "description": "적에게 성한 피해를 주고 캐스터의 최대 HP의 12%와 동일합니다."
+    },
+    "auto": {
+      "name": "Gene Collapse",
+      "cooldown": "10.0s",
+      "description": "다른 연합 단위로 부동 장치를 배포합니다. 대상이 손상되면 부동 장치가 5 초 동안 두 번째로 모든 종속 문자를 치유하고 Gaia의 최대 HP + 120 HP의 1 %와 동일합니다. Gaia가 궁극적 인 기술을 사용 할 때, 그녀는 다른 연합 단위로 부동 장치를 보충 할 수 있습니다."
+    },
+    "ultimate": {
+      "name": "Dominion: Primordial Order",
+      "energyCost": "3",
+      "description": "60 %의 모든 allied 문자의 최대 HP를 증가시킵니다. 증가 된 최대 HP는 전투의 시작에서 가이아의 최대 HP의 15 %를 초과 할 수 없습니다. 마지막 20 초. 버프 기간 동안, 가이아는   PH0  를 사용할 수 있습니다.   PH1  : 가장 낮은 현재 HP 비율을 가진 연합된 단위를 치유하고, Gaia의 최대 HP의 12%와 동등한 HP를 회복하십시오."
+    },
+    "passive": {
+      "name": "Primordial Regression",
+      "description": "전투를 입력하면 가장 낮은 DEF 이득   PH0  .   PH1  는 유효하지만, 대상의 최대 HP는 60 % 증가 (최대 HP는 전투 시작시 Gaia의 최대 HP의 15 %를 초과 할 수 없습니다).   PH2   홀더가 잔류 손상을받을 때 : 트리거   PH3   효과 - 즉시 HP를 100 %로 복원 한 다음 점차 시간이 지남에 따라 HP를 잃습니다. HP 손실은 각 초를 가속합니다. HP 손실은 홀더가이 상태 동안 적을 물리 칩니다. 각 ally는 한 번 전투 당 트리거 할 수 있습니다.   PH4   가이아가 패배하면 사라집니다."
+    }
+  },
+  "teamSkill": {
+    "name": "Maternal Guardian",
+    "description": "가이아는 +10% 최대 HP를 얻습니다. 전투 시작: 모든 5,000 최대 HP 가이아에 대 한, 그녀의 치유 출력 증가 5% (최대 6 스택, 최대 +30%).",
+    "requirements": {
+      "faction": "Odius",
+      "element": "Holy"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "PH0  를 가진 특성은 +45% DEF를 얻습니다.   PH1  의 10 초에 모자를 씌운 HP 손실 내구."
+    },
+    {
+      "level": 2,
+      "effect": "전투를 입력하면 : 즉시 에너지 비용없이 궁극적 인 기술을 던지기.   PH0  를 사용하여 궁극의 스킬의 버프의 지속 시간을 새로 고침합니다."
+    },
+    {
+      "level": 3,
+      "effect": "PH0  ,   PH1  ,   PH2  ,   PH3   레벨 & 최대 레벨 +2."
+    },
+    {
+      "level": 4,
+      "effect": "가이아의 치유 출력 +37.5%."
+    },
+    {
+      "level": 5,
+      "effect": "PH0  ,   PH1  ,   PH2  ,   PH3   레벨 & 최대 레벨 +2."
+    },
+    {
+      "level": 6,
+      "effect": "전투에 들어가면 2개의 가장 낮은 DEF allies가   PH0  를 얻습니다.   PH1   홀더는 +50% 추가 최대 HP를 얻습니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "A Smile That Topples Cities",
+    "image": "Gaiacard",
+    "stats": {
+      "hp": "6,300",
+      "attack": "580",
+      "defense": "585"
+    },
+    "effects": [
+      "최대 HP +40%",
+      "치유 산출 +40%",
+      "지난 1 초 이내에 맹세 한 경우, 추가 +40% 치유 출력"
+    ]
+  },
+  "tags": [
+    "HP Scale",
+    "Healing",
+    "Range",
+    "Revive",
+    "Increase MAX HP",
+    "AOE Healing"
+  ]
+}

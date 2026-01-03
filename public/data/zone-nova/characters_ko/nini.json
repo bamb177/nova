@@ -1,0 +1,86 @@
+{
+  "name": "Nini",
+  "image": "Nini",
+  "rarity": "SR",
+  "element": "Ice",
+  "class": "Debuffer",
+  "role": "Debuffer",
+  "faction": "Monochrome Nation",
+  "stats": {
+    "hp": "7,970",
+    "attack": "837",
+    "defense": "560"
+  },
+  "skills": {
+    "normal": {
+      "name": "Suppressive Fire (压制射击)",
+      "description": "적 단위에 얼음 손상으로 120% 공격력"
+    },
+    "auto": {
+      "name": "Steel Charge (钢铁冲锋)",
+      "cooldown": "Auto-trigger: 5.0s",
+      "description": "앞의 모든 적에게 얼음 손상으로 60 %의 공격력. 공격을 받는다: 적의 공격력이 5.8%로 감소한다. 최대 3개의 더미, 지속 10 초"
+    },
+    "ultimate": {
+      "name": "Black Nation's Glory (黑色带国的荣耀)",
+      "energyCost": "3",
+      "description": "앞의 모든 적에게 얼음 손상으로 84% 공격력을 줍니다. 공격력이 10초 동안 38% 증가했습니다."
+    },
+    "passive": {
+      "name": "Battle Fanatic (战斗狂热分子)",
+      "description": "부정적인 상태 효과로 적을 공격 할 때 : 공격력이 38%로 증가했습니다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill (组合技)",
+    "description": "자기 손상은 20% 증가",
+    "requirements": {
+      "faction": "Monochrome Nation",
+      "element": "Ice"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "자동차가 부정적인 영향을 가진 표적을 공격하는 것을 사용하는 경우: 기술 손상은 30%에 의해 증가했습니다."
+    },
+    {
+      "level": 2,
+      "effect": "PH0  는 5개의 층까지 겹쳐 쌓일 수 있습니다."
+    },
+    {
+      "level": 3,
+      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+    },
+    {
+      "level": 4,
+      "effect": "추가적으로 자동차 기술 대상은 10 % 더 얼음 손상을받습니다."
+    },
+    {
+      "level": 5,
+      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+    },
+    {
+      "level": 6,
+      "effect": "기술이 50% 미만의 HP를 가진 표적을 보인 경우: 즉시   PH0  를 적용합니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Battlefield Flower",
+    "image": "ninicard",
+    "stats": {
+      "hp": "5,000",
+      "attack": "500",
+      "defense": "500"
+    },
+    "effects": [
+      "공격 대상에 각 부정적인 영향을 위해이 문자 손상은 20 %, 최대 3 층 (60 %)로 증가합니다."
+    ]
+  },
+  "tags": [
+    "Range",
+    "Debuffer",
+    "Vulnerability",
+    "Weakness"
+  ]
+}

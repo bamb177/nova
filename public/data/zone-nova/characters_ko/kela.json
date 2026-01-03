@@ -1,0 +1,85 @@
+{
+  "name": "Kela",
+  "image": "kela",
+  "rarity": "SR",
+  "element": "Holy",
+  "class": "Healer",
+  "role": "Healer",
+  "faction": "Sapphire",
+  "stats": {
+    "hp": "7,650",
+    "attack": "837",
+    "defense": "608"
+  },
+  "skills": {
+    "normal": {
+      "name": "Divine Strike",
+      "description": "지정된 적 단위로 120% 공격력"
+    },
+    "auto": {
+      "name": "Sacred Healing",
+      "cooldown": "5.0s",
+      "description": "가장 낮은 현재 건강 비율을 가진 친절한 단위를 한 번 치유하십시오, 각자 공격 힘과 동등한 건강 69% + 335"
+    },
+    "ultimate": {
+      "name": "Divine Intervention",
+      "energyCost": "3",
+      "description": "가장 낮은 현재 건강 비율을 가진 친절한 단위를 한 번 치유하고십시오, 각자 공격 힘과 동등한 건강 128% + 682"
+    },
+    "passive": {
+      "name": "Master of All (万事通之力)",
+      "description": "현재 건강이 50% 이하인 친절한 단위를 치료할 때 치유량이 24% 증가합니다."
+    }
+  },
+  "teamSkill": {
+    "name": "Divine Sanctuary",
+    "description": "자기 공격력이 10 % 증가하여 치유량이 12.5% 증가합니다.",
+    "requirements": {
+      "faction": "Sapphire",
+      "element": "Holy"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "궁극적인 기술 치유 친절한 단위 후에, 추가적으로 표적이 5% 감소된 손상을, 지속합니다 5 초 갑니다"
+    },
+    {
+      "level": 2,
+      "effect": "자기 건강이 손상을 복용 한 후 20 % 미만일 때, 즉시 자기 공격 힘과 동등한 건강을 복원 750%, 전투 당 한 번에 트리거 할 수 있습니다"
+    },
+    {
+      "level": 3,
+      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+    },
+    {
+      "level": 4,
+      "effect": "치유량이 20% 증가합니다."
+    },
+    {
+      "level": 5,
+      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+    },
+    {
+      "level": 6,
+      "effect": "자동 기술 치료 친절한 단위는 또한 Awakening 1 효력을 방아쇠를 수 있습니다. Awakening 1 효과는 100 % 증가 (10%가됩니다)"
+    }
+  ],
+  "memoryCard": {
+    "name": "Solitary Realm (一人之境)",
+    "image": "kelacard",
+    "stats": {
+      "hp": "5,000",
+      "attack": "500",
+      "defense": "500"
+    },
+    "effects": [
+      "치유량이 30% 증가합니다. 최대 50 % 미만의 치유 대상이되면 8 %의 피해를 얻고 10 초 지속됩니다."
+    ]
+  },
+  "tags": [
+    "Range",
+    "Healing",
+    "Reduce Damage"
+  ]
+}

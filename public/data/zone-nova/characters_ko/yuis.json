@@ -1,0 +1,87 @@
+{
+  "name": "Yuis",
+  "image": "Yuis",
+  "rarity": "SSR",
+  "element": "Holy",
+  "class": "Rogue",
+  "role": "DPS",
+  "faction": "Odius",
+  "stats": {
+    "hp": "8,033",
+    "attack": "1,305",
+    "defense": "530"
+  },
+  "skills": {
+    "normal": {
+      "name": "Thunder Strike",
+      "description": "적 단위로 120% 공격력"
+    },
+    "auto": {
+      "name": "Divine Thunder",
+      "cooldown": "5.0s",
+      "description": "즉시 2개의 층   PH0  를 얻고, 4개의 비행 칼을 불고, 현재 표적에 720% 공격 힘은 손상을 입힙니다"
+    },
+    "ultimate": {
+      "name": "Absolute Heaven's Punishment",
+      "energyCost": "4",
+      "description": "즉시 2개의 층   PH0  를 얻고, 1개의 큰 비행 칼을 불고, 720% 공격 힘은 현재 표적에 손상을 줍니다.   PH1  : 모든   PH2  를 구성하고, 현재 대상에 잠그고 지속적으로 낙하 칼을 떨어 뜨리고, 총 1440% 공격의 힘 거룩한 손상을 처리하고, 이 손상은   PH3   손상으로 간주됩니다. 공격 대상이   PH4   기간을 새로 재생할 수 있도록 강화 된 궁극적 인 기술을 사용하여 반복"
+    },
+    "passive": {
+      "name": "Heaven's Judgment",
+      "description": "다른 친절한 단위가 궁극적인 기술을 사용할 때, Yuis는 2개의 층   PH0  를 얻습니다 다른 친절한 단위가   PH1  를 실행할 때, Yuis는 2개의 층   PH2  를 얻습니다 16개의 층   PH3  가 있는 경우,   PH4  를 던질 수 있습니다   PH5  , 더 이상 얻을 수없는 경우   PH6   주조 후   PH7  , 중요한 비율은 24% 증가하고 20 초 동안 48% 증가"
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자기 공격력은 10 % 증가합니다. 전투 시작에서, 각 500의 공격 힘은 7.5%의 최대 6배 (최대 45%)에 의해 각자 주름 손상을 증가합니다",
+    "requirements": {
+      "faction": "Odius",
+      "element": "Holy"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "전투 시작 : 실제로   PH0  의 16 스택을 얻습니다.   PH1   에너지 소비량이 3 감소했습니다."
+    },
+    {
+      "level": 2,
+      "effect": "주조는 궁극적인 기술을 강화한 후에, 즉시 4개의 층   PH0  를 얻고, 20 초 동안 30%의 긴 손상 증가합니다"
+    },
+    {
+      "level": 3,
+      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+    },
+    {
+      "level": 4,
+      "effect": "신성한 피해가 30% 증가했습니다."
+    },
+    {
+      "level": 5,
+      "effect": "PH0   및   PH1   레벨 및 레벨 캡 +4"
+    },
+    {
+      "level": 6,
+      "effect": "Yuis 거래 후 12 여분의 공격은 동일한 대상에 손상, 추가로 150% 공격력 손상을 처리,이 손상은 여분의 공격 손상 Yuis의 여분의 공격 손상으로 간주된다 20% 요소 저항"
+    }
+  ],
+  "memoryCard": {
+    "name": "Frozen Heart",
+    "image": "Yuiscard",
+    "stats": {
+      "hp": "5,040",
+      "attack": "780",
+      "defense": "474"
+    },
+    "effects": [
+      "율이 34% 증가했습니다. 장비 착용자 여분 공격 손상, 긴요한 손상은 68%에 의하여 증가합니다"
+    ]
+  },
+  "tags": [
+    "Range",
+    "Crit Rate",
+    "Crit Dmg",
+    "Enhanced Ultimate",
+    "Extra Attack"
+  ]
+}

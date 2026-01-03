@@ -1,0 +1,105 @@
+{
+  "name": "Nina",
+  "image": "Nina",
+  "rarity": "SSR",
+  "element": "Ice",
+  "class": "Warrior",
+  "role": "DPS",
+  "faction": "Sapphire",
+  "stats": {
+    "hp": "8,700",
+    "attack": "1,004",
+    "defense": "729",
+    "energyRecovery": "0.25/s",
+    "critRate": "6%",
+    "critDmg": "50%"
+  },
+  "skills": {
+    "normal": {
+      "name": "Frost Blood Thorn",
+      "cooldown": "2.0s",
+      "description": "적 단위를 대상으로 공격의 120%와 같은 얼음 손상을, 최대 건강의 12% 회복.",
+      "frostAshDescription": "【Frost Ash】State: Each hit removes 5% of max health. Deals ice damage equal to 240% of Attack to target enemy unit."
+    },
+    "auto": {
+      "name": "Blaze Burst",
+      "cooldown": "5.0s",
+      "description": "적 단위를 대상으로 공격의 480%와 같은 얼음 손상을 주고 최대 생명력의 12%를 회복합니다.",
+      "frostAshDescription": "【Frost Ash】State: Each hit removes 5% of max health. Deals ice damage equal to 960% of Attack to target enemy unit and units behind it."
+    },
+    "ultimate": {
+      "name": "Frost Ash Liberation",
+      "cooldown": "1.0s",
+      "energyCost": "1",
+      "description": "[Frost Ash] 상태를 입력하십시오. 기본 공격 속도 50% 증가. 스킬 기반 재사용 대기시간이 3초로 감소했습니다. 치명적인 비율은 60%로 증가했습니다.",
+      "additionalRules": [
+        "Automatically exits 【Frost Ash】 state when health falls below 30%.",
+        "Can re-cast the ultimate skill to exit 【Frost Ash】 state.",
+        "Can re-cast the ultimate skill while in 【Frost Ash】 state."
+      ]
+    },
+    "passive": {
+      "name": "Indestructible Frost Mark",
+      "description": "【Frost Ash】스테이트: 50% 감소한 손상. 각 공격은 12%에 의해 자신의 공격 속도를 증가시키고, 5 초를 지속하고, 5 배까지 겹쳐 쌓입니다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "공격력이 10% 증가했습니다. 전투의 시작에서 모든 500 공격 전력은 7.5%에 의해 중요한 손상을 증가시키고, 6 배까지 겹쳐 쌓입니다.",
+    "requirements": {
+      "faction": "Sapphire",
+      "element": "Ice"
+    },
+    "activationCondition": "Team contains 2 【Sapphire】 characters OR 2 【Ice】 characters"
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "적을 죽일 후 즉시 최대 생명력의 20 %를 회복합니다. 입력 [Frost Ash] 상태 즉시 입력 전투. 【Frost Ash】 상태에서 모든 손상은 20 % 증가합니다."
+    },
+    {
+      "level": 2,
+      "effect": "건강이 35 % 이하로 떨어지면 즉시 최대 건강의 50 %를 회복합니다 (전투 당 한 번 트리거 할 수 있습니다). 【Frost Ash】 상태에서는 중요한 비율이 15% 증가합니다."
+    },
+    {
+      "level": 3,
+      "effect": "PH0  ,   PH1  ,   PH2  ,   PH3   레벨 및 레벨 캡 +2."
+    },
+    {
+      "level": 4,
+      "effect": "얼음 손상 30% 증가."
+    },
+    {
+      "level": 5,
+      "effect": "PH0  ,   PH1  ,   PH2  ,   PH3   레벨 및 레벨 캡 +2."
+    },
+    {
+      "level": 6,
+      "effect": "【Frost Ash】 상태에서 모든 손상은 20 %의 얼음 저항을 관통합니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Halloween Candy",
+    "image": "Ninacard",
+    "title": "Halloween Candy",
+    "stats": {
+      "hp": "6,000",
+      "attack": "600",
+      "defense": "600"
+    },
+    "effects": [
+      "긴요한 손상은 60%로 증가했습니다.",
+      "건강이 30% 이상 때, 장착 된 문자는 공격 후 최대 건강의 2 %를 회복합니다. 모든 손상은 40 % 증가했습니다."
+    ]
+  },
+  "tags": [
+    "Ice",
+    "Critical",
+    "Self-Heal",
+    "Burst Damage",
+    "Mode Switch",
+    "Attack Speed",
+    "Warrior",
+    "SSR"
+  ]
+}

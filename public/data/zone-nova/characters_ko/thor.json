@@ -1,0 +1,94 @@
+{
+  "name": "Thor",
+  "image": "Thor",
+  "rarity": "SSR",
+  "element": "Holy",
+  "class": "Guardian",
+  "role": "Tank",
+  "faction": "A.S.A",
+  "stats": {
+    "hp": "10,520",
+    "attack": "698",
+    "defense": "1,315"
+  },
+  "skills": {
+    "normal": {
+      "name": "Justice Crush (正义碾压)",
+      "description": "지정된 적 단위에 자신의 방어의 120%와 같은 성령의 손상."
+    },
+    "auto": {
+      "name": "Divine Judgment Resonance (神罚共鸣)",
+      "cooldown": "10.0s",
+      "description": "번개 전력을 흡수하기 위해 햄머를 올리고, 모든 앨런 문자를 보조하여 방어의 60 %와 동일하며, 12%로 찍은 손상을 줄입니다. Connected allies는 추가 12%의 손상 감소를받습니다. Thor가이 기술을 던지면 다음 3 기본 공격이   PH0  로 강화됩니다."
+    },
+    "ultimate": {
+      "name": "Divine Punishment Hammer (神罚之锤)",
+      "energyCost": "2",
+      "description": "정상적인 궁극적인: 1 초 충전 후 대상의 머리에 점프, 현재의 목표와   PH0  에 자신의 방어의 120%와 같은 성령의 손상을 처리. 궁극적인 강화: 목표의 머리에 점프, 1 초 동안 충전 후, 5 미터 내의 대상과 주변 적에 자신의 방어의 240%와 같은 거룩한 손상,   PH1   기술 캐스트되고, 10 초 동안 24%에 의해 피해를 증가. 이름 * 토르는 궁극적 인 기술을 캐스팅, allied 문자는 24% 10 초 동안 더 적은 손상을."
+    },
+    "passive": {
+      "name": "Lightning Extreme Orbit (极端雷电轨道)",
+      "description": "즉시 최대 체력의 30 %와 같은 방패를 얻을, 가장 낮은 방어와 두 동맹과 연결을 설정. 토르 또는 연결된 동맹은 손상을 입을 때, 토르는   PH0  의 1개의 더미를 얻습니다. 각 문자는 초당 최대 한 번에 트리거 할 수 있습니다.   PH1  가 10개의 더미를 도달할 때,   PH2  를 던질 수 있습니다. 강화 된 궁극적 인 캐스트, 더 이상 축적 된   PH3   스택. 궁극적 인 기술을 손상하면   PH4  를 적용 할 수 있습니다.   PH5   : 각 3 초, 방어의 19.2%, 최대 5 스택을 처리 할 수 있습니다. 방패는 문자의 최대 건강의 최대 30%까지 겹쳐 쌓일 수 있습니다."
+    }
+  },
+  "teamSkill": {
+    "name": "Team Synergy",
+    "description": "팀은 2개의   PH0   문자 또는 2개의   PH1   문자를 포함할 때: 방어력이 15% 증가합니다. 전투의 시작에서, 모든 500 방어는 팀 손상을 1.5%, 최대 6 스택 감소.",
+    "requirements": {
+      "faction": "A.S.A",
+      "element": "Holy"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "실제로 전투의 시작에   PH0  의 10 스택을 얻습니다. 가장 낮은 방어와 두 동맹에 연결."
+    },
+    {
+      "level": 2,
+      "effect": "연결된 동맹국은 30% 증가한 공격을 얻습니다. 주물이 궁극적으로 강화 된 후, 모든 allied 문자를 10 초 동안 방어의 10 %와 동일하게 부여합니다."
+    },
+    {
+      "level": 3,
+      "effect": "PH0  ,   PH1  ,   PH2  ,   PH3   레벨 및 레벨 캡 +2"
+    },
+    {
+      "level": 4,
+      "effect": "방어 증가 45%"
+    },
+    {
+      "level": 5,
+      "effect": "PH0  ,   PH1  ,   PH2  ,   PH3   레벨 및 레벨 캡 +2"
+    },
+    {
+      "level": 6,
+      "effect": "모든 저항은 15 % 증가, 성 저항은 15 % 증가. 토르의 궁극적 인 이익에 의해 충돌 대상 1 5 초 동안 초당   PH0  의 추가 스택."
+    }
+  ],
+  "memoryCard": {
+    "name": "Night Assault Suspect",
+    "image": "Thorcard",
+    "stats": {
+      "hp": "6,600",
+      "attack": "480",
+      "defense": "690"
+    },
+    "effects": [
+      "방어 증가 64%",
+      "방패로 된 문자가 손상되면 방어력이 64% 증가했습니다.",
+      "핸들러가 적의 대상에 대한 지속적인 피해를 줄 때, 5 초 동안 목표에 의해 15 %의 손상을 증가"
+    ]
+  },
+  "tags": [
+    "Enhanced Ultimate",
+    "Defense Scaling",
+    "DOT",
+    "Melee",
+    "Interrupt",
+    "Shield",
+    "Continuous Shielding",
+    "Damage Reduction",
+    "Damage Taken Increase",
+    "AOE Shielding"
+  ]
+}

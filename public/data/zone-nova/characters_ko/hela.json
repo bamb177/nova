@@ -1,0 +1,127 @@
+{
+  "name": "Hela",
+  "chineseName": "海拉",
+  "title": "Underworld Lord",
+  "chineseTitle": "冥界主宰",
+  "image": "Hela",
+  "rarity": "SSR",
+  "element": "Chaos",
+  "class": "Rogue",
+  "role": "DPS",
+  "faction": "A.S.A",
+  "stats": {
+    "hp": "7,308",
+    "attack": "1,193",
+    "defense": "474",
+    "energyRecovery": "0.25/s",
+    "critRate": "16.8%",
+    "critDamage": "71.6%"
+  },
+  "skills": {
+    "normal": {
+      "name": "Nether Touch",
+      "chineseName": "冥界之触",
+      "level": "14",
+      "cooldown": "2.0s",
+      "description": "₢ 킹 모드: 지정된 적 단위에 공격력이 120% 증가합니다.\n₢ 킹 모드: 가장 높은 ATK를 가진 적 단위의 앞에 이동하고 그(것)들에 120% 공격 힘 차오를 거래하십시오"
+    },
+    "auto": {
+      "name": "Death Silence Prelude",
+      "chineseName": "死神序曲",
+      "level": "14",
+      "cooldown": "5.0s",
+      "description": "₢ 킹 모드: 360 %의 공격력 차오 손상을 지정 적 단위로\n₢ 킹 모드: 최대 ATK로 적 단위로 5m 이동하여 360 % 공격력 차오 손상을 줍니다."
+    },
+    "ultimate": {
+      "name": "Domination Authority - Chaotic Death",
+      "chineseName": "支配权能-混沌之死",
+      "level": "14",
+      "cooldown": "1.0s",
+      "energyCost": "1",
+      "description": "전투 시작시   PH0   모드를 입력하십시오. 궁극적으로   PH1   또는   PH2   모드 사이 전환할 수 있습니다. 전환 모드는 모든 기술을 변경합니다.\n\n PH3  : allies가 궁극적으로 던질 때, Hela는 에너지 소모 (캐스트 당 최대 5 층)와 동등한   PH4   층을 얻습니다. 10개의 층을 도달할 때,   PH5  를 던지기 위하여 모든 층을, 그 후에 엇바꾸기 형태 후에 층을 축적할 수 있습니다.\n\n PH6  :\n₢ 킹 모드: 2160% 공격력 차오 손상을 지정된 적 단위로\n₢ 킹 모드: 가장 높은 ATK와 적의 앞에 이동하고 지속적으로 공격, 총을 처리 2160% 공격력 Chaos 손상"
+    },
+    "passive": {
+      "name": "Termination Echo",
+      "chineseName": "终焉回响",
+      "level": "14",
+      "description": "₢ 킹 형태: 모든 손상은 표적의 저항의 24%를 관통합니다\n₢ 킹 형태: 모든 손상은 표적의 총 손상 산출을 36% 감소시킵니다\n\n PH2  : Hela 외에 팀에서 적어도 1 다른 Chaos 속성 문자가 있다면 Hela의 Crit 손상은 60 % 증가합니다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "chineseName": "组合技",
+    "level": "1",
+    "description": "ATK는 10% 증가합니다. 전투의 시작에서, 모든 500 ATK에 대 한, 5% (최대 6 스택, 최대 30% Chaos 손상 보너스)에 의해 Chaos 손상을 증가",
+    "requirements": {
+      "faction": "A.S.A",
+      "element": "Chaos",
+      "condition": "2 [Chaos] attribute characters and [A.S.A] characters"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "전투가 시작되면 ATK는 30 % 증가합니다. 전환 모드 때, 촬영된 손상은 50% 감소"
+    },
+    {
+      "level": 2,
+      "effect": "PH0   모드: 30 %의 공격 피해 증가.   PH1   모드: 공격력이 20% 감소했습니다."
+    },
+    {
+      "level": 3,
+      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2"
+    },
+    {
+      "level": 4,
+      "effect": "차오 손상은 30% 증가합니다"
+    },
+    {
+      "level": 5,
+      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2"
+    },
+    {
+      "level": 6,
+      "effect": "Hela의 모든 손상은 모든 저항의 20 %를 관통합니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Strange Gaze Full of Desire",
+    "chineseName": "充满欲望的奇怪凝视",
+    "image": "Helacard",
+    "level": "80/80",
+    "rarity": "6-star (SSR)",
+    "class": "Rogue",
+    "stats": {
+      "hp": "5,040",
+      "attack": "780",
+      "defense": "474"
+    },
+    "effects": [
+      "율이 34% 증가합니다.",
+      "다른 동맹국이 궁극적으로 던질 때, 착용자의 손상은 5 초 동안 24% 증가합니다 (최대 3개의 더미, 최대 72% 보너스 손상)"
+    ]
+  },
+  "tags": [
+    "Enhanced Ultimate",
+    "Mode Switch",
+    "Crit Damage",
+    "Crit Rate",
+    "Ranged",
+    "Melee"
+  ],
+  "uniqueMechanics": {
+    "modeSwitching": {
+      "description": "Hela can switch between Termination and Death Silence modes using her Ultimate",
+      "modes": [
+        "Termination",
+        "Death Silence"
+      ]
+    },
+    "enhancedUltimate": {
+      "description": "When reaching 10 layers from ally ultimates, can consume all layers to cast Enhanced Ultimate"
+    },
+    "teamSynergy": {
+      "description": "Chaos attribute team bonus increases Crit Damage"
+    }
+  }
+}

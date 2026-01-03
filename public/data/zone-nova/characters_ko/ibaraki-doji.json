@@ -1,0 +1,153 @@
+{
+  "name": "Ibaraki-doji",
+  "image": "Ibaraki-doji",
+  "rarity": "SSR",
+  "element": "Fire",
+  "class": "Debuffer",
+  "role": "Debuffer",
+  "faction": "Pingjing City",
+  "stats": {
+    "hp": "9,180",
+    "attack": "1,184",
+    "defense": "729",
+    "energyRecovery": "0.25/s",
+    "critRate": 0,
+    "critDamage": 50
+  },
+  "skills": {
+    "normal": {
+      "name": "Flame Arrow",
+      "level": "10+4",
+      "cooldown": "2.0s",
+      "description": "지정된 적 단위로 적대 손상으로 공격력의 120%를 줍니다."
+    },
+    "auto": {
+      "name": "Arrow of the Curse",
+      "level": "10+4",
+      "cooldown": "5.0s",
+      "description": "표적과 4 미터 반경에 공격 힘의 244.3%와 동등한 총 불 손상은,   PH0  의 1개의 더미를 적용하고, 35.8%에 의하여 에너지 이익 효율성을 감소시키고 10 초를 위해 38.6%에 의해 촬영된 손상을 증가합니다."
+    },
+    "ultimate": {
+      "name": "Fire Phoenix Curse",
+      "level": "10+4",
+      "energyCost": "3",
+      "cooldown": "1.0s",
+      "description": "적 대상의 방향에서 화재 피닉스를 훼손하여 모든 적들에게 360 %의 화재 피해를 줍니다. 손상에 의해 명중은   PH0  의 1개의 더미로, 10 초 동안 궁극적인 기술에서 가지고 가는 그들의 손상을 증가할 것입니다. 이 손상은   PH1   대상에 의해 주조되는 모든 기술."
+    },
+    "passive": {
+      "name": "Deboning",
+      "level": "10+4",
+      "description": "적을 파괴하는 모든 공격   PH0  , 궁극적 인 능력을 3.6%, 최대 10 스택, 지속 5 초."
+    }
+  },
+  "teamSkill": {
+    "name": "Combo Skill",
+    "level": "1",
+    "description": "전투가 시작되면 총 손상을 2.5%로 모든 적 단위로 감소시킵니다. 각 1000의 공격력을 위해, 효력은 100%년까지, 최대 300%까지 증가합니다.",
+    "requirements": {
+      "faction": "Heikyo Castle",
+      "element": "Fire",
+      "alternativeRequirement": "2 [Heikyo Castle] characters or 2 [Fire] characters"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "전투의 시작에서 궁극적 인 스킬의 첫 번째 사용은 에너지를 소비하지 않습니다."
+    },
+    {
+      "level": 2,
+      "effect": "궁극적인 기술이 적을 보았을 때, 적의 공격력을 3 초 동안 35 %로 줄입니다."
+    },
+    {
+      "level": 3,
+      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2."
+    },
+    {
+      "level": 4,
+      "effect": "공격력이 30% 증가했습니다."
+    },
+    {
+      "level": 5,
+      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 및 레벨 캡 +2."
+    },
+    {
+      "level": 6,
+      "effect": "궁극적 인 기술에 의해 영향을받는 대상은 5 초 동안 추가 20 %로 감소했습니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "A Perfect Makeup Look?",
+    "image": "Ibaraki-dojicard",
+    "stats": {
+      "hp": "6,000",
+      "attack": "600",
+      "defense": "600"
+    },
+    "effects": [
+      "공격력이 40% 증가했습니다.",
+      "얼티밋 스킬이 손상될 때, 대상은 36% 더 많은 피해를 주고 5초 동안 40% 덜 치유를 받을 수 있습니다."
+    ]
+  },
+  "tags": [
+    "Debuff",
+    "Ranged",
+    "Fire Damage",
+    "Ultimate Damage Amp",
+    "Energy Drain",
+    "Resistance Reduction",
+    "Attack Reduction",
+    "Interrupt",
+    "AoE"
+  ],
+  "damageAnalysis": {
+    "title": "Total Damage Taken Debuffs",
+    "description": "Ibaraki-doji has alot of damage taken debuffs, however she need alot of investment to be effective. like full dupe and memory, and the damage difference between her and Buffer is like 60% to 80% at best.",
+    "breakdown": [
+      {
+        "source": "Skill: Arrow of the Curse",
+        "value": "+38.6%",
+        "type": "All damage taken",
+        "duration": "10s"
+      },
+      {
+        "source": "ULT: Fire Phoenix Curse",
+        "value": "+87.9%",
+        "type": "Ultimate damage taken",
+        "duration": "10s"
+      },
+      {
+        "source": "Passive: Deboning (max 10 stacks)",
+        "value": "+36% (3.6% x 10)",
+        "type": "Ultimate damage taken",
+        "duration": "5s"
+      },
+      {
+        "source": "Memory: A Perfect Makeup Look?",
+        "value": "+36%",
+        "type": "All damage taken (on ULT hit)",
+        "duration": "5s"
+      },
+      {
+        "source": "Awakening 6",
+        "value": "-20% All Resistances",
+        "type": "Multiplicative damage increase",
+        "duration": "5s"
+      }
+    ],
+    "totals": [
+      {
+        "label": "Ultimate Skill Damage Taken",
+        "value": "+198.5%",
+        "calculation": "38.6% + 87.9% + 36% + 36%",
+        "note": "Nearly triples damage from teammate ultimates"
+      },
+      {
+        "label": "All Damage Taken",
+        "value": "+74.6%",
+        "calculation": "38.6% + 36%",
+        "note": "Inculdes DOT Damage too"
+      }
+    ]
+  }
+}

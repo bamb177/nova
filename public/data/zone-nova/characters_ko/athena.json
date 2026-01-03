@@ -1,0 +1,89 @@
+{
+  "name": "Athena",
+  "image": "Athena",
+  "rarity": "SSR",
+  "element": "Wind",
+  "class": "Buffer",
+  "role": "Buffer",
+  "faction": "Odius",
+  "stats": {
+    "hp": "9,564",
+    "attack": "1,004",
+    "defense": "672"
+  },
+  "skills": {
+    "normal": {
+      "name": "Shadowless Snipe (无影狙击)",
+      "description": "지정된 적 단위에 120% 공격력 바람 손상을 줍니다. 1.0s 재사용 대기시간."
+    },
+    "auto": {
+      "name": "Military Command (军神号令)",
+      "cooldown": "5.0s",
+      "description": "3×120% 공격력 바람 손상을 처리하는 지정된 적 단위 3배를 공격하십시오. 총 360 % 공격 전력 손상 출력."
+    },
+    "ultimate": {
+      "name": "Athena's Aegis (雅典娜的埃癸斯)",
+      "energyCost": "3",
+      "description": "즉시 3개의 층   PH0  를 얻습니다.   PH1  를 갖는 경우, 정상적인 공격은 가득 차있는 자동 형태가 되고, 지속적으로 기간 도중 탄알을 강화할 수 있습니다. 각 층   PH2  는 12의 강화한 탄알을 불을 수 있습니다. 정상적인 공격을 중단한 후에, reload에 1개의 층   PH3  를 다시 소비해야 합니다. 각 강화 된 총알은 60 %의 공격력 바람 손상을받습니다. 각 5는 표적에 탄알을 강화했습니다, 모든 친절한 문자 이익 +2.4% 혈중 비율 및 +4.6% 정상적인 공격 손상, 최대 10 더미, 지속 10 초"
+    },
+    "passive": {
+      "name": "Divine Combat Mastery (被动)",
+      "description": "Athena의 모든 손상은 정상 공격 손상으로 간주됩니다. Athena, 모든 친절한 문자 이익 +4.8% 공격 속도 및 기술 재사용 대기시간이 2.4%, 최대 10 스택으로 감소한 모든 5 정상 공격 손상은 10 초 지속됩니다. Athena, Athena의 각 10 정상 공격 손상은 1개의 층   PH0  를 얻습니다. 다른 친절한 문자 거래가 정상 공격 손상될 때, Athena는 1개의 층   PH1  를 얻습니다, 각 특성은 두번 최대 당 한 번 방아쇠를 수 있습니다. 10개의 층   PH2   Athena 이득, 모든 팀 에너지 +1 포인트"
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "전투 시작: 모든 팀 손상 증가 10%. 각 500의 공격 전력을 위해, 모든 팀은 추가적으로 +5% (최대 6배, 합계 +40% 손상)를 손상시킵니다.",
+    "requirements": {
+      "faction": "Odius",
+      "element": "Wind"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "모든 allied 문자 거래 기본 공격 손상 후, Athena는 그 대상에 50% 공격력 바람 손상을 추가로 처리합니다. 이 손상은 크게 타격 할 수 없으며 각 문자는 두 번째 당 최대 한 번에이 효과를 트리거 할 수 있습니다."
+    },
+    {
+      "level": 2,
+      "effect": "궁극적인 기술을 사용 하 여 6 레이어   PH0   대신 3"
+    },
+    {
+      "level": 3,
+      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 캡 +4"
+    },
+    {
+      "level": 4,
+      "effect": "Athena는   PH0   활성: 모든 동맹은 10 % 감소 된 손상, 전사 및 Rogues는 추가 10 % 손상 감소 (총 20 %)를 얻습니다."
+    },
+    {
+      "level": 5,
+      "effect": "PH0  ,   PH1  ,   PH2   및   PH3   레벨 캡 +4"
+    },
+    {
+      "level": 6,
+      "effect": "Athena의 향상된 총알 거래 두 배 손상 (120% 총알 당 공격력)"
+    }
+  ],
+  "memoryCard": {
+    "name": "Embarrassing Pattern (尴尬模样)",
+    "image": "Athenacard",
+    "stats": {
+      "hp": "6,000",
+      "attack": "600",
+      "defense": "600"
+    },
+    "effects": [
+      "전투 시작 후: 모든 동맹 손상 +40%, 정상적인 공격 손상 +40%",
+      "갖춰진 문자는 5개의 정상적인 공격 손상을 줍니다: 5 초 동안 모든 팀 공격 힘 +40%"
+    ]
+  },
+  "tags": [
+    "Range",
+    "Cooldown Reduction",
+    "Normal Attack",
+    "Crit Rate",
+    "Energy",
+    "Damage Reduction"
+  ]
+}

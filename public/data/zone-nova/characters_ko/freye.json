@@ -1,0 +1,90 @@
+{
+  "name": "Freye",
+  "image": "Freye",
+  "rarity": "SSR",
+  "element": "Chaos",
+  "class": "Debuffer",
+  "role": "Debuffer",
+  "faction": "A.S.A",
+  "stats": {
+    "hp": 9180,
+    "attack": 1184,
+    "defense": 729
+  },
+  "skills": {
+    "normal": {
+      "name": "Chaos Strike",
+      "description": "지정된 적 단위로 chaos 손상으로 공격력이 120% 증가합니다."
+    },
+    "auto": {
+      "name": "Attribute Break",
+      "cooldown": "5.0s",
+      "description": "지정된 적 단위에 약점 속성을 적용하고 팀의 4 캐릭터의 속성을 우선 순위화하고 10 초 동안 15 %의 해당 속성 저항을 감소시킵니다. 해당 속성의 360 % 공격 전력 손상을 대상에 제공합니다."
+    },
+    "ultimate": {
+      "name": "Dark Fate",
+      "energyCost": "3",
+      "description": "3 미터 범위 내에서 지정된 적 단위 및 주변 적에 손상을 주는 작은 검은 구멍으로 최대 12 배까지 타격합니다. 총 손상은 60 % 카오스 손상입니다. 적이 10 초 이내에 손상을 입으면 공격력이 36% 증가했습니다. 다음 궁극적 인 기술이 향상되었습니다. 향상된 얼티밋 : 지정된 적 단위와 주변 적에게 피해를 주는 큰 검은 구멍은 5 미터 범위 내에서 12 배까지 타격합니다. 총 손상은 180%년 chaos 손상입니다. 또한 10 초 이내에 적의 손상이 60 % 증가합니다. 이 효력은 정규적인 궁극적인 기술 효력으로 겹쳐 쌓일 수 없습니다."
+    },
+    "passive": {
+      "name": "Meteor Storm",
+      "description": "기본 공격이나 기술을 사용하여 손상을 처리 할 때, [Divine Meteor]의 하나의 스택을 적용합니다. 궁극적 인 기술을 사용하여 동일한 대상 4 번 손상을 처리 할 때, [Divine Meteor]의 하나의 스택을 적용합니다. 【Divine Meteor】: 각 3 초는 챠오 손상으로 19.2% 공격 힘을, 10배까지 겹쳐 쌓일 수 있습니다, 10 초를 지속합니다. 수동적인 효력: 큰 까만 구멍이 존재할 때 (Enhanced 궁극적인), 모든 적 단위는 50%에 의해 감소되고 총 방어는 10% 감소했습니다."
+    }
+  },
+  "teamSkill": {
+    "name": "Divine Protection",
+    "description": "전투가 시작되면 총 손상을 2.5%로 모든 적 단위로 감소시킵니다. 각 1000의 공격력 프레이에는, 이 효력은 100%년 (두 배), 300%의 최대 증가에 의하여 증가합니다. 3000+ 공격: 10%의 손상 감소 (최대).",
+    "requirements": {
+      "faction": "A.S.A",
+      "element": "Chaos"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "전투가 시작되면 즉시 캐스트 할 수 있습니다.[Enhanced Ultimate]."
+    },
+    {
+      "level": 2,
+      "effect": "궁극적인 기술 손상은 20% 증가. 【Enhanced Ultimate】 에너지 비용은 1로 감소했습니다. 향상된 패시브 : 큰 검은 구멍이 존재 할 때 모든 적 단위는 에너지가 100 % 감소하고 총 방어가 20 % 감소했습니다."
+    },
+    {
+      "level": 3,
+      "effect": "PH0  ,   PH1  ,   PH2  ,   PH3   레벨 및 레벨 캡 +2."
+    },
+    {
+      "level": 4,
+      "effect": "공격력이 30% 증가했습니다."
+    },
+    {
+      "level": 5,
+      "effect": "PH0  ,   PH1  ,   PH2  ,   PH3   레벨 및 레벨 캡 +2."
+    },
+    {
+      "level": 6,
+      "effect": "궁극적 인 기술에 의해 영향을받는 대상은 모든 저항이 20 % 감소했습니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Lamplight Study",
+    "image": "Freyecard",
+    "stats": {
+      "hp": 6000,
+      "attack": 600,
+      "defense": 600
+    },
+    "effects": [
+      "공격력이 40% 증가했습니다.",
+      "궁극적인 기술 손상은 【Fate Bind】를 적용 할 수 있습니다. 【Fate Bind】의 각 더미는 3.6%, 지속 10 초, 최대 10 더미에 의해 촬영된 손상을 증가시킵니다"
+    ]
+  },
+  "tags": [
+    "DOT",
+    "Enhanced Ultimate",
+    "Damage Taken Increase",
+    "element weaknesses",
+    "energy gain reduced",
+    "debuff",
+    "range"
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "name": "Naiya",
+  "image": "Naiya",
+  "rarity": "SSR",
+  "element": "Ice",
+  "class": "Buffer",
+  "role": "Buffer",
+  "faction": "Sapphire",
+  "stats": {
+    "hp": "9,564",
+    "attack": "1,004",
+    "defense": "672"
+  },
+  "skills": {
+    "normal": {
+      "name": "Frost Strike",
+      "description": "적 단위에 얼음 손상으로 120% 공격력"
+    },
+    "auto": {
+      "name": "War Intent Detection",
+      "cooldown": "Auto-trigger: 5.0s",
+      "description": "가장 높은 공격력의 친절한 캐릭터는   PH0  를 얻습니다. 공격력이 168%로 증가하지만 증가된 공격력은 나야 공격력의 84%를 초과할 수 없습니다. 최후 15 초"
+    },
+    "ultimate": {
+      "name": "Hyper-Carry Awakening",
+      "energyCost": "3",
+      "description": "적 단위로 480% 공격력 얼음 손상을 줍니다.   PH0   그들의 주물 기술. 모든 친절한 단위의 공격 전력을 36% 증가시키고 10 초 동안 53.6%에 의하여 주름을 잡습니다"
+    },
+    "passive": {
+      "name": "Tactical Analysis",
+      "description": "PH0  의 캐릭터가 적을 죽일 때 공격력이 10초 동안 17%, 최대 3개의 스택으로 증가합니다. 즉시 전체 팀의 1 에너지 포인트를 복구, 초당 한 번 트리거 할 수 있습니다"
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill (组合技)",
+    "description": "전투 시작: 모든 팀 손상 +10%. 각 500의 공격 힘, 모든 팀은 추가적으로 +5%, 최대 6배 (30%)를 손상시킵니다",
+    "requirements": {
+      "faction": "Sapphire",
+      "element": "Ice"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "궁극적인 사용 후: 모든 친절한 단위의 공격력은 20 초 동안 20% 증가했습니다."
+    },
+    {
+      "level": 2,
+      "effect": "PH0   캐릭터가 적을 물리 치는 경우: 팀의 1개의 에너지를 회복합니다. 초당 한 번에 트리거 할 수 있습니다 (수동으로 2)."
+    },
+    {
+      "level": 3,
+      "effect": "기술 및 일반 공격: 레벨 및 레벨 캡 증가 +4"
+    },
+    {
+      "level": 4,
+      "effect": "PH0  를 가진 특성 공격: 얼음 손상으로 추가 500% 공격 힘을 분리하십시오. 최대 한 번에 트리거 10 초."
+    },
+    {
+      "level": 5,
+      "effect": "궁극적 인 기술 및 패시브 : 레벨 및 레벨 캡 증가 +4"
+    },
+    {
+      "level": 6,
+      "effect": "궁극적 인 기술 기간은 20 초로 연장됩니다. 공격력이 100% 증가했습니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Frost Dominion",
+    "image": "naiyacard",
+    "stats": {
+      "hp": "6,000",
+      "attack": "600",
+      "defense": "600"
+    },
+    "effects": [
+      "공격력이 40% 증가했습니다. 장착 된 문자가 궁극적 인 기술을 출시 한 후, 전체 팀은 궁극적 인 기술 손상을 40 % 증가, 30 초 지속"
+    ]
+  },
+  "tags": [
+    "Range",
+    "Buff",
+    "Crit Dmg Increases",
+    "Energy",
+    "Atk Increases",
+    "Damage Increases"
+  ]
+}
