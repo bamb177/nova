@@ -1,0 +1,87 @@
+{
+  "name": "Afrodite",
+  "image": "Afrodite",
+  "rarity": "SSR",
+  "element": "Holy",
+  "class": "Warrior",
+  "role": "DPS",
+  "faction": "Odius",
+  "stats": {
+    "hp": "8,033",
+    "attack": "1,305",
+    "defense": "530"
+  },
+  "skills": {
+    "normal": {
+      "name": "Love Fist (爱神之拳)",
+      "description": "Deals 120% attack power as holy damage to designated enemy unit."
+    },
+    "auto": {
+      "name": "Charm Impact (魅惑冲拳)",
+      "cooldown": "8.0s",
+      "description": "킹"
+    },
+    "ultimate": {
+      "name": "Love and Beauty Waltz (爱与美之圆舞曲)",
+      "energyCost": "8",
+      "description": "Normal Ultimate: Deals 1800% attack power as holy damage to designated enemy. Enhanced Ultimate (after 10 normal attacks): Deals 2160% attack power as holy damage to designated enemy, recovers 2 energy at the end, Counts as a basic-attack hit for any on-hit or combo effects."
+    },
+    "passive": {
+      "name": "Beautiful Kill (美丽杀意)",
+      "description": "When HP is higher then 50%: +48 % Crit Rate on all outgoing damage. When HP is lower then 50%: +96 % Defense when taking damage."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "Self attack power increased by 10%. At battle start: For every 500 attack power, increase self holy damage by 5% (maximum 6 times). Maximum scaling: 30% holy damage boost at 3,000+ attack power.",
+    "requirements": {
+      "faction": "Odius",
+      "element": "Holy"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "When you using auto skill (Self) it counts as 4 extra basic-attack hits toward the Enhanced Ultimate counter."
+    },
+    {
+      "level": 2,
+      "effect": "When using ultimate or auto skill: Damage taken reduced by 10%"
+    },
+    {
+      "level": 3,
+      "effect": "[Skills] and [Normal Attack] level and level cap +4"
+    },
+    {
+      "level": 4,
+      "effect": "Normal attack damage increased by 35%"
+    },
+    {
+      "level": 5,
+      "effect": "[Ultimate] and [Passive] level and level cap +4"
+    },
+    {
+      "level": 6,
+      "effect": "[Enhanced Ultimate] ignores 20% Holy resistance"
+    }
+  ],
+  "memoryCard": {
+    "name": "Secret Garden",
+    "image": "Afroditecard",
+    "stats": {
+      "hp": "6,400",
+      "attack": "784",
+      "defense": "318"
+    },
+    "effects": [
+      "엽기적인",
+      "If the equipped units Ultimate costs higher then 8 Energy and used ultimate : Damage increased by 40% for 10 seconds"
+    ]
+  },
+  "tags": [
+    "Crit Rate",
+    "Atk Speed",
+    "Normal Atk",
+    "Melee"
+  ]
+}
