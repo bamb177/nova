@@ -5,393 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{{ title }}</title>
 
+  <!-- 기존 공용 CSS -->
   <link rel="stylesheet" href="/css/style.css" />
-
-  <style>
-    :root{
-      --bg0:#070b14;
-      --bg1:#0b1222;
-      --line:rgba(255,255,255,.10);
-      --line2:rgba(255,255,255,.14);
-      --txt:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.70);
-      --muted2:rgba(255,255,255,.58);
-    }
-    body{
-      margin:0;
-      background: radial-gradient(1200px 600px at 30% -10%, #132246, transparent 60%),
-                  radial-gradient(900px 500px at 80% 0%, #1a2b55, transparent 55%),
-                  linear-gradient(180deg,var(--bg0),var(--bg1));
-      color:var(--txt);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
-    }
-    .wrap{ max-width: 1200px; margin: 0 auto; padding: 18px; }
-    .topbar{
-      display:flex; align-items:center; justify-content:space-between; gap: 12px;
-      margin-bottom: 12px;
-    }
-    .title{ display:flex; flex-direction:column; gap: 4px; }
-    .title h1{ margin:0; font-size: 20px; font-weight: 900; letter-spacing: .2px; }
-    .meta{ font-size: 12px; color: var(--muted2); }
-    .actions{ display:flex; gap: 10px; align-items:center; flex-wrap: wrap; }
-    .btn{
-      appearance:none; border:1px solid var(--line2);
-      background: rgba(255,255,255,.06);
-      color: var(--txt);
-      padding: 10px 12px;
-      border-radius: 12px;
-      font-weight: 850;
-      cursor:pointer;
-      text-decoration:none;
-      display:inline-flex; align-items:center; gap:8px;
-    }
-    .btn:hover{ background: rgba(255,255,255,.10); }
-    .badge{
-      display:inline-flex; align-items:center; gap:8px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      padding: 10px 12px;
-      border-radius: 12px;
-      font-weight: 850;
-      color: var(--muted);
-    }
-    .panel{
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      border-radius: 16px;
-      padding: 14px;
-      margin-top: 12px;
-    }
-    .error{
-      border: 1px solid rgba(255,80,80,.35);
-      background: rgba(255,80,80,.10);
-      color: rgba(255,220,220,.92);
-      border-radius: 14px;
-      padding: 12px 14px;
-      margin-top: 10px;
-      font-weight: 800;
-    }
-
-    .filters{
-      display:flex; flex-wrap: wrap; gap:10px;
-      align-items:center;
-    }
-    .input, .select{
-      border: 1px solid var(--line2);
-      background: rgba(0,0,0,.18);
-      color: var(--txt);
-      padding: 10px 12px;
-      border-radius: 12px;
-      font-weight: 800;
-      outline: none;
-    }
-    .input{ min-width: 260px; }
-    .select{ min-width: 160px; }
-
-    .table{
-      width:100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      overflow: hidden;
-      border-radius: 16px;
-      border: 1px solid var(--line);
-      margin-top: 12px;
-      background: rgba(255,255,255,.02);
-    }
-    .table thead th{
-      text-align:left;
-      padding: 12px 12px;
-      font-size: 13px;
-      color: rgba(255,255,255,.78);
-      border-bottom: 1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-    .table tbody td{
-      padding: 12px 12px;
-      border-bottom: 1px solid rgba(255,255,255,.07);
-      vertical-align: middle;
-      font-size: 15px;
-      color: rgba(255,255,255,.90);
-    }
-    .table tbody tr:hover{ background: rgba(255,255,255,.03); }
-    .col-check{ width: 56px; }
-    .col-rarity{ width: 92px; }
-    .col-elem{ width: 160px; }
-    .col-faction{ width: 180px; }
-    .col-class{ width: 160px; }
-    .col-role{ width: 140px; }
-
-    .char-cell{
-      display:flex; align-items:center; gap: 12px;
-      cursor: pointer;
-      user-select:none;
-    }
-    .char-img{
-      width: 56px; height: 56px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.12);
-      object-fit: cover;
-      background: rgba(255,255,255,.05);
-      flex: 0 0 auto;
-    }
-    .char-name{
-      font-size: 16px;
-      font-weight: 900;
-      letter-spacing: .2px;
-    }
-
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap: 8px;
-      padding: 7px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.04);
-      font-weight: 900;
-      font-size: 13px;
-      line-height: 1;
-      color: rgba(255,255,255,.90);
-      white-space: nowrap;
-    }
-    .pill img{
-      width: 16px; height: 16px;
-      border-radius: 999px;
-      object-fit: contain;
-      opacity: .95;
-    }
-
-    .pill-elem{ border-color: rgba(255,255,255,.18); background: rgba(255,255,255,.06); }
-    .elem-blaze{ background: linear-gradient(90deg, rgba(255,120,60,.30), rgba(255,210,140,.20)); }
-    .elem-storm{ background: linear-gradient(90deg, rgba(120,220,255,.26), rgba(160,250,220,.18)); }
-    .elem-frost{ background: linear-gradient(90deg, rgba(160,210,255,.28), rgba(230,250,255,.18)); }
-    .elem-holy { background: linear-gradient(90deg, rgba(255,245,170,.30), rgba(255,255,230,.20)); }
-    .elem-chaos{ background: linear-gradient(90deg, rgba(200,170,255,.26), rgba(255,210,250,.18)); }
-
-    .pill-ssr{
-      border-color: rgba(255,255,255,.28);
-      background: linear-gradient(90deg, rgba(255,255,170,.95), rgba(255,240,110,.92));
-      color: rgba(0,0,0,.78);
-      text-shadow: none;
-    }
-    .pill-sr{
-      border-color: rgba(255,255,255,.22);
-      background: linear-gradient(90deg, rgba(255,180,70,.92), rgba(255,120,40,.90));
-      color: rgba(0,0,0,.80);
-      text-shadow: none;
-    }
-    .pill-r{
-      border-color: rgba(255,255,255,.18);
-      background: rgba(255,255,255,.08);
-      color: rgba(255,255,255,.86);
-    }
-    .pill-none{
-      border-color: rgba(255,255,255,.10);
-      background: rgba(255,255,255,.03);
-      color: rgba(255,255,255,.58);
-    }
-    .pill-neutral{
-      background: rgba(255,255,255,.04);
-      border-color: rgba(255,255,255,.12);
-      color: rgba(255,255,255,.86);
-    }
-
-    /* ===== Modal ===== */
-    .modal-backdrop{
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.55);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 18px;
-      z-index: 9999;
-    }
-    .modal-backdrop.show{ display:flex; }
-
-    .modal{
-      width: min(980px, 100%);
-      max-height: min(86vh, 920px);
-      overflow: auto;
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: linear-gradient(180deg, rgba(18,28,45,.98), rgba(10,16,28,.98));
-      box-shadow: 0 20px 70px rgba(0,0,0,.45);
-    }
-
-    .modal-head{
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      display:flex;
-      align-items:center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 14px 16px;
-      border-bottom: 1px solid rgba(255,255,255,.10);
-      background: rgba(6, 12, 24, .88);
-      backdrop-filter: blur(10px);
-    }
-
-    .modal-title{
-      font-size: 16px;
-      font-weight: 950;
-    }
-
-    .modal-close{
-      width: 36px;
-      height: 36px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.92);
-      font-size: 22px;
-      line-height: 1;
-      cursor: pointer;
-    }
-
-    .modal-body{ padding: 16px; }
-
-    .modal-loading{
-      padding: 18px;
-      color: rgba(255,255,255,.70);
-      font-weight: 800;
-    }
-
-    .detail-empty{
-      padding: 14px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      color: rgba(255,255,255,.72);
-      font-weight: 800;
-    }
-
-    /* ===== Tabs + Cards ===== */
-    .tabs { display: flex; flex-direction: column; gap: 12px; }
-    .tab-bar{
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 6px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.03);
-    }
-    .tab-btn{
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.04);
-      color: rgba(255,255,255,.82);
-      font-weight: 900;
-      cursor: pointer;
-    }
-    .tab-btn.active{
-      background: rgba(255,255,255,.12);
-      border-color: rgba(255,255,255,.22);
-      color: rgba(255,255,255,.95);
-    }
-    .tab-panel{ display: none; }
-    .tab-panel.active{ display: block; }
-
-    .cards{
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-    .card{
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.03);
-      padding: 12px;
-    }
-    .card-title{
-      font-size: 15px;
-      font-weight: 950;
-      margin-bottom: 6px;
-      color: rgba(255,255,255,.92);
-      display:flex;
-      align-items:center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-    .card-desc{
-      font-size: 14px;
-      color: rgba(255,255,255,.78);
-      line-height: 1.45;
-      white-space: pre-wrap;
-    }
-    .kv{ width:100%; border-collapse: collapse; margin-top: 8px; }
-    .kv td{
-      border-top: 1px solid rgba(255,255,255,.08);
-      padding: 8px 6px;
-      font-size: 12px;
-      color: rgba(255,255,255,.78);
-      vertical-align: top;
-      white-space: pre-wrap;
-    }
-    .kv-k{ width: 180px; color: rgba(255,255,255,.86); font-weight: 900; }
-
-    /* === Skill Group (Auto/Ultimate/Passive/Normal/Team Skill) === */
-    .group{ margin-top: 12px; }
-    .group-title{
-      margin: 0 0 8px 0;
-      font-size: 13px;
-      font-weight: 950;
-      color: rgba(255,255,255,.86);
-      padding: 8px 10px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.03);
-    }
-
-    .raw summary{
-      cursor:pointer;
-      color: rgba(255,255,255,.82);
-      font-weight: 900;
-      margin-top: 10px;
-    }
-    .raw pre{
-      margin: 8px 0 0 0;
-      padding: 10px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.25);
-      overflow:auto;
-      font-size: 12px;
-      color: rgba(255,255,255,.78);
-    }
-
-    .awak-table{
-      width: 100%;
-      border-collapse: collapse;
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
-      overflow: hidden;
-      background: rgba(255,255,255,.02);
-    }
-    .awak-table th, .awak-table td{
-      padding: 10px 12px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      text-align: left;
-      vertical-align: top;
-      font-size: 13px;
-      color: rgba(255,255,255,.82);
-      white-space: pre-wrap;
-    }
-    .awak-table th{
-      color: rgba(255,255,255,.90);
-      background: rgba(255,255,255,.04);
-      font-weight: 950;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-  </style>
+  <!-- 페이지 전용 CSS(분리본) -->
+  <link rel="stylesheet" href="/css/select.css" />
 </head>
 
 <body>
@@ -480,13 +97,6 @@
         .replace(/>/g,"&gt;")
         .replace(/"/g,"&quot;")
         .replace(/'/g,"&#39;");
-    }
-
-    function slugId(s){
-      return (s || "").toString().trim().toLowerCase()
-        .replace(/[’']/g,"")
-        .replace(/[\s"_`]+/g,"")
-        .replace(/[^a-z0-9_-]/g,"");
     }
 
     function dedupeById(list){
@@ -590,7 +200,7 @@
       return `<table class="kv"><tbody>${rows}</tbody></table>`;
     }
 
-    // ✅ 단일 스킬 객체 판별: cooldown/description/name 같은 “필드 묶음”이면 true
+    // 단일 스킬 객체 판별
     function looksLikeSkillObject(o){
       if (!o || typeof o !== "object" || Array.isArray(o)) return false;
       const keys = [
@@ -622,7 +232,6 @@
           (typeof x.text === "string" && x.text) ||
           "";
 
-        // 부가 정보(스칼라만): cooldown/energyCost 등
         const extra = {};
         for (const [k, v] of Object.entries(x)) {
           if (["name","title","skillName","description","desc","text"].includes(k)) continue;
@@ -650,17 +259,14 @@
       `;
     }
 
-    // ✅ 스킬 데이터(단일/배열/맵) → 카드 묶음
     function renderSkillCards(skillsObjOrArr) {
       if (isEmpty(skillsObjOrArr)) return `<div class="detail-empty">스킬 데이터 없음</div>`;
 
-      // 1) 단일 스킬 객체면 “절대 풀지 말고” 1카드
       if (looksLikeSkillObject(skillsObjOrArr)) {
         const s = normalizeSkillEntry(skillsObjOrArr, "Skill");
         return `<div class="cards">${renderOneSkillCard(s)}</div>`;
       }
 
-      // 2) 배열이면 각각 카드
       if (Array.isArray(skillsObjOrArr)) {
         const cards = skillsObjOrArr
           .map((x, idx) => renderOneSkillCard(normalizeSkillEntry(x, `Skill ${idx + 1}`)))
@@ -668,10 +274,8 @@
         return `<div class="cards">${cards}</div>`;
       }
 
-      // 3) 객체 맵이면 value가 “스킬 객체”인 것만 카드로(필드 풀림 방지)
       if (typeof skillsObjOrArr === "object") {
         const cards = [];
-
         for (const [k, v] of Object.entries(skillsObjOrArr)) {
           if (isEmpty(v)) continue;
 
@@ -684,18 +288,13 @@
             for (let i = 0; i < v.length; i++) {
               cards.push(renderOneSkillCard(normalizeSkillEntry(v[i], `${k} ${i + 1}`)));
             }
-            continue;
           }
-
-          // scalar/object-blob은 여기서 카드화하면 다시 뒤죽박죽 위험 → 무시
         }
 
-        // 아무것도 못 뽑으면 전체를 1카드(최소 표시)
         if (cards.length === 0) {
           const s = normalizeSkillEntry(skillsObjOrArr, "Skill");
           return `<div class="cards">${renderOneSkillCard(s)}</div>`;
         }
-
         return `<div class="cards">${cards.join("")}</div>`;
       }
 
@@ -703,24 +302,23 @@
       return `<div class="cards">${renderOneSkillCard(s)}</div>`;
     }
 
-    // ✅ 스킬 탭: Auto/Ultimate/Passive/Normal/Team Skill 5개 고정 섹션
+    // 5 섹션 고정 + (3) 색상 구분용 class 부여
     function renderSkills(detail) {
       const skills = pick(detail, "skills") || {};
       const teamSkill = pick(detail, "teamSkill", "team_skill", "team");
 
-      // Normal은 normal 우선, 없으면 basic을 Normal로 취급
       const normalData = !isEmpty(skills?.normal) ? skills.normal : skills?.basic;
 
       const sections = [
-        { id: "Auto", label: "Auto", data: skills?.auto },
-        { id: "Ultimate", label: "Ultimate", data: skills?.ultimate },
-        { id: "Passive", label: "Passive", data: skills?.passive },
-        { id: "Normal", label: "Normal", data: normalData },
-        { id: "Team Skill", label: "Team Skill", data: teamSkill },
+        { key: "auto",     label: "Auto",      data: skills?.auto,     css: "group-auto" },
+        { key: "ultimate", label: "Ultimate",  data: skills?.ultimate, css: "group-ultimate" },
+        { key: "passive",  label: "Passive",   data: skills?.passive,  css: "group-passive" },
+        { key: "normal",   label: "Normal",    data: normalData,       css: "group-normal" },
+        { key: "team",     label: "Team Skill",data: teamSkill,        css: "group-team" },
       ];
 
       return sections.map(s => `
-        <div class="group">
+        <div class="group ${s.css}">
           <div class="group-title">${escapeHtml(s.label)}</div>
           ${isEmpty(s.data) ? `<div class="detail-empty">${escapeHtml(s.label)} 데이터 없음</div>` : renderSkillCards(s.data)}
         </div>
@@ -882,6 +480,13 @@
     backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeModal(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && backdrop.classList.contains("show")) closeModal(); });
 
+    // (2) 중국어명은 title로 대체하지 않고 “이름 옆”에 표시
+    function setModalTitle(name, cn){
+      const safeName = escapeHtml(name || "Character");
+      const safeCn = cn ? escapeHtml(cn) : "";
+      modalTitle.innerHTML = safeCn ? `${safeName}<span class="cn">${safeCn}</span>` : safeName;
+    }
+
     async function fetchAndOpen(cid) {
       openModal();
       modalBody.innerHTML = `<div class="modal-loading">Loading…</div>`;
@@ -894,8 +499,11 @@
         }
 
         const detail = j.detail || {};
+
         const name = pick(detail, "name") || j.character?.name || j.id || "Character";
-        modalTitle.textContent = name;
+        const cn = pick(detail, "chineseName", "chinesename", "chinessname", "cnName", "cn_name");
+
+        setModalTitle(name, cn);
 
         modalBody.innerHTML = renderDetailTabs(detail);
         bindTabEvents();
