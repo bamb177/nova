@@ -154,8 +154,8 @@ def role_from_class(cls: str, cid: str) -> str:
     if not cls or cls == "-":
         return "-"
     # Apep: warrior여도 tank 가능
-    if cid == "apep" and cls == "warrior":
-        return "tank"
+    #if cid == "apep" and cls == "warrior":
+    #    return "tank"
     return CLASS_TO_ROLE.get(cls, "-")
 
 def candidate_image_keys(cid: str, name: str) -> list[str]:
