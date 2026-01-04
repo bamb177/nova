@@ -1,4 +1,4 @@
-name: Zone Nova KR Translate (FREE Optimized)
+name: Zone Nova KR Translate (FREE Safe Optimized)
 
 on:
   workflow_dispatch:
@@ -34,21 +34,19 @@ jobs:
         with:
           node-version: "20"
 
-      # Hugging Face 모델/토크나이저 캐시
       - name: Cache Hugging Face
         uses: actions/cache@v4
         with:
           path: .cache/huggingface
-          key: hf-cache-${{ runner.os }}-opusmt-enko-v2
+          key: hf-cache-${{ runner.os }}-opusmt-enko-safe-v2
           restore-keys: |
             hf-cache-${{ runner.os }}-
 
-      # 번역 문장 캐시(재번역 방지)
       - name: Cache translation memory
         uses: actions/cache@v4
         with:
           path: .cache/zone_nova_translate_cache_free_hf.json
-          key: tm-cache-${{ runner.os }}-v2
+          key: tm-cache-${{ runner.os }}-safe-v2
           restore-keys: |
             tm-cache-${{ runner.os }}-
 
@@ -58,7 +56,8 @@ jobs:
           pip install --index-url https://download.pytorch.org/whl/cpu torch
           pip install transformers sentencepiece sacremoses
 
-      - name: Run optimized translator
+      # 테스트할 때만 3개로 제한하려면 아래 --only/--limit 사용
+      - name: Run translator (SAFE)
         env:
           HF_HOME: .cache/huggingface
         run: |
@@ -66,13 +65,20 @@ jobs:
             --src public/data/zone-nova/characters \
             --out public/data/zone-nova/characters_ko \
             --cache .cache/zone_nova_translate_cache_free_hf.json \
+            --cache_salt safe-v2 \
             --glossary public/data/zone-nova/glossary_ko.json \
             --model_name Helsinki-NLP/opus-mt-tc-big-en-ko \
             --num_beams 2 \
             --batch_size 16 \
-            --skip_if_translated \
             --heartbeat_sec 30 \
-            --limit 5
+            --min_hangul_ratio 0.20 \
+            --max_len_mul 3.0 \
+            --report public/data/zone-nova/translation_rolled_back.tsv \
+
+          # 예) 3개 테스트:
+          # python scripts/translate_zone_nova_characters_free_hf_optimized.py \
+          #   ... \
+            --only afrodite,anubis,apollo
 
       - name: Commit and push if changed
         run: |
@@ -84,6 +90,6 @@ jobs:
             exit 0
           fi
 
-          git add public/data/zone-nova/characters_ko .cache/zone_nova_translate_cache_free_hf.json public/data/zone-nova/glossary_ko.json || true
-          git commit -m "Update KR translations (FREE optimized)"
+          git add public/data/zone-nova/characters_ko public/data/zone-nova/translation_rolled_back.tsv .cache/zone_nova_translate_cache_free_hf.json public/data/zone-nova/glossary_ko.json || true
+          git commit -m "Update KR translations (FREE safe optimized)"
           git push
