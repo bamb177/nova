@@ -27,7 +27,7 @@ BOSS_JSON = os.path.join(DATA_DIR, "bosses.json")
 
 app = Flask(__name__, static_folder="public", static_url_path="")
 
-RARITY_SCORE = {"SSR": 30, "SR": 18, "R": 10, "-": 0}
+RARITY_SCORE = {"SSR": 30, "SR": 18}
 VALID_IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 
 CLASS_SET = {"buffer", "debuffer", "guardian", "healer", "mage", "rogue", "warrior"}
@@ -344,7 +344,7 @@ def normalize_chars(raw_meta, raw_chars) -> list[dict]:
 
     out.extend(by_namekey.values())
 
-    rarity_order = {"SSR": 0, "SR": 1, "R": 2, "-": 9}
+    rarity_order = {"SSR": 0, "SR": 1}
     out.sort(key=lambda x: (rarity_order.get(x.get("rarity","-"), 9), (x.get("name") or "").lower()))
     return out
 
