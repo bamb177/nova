@@ -15,9 +15,6 @@ import torch
 from transformers import MarianMTModel, MarianTokenizer
 
 
-# =========================
-# Cache helpers
-# =========================
 def sha(s: str) -> str:
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
@@ -38,9 +35,6 @@ def has_hangul(text: str) -> bool:
     return bool(re.search(r"[가-힣]", text or ""))
 
 
-# =========================
-# Glossary
-# =========================
 def load_glossary(path: Path) -> Dict[str, str]:
     if path.exists():
         return json.loads(path.read_text(encoding="utf-8"))
@@ -56,9 +50,6 @@ def apply_glossary(text: str, glossary: Dict[str, str]) -> str:
     return text
 
 
-# =========================
-# Token protection
-# =========================
 TOKEN_PATTERNS = [
     r"\{[^}]+\}",
     r"\[[^\]]+\]",
@@ -87,15 +78,11 @@ def restore_tokens(text: str, placeholders: Dict[str, str]) -> str:
     return text
 
 
-# =========================
-# Style postprocess
-# =========================
 def postprocess_ko(text: str) -> str:
     t = (text or "").strip()
     if not t:
         return t
 
-    # honorific -> tooltip tone
     t = re.sub(r"합니다\.", "한다.", t)
     t = re.sub(r"됩니다\.", "된다.", t)
     t = re.sub(r"입니다\.", "이다.", t)
@@ -103,20 +90,15 @@ def postprocess_ko(text: str) -> str:
     t = re.sub(r"됩니다$", "된다", t)
     t = re.sub(r"입니다$", "이다", t)
 
-    # common fixes
     t = re.sub(r"지정된 적", "지정한 적", t)
     t = re.sub(r"지정된 대상", "지정한 대상", t)
 
-    # spacing
     t = re.sub(r"\s*%\s*", "%", t)
     t = re.sub(r"[ \t]+", " ", t)
     t = re.sub(r"\.\.+", ".", t)
     return t.strip()
 
 
-# =========================
-# JS loader
-# =========================
 def import_js_module(js_path: Path) -> Dict[str, Any]:
     js_path = js_path.resolve()
     with tempfile.TemporaryDirectory() as td:
@@ -168,9 +150,6 @@ def select_character_data_export(module_obj: Dict[str, Any]) -> Tuple[str, Dict[
     return (key, obj)
 
 
-# =========================
-# HF Marian batch translator
-# =========================
 class HFTranslator:
     def __init__(self, model_name: str, num_beams: int = 2):
         self.model_name = model_name
@@ -233,9 +212,6 @@ class HFTranslator:
         return [x.strip() for x in out]
 
 
-# =========================
-# Target field discovery (schema-robust)
-# =========================
 def path_has_ancestor(path: List[Any], ancestor: str) -> bool:
     return any(isinstance(p, str) and p == ancestor for p in path)
 
@@ -281,20 +257,30 @@ def get_by_path(root: Any, path: List[Any]) -> Any:
     return cur
 
 
-# =========================
-# Translation bulk w/ heartbeat
-# =========================
+class Heartbeat:
+    def __init__(self, interval_sec: int = 30):
+        self.interval = max(5, int(interval_sec))
+        self.last = time.time()
+
+    def ping(self, extra: str = ""):
+        now = time.time()
+        if now - self.last >= self.interval:
+            msg = "[HEARTBEAT] still running"
+            if extra:
+                msg += f" | {extra}"
+            print(msg)
+            sys.stdout.flush()
+            self.last = now
+
+
 def translate_texts_bulk(
     translator: HFTranslator,
     texts: List[str],
     glossary: Dict[str, str],
     cache: Dict[str, str],
     batch_size: int,
-    heartbeat: "Heartbeat",
+    heartbeat: Heartbeat,
 ) -> Tuple[List[str], int, int]:
-    """
-    returns (translated_texts, cache_hit_count, generated_count)
-    """
     protected_list = []
     placeholders_list = []
     keys = []
@@ -321,7 +307,7 @@ def translate_texts_bulk(
     generated = 0
 
     for start in range(0, len(to_do_texts), batch_size):
-        heartbeat.ping(extra=f"translating batch {start//batch_size + 1}/{(len(to_do_texts)+batch_size-1)//batch_size}")
+        heartbeat.ping(extra=f"batch {start//batch_size + 1}/{(len(to_do_texts)+batch_size-1)//batch_size}")
         chunk = to_do_texts[start:start + batch_size]
         outs = translator.translate_batch(chunk)
         generated += len(chunk)
@@ -331,7 +317,6 @@ def translate_texts_bulk(
             out = restore_tokens(out, placeholders_list[idx])
             out = postprocess_ko(apply_glossary(out, glossary))
 
-            # 방어: 번역 결과에 한글이 거의 없으면 원문 유지
             if not has_hangul(out):
                 out = texts[idx]
 
@@ -339,7 +324,6 @@ def translate_texts_bulk(
             if out != texts[idx]:
                 cache[keys[idx]] = out
 
-    # type narrowing
     final_results = [r if r is not None else texts[i] for i, r in enumerate(results)]
     return final_results, cache_hits, generated
 
@@ -367,23 +351,19 @@ def maybe_already_translated(out_json_path: Path) -> bool:
     return True
 
 
-# =========================
-# Heartbeat logger
-# =========================
-class Heartbeat:
-    def __init__(self, interval_sec: int = 30):
-        self.interval = max(5, int(interval_sec))
-        self.last = time.time()
-
-    def ping(self, extra: str = ""):
-        now = time.time()
-        if now - self.last >= self.interval:
-            msg = "[HEARTBEAT] still running"
-            if extra:
-                msg += f" | {extra}"
-            print(msg)
-            sys.stdout.flush()
-            self.last = now
+def parse_only_list(s: Optional[str]) -> Optional[set]:
+    if not s:
+        return None
+    items = [x.strip() for x in s.split(",") if x.strip()]
+    if not items:
+        return None
+    # allow ".js" suffix in input
+    out = set()
+    for it in items:
+        if it.endswith(".js"):
+            it = it[:-3]
+        out.add(it)
+    return out
 
 
 def main():
@@ -397,13 +377,17 @@ def main():
     ap.add_argument("--batch_size", type=int, default=16)
     ap.add_argument("--skip_if_translated", action="store_true")
     ap.add_argument("--heartbeat_sec", type=int, default=30)
-    ap.add_argument("--flush_each_file", action="store_true", help="각 파일마다 캐시 저장(느리지만 안전)")
+    ap.add_argument("--flush_each_file", action="store_true")
+    # NEW: test controls
+    ap.add_argument("--only", default="", help="comma-separated stems, e.g. afrodite,anubis,apollo")
+    ap.add_argument("--limit", type=int, default=0, help="process first N files after filtering")
     args = ap.parse_args()
 
     print("[START] translate_zone_nova_characters_free_hf_optimized.py")
     print(f"[ENV] HF_HOME={os.getenv('HF_HOME')}")
-    print(f"[ARGS] src={args.src} out={args.out} cache={args.cache} glossary={args.glossary}")
+    print(f"[ARGS] src={args.src} out={args.out} cache={args.cache}")
     print(f"[ARGS] model={args.model_name} beams={args.num_beams} batch={args.batch_size} skip={args.skip_if_translated}")
+    print(f"[ARGS] only={args.only} limit={args.limit} heartbeat={args.heartbeat_sec}s")
     sys.stdout.flush()
 
     heartbeat = Heartbeat(interval_sec=args.heartbeat_sec)
@@ -425,10 +409,19 @@ def main():
     sys.stdout.flush()
 
     translator = HFTranslator(args.model_name, num_beams=args.num_beams)
-    sys.stdout.flush()
 
     files = sorted(src_dir.glob("*.js"))
-    print(f"[SCAN] found {len(files)} js files under {src_dir}")
+    only_set = parse_only_list(args.only)
+
+    if only_set is not None:
+        files = [f for f in files if f.stem in only_set]
+        print(f"[FILTER] only={sorted(list(only_set))} -> {len(files)} files")
+
+    if args.limit and args.limit > 0:
+        files = files[: args.limit]
+        print(f"[FILTER] limit={args.limit} -> {len(files)} files")
+
+    print(f"[SCAN] selected {len(files)} js files")
     sys.stdout.flush()
 
     total_targets = 0
@@ -455,8 +448,7 @@ def main():
 
         targets = collect_targets(data_obj)
 
-        # gather references
-        field_refs = []  # (container, key_or_idx, old_value)
+        field_refs = []
         texts: List[str] = []
         for path, key, value in targets:
             container = get_by_path(data_obj, path)
@@ -477,7 +469,6 @@ def main():
             sys.stdout.flush()
             continue
 
-        # translate
         t0 = time.time()
         translated, cache_hits, generated = translate_texts_bulk(
             translator=translator,
@@ -510,7 +501,6 @@ def main():
         )
         sys.stdout.flush()
 
-        # cache flush policy
         if args.flush_each_file:
             save_cache(cache_path, cache)
             print(f"[CACHE] saved (flush_each_file) entries={len(cache)}")
