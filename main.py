@@ -16,8 +16,8 @@ CLASS_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova"
 CHAR_META_JSON = os.path.join(DATA_DIR, "characters_meta.json")
 CHAR_JSON = os.path.join(DATA_DIR, "characters.json")
 
-# ✅ 캐릭터 상세 JSON 저장 폴더(신규)
-CHAR_DETAIL_DIR = os.path.join(DATA_DIR, "characters")
+# ✅ 변경: 캐릭터 상세는 characters_ko(캐릭터별 단일 json) 사용
+CHAR_KO_DIR = os.path.join(DATA_DIR, "characters_ko")
 
 OVERRIDE_NAMES = os.path.join(DATA_DIR, "overrides_names.json")
 OVERRIDE_FACTIONS = os.path.join(DATA_DIR, "overrides_factions.json")
@@ -56,9 +56,9 @@ CACHE = {
     "source": {
         "characters": None,
         "element_chart": "public/data/zone-nova/element_chart.json",
-        "bosses": "public/data/zone-nova/bosses.json"
+        "bosses": "public/data/zone-nova/bosses.json",
+        "characters_ko": "public/data/zone-nova/characters_ko/*.json",
     },
-    "detail_index": {},  # cid -> relative path
     "error": None,
 }
 
@@ -128,7 +128,6 @@ def normalize_element(v: str) -> str:
     s = (v or "").strip()
     if not s:
         return "-"
-    # title-case-like
     s2 = s[:1].upper() + s[1:].lower()
     return ELEMENT_RENAME.get(s2, s2)
 
@@ -390,19 +389,6 @@ def normalize_bosses(raw) -> list[dict]:
         })
     return out
 
-def _build_detail_index():
-    idx = {}
-    if not os.path.isdir(CHAR_DETAIL_DIR):
-        return idx
-    for fn in os.listdir(CHAR_DETAIL_DIR):
-        if not fn.lower().endswith(".json"):
-            continue
-        base = os.path.splitext(fn)[0]
-        cid = slug_id(base)
-        if cid:
-            idx[cid] = f"public/data/zone-nova/characters/{fn}"
-    return idx
-
 def load_all(force: bool = False) -> None:
     if CACHE["chars"] and CACHE["bosses"] and not force:
         return
@@ -431,13 +417,11 @@ def load_all(force: bool = False) -> None:
         bdata = read_json_file(BOSS_JSON)
         CACHE["bosses"] = normalize_bosses(bdata)
 
-        CACHE["detail_index"] = _build_detail_index()
         CACHE["last_refresh"] = now_iso()
 
     except Exception as e:
         CACHE["chars"] = []
         CACHE["bosses"] = []
-        CACHE["detail_index"] = {}
         CACHE["last_refresh"] = now_iso()
         CACHE["error"] = str(e)
 
@@ -585,8 +569,7 @@ def meta():
         "last_refresh": CACHE["last_refresh"],
         "error": CACHE["error"],
         "source": CACHE["source"],
-        "detail_dir": CHAR_DETAIL_DIR,
-        "detail_count": len(CACHE["detail_index"]),
+        "characters_ko_dir": CHAR_KO_DIR,
     })
 
 @app.get("/zones/zone-nova/characters")
@@ -600,28 +583,33 @@ def api_chars():
         "characters": CACHE["chars"],
     })
 
-# ✅ 상세 조회 API(신규)
+# ✅ 상세 조회 API: characters_ko/<cid>.json 반환
 @app.get("/zones/zone-nova/characters/<cid>")
 def api_char_detail(cid: str):
     load_all()
     cid2 = slug_id(cid)
+
     by_id = {c["id"]: c for c in CACHE["chars"]}
     base = by_id.get(cid2)
     if not base:
         return jsonify({"ok": False, "error": f"unknown character id: {cid}"}), 404
 
-    rel = CACHE["detail_index"].get(cid2)
-    detail = None
-    if rel:
-        abs_path = os.path.join(BASE_DIR, rel.replace("/", os.sep))
-        detail = safe_load_json(abs_path)
+    # characters_ko는 "캐릭터별 단일 json 파일" 전제
+    detail_path = os.path.join(CHAR_KO_DIR, f"{cid2}.json")
+    detail = safe_load_json(detail_path)
+
+    if detail is None:
+        return jsonify({
+            "ok": False,
+            "error": f"characters_ko json not found: {cid2}.json",
+        }), 404
 
     return jsonify({
         "ok": True,
         "id": cid2,
         "character": base,
         "detail": detail,
-        "detail_source": rel,
+        "detail_source": f"public/data/zone-nova/characters_ko/{cid2}.json",
     })
 
 @app.get("/zones/zone-nova/bosses")
