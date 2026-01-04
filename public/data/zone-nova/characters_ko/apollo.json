@@ -1,0 +1,87 @@
+{
+  "name": "Apollo",
+  "image": "Apollo",
+  "rarity": "SSR",
+  "element": "Fire",
+  "class": "Buffer",
+  "role": "Buffer",
+  "faction": "Odius",
+  "stats": {
+    "hp": "9,564",
+    "attack": "1,004",
+    "defense": "672"
+  },
+  "skills": {
+    "normal": {
+      "name": "Day Brilliance Flash",
+      "description": "지정한 적에게 공격력의 120%만큼 화염 피해를 준다."
+    },
+    "auto": {
+      "name": "Divine Music Accompaniment",
+      "cooldown": "5.0s",
+      "description": "아군 전체의 가하는 피해가 24% 증가한다. 또한 [추가 공격] 피해가 추가로 36% 증가한다."
+    },
+    "ultimate": {
+      "name": "Day Brilliance Chanting",
+      "energyCost": "8",
+      "description": "10초 동안 [일휘] 상태에 진입한다. 상태 지속 중 아군의 공격력이 120% 증가하며, 아군이 궁극기를 사용할 때마다 아폴론이 추가 타격을 발동해 공격력의 360%만큼 화염 피해를 준다. 이 추가 타격은 치명타 확률이 100%이며 [추가 공격] 피해로 간주된다. (각 아군당 5초에 1회 발동)"
+    },
+    "passive": {
+      "name": "Brilliant Verdict",
+      "description": "자동 스킬 사용 시(자신): 아군 전체가 [찬란] 1중첩을 획득한다. [찬란]: 중첩당 치명타 확률 +2.4%, 치명타 피해 +4.8%. 최대 10중첩(치명타 확률 +24%, 치명타 피해 +48%). [추가 공격] 연계: 아군의 [추가 공격]이 적중하면 아군 전체가 추가로 [찬란]을 획득하며, 아폴론은 [광휘 시스템] 1중첩을 얻는다. [광휘]: 4중첩마다 에너지를 1 회복한다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "전투 시작 시 팀의 가하는 피해가 10% 증가한다. 공격력 500마다 팀 가하는 피해가 5% 추가 증가하며, 최대 6회(최대 30%)까지 적용된다.",
+    "requirements": {
+      "faction": "Odius",
+      "element": "Fire"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "아군이 [추가 공격] 피해를 주면 아군 전체가 추가로 [찬란] 1중첩을 획득한다. (캐릭터당 1초에 1회 발동)"
+    },
+    {
+      "level": 2,
+      "effect": "[일휘] 상태 동안 받는 피해가 50% 감소한다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬] 및 [일반 공격] 레벨/레벨 상한 +4."
+    },
+    {
+      "level": 4,
+      "effect": "[일휘] 상태 동안 아군이 속성 저항 관통 10%를 획득한다."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기] 및 [패시브] 레벨/레벨 상한 +4."
+    },
+    {
+      "level": 6,
+      "effect": "[일휘] 상태 동안 아폴론의 [추가 공격] 치명타 피해가 추가로 50% 증가한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "The Loneliest Moment",
+    "image": "Apollocard",
+    "stats": {
+      "hp": "6,000",
+      "attack": "600",
+      "defense": "600"
+    },
+    "effects": [
+      "전투 시작 시 아군 전체의 가하는 피해가 40% 증가하고, [추가 공격] 피해가 추가로 40% 증가한다.",
+      "장착자가 소모 에너지 8을 초과하는 궁극기를 사용하면, 10초 동안 아군 전체의 에너지 효율이 100% 증가한다."
+    ]
+  },
+  "tags": [
+    "Ranged",
+    "Extra Attack",
+    "Buff",
+    "Energy Recovery"
+  ]
+}

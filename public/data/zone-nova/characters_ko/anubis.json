@@ -1,0 +1,105 @@
+{
+  "name": "Anubis",
+  "chineseName": "阿努比斯",
+  "image": "Anubis",
+  "rarity": "SSR",
+  "element": "Chaos",
+  "class": "Healer",
+  "role": "Healer",
+  "faction": "Chemic",
+  "stats": {
+    "hp": "9,180",
+    "attack": "1,004",
+    "defense": "729",
+    "energyRecovery": "0.25/s",
+    "critRate": "0%",
+    "critDamage": "50%"
+  },
+  "skills": {
+    "normal": {
+      "name": "Underworld Touch",
+      "chineseName": "冥神之触",
+      "level": "10+4",
+      "cooldown": "2.0s",
+      "description": "지정한 적 1명에게 공격력의 120%만큼 혼돈 피해를 준다."
+    },
+    "auto": {
+      "name": "Divine Punishment Rain",
+      "chineseName": "天罚之雨",
+      "level": "10+4",
+      "cooldown": "8.0s",
+      "description": "대상 및 2m 이내의 적들에게 운석을 소환해 착탄 시 공격력의 96%만큼 혼돈 피해를 준다. 또한 [악몽] 1중첩을 부여한다. [악몽]: 3초마다 중첩당 공격력의 5.6%만큼 혼돈 피해를 준다. 최대 10중첩(최대 3초마다 총 56% 공격력 피해)."
+    },
+    "ultimate": {
+      "name": "Destined Reversal",
+      "chineseName": "命定逆转",
+      "level": "10+4",
+      "cooldown": "1.0s",
+      "energyCost": "4",
+      "description": "HP가 가장 낮은 아군 1명을 공격력(치유자 공격력)의 112.8% + 668만큼 회복한다. 강화: 모든 아군을 공격력의 112.8% + 668만큼 회복하고, 10초 동안 받는 피해가 10% 감소한다."
+    },
+    "passive": {
+      "name": "Soul Siphon",
+      "chineseName": "灵魂虹吸",
+      "level": "10+4",
+      "description": "자동 스킬로 공격 시(자신만), 대상에게 DOT가 20중첩 이상이면(1돌파 시 15중첩 이상) 아군 전체를 자신의 공격력의 97.2% + 445만큼 회복하고, 즉시 [강화 궁극기] 1회를 획득한다(8초 이내 사용 가능)."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "chineseName": "组合技",
+    "level": "1",
+    "description": "패시브: 자신의 공격력이 10% 증가한다. 전투 시작 시 공격력 500마다 자신의 치유량이 5% 증가하며, 최대 6회 적용된다.",
+    "requirements": {
+      "faction": "Chemic",
+      "element": "Chaos",
+      "condition": "2 [Chemic] colored or 2 [Chaos] colored characters"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "패시브 스킬 조건이 DOT 20중첩에서 15중첩으로 감소한다."
+    },
+    {
+      "level": 2,
+      "effect": "아누비스의 모든 치유(패시브/궁극기 포함)는 대상에게 5초 동안 받는 피해 10% 감소 효과를 부여한다. 새로운 치유가 발생하면 지속 시간이 갱신된다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬] 및 [일반 공격] 레벨 상한 +4."
+    },
+    {
+      "level": 4,
+      "effect": "치유량이 37.5% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[필수 스킬] 및 [패시브] 레벨 상한 +4."
+    },
+    {
+      "level": 6,
+      "effect": "자동 스킬이 연속 공격 시 추가 운석을 소환한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Midnight Work",
+    "chineseName": "熬夜工作",
+    "image": "Anubiscard",
+    "level": "80/80",
+    "stats": {
+      "hp": "6,000",
+      "attack": "800",
+      "defense": "600"
+    },
+    "effects": [
+      "치유량이 50% 증가한다. 치유를 받을 때마다 대상의 공격력이 3초 동안 40% 증가한다."
+    ]
+  },
+  "tags": [
+    "Healing",
+    "Ranged",
+    "Damage Reduction",
+    "DOT"
+  ]
+}

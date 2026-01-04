@@ -1,0 +1,88 @@
+{
+  "name": "Greed Mammon",
+  "image": "GreedMammon",
+  "rarity": "SR",
+  "element": "Chaos",
+  "class": "Mage",
+  "role": "DPS",
+  "faction": "Bicta Tower",
+  "stats": {
+    "hp": "6,694",
+    "attack": "1,088",
+    "defense": "442"
+  },
+  "skills": {
+    "normal": {
+      "name": "The More You Hit, The Richer",
+      "description": "지정한 적에게 공격력의 120%만큼 혼돈 피해를 입힙니다."
+    },
+    "auto": {
+      "name": "Golden Curse",
+      "cooldown": "5.0s",
+      "description": "자신 주변 반경 3m 내 적에게 공격력의 96%만큼 혼돈 피해를 입힙니다."
+    },
+    "ultimate": {
+      "name": "Seven Deadly Sins: Greed",
+      "energyCost": "5",
+      "description": "지정한 적에게 공격력의 180%만큼 혼돈 피해를 입힙니다. [강화 궁극기]: 자신 주변 반경 4m 내 적에게 공격력의 240%만큼 혼돈 피해를 입힙니다. 아군 [버퍼]가 궁극기를 사용한 뒤 5초 이내에 [강화 궁극기]를 1회 발동할 수 있습니다."
+    },
+    "passive": {
+      "name": "Passive Tax Burden",
+      "description": "강화 궁극기 시전 후 주는 피해 +29%."
+    }
+  },
+  "teamSkill": {
+    "name": "Combo Skill",
+    "description": "자신의 주는 피해 +20%.",
+    "requirements": {
+      "faction": "Bicta Tower",
+      "element": "Chaos"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "버프 효과가 있을 때 궁극기 치명타 피해 +20%."
+    },
+    {
+      "level": 2,
+      "effect": "궁극기 시전 후 받는 피해 -10%(10초)."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬]/[기본 공격] 레벨 및 레벨 상한 +4."
+    },
+    {
+      "level": 4,
+      "effect": "궁극기 피해 +20%."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기]/[패시브] 레벨 및 레벨 상한 +4."
+    },
+    {
+      "level": 6,
+      "effect": "강화 궁극기 시전 성공 시 에너지 1 추가 획득."
+    }
+  ],
+  "memoryCard": {
+    "name": "Method of Revenge",
+    "image": "Greed-Mammon-card",
+    "stats": {
+      "hp": "4,200",
+      "attack": "650",
+      "defense": "395"
+    },
+    "effects": [
+      "버퍼가 궁극기 사용 시, 자신의 궁극기 피해 +60%(10초)."
+    ]
+  },
+  "tags": [
+    "Melee",
+    "AOE",
+    "Enhanced Ultimate",
+    "Crit Dmg",
+    "Energy",
+    "Damage Reduction"
+  ]
+}

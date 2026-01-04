@@ -1,0 +1,97 @@
+{
+  "name": "Apep",
+  "image": "Apep",
+  "rarity": "SSR",
+  "element": "Wind",
+  "class": "Warrior",
+  "role": "DPS",
+  "faction": "Chemic",
+  "stats": {
+    "hp": "10,520",
+    "attack": "696",
+    "defense": "1,315",
+    "energyRecovery": "0.25/s",
+    "critRate": "0%",
+    "critDamage": "50%"
+  },
+  "skills": {
+    "normal": {
+      "name": "Gang Wind Strike",
+      "cooldown": "2.0s",
+      "description": "지정한 적 1명에게 방어력의 120%만큼 바람 피해를 준다."
+    },
+    "auto": {
+      "name": "Wind Gang Wall",
+      "cooldown": "5.0s",
+      "description": "자신에게 방어력의 120%만큼 보호막을 부여한다."
+    },
+    "ultimate": {
+      "name": "Wind Blessing",
+      "energyCost": "2",
+      "cooldown": "1.0s",
+      "description": "현재 HP가 50% 미만이면 전방 칸의 대상에게 방어력의 120%만큼 바람 피해를 주고, 자신의 방어력의 120%만큼 HP를 회복한다. 현재 HP가 50% 이상이면 스킬이 강화되어 전방 칸 대상 중심 3×3 범위의 모든 적에게 방어력의 120%만큼 바람 피해를 주며, 추가 타격으로 방어력의 240%만큼 바람 피해를 준다."
+    },
+    "passive": {
+      "name": "Wind Wisdom",
+      "description": "전투 진입 전 방어력 1,000마다 최대 HP 상한이 4,000 증가하며, 최대 20,000까지 증가한다. [Wind Gang Wall] 보호막 보유 시 받는 피해가 24% 감소하고, 가하는 피해가 48% 증가한다."
+    }
+  },
+  "teamSkill": {
+    "name": "Wind Chemic Alliance",
+    "description": "자신의 방어력이 15% 증가한다. 전투 시작 시 방어력 500마다 받는 피해가 1.5% 감소하며, 최대 6회 중첩된다.",
+    "requirements": {
+      "faction": "Chemic",
+      "element": "Wind",
+      "alternativeConditions": "Team contains 2 Chemic characters or 2 Wind characters"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "일반 공격이 피해를 줄 때마다 방어력이 5% 증가한다(10초 지속, 최대 30% 중첩)."
+    },
+    {
+      "level": 2,
+      "effect": "강화 궁극기 사용 시에도 회복 효과가 발동하며, 회복량은 궁극기와 동일하다."
+    },
+    {
+      "level": 3,
+      "effect": "[기본 공격], [스킬], [궁극기], [패시브] 레벨/레벨 상한 +2."
+    },
+    {
+      "level": 4,
+      "effect": "방어력이 45% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[기본 공격], [스킬], [궁극기], [패시브] 레벨/레벨 상한 +2."
+    },
+    {
+      "level": 6,
+      "effect": "모든 저항이 10% 증가하고, 바람 저항이 추가로 10% 증가한다. 또한 가하는 모든 피해가 바람 저항 10%를 관통한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Wrong Appearance Timing",
+    "image": "Apepcard",
+    "stats": {
+      "hp": "8,800",
+      "attack": "480",
+      "defense": "690"
+    },
+    "effects": [
+      "방어력이 64% 증가한다.",
+      "HP가 50% 이상일 때, 장착자가 공격하면 최대 HP의 2%를 회복한다.",
+      "HP가 50% 이상일 때, 받는 피해가 10% 감소하고 가하는 피해가 40% 증가한다."
+    ]
+  },
+  "tags": [
+    "Defense Scale",
+    "Shield",
+    "Tank",
+    "Self Healing",
+    "Wind Damage",
+    "HP Scaling",
+    "Conditional Enhancement"
+  ]
+}

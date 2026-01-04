@@ -1,0 +1,86 @@
+{
+  "name": "Nini",
+  "image": "Nini",
+  "rarity": "SR",
+  "element": "Ice",
+  "class": "Debuffer",
+  "role": "Debuffer",
+  "faction": "Monochrome Nation",
+  "stats": {
+    "hp": "7,970",
+    "attack": "837",
+    "defense": "560"
+  },
+  "skills": {
+    "normal": {
+      "name": "Suppressive Fire (压制射击)",
+      "description": "적 1명에게 공격력의 120%만큼 빙결 피해를 준다."
+    },
+    "auto": {
+      "name": "Steel Charge (钢铁冲锋)",
+      "cooldown": "Auto-trigger: 5.0s",
+      "description": "전방의 모든 적에게 공격력의 60%만큼 빙결 피해를 준다. [약점] 디버프 부여: 1중첩당 적의 주는 피해가 5.8% 감소한다. 최대 3중첩, 10초 지속."
+    },
+    "ultimate": {
+      "name": "Black Nation's Glory (黑色带国的荣耀)",
+      "energyCost": "3",
+      "description": "전방의 모든 적에게 공격력의 84%만큼 빙결 피해를 준다. 10초 동안 대상이 받는 피해가 38% 증가한다."
+    },
+    "passive": {
+      "name": "Battle Fanatic (战斗狂热分子)",
+      "description": "약화 효과가 걸린 적을 공격할 때, 주는 피해가 38% 증가한다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill (组合技)",
+    "description": "자신이 주는 피해가 20% 증가한다.",
+    "requirements": {
+      "faction": "Monochrome Nation",
+      "element": "Ice"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "약화 효과가 걸린 적을 자동 스킬로 공격할 때, 스킬 피해가 30% 증가한다."
+    },
+    {
+      "level": 2,
+      "effect": "[약점]이 최대 5중첩까지 누적된다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬]과 [일반 공격]의 레벨 및 레벨 상한이 +4 증가한다."
+    },
+    {
+      "level": 4,
+      "effect": "자동 스킬 적중 시 대상이 받는 빙결 피해가 추가로 10% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기]와 [패시브]의 레벨 및 레벨 상한이 +4 증가한다."
+    },
+    {
+      "level": 6,
+      "effect": "스킬이 HP 50% 미만 대상에게 적중하면 즉시 [약점]을 부여한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Battlefield Flower",
+    "image": "ninicard",
+    "stats": {
+      "hp": "5,000",
+      "attack": "500",
+      "defense": "500"
+    },
+    "effects": [
+      "공격한 대상에게 걸린 약화 효과 1개당 이 캐릭터의 주는 피해가 20% 증가한다. 최대 3회 중첩(최대 60%)."
+    ]
+  },
+  "tags": [
+    "Range",
+    "Debuffer",
+    "Vulnerability",
+    "Weakness"
+  ]
+}

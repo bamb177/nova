@@ -1,0 +1,105 @@
+{
+  "name": "Snow Girl",
+  "chineseName": "雪女",
+  "image": "Snow",
+  "rarity": "SR",
+  "element": "Ice",
+  "class": "Healer",
+  "role": "Healer",
+  "faction": "Pingjing City",
+  "stats": {
+    "hp": "7,850",
+    "attack": "837",
+    "defense": "608",
+    "energyRecovery": "0.25/s",
+    "critRate": "0%",
+    "critDamage": "50%"
+  },
+  "skills": {
+    "normal": {
+      "name": "Snow Ghost Impact",
+      "chineseName": "雪鬼撞击",
+      "level": "10+4",
+      "cooldown": "2.0s",
+      "description": "적 1명에게 공격력의 120%에 해당하는 빙속성 피해를 준다."
+    },
+    "auto": {
+      "name": "Ice Snow Healing",
+      "chineseName": "冰雪治愈",
+      "level": "10+4",
+      "cooldown": "5.0s",
+      "description": "아군 전체를 치유해 자신의 공격력의 33.6% + 182만큼 HP를 회복시킨다."
+    },
+    "ultimate": {
+      "name": "Ice Seal Protection",
+      "chineseName": "冰封庇护",
+      "level": "10+4",
+      "cooldown": "1.0s",
+      "energyCost": "3",
+      "description": "아군 전체를 치유해 자신의 공격력의 47.2% + 182만큼 HP를 회복시킨다."
+    },
+    "passive": {
+      "name": "Frost Blessing",
+      "chineseName": "冰霜祝福",
+      "level": "10+4",
+      "description": "궁극기 치유 시 대상에게 5초간 지속 회복 효과를 부여한다. 초당 설녀 공격력의 75% + 29만큼 HP를 회복한다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "chineseName": "组合技",
+    "level": "1",
+    "description": "자신의 공격력이 10% 증가하고, 치유량이 12.5% 증가한다.",
+    "requirements": {
+      "faction": "Pingjing City",
+      "element": "Ice",
+      "condition": "2 [Pingjing City] or 2 [Ice]"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "궁극기로 아군을 치유한 후, 대상의 주는 피해가 10% 증가한다(10초)."
+    },
+    {
+      "level": 2,
+      "effect": "일반 공격이 공격력의 50%에 해당하는 냉기 추가 피해를 준다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬] 및 [일반 공격] 레벨과 최대 레벨이 +4 증가한다."
+    },
+    {
+      "level": 4,
+      "effect": "치유량이 20% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[필수 스킬] 및 [패시브] 레벨과 최대 레벨이 +4 증가한다."
+    },
+    {
+      "level": 6,
+      "effect": "아군을 치유하는 자동 스킬도 패시브의 지속 회복 효과를 발동할 수 있다."
+    }
+  ],
+  "memoryCard": {
+    "name": "The Beauty of Heijing Castle",
+    "chineseName": "平京城的绝美",
+    "image": "Snowcard",
+    "level": "80/80",
+    "stats": {
+      "hp": "5,000",
+      "attack": "500",
+      "defense": "500"
+    },
+    "effects": [
+      "치유 대상의 HP가 가득 찼을 때, 대상의 주는 피해가 24% 증가한다(10초)."
+    ]
+  },
+  "tags": [
+    "Range",
+    "Healing Damage Increase",
+    "Continuously Heals",
+    "AOE Healing"
+  ]
+}

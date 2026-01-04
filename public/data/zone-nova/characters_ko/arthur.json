@@ -1,0 +1,89 @@
+{
+  "name": "Arthur",
+  "image": "Arthur",
+  "rarity": "SSR",
+  "element": "Holy",
+  "class": "Mage",
+  "role": "DPS",
+  "faction": "Avalon",
+  "stats": {
+    "hp": "8,033",
+    "attack": "1,305",
+    "defense": "530",
+    "critRate": 15
+  },
+  "skills": {
+    "normal": {
+      "name": "Oath Victory Sword",
+      "description": "지정한 적에게 공격력의 120%만큼 성속성 피해를 준다."
+    },
+    "auto": {
+      "name": "King's Sword",
+      "cooldown": "5.0s",
+      "description": "전방의 적 1명에게 공격력의 240%만큼 성속성 피해를 준다. 피해를 준 대상 수만큼 치명타 피해가 12% 증가하며, 최대 4중첩, 5초 지속."
+    },
+    "ultimate": {
+      "name": "Imperial Sacred Judgment",
+      "energyCost": "6",
+      "description": "전방의 적들에게 공격력의 600%만큼 성속성 피해를 준다. 버퍼가 궁극기를 사용하면 5초 안에 [강화 궁극기]를 발동할 수 있다. [강화 궁극기]: 10초 동안 공격력이 36% 증가하고, 전방의 적들에게 공격력의 720%만큼 성속성 피해를 준다."
+    },
+    "passive": {
+      "name": "Royal Dominance",
+      "description": "궁극기 사용 시 공격력이 12%, 방어력이 5.6% 증가한다. 최대 3중첩, 10초 지속(최대 공격력 36%, 방어력 16.8%)."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자신의 치명타 확률이 7.5% 증가한다. 전투 시작 시 치명타 확률 15%마다 성속성 피해가 5% 증가하며, 최대 6회 적용된다.",
+    "requirements": {
+      "faction": "Avalon",
+      "element": "Holy"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "치명타 확률이 15% 증가한다."
+    },
+    {
+      "level": 2,
+      "effect": "[강화 궁극기] 발동 시 치명타 피해가 30% 증가한다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬] 및 [일반 공격] 레벨/레벨 상한 +4."
+    },
+    {
+      "level": 4,
+      "effect": "궁극기 피해가 35% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기] 및 [패시브] 레벨/레벨 상한 +4."
+    },
+    {
+      "level": 6,
+      "effect": "[강화 궁극기]가 대상의 속성 저항 20%를 무시한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Night of Bloody Storm",
+    "image": "Night-of-Bloody-Storm",
+    "stats": {
+      "hp": "5,040",
+      "attack": "780",
+      "defense": "474"
+    },
+    "effects": [
+      "공격력이 40% 증가한다.",
+      "아군 버퍼가 궁극기를 사용한 뒤 5초 동안, 이 캐릭터의 궁극기 피해가 40% 증가한다.",
+      "총합: 공격력 +40% + 조건부 궁극기 피해 +40%."
+    ]
+  },
+  "tags": [
+    "Melee",
+    "Crit Rate",
+    "Crit Dmg",
+    "Buff"
+  ]
+}

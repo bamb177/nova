@@ -1,0 +1,86 @@
+{
+  "name": "Tefnut",
+  "image": "Tefnut",
+  "rarity": "SR",
+  "element": "Holy",
+  "class": "Rogue",
+  "role": "DPS",
+  "faction": "Chemic",
+  "stats": {
+    "hp": "6,694",
+    "attack": "1,088",
+    "defense": "442"
+  },
+  "skills": {
+    "normal": {
+      "name": "Claw Strike",
+      "description": "지정한 적 1명에게 공격력의 120%에 해당하는 성속성 피해를 준다."
+    },
+    "auto": {
+      "name": "Ruthless Hunt",
+      "cooldown": "5.0s",
+      "description": "지정한 적 1명에게 공격력의 240%에 해당하는 성속성 피해를 준다."
+    },
+    "ultimate": {
+      "name": "Bloodthirsty Killing",
+      "energyCost": "8",
+      "description": "지정한 적에게 돌진해 공격력의 960%에 해당하는 성속성 피해를 준다. 대상의 [성스러운 증오]가 최대 중첩일 때, 추가로 [광식]을 부여한다. [광식]: 3초마다 피해를 주며, 1중첩당 공격력의 180%에 해당하는 성속성 피해를 준다. 최대 1중첩."
+    },
+    "passive": {
+      "name": "Bloodthirst",
+      "description": "자동 스킬이 [성스러운 증오]를 부여한다. [성스러운 증오]: 2초마다 피해를 주며, 1중첩당 공격력의 24%에 해당하는 성속성 피해를 준다. 최대 5중첩."
+    }
+  },
+  "teamSkill": {
+    "name": "Combo Skill",
+    "description": "자신의 주는 피해가 20% 증가한다.",
+    "requirements": {
+      "faction": "Chemic",
+      "element": "Holy"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "대상이 [지속 피해] 상태일 때, 관통률이 10% 증가한다."
+    },
+    {
+      "level": 2,
+      "effect": "자신의 HP가 100%일 때, 공격력이 20% 증가한다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬] 및 [일반 공격] 레벨과 최대 레벨이 +4 증가한다."
+    },
+    {
+      "level": 4,
+      "effect": "[지속 피해]가 주는 피해가 25% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기] 및 [패시브] 레벨과 최대 레벨이 +4 증가한다."
+    },
+    {
+      "level": 6,
+      "effect": "[궁극기] 적중 시 대상이 받는 [지속 피해]가 20% 증가한다. 15초 지속."
+    }
+  ],
+  "memoryCard": {
+    "name": "Secret Room Reality",
+    "image": "Tefnutcard",
+    "stats": {
+      "hp": "4,200",
+      "attack": "650",
+      "defense": "395"
+    },
+    "effects": [
+      "지속 피해 관통률 +36%"
+    ]
+  },
+  "tags": [
+    "Melee",
+    "DOT",
+    "Penetration",
+    "DOT Intake Increases"
+  ]
+}

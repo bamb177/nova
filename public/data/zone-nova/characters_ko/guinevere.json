@@ -1,0 +1,91 @@
+{
+  "name": "Guinevere",
+  "image": "Guinevere",
+  "rarity": "SSR",
+  "element": "Fire",
+  "class": "Guardian",
+  "role": "Tank",
+  "faction": "Avalon",
+  "stats": {
+    "hp": "10,520",
+    "attack": "734",
+    "defense": "1,232"
+  },
+  "skills": {
+    "normal": {
+      "name": "Inferno",
+      "description": "지정한 적에게 방어력의 120%만큼 화염 피해를 입힙니다."
+    },
+    "auto": {
+      "name": "Supreme Power",
+      "cooldown": "5.0s",
+      "description": "10초 동안 막기 확률 +58%를 획득합니다. [막기]: 일정 확률로 받는 피해를 30% 감소시킵니다. 지속 피해는 막기를 무시합니다."
+    },
+    "ultimate": {
+      "name": "Devastating Heavenly Fire",
+      "energyCost": "3",
+      "description": "지정한 적에게 [추가 공격]을 발동하여 방어력의 240%만큼 화염 피해를 입힙니다. [지배 권능] 1중첩을 획득하고, 10초 동안 받는 피해 -24%. [강화 궁극기](지배 권능 10중첩 필요): 모든 [지배 권능]을 소모하여 패시브 생명 회복 횟수 1회를 획득합니다. 이후 지정한 적에게 [추가 공격]을 발동해 방어력의 240%만큼 화염 피해를 입히고, 10초 동안 받는 피해 -24%."
+    },
+    "passive": {
+      "name": "Evil Star Explosion",
+      "description": "효과1: [막기] 성공 시 자신의 방어력 +60%(10초). 효과2: [막기] 성공 시 [지배 권능] 1중첩을 획득합니다(초당 최대 1중첩). [지배 권능] 10중첩 시 [강화 궁극기] 사용 가능. 효과3: HP가 40% 이하가 되면 생명 회복 발동: 0.5초 내 최대 HP의 58% 회복, 10초 동안 막기 확률 100%, 10초 동안 치명타 저항 100% 증가. 이 효과는 최초 1회 발동하며, 최대 1회까지 누적됩니다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "효과1: 자신 방어력 +15%. 효과2: 전투 중 방어력 500마다 아군 전체 받는 피해 -1.5%(최대 6중첩, 방어력 3,000). 최대 팀 피해 감소 9%.",
+    "requirements": {
+      "faction": "Avalon",
+      "element": "Fire"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "[막기] 성공 시 추가로 방어력 +30%(5초). 패시브 생명 회복 누적 횟수가 최대 2회로 증가합니다."
+    },
+    {
+      "level": 2,
+      "effect": "일반 궁극기 시전 시 [지배 권능] 1중첩을 추가로 획득합니다. 강화 궁극기 시전 후 즉시 [지배 권능] 2중첩을 획득합니다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬]/[기본 공격] 레벨 및 레벨 상한 +4."
+    },
+    {
+      "level": 4,
+      "effect": "방어력 +45%."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기]/[패시브] 레벨 및 레벨 상한 +4."
+    },
+    {
+      "level": 6,
+      "effect": "모든 저항 +15%, 화염 저항 추가 +15%. 전투 시작 시 패시브 생명 회복 횟수가 2회로 변경됩니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Simple Birdcage",
+    "image": "Guinevere-card",
+    "stats": {
+      "hp": "6,600",
+      "attack": "480",
+      "defense": "690"
+    },
+    "effects": [
+      "방어력 +64%.",
+      "막기 성공 후 받는 피해 -10%(5초).",
+      "전투 시작 즉시 최대 HP의 30%에 해당하는 보호막을 획득합니다."
+    ]
+  },
+  "tags": [
+    "Melee",
+    "Extra Attack",
+    "Block",
+    "Damage Reduction",
+    "Healing",
+    "Enhanced Ultimate",
+    "Shield"
+  ]
+}

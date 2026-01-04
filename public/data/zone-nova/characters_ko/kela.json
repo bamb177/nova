@@ -1,0 +1,85 @@
+{
+  "name": "Kela",
+  "image": "kela",
+  "rarity": "SR",
+  "element": "Holy",
+  "class": "Healer",
+  "role": "Healer",
+  "faction": "Sapphire",
+  "stats": {
+    "hp": "7,650",
+    "attack": "837",
+    "defense": "608"
+  },
+  "skills": {
+    "normal": {
+      "name": "Divine Strike",
+      "description": "지정한 적에게 공격력의 120%만큼 성 피해를 준다."
+    },
+    "auto": {
+      "name": "Sacred Healing",
+      "cooldown": "5.0s",
+      "description": "현재 HP 비율이 가장 낮은 아군 1명을 1회 치유하여 자신의 공격력 69%+335만큼 HP를 회복시킨다."
+    },
+    "ultimate": {
+      "name": "Divine Intervention",
+      "energyCost": "3",
+      "description": "현재 HP 비율이 가장 낮은 아군 1명을 1회 치유하여 자신의 공격력 128%+682만큼 HP를 회복시킨다."
+    },
+    "passive": {
+      "name": "Master of All (万事通之力)",
+      "description": "현재 HP가 50% 미만인 아군을 치유할 때 치유량이 24% 증가한다."
+    }
+  },
+  "teamSkill": {
+    "name": "Divine Sanctuary",
+    "description": "공격력이 10% 증가하고, 치유량이 12.5% 증가한다.",
+    "requirements": {
+      "faction": "Sapphire",
+      "element": "Holy"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "궁극기로 아군을 치유한 후, 대상이 5초 동안 받는 피해가 5% 감소한다."
+    },
+    {
+      "level": 2,
+      "effect": "피해를 받은 뒤 자신의 HP가 20% 미만이 되면 즉시 자신의 공격력 750%만큼 HP를 회복한다(전투당 최대 1회)."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬] 및 [일반 공격] 레벨/레벨 상한 +4"
+    },
+    {
+      "level": 4,
+      "effect": "치유량이 20% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기] 및 [패시브] 레벨/레벨 상한 +4"
+    },
+    {
+      "level": 6,
+      "effect": "자동 스킬의 치유도 각성 1 효과를 발동한다. 각성 1의 피해 감소량이 100% 증가한다(5%→10%)."
+    }
+  ],
+  "memoryCard": {
+    "name": "Solitary Realm (一人之境)",
+    "image": "kelacard",
+    "stats": {
+      "hp": "5,000",
+      "attack": "500",
+      "defense": "500"
+    },
+    "effects": [
+      "치유량이 30% 증가한다. 최대 HP 50% 미만 대상을 치유하면 10초 동안 받는 피해가 8% 감소한다."
+    ]
+  },
+  "tags": [
+    "Range",
+    "Healing",
+    "Reduce Damage"
+  ]
+}

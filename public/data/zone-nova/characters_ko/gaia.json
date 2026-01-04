@@ -1,0 +1,90 @@
+{
+  "name": "Gaia",
+  "image": "Gaia",
+  "rarity": "SSR",
+  "element": "Holy",
+  "class": "Healer",
+  "role": "Healer",
+  "faction": "Odius",
+  "stats": {
+    "hp": "10,548",
+    "attack": "580",
+    "defense": "918"
+  },
+  "skills": {
+    "normal": {
+      "name": "Gene Split",
+      "description": "시전자의 최대 HP의 12%에 해당하는 신성 피해를 대상에게 입힙니다."
+    },
+    "auto": {
+      "name": "Gene Collapse",
+      "cooldown": "10.0s",
+      "description": "다른 아군에게 부유 장치를 배치합니다. 대상이 피해를 받으면 부유 장치가 발동하여 5초 동안 매초 아군 전체를 치유하고, 가이아 최대 HP의 1% + 120만큼 HP를 회복시킵니다. 가이아가 궁극기를 사용하면 다른 아군에게 부유 장치를 보충할 수 있습니다."
+    },
+    "ultimate": {
+      "name": "Dominion: Primordial Order",
+      "energyCost": "3",
+      "description": "아군 전체의 최대 HP를 60% 증가시킵니다. 증가한 최대 HP는 전투 시작 시 가이아 최대 HP의 15%를 초과할 수 없습니다. 20초 지속. 지속시간 동안 가이아는 [응급 처치]를 사용할 수 있습니다. [응급 처치]: 현재 HP 비율이 가장 낮은 아군 1명의 HP를 가이아 최대 HP의 12%만큼 회복합니다."
+    },
+    "passive": {
+      "name": "Primordial Regression",
+      "description": "전투 진입 시 방어력이 가장 낮은 아군이 [모성애]를 획득합니다. [모성애] 지속 중: 대상의 최대 HP가 60% 증가하며(증가량은 전투 시작 시 가이아 최대 HP의 15%를 초과할 수 없음), [모성애] 보유자가 치명 피해를 받을 경우 [수명 연장]이 발동합니다. [수명 연장]: 즉시 HP를 100%로 회복한 뒤, 시간이 지날수록 HP가 점차 감소합니다(초당 감소량 가속). 이 상태에서 적을 처치하면 HP 감소가 중단됩니다. 아군 1명당 전투당 1회 발동하며, 가이아가 전투 불능이 되면 [모성애]는 사라집니다."
+    }
+  },
+  "teamSkill": {
+    "name": "Maternal Guardian",
+    "description": "가이아 최대 HP +10%. 전투 시작 시 가이아 최대 HP 5,000마다 치유량 +5%(최대 6중첩, 최대 +30%).",
+    "requirements": {
+      "faction": "Odius",
+      "element": "Holy"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "[모성애] 보유자의 방어력 +45%. [수명 연장]의 HP 감소 지속시간 상한 10초."
+    },
+    {
+      "level": 2,
+      "effect": "전투 시작 시 에너지 소모 없이 즉시 궁극기를 시전합니다. [응급 처치] 사용 시 궁극기 버프 지속시간이 갱신됩니다."
+    },
+    {
+      "level": 3,
+      "effect": "[기본 공격]/[자동 스킬]/[궁극기]/[패시브] 레벨 및 레벨 상한 +2."
+    },
+    {
+      "level": 4,
+      "effect": "가이아 치유량 +37.5%."
+    },
+    {
+      "level": 5,
+      "effect": "[기본 공격]/[자동 스킬]/[궁극기]/[패시브] 레벨 및 레벨 상한 +2."
+    },
+    {
+      "level": 6,
+      "effect": "전투 시작 시 방어력이 가장 낮은 아군 2명이 [모성애]를 획득합니다. [모성애] 보유자의 추가 최대 HP +50%."
+    }
+  ],
+  "memoryCard": {
+    "name": "A Smile That Topples Cities",
+    "image": "Gaiacard",
+    "stats": {
+      "hp": "6,300",
+      "attack": "580",
+      "defense": "585"
+    },
+    "effects": [
+      "최대 HP +40%.",
+      "치유량 +40%.",
+      "착용자가 최근 1초 이내에 치유를 했다면, 추가로 치유량 +40%."
+    ]
+  },
+  "tags": [
+    "HP Scale",
+    "Healing",
+    "Range",
+    "Revive",
+    "Increase MAX HP",
+    "AOE Healing"
+  ]
+}

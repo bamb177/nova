@@ -1,0 +1,106 @@
+{
+  "name": "Jeanne D Arc",
+  "chineseName": "贞德",
+  "image": "JoanofArc",
+  "rarity": "SSR",
+  "element": "Wind",
+  "class": "Healer",
+  "role": "Healer",
+  "faction": "Avalon",
+  "stats": {
+    "hp": "9,180",
+    "attack": "1,004",
+    "defense": "729",
+    "energyRecovery": "0.25/s",
+    "critRate": "0%",
+    "critDamage": "50%"
+  },
+  "skills": {
+    "normal": {
+      "name": "Sacred Banner Thrust",
+      "chineseName": "圣旗突刺",
+      "level": "10+4",
+      "cooldown": "2.0s",
+      "description": "지정한 적에게 공격력의 120%만큼 바람 피해를 준다."
+    },
+    "auto": {
+      "name": "Holy Light Banner",
+      "chineseName": "圣光旗帜",
+      "level": "10+4",
+      "cooldown": "8.0s",
+      "description": "짧게 시전한 뒤, 현재 HP 비율이 가장 낮은 아군 1명을 자신의 공격력 80.5%+445만큼 회복시키고 3회에 걸쳐 지속 치유한다."
+    },
+    "ultimate": {
+      "name": "Sacred Heavenly ",
+      "chineseName": "圣天神后",
+      "level": "10+4",
+      "cooldown": "1.0s",
+      "energyCost": "8",
+      "description": "아군 전체의 HP를 자신의 공격력 90.8%+668만큼 회복시키고, 자신에게 [Sacred Healing] 3중첩을 부여한다. [Sacred Healing]은 최대 4중첩까지 중첩된다."
+    },
+    "passive": {
+      "name": "Sacred Blood Healing",
+      "chineseName": "圣血治疗",
+      "level": "10+4",
+      "description": "아군이 공격받을 때 [Sacred Healing] 1중첩을 소모하여 해당 아군의 HP를 자신의 공격력 91.2%+445만큼 회복시킨다(대상별 재사용 대기시간 1초).\n아군이 빈사 상태에 진입하면 5초 후 부활시키고 자신의 공격력 285.8%+2709만큼 HP를 회복시킨다(전투당 최대 1회)."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "chineseName": "组合技",
+    "level": "1",
+    "description": "공격력이 10% 증가한다. 공격력 500마다 자신의 치유량이 5% 증가하며, 최대 6회까지 적용된다.",
+    "requirements": {
+      "faction": "Avalon",
+      "element": "Wind",
+      "condition": "2 [Avalon] colored or 2 [Wind] colored characters"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "궁극기 사용 후 [Sacred Healing] 1중첩을 추가로 획득한다."
+    },
+    {
+      "level": 2,
+      "effect": "[Sacred Healing]을 소모해 치유한 대상은 5초 동안 받는 피해가 10% 감소한다. 중복 발동 시 지속 시간이 연장된다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬] 및 [일반 공격] 레벨 상한 +4"
+    },
+    {
+      "level": 4,
+      "effect": "치유량이 37.5% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[필수 스킬] 및 [패시브] 레벨 상한 +4"
+    },
+    {
+      "level": 6,
+      "effect": "부활 가능 횟수가 1회 증가한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "The Most Real Her",
+    "chineseName": "最真实的她",
+    "image": "JoanofArccard",
+    "level": "80/80",
+    "stats": {
+      "hp": "6,000",
+      "attack": "600",
+      "defense": "600"
+    },
+    "effects": [
+      "치유량이 50% 증가한다. 스킬 또는 궁극기 시전 시간이 1/2/3초일 때 치유량이 추가로 25/50/75% 증가한다."
+    ]
+  },
+  "tags": [
+    "Range",
+    "Healing",
+    "Revival",
+    "Reduced Damage",
+    "Continuously Heals"
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "name": "Mordred",
+  "image": "Mordred",
+  "rarity": "SR",
+  "element": "Fire",
+  "class": "Warrior",
+  "role": "DPS",
+  "faction": "Avalon",
+  "stats": {
+    "hp": "8,470",
+    "attack": "837",
+    "defense": "560"
+  },
+  "skills": {
+    "normal": {
+      "name": "Petty Sword",
+      "description": "적 1명에게 자신의 최대 HP의 120%만큼 화염 피해를 준다."
+    },
+    "auto": {
+      "name": "Revenge Blade",
+      "cooldown": "5.0s",
+      "description": "지정한 적 1명에게 자신의 최대 HP의 36%만큼 화염 피해를 준다."
+    },
+    "ultimate": {
+      "name": "Destructive Fury",
+      "energyCost": "5",
+      "description": "자신의 최대 HP를 36% 회복한다. 대상에게 자신의 최대 HP의 144%만큼 화염 피해를 준다."
+    },
+    "passive": {
+      "name": "Deep Hatred",
+      "description": "일반 공격 시 자신의 최대 HP를 5.8% 회복한다. HP가 50% 미만이면 받는 치유량이 60% 증가한다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자신의 공격력이 10% 증가하고, 치유량이 12.5% 증가한다.",
+    "requirements": {
+      "faction": "Avalon",
+      "element": "Fire"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "받는 피해가 10% 감소한다."
+    },
+    {
+      "level": 2,
+      "effect": "일반 공격 시 자신의 방어력이 5% 증가하며, 최대 10회 중첩된다."
+    },
+    {
+      "level": 3,
+      "effect": "[자동 스킬]과 [일반 공격]의 레벨 및 레벨 상한이 +4 증가한다."
+    },
+    {
+      "level": 4,
+      "effect": "HP가 30% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기]와 [패시브]의 레벨 및 레벨 상한이 +4 증가한다."
+    },
+    {
+      "level": 6,
+      "effect": "일반 공격이 추가로 자신의 최대 HP의 5%만큼 화염 피해를 준다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Behind the Regret",
+    "image": "mordredcard",
+    "stats": {
+      "hp": "5,000",
+      "attack": "500",
+      "defense": "500"
+    },
+    "effects": [
+      "HP가 24% 증가한다.",
+      "자신의 치유량이 30% 증가한다."
+    ]
+  },
+  "tags": [
+    "Melee",
+    "Healing",
+    "HP-Scale",
+    "Damage Reduction"
+  ]
+}

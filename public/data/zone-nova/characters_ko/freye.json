@@ -1,0 +1,90 @@
+{
+  "name": "Freye",
+  "image": "Freye",
+  "rarity": "SSR",
+  "element": "Chaos",
+  "class": "Debuffer",
+  "role": "Debuffer",
+  "faction": "A.S.A",
+  "stats": {
+    "hp": 9180,
+    "attack": 1184,
+    "defense": 729
+  },
+  "skills": {
+    "normal": {
+      "name": "Chaos Strike",
+      "description": "지정한 적에게 공격력의 120%만큼 혼돈 피해를 입힙니다."
+    },
+    "auto": {
+      "name": "Attribute Break",
+      "cooldown": "5.0s",
+      "description": "지정한 적에게 [약점 속성]을 부여합니다. 우선순위는 파티 4번째 캐릭터의 속성입니다. 해당 속성 저항을 15% 감소(10초)시키며, 대상에게 해당 속성 피해를 공격력의 360%만큼 입힙니다."
+    },
+    "ultimate": {
+      "name": "Dark Fate",
+      "energyCost": "3",
+      "description": "작은 블랙홀을 소환하여 지정한 적과 주변 3m 내 적에게 최대 12회 타격합니다. 총 피해는 공격력의 60%만큼 혼돈 피해입니다. 궁극기 적중 후 10초 동안 대상이 받는 피해가 36% 증가합니다. 다음 궁극기가 강화됩니다. 강화 궁극기: 큰 블랙홀을 소환하여 지정한 적과 주변 5m 내 적에게 최대 12회 타격하며, 총 피해는 공격력의 180%만큼 혼돈 피해입니다. 추가로 10초 동안 대상이 받는 피해가 60% 증가합니다. 이 효과는 일반 궁극기 효과와 중첩되지 않습니다."
+    },
+    "passive": {
+      "name": "Meteor Storm",
+      "description": "기본 공격 또는 스킬로 피해를 주면 【신성한 유성】 1중첩을 부여합니다. 궁극기로 동일 대상에게 4회 피해를 주면 【신성한 유성】 1중첩을 부여합니다. 【신성한 유성】: 3초마다 공격력의 19.2%만큼 혼돈 피해를 주며 최대 10중첩, 10초 지속. 강화 패시브: 큰 블랙홀이 존재하는 동안 모든 적의 에너지 획득 -50%, 총 방어력 -10%."
+    }
+  },
+  "teamSkill": {
+    "name": "Divine Protection",
+    "description": "전투 시작 후 모든 적 유닛의 총 피해량을 2.5% 감소시킵니다. 프레예의 공격력이 1,000마다 효과가 100% 증가하며 최대 300%까지 증가합니다. 공격력 3,000 이상 시 피해량 10% 감소(최대).",
+    "requirements": {
+      "faction": "A.S.A",
+      "element": "Chaos"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "전투 시작 후 즉시 【강화 궁극기】를 사용할 수 있습니다."
+    },
+    {
+      "level": 2,
+      "effect": "궁극기 피해 +20%. 【강화 궁극기】 에너지 비용이 1로 감소합니다. 강화 패시브: 큰 블랙홀 존재 시 모든 적의 에너지 획득 -100%, 총 방어력 -20%."
+    },
+    {
+      "level": 3,
+      "effect": "[기본 공격]/[스킬]/[궁극기]/[패시브] 레벨 및 레벨 상한 +2."
+    },
+    {
+      "level": 4,
+      "effect": "공격력 +30%."
+    },
+    {
+      "level": 5,
+      "effect": "[기본 공격]/[스킬]/[궁극기]/[패시브] 레벨 및 레벨 상한 +2."
+    },
+    {
+      "level": 6,
+      "effect": "궁극기 효과를 받은 대상의 모든 저항이 추가로 20% 감소합니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Lamplight Study",
+    "image": "Freyecard",
+    "stats": {
+      "hp": 6000,
+      "attack": 600,
+      "defense": 600
+    },
+    "effects": [
+      "공격력 +40%.",
+      "궁극기 피해가 【운명 속박】을 부여합니다. 【운명 속박】 1중첩당 받는 피해 +3.6%, 10초 지속, 최대 10중첩."
+    ]
+  },
+  "tags": [
+    "DOT",
+    "Enhanced Ultimate",
+    "Damage Taken Increase",
+    "element weaknesses",
+    "energy gain reduced",
+    "debuff",
+    "range"
+  ]
+}

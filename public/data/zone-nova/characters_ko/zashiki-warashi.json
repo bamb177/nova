@@ -1,0 +1,87 @@
+{
+  "name": "Zashiki-warashi",
+  "image": "Zashiki-warashi",
+  "rarity": "SR",
+  "element": "Fire",
+  "class": "Buffer",
+  "role": "Buffer",
+  "faction": "Pingjing City",
+  "stats": {
+    "hp": "7,970",
+    "attack": "837",
+    "defense": "560"
+  },
+  "skills": {
+    "normal": {
+      "name": "Housekeeper Guidance",
+      "description": "적 1명에게 공격력의 120%에 해당하는 화속성 피해를 준다."
+    },
+    "auto": {
+      "name": "Five Grains Harvest",
+      "cooldown": "5.0s",
+      "description": "아군 전체의 공격력이 36% 증가한다. 공격력 증가량 상한: 자시키와라시의 전투 진입 시 공격력의 36%를 초과할 수 없다. 최대 1중첩, 15초 지속."
+    },
+    "ultimate": {
+      "name": "Share Fortune! Share Hardship!",
+      "energyCost": "3",
+      "description": "아군 전체의 주는 피해가 36% 증가한다(15초)."
+    },
+    "passive": {
+      "name": "Child's Blessing",
+      "description": "자동 스킬 사용 후: 공격력이 가장 높은 아군 1명이 [축복] 1중첩을 획득한다. [축복]: 공격력이 60% 증가한다(15초)."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "팀 공격력이 10% 증가하고, 팀 방어력이 10% 증가한다.",
+    "requirements": {
+      "faction": "Pingjing City",
+      "element": "Fire"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "전투 진입 후 아군 전체의 공격력이 15% 증가한다(30초)."
+    },
+    {
+      "level": 2,
+      "effect": "궁극기 사용 시, [축복] 상태인 캐릭터는 주는 피해가 추가로 15% 증가한다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬] 및 [일반 공격] 레벨과 최대 레벨이 +4 증가한다."
+    },
+    {
+      "level": 4,
+      "effect": "자동 스킬 사용 후 아군 전체의 치명타 확률이 10% 증가한다(5초)."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기] 및 [패시브] 레벨과 최대 레벨이 +4 증가한다."
+    },
+    {
+      "level": 6,
+      "effect": "궁극기 사용 시, [축복] 상태인 캐릭터는 궁극기 효과가 2배로 적용된다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Sleep Treasure",
+    "image": "Zashiki-warashicard",
+    "stats": {
+      "hp": "5,000",
+      "attack": "500",
+      "defense": "500"
+    },
+    "effects": [
+      "궁극기 사용 후 팀의 주는 피해가 24% 증가한다(10초). 또한 50% 확률로 팀의 치명타 피해가 추가로 20% 증가한다(10초)."
+    ]
+  },
+  "tags": [
+    "Range",
+    "Buff",
+    "Atk Increase",
+    "Damage Increase",
+    "Crit Rate Increase"
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "name": "Shu",
+  "image": "Shu",
+  "rarity": "SR",
+  "element": "Wind",
+  "class": "Debuffer",
+  "role": "Debuffer",
+  "faction": "Chemic",
+  "stats": {
+    "hp": "7,970",
+    "attack": "837",
+    "defense": "560"
+  },
+  "skills": {
+    "normal": {
+      "name": "Wind Assault",
+      "description": "지정한 적 1명에게 공격력의 120%만큼 바람 피해를 준다."
+    },
+    "auto": {
+      "name": "Eye of the Storm",
+      "cooldown": "5.0s",
+      "description": "지정한 적과 주변 4m 내 적에게 공격력의 72%만큼 바람 피해를 준다."
+    },
+    "ultimate": {
+      "name": "Sticky Bat Storm",
+      "energyCost": "3",
+      "description": "주변 4m 내 적에게 공격력의 120%만큼 바람 피해를 준다. [취약] 부여: 대상이 15초 동안 받는 피해가 34% 증가한다. 각성 6 달성 시 대상에게 [풍화] 디버프도 추가로 부여한다."
+    },
+    "passive": {
+      "name": "Fierce Wind Burst",
+      "description": "자동 스킬이 [풍화]를 부여할 수 있다. [풍화] 1중첩당 2초마다 공격력의 14.4%만큼 바람 지속 피해를 주며, 최대 5중첩."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자신이 주는 피해가 20% 증가한다.",
+    "requirements": {
+      "faction": "Chemic",
+      "element": "Wind"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "지속 피해 효과가 걸린 대상에게 피해를 줄 때, 자신의 공격력이 20% 증가한다."
+    },
+    {
+      "level": 2,
+      "effect": "지속 피해 효과의 관통률이 10% 증가한다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬]과 [일반 공격]의 레벨 및 레벨 상한이 +4 증가한다."
+    },
+    {
+      "level": 4,
+      "effect": "지속 피해량이 25% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기]와 [패시브]의 레벨 및 레벨 상한이 +4 증가한다."
+    },
+    {
+      "level": 6,
+      "effect": "궁극기가 [풍화] 디버프도 함께 부여한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Busy Officer (忙里偷闲)",
+    "image": "shucard",
+    "stats": {
+      "hp": "5,000",
+      "attack": "500",
+      "defense": "500"
+    },
+    "effects": [
+      "지속 피해를 가하면 대상이 2초 동안 받는 피해가 12% 증가한다."
+    ]
+  },
+  "tags": [
+    "Range",
+    "DOT",
+    "Vulnerability",
+    "Debuff",
+    "AOE"
+  ]
+}

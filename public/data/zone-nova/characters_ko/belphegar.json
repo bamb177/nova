@@ -1,0 +1,90 @@
+{
+  "name": "Belphegar",
+  "image": "belphegar",
+  "rarity": "SR",
+  "element": "Chaos",
+  "class": "Debuffer",
+  "role": "Debuffer",
+  "faction": "Bicta Tower",
+  "stats": {
+    "hp": "7,970",
+    "attack": "837",
+    "defense": "560"
+  },
+  "skills": {
+    "normal": {
+      "name": "Fatigue Bombardment",
+      "description": "지정한 적 1명에게 공격력의 120%만큼 혼돈 피해를 준다."
+    },
+    "auto": {
+      "name": "Power of the Blanket",
+      "cooldown": "5.0s",
+      "description": "공격력이 가장 높은 적을 공격해 공격력의 120%만큼 혼돈 피해를 주고, 10초 동안 해당 대상의 치명타 확률과 치명타 피해를 24% 감소시킨다."
+    },
+    "ultimate": {
+      "name": "Drowsy Sleep",
+      "energyCost": "5",
+      "description": "모든 적에게 공격력의 120%만큼 혼돈 피해를 주고, 10초 동안 대상의 자동 스킬 재사용 대기시간이 58% 증가한다."
+    },
+    "passive": {
+      "name": "Sleepy Aura",
+      "description": "스킬 또는 궁극기로 피해를 주면 추가로 [분노]를 부여해, 10초 동안 대상의 공격 속도를 58% 감소시킨다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자신이 가하는 피해가 20% 증가한다.",
+    "requirements": {
+      "faction": "Bicta Tower",
+      "element": "Chaos"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "디버프가 걸린 대상에게 자동 스킬로 공격 시 스킬 피해가 30% 증가한다."
+    },
+    {
+      "level": 2,
+      "effect": "기본 공격이 추가로 공격력의 20%만큼 혼돈 피해를 준다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬] 및 [일반 공격] 레벨/레벨 상한 +4."
+    },
+    {
+      "level": 4,
+      "effect": "공격력이 20% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기] 및 [패시브] 레벨/레벨 상한 +4."
+    },
+    {
+      "level": 6,
+      "effect": "궁극기가 추가로 대상의 궁극기 피해를 20% 감소시킨다(5초 지속)."
+    }
+  ],
+  "memoryCard": {
+    "name": "Sleepy Guardian",
+    "image": "Belphegarcard",
+    "stats": {
+      "hp": "5,200",
+      "attack": "420",
+      "defense": "380"
+    },
+    "effects": [
+      "궁극기가 대상의 에너지 회복을 18% 감소시킨다."
+    ]
+  },
+  "tags": [
+    "Range",
+    "Reduce Crit Rate",
+    "Reduce Crit Dmg",
+    "Inc Skill Cooldown",
+    "Reduce Attack Speed",
+    "Reduce Ultimate Skill",
+    "Debuff",
+    "AOE"
+  ]
+}

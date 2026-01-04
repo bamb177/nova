@@ -1,0 +1,88 @@
+{
+  "name": "Naiya",
+  "image": "Naiya",
+  "rarity": "SSR",
+  "element": "Ice",
+  "class": "Buffer",
+  "role": "Buffer",
+  "faction": "Sapphire",
+  "stats": {
+    "hp": "9,564",
+    "attack": "1,004",
+    "defense": "672"
+  },
+  "skills": {
+    "normal": {
+      "name": "Frost Strike",
+      "description": "적 1명에게 공격력의 120%만큼 빙결 피해를 준다."
+    },
+    "auto": {
+      "name": "War Intent Detection",
+      "cooldown": "Auto-trigger: 5.0s",
+      "description": "공격력이 가장 높은 아군이 [전투 의지]를 획득한다. 15초 동안 공격력이 168% 증가하지만, 증가한 공격력은 나이야 공격력의 84%를 초과할 수 없다."
+    },
+    "ultimate": {
+      "name": "Hyper-Carry Awakening",
+      "energyCost": "3",
+      "description": "적 1명에게 공격력의 480%만큼 빙결 피해를 준다. 대상의 시전을 [차단]한다. 10초 동안 아군 전체의 공격력이 36% 증가하고 치명타 피해가 53.6% 증가한다."
+    },
+    "passive": {
+      "name": "Tactical Analysis",
+      "description": "[전투 의지] 상태의 아군이 적을 처치하면 10초 동안 주는 피해가 17% 증가하며, 최대 3회 중첩된다. 또한 아군 전체가 즉시 에너지 1을 회복한다(초당 1회 발동)."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill (组合技)",
+    "description": "전투 시작: 아군 전체의 주는 피해가 10% 증가한다. 공격력 500마다 아군 전체의 주는 피해가 추가로 5% 증가하며, 최대 6회(최대 30%)까지 적용된다.",
+    "requirements": {
+      "faction": "Sapphire",
+      "element": "Ice"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "궁극기 사용 후 20초 동안 아군 전체의 공격력이 20% 증가한다."
+    },
+    {
+      "level": 2,
+      "effect": "[전투 의지] 상태의 아군이 적을 처치하면 아군 전체가 에너지 1을 회복한다(초당 1회). 패시브와 함께 적용 시 초당 최대 2회까지 발동한다."
+    },
+    {
+      "level": 3,
+      "effect": "스킬과 일반 공격의 레벨 및 레벨 상한이 +4 증가한다."
+    },
+    {
+      "level": 4,
+      "effect": "[전투 의지] 상태의 아군이 공격할 때 추가로 공격력의 500%만큼 빙결 피해를 준다. 10초에 1회 발동한다."
+    },
+    {
+      "level": 5,
+      "effect": "궁극기와 패시브의 레벨 및 레벨 상한이 +4 증가한다."
+    },
+    {
+      "level": 6,
+      "effect": "궁극기 지속 시간이 20초로 증가하고, 피해가 100% 증가한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Frost Dominion",
+    "image": "naiyacard",
+    "stats": {
+      "hp": "6,000",
+      "attack": "600",
+      "defense": "600"
+    },
+    "effects": [
+      "공격력이 40% 증가한다. 장착자가 궁극기를 사용하면 30초 동안 아군 전체의 궁극기 피해가 40% 증가한다."
+    ]
+  },
+  "tags": [
+    "Range",
+    "Buff",
+    "Crit Dmg Increases",
+    "Energy",
+    "Atk Increases",
+    "Damage Increases"
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "name": "Shanna",
+  "image": "Shanna",
+  "rarity": "SR",
+  "element": "Fire",
+  "class": "Rogue",
+  "role": "DPS",
+  "faction": "Sapphire",
+  "stats": {
+    "hp": "6,694",
+    "attack": "1,088",
+    "defense": "442"
+  },
+  "skills": {
+    "normal": {
+      "name": "Light Strike",
+      "description": "적 1명에게 공격력의 120%만큼 화염 피해를 준다."
+    },
+    "auto": {
+      "name": "Big! Big! Big! Treasure Sword!",
+      "cooldown": "5.0s",
+      "description": "적 1명에게 공격력의 240%만큼 화염 피해를 준다."
+    },
+    "ultimate": {
+      "name": "Flawless Sword",
+      "energyCost": "3",
+      "description": "적에게 돌진해 공격력의 480%만큼 화염 피해를 준다."
+    },
+    "passive": {
+      "name": "Heroes Won't Retreat in Battle! (被动英雄不会临阵退缩！)",
+      "description": "일반 공격이 동일 대상에게 적중할 때마다 [집중] 2중첩을 획득한다. [집중] 1중첩당 치명타 확률이 2.8% 증가하며, 최대 10중첩."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자신이 주는 피해가 20% 증가한다.",
+    "requirements": {
+      "faction": "Sapphire",
+      "element": "Fire"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "[집중]이 10중첩이면 일반 공격이 추가로 공격력의 20%만큼 화염 피해를 준다."
+    },
+    {
+      "level": 2,
+      "effect": "같은 적을 대상으로 일반 공격할 때마다 [집중] 1중첩을 추가로 획득한다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬]과 [일반 공격]의 레벨 및 레벨 상한이 +4 증가한다."
+    },
+    {
+      "level": 4,
+      "effect": "자동 스킬 피해가 30% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기]와 [패시브]의 레벨 및 레벨 상한이 +4 증가한다."
+    },
+    {
+      "level": 6,
+      "effect": "[집중]이 10중첩이면 일반 공격의 치명타 피해가 50% 증가한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Heroes, Never Stop",
+    "image": "Shannacard",
+    "stats": {
+      "hp": "4,200",
+      "attack": "650",
+      "defense": "395"
+    },
+    "effects": [
+      "전장에 남은 적이 2명 미만이면 치명타 피해가 72% 증가한다."
+    ]
+  },
+  "tags": [
+    "Melee",
+    "Normal Attack",
+    "Crit Rate",
+    "Crit Dmg",
+    "Buff"
+  ]
+}

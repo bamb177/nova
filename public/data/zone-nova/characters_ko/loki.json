@@ -1,0 +1,87 @@
+{
+  "name": "Loki",
+  "image": "Loki",
+  "rarity": "SSR",
+  "element": "Chaos",
+  "class": "Debuffer",
+  "role": "Debuffer",
+  "faction": "A.S.A",
+  "stats": {
+    "hp": "9,564",
+    "attack": "1,004",
+    "defense": "672"
+  },
+  "skills": {
+    "normal": {
+      "name": "Netherworld Fire",
+      "description": "지정한 적에게 공격력의 120%만큼 혼돈 피해를 준다."
+    },
+    "auto": {
+      "name": "Jormungandr's Poison",
+      "cooldown": "10.0s",
+      "description": "모든 적에게 공격력의 120%만큼 혼돈 피해를 주고 [Seal]을 부여한다. [Seal] 상태에서는 5초 동안 궁극기를 사용할 수 없다."
+    },
+    "ultimate": {
+      "name": "Woeful Wrath",
+      "energyCost": "5",
+      "description": "기본 공격력이 가장 높은 적의 뒤로 돌진해 대상에게 공격력의 240%만큼 혼돈 피해를 주고 [Weakness]를 부여한다. 10초 동안 대상의 주는 피해가 36% 감소한다."
+    },
+    "passive": {
+      "name": "Art of Deception",
+      "description": "자동 스킬이 적에게 5초 동안 ‘취약’ 디버프(받는 피해 36% 증가)를 부여한다. 지속 시간은 갱신되며, 최대 2중첩까지 중첩된다(최대 중첩 시 받는 피해 72% 증가)."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "공격력이 10% 증가한다. 전투 시작 시 공격력 500마다 혼돈 피해가 5% 증가하며, 최대 6회까지 적용된다.",
+    "requirements": {
+      "faction": "A.S.A",
+      "element": "Chaos"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "일반 공격과 궁극기가 추가로 패시브 효과를 발동한다."
+    },
+    {
+      "level": 2,
+      "effect": "피해를 받을 때 공격자에게 5초 동안 주는 피해 10% 감소 효과를 부여한다. 중복 발동 시 지속 시간이 갱신된다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬] 및 [일반 공격] 레벨/레벨 상한 +4"
+    },
+    {
+      "level": 4,
+      "effect": "디버프 상태의 적을 공격하면 주는 피해가 35% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기] 및 [패시브] 레벨/레벨 상한 +4"
+    },
+    {
+      "level": 6,
+      "effect": "패시브의 ‘취약’ 중첩 한도가 2회 증가한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "True Order (真正的秩序)",
+    "image": "Lokicard",
+    "stats": {
+      "hp": "6,000",
+      "attack": "600",
+      "defense": "600"
+    },
+    "effects": [
+      "공격력이 40% 증가한다. 장착자가 궁극기로 마지막으로 피해를 준 대상은 받는 피해가 24% 증가한다."
+    ]
+  },
+  "tags": [
+    "Range",
+    "Debuff",
+    "Stop Ultimate",
+    "Reduce Damage",
+    "Damage Increase"
+  ]
+}

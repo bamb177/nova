@@ -1,0 +1,85 @@
+{
+  "name": "Bastet",
+  "image": "Bastet",
+  "rarity": "SR",
+  "element": "Wind",
+  "class": "Mage",
+  "role": "DPS",
+  "faction": "Chemic",
+  "stats": {
+    "hp": "6,694",
+    "attack": "1,088",
+    "defense": "442"
+  },
+  "skills": {
+    "normal": {
+      "name": "Cat Shadow Arrow",
+      "description": "지정한 적 1명에게 공격력의 120%만큼 바람 피해를 준다."
+    },
+    "auto": {
+      "name": "Cat! Bomb!",
+      "cooldown": "5.0s",
+      "description": "지정한 적 및 주변 4m 범위에 공격력의 72%만큼 바람 피해를 준다."
+    },
+    "ultimate": {
+      "name": "Cat Bombing!",
+      "energyCost": "5",
+      "description": "지정한 적 및 주변 4m 범위에 공격력의 120%만큼 바람 피해를 준다."
+    },
+    "passive": {
+      "name": "Cat Frenzy",
+      "description": "일반 공격 5회마다 다음 일반 공격이 지정한 적 및 주변 4m 범위에 공격력의 120%만큼 바람 피해를 준다. (각성 2단계: 발동 조건이 일반 공격 5회에서 4회로 감소)"
+    }
+  },
+  "teamSkill": {
+    "name": "Storm Synergy",
+    "description": "자신의 바람 피해가 20% 증가한다.",
+    "requirements": {
+      "faction": "Chemic",
+      "element": "Wind"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "대상의 HP가 50% 초과일 때, 자신이 가하는 모든 피해가 20% 증가한다."
+    },
+    {
+      "level": 2,
+      "effect": "패시브 강화: 필요한 일반 공격 횟수가 5회에서 4회로 변경된다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬] 및 [일반 공격] 레벨/레벨 상한 +4."
+    },
+    {
+      "level": 4,
+      "effect": "궁극기 피해가 20% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기] 및 [패시브] 레벨/레벨 상한 +4."
+    },
+    {
+      "level": 6,
+      "effect": "궁극기 사용 후 5초 동안 공격력이 20% 증가한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Annoying Classroom",
+    "image": "Bastetcard",
+    "stats": {
+      "hp": "4,200",
+      "attack": "650",
+      "defense": "395"
+    },
+    "effects": [
+      "궁극기 사용 시, 전장에 존재하는 적 1명당 궁극기 피해가 12% 증가한다. 최대 5중첩(최대 60%), 5초 지속."
+    ]
+  },
+  "tags": [
+    "Range",
+    "Normal Attack",
+    "AOE"
+  ]
+}

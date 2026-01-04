@@ -1,0 +1,105 @@
+{
+  "name": "Nina",
+  "image": "Nina",
+  "rarity": "SSR",
+  "element": "Ice",
+  "class": "Warrior",
+  "role": "DPS",
+  "faction": "Sapphire",
+  "stats": {
+    "hp": "8,700",
+    "attack": "1,004",
+    "defense": "729",
+    "energyRecovery": "0.25/s",
+    "critRate": "6%",
+    "critDmg": "50%"
+  },
+  "skills": {
+    "normal": {
+      "name": "Frost Blood Thorn",
+      "cooldown": "2.0s",
+      "description": "대상 적 1명에게 공격력의 120%만큼 빙결 피해를 주고, 자신의 최대 HP를 12% 회복한다.",
+      "frostAshDescription": "【Frost Ash】State: Each hit removes 5% of max health. Deals ice damage equal to 240% of Attack to target enemy unit."
+    },
+    "auto": {
+      "name": "Blaze Burst",
+      "cooldown": "5.0s",
+      "description": "대상 적 1명과 그 뒤의 적에게 공격력의 480%만큼 빙결 피해를 주고, 자신의 최대 HP를 12% 회복한다.",
+      "frostAshDescription": "【Frost Ash】State: Each hit removes 5% of max health. Deals ice damage equal to 960% of Attack to target enemy unit and units behind it."
+    },
+    "ultimate": {
+      "name": "Frost Ash Liberation",
+      "cooldown": "1.0s",
+      "energyCost": "1",
+      "description": "[서리 재] 상태에 진입한다. 기본 공격 속도가 50% 증가하고, 스킬 기본 재사용 대기시간이 3초로 감소한다. 치명타 확률이 60% 증가한다.",
+      "additionalRules": [
+        "Automatically exits 【Frost Ash】 state when health falls below 30%.",
+        "Can re-cast the ultimate skill to exit 【Frost Ash】 state.",
+        "Can re-cast the ultimate skill while in 【Frost Ash】 state."
+      ]
+    },
+    "passive": {
+      "name": "Indestructible Frost Mark",
+      "description": "[서리 재] 상태: 받는 피해가 50% 감소한다. 공격할 때마다 5초 동안 자신의 공격 속도가 12% 증가하며, 최대 5회 중첩된다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자신의 공격력이 10% 증가한다. 전투 시작 시 공격력 500마다 자신의 치명타 피해가 7.5% 증가하며, 최대 6회 중첩된다.",
+    "requirements": {
+      "faction": "Sapphire",
+      "element": "Ice"
+    },
+    "activationCondition": "Team contains 2 【Sapphire】 characters OR 2 【Ice】 characters"
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "적 처치 시 자신의 최대 HP를 20% 즉시 회복한다. 전투 시작 시 즉시 [서리 재] 상태에 진입한다. [서리 재] 상태에서는 주는 피해가 20% 증가한다."
+    },
+    {
+      "level": 2,
+      "effect": "HP가 35% 이하가 되면 자신의 최대 HP를 50% 즉시 회복한다(전투당 1회). [서리 재] 상태에서는 치명타 확률이 추가로 15% 증가한다."
+    },
+    {
+      "level": 3,
+      "effect": "[기본 공격], [스킬], [궁극기], [패시브]의 레벨 및 레벨 상한이 +2 증가한다."
+    },
+    {
+      "level": 4,
+      "effect": "빙결 피해가 30% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[기본 공격], [스킬], [궁극기], [패시브]의 레벨 및 레벨 상한이 +2 증가한다."
+    },
+    {
+      "level": 6,
+      "effect": "[서리 재] 상태에서 주는 모든 피해가 빙결 저항 20%를 관통한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Halloween Candy",
+    "image": "Ninacard",
+    "title": "Halloween Candy",
+    "stats": {
+      "hp": "6,000",
+      "attack": "600",
+      "defense": "600"
+    },
+    "effects": [
+      "치명타 피해가 60% 증가한다.",
+      "HP가 30% 초과일 때, 공격 후 자신의 최대 HP를 2% 회복한다. 또한 주는 피해가 40% 증가한다."
+    ]
+  },
+  "tags": [
+    "Ice",
+    "Critical",
+    "Self-Heal",
+    "Burst Damage",
+    "Mode Switch",
+    "Attack Speed",
+    "Warrior",
+    "SSR"
+  ]
+}

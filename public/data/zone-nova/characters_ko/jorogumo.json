@@ -1,0 +1,108 @@
+{
+  "name": "Jorogumo",
+  "chineseName": "絡新婦",
+  "image": "Jorogumo",
+  "rarity": "SSR",
+  "element": "Chaos",
+  "class": "Healer",
+  "role": "Healer",
+  "faction": "Pingjing City",
+  "stats": {
+    "hp": "9,180",
+    "attack": "1,004",
+    "defense": "728",
+    "energyRecovery": "0.25/s",
+    "critRate": "0%",
+    "critDamage": "50%"
+  },
+  "skills": {
+    "normal": {
+      "name": "Eclipse Silk",
+      "chineseName": "日蚀丝",
+      "level": "10+4",
+      "cooldown": "2.0s",
+      "description": "대상 적 1명에게 공격력의 120%만큼 혼돈 피해를 준다."
+    },
+    "auto": {
+      "name": "Blooming Sweet Rain",
+      "chineseName": "甘露绽放",
+      "level": "10+4",
+      "cooldown": "3.0s",
+      "description": "현재 HP 비율이 가장 낮은 아군에게 3초 동안 ‘대상의 공격력 20.4%+440’에 해당하는 지속 회복을 부여한다. 지속 회복 중 모든 저항이 10% 증가한다."
+    },
+    "ultimate": {
+      "name": "Umbrella Blossom",
+      "chineseName": "伞花绽放",
+      "level": "10+4",
+      "cooldown": "1.0s",
+      "energyCost": "2",
+      "description": "짧게 시전한 뒤, 범위 5의 치유 영역을 생성한다. 5초 동안 매초 시전자의 공격력 46%+243만큼 HP를 회복한다. 영역 내 아군은 [Umbrella Blossom] 1중첩을 획득하며, 최대 5중첩까지 중첩된다."
+    },
+    "passive": {
+      "name": "Umbrella Heal",
+      "chineseName": "伞花治愈",
+      "level": "10+4",
+      "description": "아군이 공격받은 뒤 HP가 30% 미만이면 [Umbrella Flower] 1중첩을 소모하여 1초 동안 최대 HP의 15.1%에 해당하는 즉시 치유를 3회 적용한다. 전투 중 최초 2회 발동은 즉시 치유 횟수가 6회로 증가한다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "chineseName": "组合技",
+    "level": "1",
+    "description": "전투 시작 시 공격력 500마다 치유량이 5% 증가하며(최대 6회), 자신이 획득하는 에너지 획득 효율이 10% 증가한다.",
+    "requirements": {
+      "faction": "Pingjing City",
+      "element": "Chaos",
+      "condition": "2 [Pingjing City (平京城)] or 2 [Chaos] characters"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "궁극기 범위가 7로 증가한다."
+    },
+    {
+      "level": 2,
+      "effect": "전투 진입 시 비용 없이 즉시 궁극기를 발동한다. 궁극기 사용 후 [Umbrella Protection] 획득: 아군의 비암흑 저항이 40% 증가하고, 적이 주는 피해가 12.5% 감소한다(5초)."
+    },
+    {
+      "level": 3,
+      "effect": "[기본 공격], [스킬], [궁극기], [패시브] 레벨 및 레벨 상한 +2"
+    },
+    {
+      "level": 4,
+      "effect": "치유량이 45% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[기본 공격], [스킬], [궁극기], [패시브] 레벨 및 레벨 상한 +2"
+    },
+    {
+      "level": 6,
+      "effect": "[Umbrella Healing+] 최초 2회 발동 시 패시브 효과가 1회 추가 적용되며, 추가로 조로구모 최대 HP의 50%에 해당하는 보호막을 부여한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Beautiful Moon",
+    "chineseName": "美丽月亮",
+    "image": "Jorogumocard",
+    "level": "80/80",
+    "stats": {
+      "hp": "6,000",
+      "attack": "600",
+      "defense": "600"
+    },
+    "effects": [
+      "치유량이 35% 증가한다.",
+      "'지속 피해' 상태의 대상을 치유할 때 치유량이 추가로 25% 증가한다.",
+      "대상 HP가 50% 미만이면 지속 치유 효과를 부여하여 3초 동안 매초 시전자 공격력의 9%만큼 HP를 회복한다(최대 1중첩)."
+    ]
+  },
+  "tags": [
+    "Healing",
+    "Ranged",
+    "AOE Healing",
+    "Resistance",
+    "Shield"
+  ]
+}

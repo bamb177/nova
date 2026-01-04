@@ -1,0 +1,93 @@
+{
+  "name": "Horus",
+  "image": "Horus",
+  "rarity": "SSR",
+  "element": "Holy",
+  "class": "Debuffer",
+  "role": "Debuffer",
+  "faction": "Chemic",
+  "stats": {
+    "hp": "8,033",
+    "attack": "1,461",
+    "defense": "530",
+    "energyRecovery": 0.25,
+    "critRate": 0,
+    "critDmg": 50
+  },
+  "skills": {
+    "normal": {
+      "name": "Holy Radiance Arrow",
+      "description": "적에게 공격력의 120%만큼 신성 피해를 입힙니다."
+    },
+    "auto": {
+      "name": "Arrow of Atum",
+      "cooldown": "5.0s",
+      "description": "대상에게 화살을 발사합니다. 대상 및 반경 2m 내 적에게 공격력의 120%만큼 신성 피해를 입히고, 적중한 모든 적에게 [관통] 1중첩을 부여합니다. [관통]: 3초마다 공격력의 19.2%만큼 신성 피해를 주며 최대 10중첩, 10초 지속."
+    },
+    "ultimate": {
+      "name": "Eye of Wadjet",
+      "energyCost": "3",
+      "description": "대상에게 공격력의 480%만큼 신성 피해를 입힙니다. [봉인] 1중첩과 [관통] 1중첩을 부여합니다. 또한 이 궁극기는 스킬 시전을 [중단]시킬 수 있습니다(PVE 보스 대응에 유용)."
+    },
+    "passive": {
+      "name": "Solar Divine Judgment",
+      "description": "스킬(궁극기/자동 스킬)로 [봉인]이 있는 대상에게 사용 시, [봉인] 1중첩을 소모하고 반경 4m 폭발을 일으켜 공격력의 120%만큼 신성 피해를 입힙니다. 적중한 대상은 [관통] 1중첩을 획득합니다. [관통]: 3초마다 공격력의 19.2%만큼 신성 피해, 최대 10중첩, 10초 지속."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자신 공격력 +10%. 전투 시작 시 공격력 500마다 관통 +3%(최대 6회, 총 18%).",
+    "requirements": {
+      "faction": "Chemic",
+      "element": "Holy"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "공격력 +20%."
+    },
+    {
+      "level": 2,
+      "effect": "지속 피해를 줄 때, 대상이 받는 지속 피해가 20% 증가합니다(3초). 중복 발동 시 지속시간이 갱신됩니다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬]/[기본 공격] 레벨 및 레벨 상한 +4."
+    },
+    {
+      "level": 4,
+      "effect": "[지속 피해] 효과 피해 +35%."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기]/[패시브] 레벨 및 레벨 상한 +4."
+    },
+    {
+      "level": 6,
+      "effect": "지속 피해 상태의 적에게 피해를 주면 신성 저항 관통 +20%를 획득합니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Cute Little Thing",
+    "image": "Horuscard",
+    "stats": {
+      "hp": "5,040",
+      "attack": "780",
+      "defense": "474"
+    },
+    "effects": [
+      "공격력 +40%. 지속 피해(DOT) 상태의 대상이 받는 피해가 24% 증가합니다(3초)."
+    ]
+  },
+  "tags": [
+    "Range",
+    "DOT",
+    "AOE",
+    "Interrupt",
+    "Debuff",
+    "DOT Intake Increases",
+    "Penetration",
+    "Damage Increases"
+  ]
+}

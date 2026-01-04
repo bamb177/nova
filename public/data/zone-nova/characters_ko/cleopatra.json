@@ -1,0 +1,87 @@
+{
+  "name": "Cleopatra",
+  "image": "Cleopatra",
+  "rarity": "SSR",
+  "element": "Chaos",
+  "class": "Mage",
+  "role": "DPS",
+  "faction": "Chemic",
+  "stats": {
+    "hp": "8,033",
+    "attack": "1,461",
+    "defense": "530"
+  },
+  "skills": {
+    "normal": {
+      "name": "Mad Shadow Erosion",
+      "description": "지정한 적에게 공격력의 120%만큼 혼돈 피해를 입힙니다."
+    },
+    "auto": {
+      "name": "Praise of Heretic Sect",
+      "cooldown": "5.0s",
+      "description": "대상 및 반경 4m 내 적에게 공격력의 168%만큼 혼돈 피해를 입히고 [유동하는 비애] 1중첩을 부여합니다."
+    },
+    "ultimate": {
+      "name": "Cultural Authority - Supreme Rule",
+      "energyCost": "8",
+      "description": "4초 동안 시전한 뒤 모든 적에게 공격력의 480%만큼 혼돈 피해를 입힙니다. 대상이 지속 피해 중첩을 보유한 경우, 추가로 공격력의 48%만큼 혼돈 피해를 가하며 최대 20회까지 발동합니다. 이 궁극기 피해는 [지속 피해]로 간주됩니다."
+    },
+    "passive": {
+      "name": "Filthy Whispers",
+      "description": "자동 스킬 시전 시마다 [전환] 2중첩을 획득합니다(최대 5중첩). 아군이 궁극기를 사용해 피해를 주면 [전환]을 소모하여 해당 대상에게 공격력의 120%만큼 혼돈 추가 피해를 주고, 적중 대상에게 [유동하는 비애] 1중첩을 부여합니다. 범위 공격은 여러 표식을 동시에 발동할 수 있습니다. [유동하는 비애]: 3초마다 공격력의 19.2%만큼 혼돈 피해를 주며 최대 10중첩."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자신의 공격력 +10%. 전투 시작 시 공격력 500마다 관통률 +3%(최대 6회, 총 18%).",
+    "requirements": {
+      "faction": "Chemic",
+      "element": "Chaos"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "공격력 +20%."
+    },
+    {
+      "level": 2,
+      "effect": "궁극기 시전 중 받는 피해 -20%. 궁극기 시전 후 에너지 2 회복."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬]/[기본 공격] 레벨 및 레벨 상한 +4."
+    },
+    {
+      "level": 4,
+      "effect": "[지속 피해] 피해 +35%."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기]/[패시브] 레벨 및 레벨 상한 +4."
+    },
+    {
+      "level": 6,
+      "effect": "지속 피해가 혼돈 저항 20%를 무시합니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Revolutionary Restructuring",
+    "image": "Cleopatracard",
+    "stats": {
+      "hp": "5,040",
+      "attack": "780",
+      "defense": "474"
+    },
+    "effects": [
+      "공격력 +40%. 스킬이 적중하면 대상에게 [침식] 1중첩을 부여합니다. [침식]: 1초마다 공격력의 15%만큼 혼돈 피해를 주며 최대 5중첩, 10초 지속."
+    ]
+  },
+  "tags": [
+    "Range",
+    "DOT",
+    "AOE",
+    "Penetration",
+    "Energy"
+  ]
+}

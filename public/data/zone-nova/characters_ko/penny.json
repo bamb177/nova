@@ -1,0 +1,89 @@
+{
+  "name": "Penny",
+  "image": "/images/games/zone-nova/characters/penny.jpg",
+  "rarity": "SSR",
+  "element": "Wind",
+  "class": "Guardian",
+  "role": "Tank",
+  "faction": "Sapphire",
+  "stats": {
+    "hp": "10,520",
+    "attack": "794",
+    "defense": "1,232"
+  },
+  "skills": {
+    "normal": {
+      "name": "Shield Impact",
+      "description": "대상 적 1명에게 자신의 방어력의 120%만큼 바람 피해를 준다."
+    },
+    "auto": {
+      "name": "Divine Shield Wind",
+      "cooldown": "5.0s",
+      "description": "대상 적 1명에게 자신의 방어력의 120%만큼 바람 피해를 주고, 10초 동안 자신이 받는 피해를 24% 감소시킨다."
+    },
+    "ultimate": {
+      "name": "Shield of Aethyss",
+      "energyCost": "5",
+      "description": "아군 전체에게 페니의 방어력 60%만큼의 보호막을 부여하고, 10초 동안 받는 피해를 24% 감소시킨다."
+    },
+    "passive": {
+      "name": "Aethyss's Call for Help",
+      "description": "피해를 받을 때마다 [불굴] 1중첩을 획득한다. [불굴] 1중첩당 자신의 방어력이 4.8% 증가하며, 최대 30중첩."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자신의 방어력이 15% 증가한다. 전투 시작 시 방어력 500마다 아군 전체가 받는 피해가 1.5% 감소하며, 최대 6회 적용된다.",
+    "requirements": {
+      "faction": "Sapphire",
+      "element": "Wind"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "피해를 받을 때 [불굴] 1중첩을 추가로 획득한다."
+    },
+    {
+      "level": 2,
+      "effect": "[불굴]이 30중첩에 도달하면, 아군 전체가 궁극기와 동일한 효과(방어력 60% 보호막 + 10초간 받는 피해 24% 감소)를 획득한다. 전투당 1회만 발동한다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬]과 [일반 공격]의 레벨 및 레벨 상한이 +4 증가한다."
+    },
+    {
+      "level": 4,
+      "effect": "방어력이 45% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기]와 [패시브]의 레벨 및 레벨 상한이 +4 증가한다."
+    },
+    {
+      "level": 6,
+      "effect": "모든 저항이 15% 증가하고, 바람 저항이 추가로 15% 증가한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Her Trainer",
+    "image": "pennycard",
+    "stats": {
+      "hp": "8,600",
+      "attack": "480",
+      "defense": "690"
+    },
+    "effects": [
+      "방어력이 60% 증가한다.",
+      "궁극기 사용 후 5초 동안 장착자가 받는 피해가 10% 감소한다.",
+      "궁극기로 부여하는 보호막량이 20% 증가한다."
+    ]
+  },
+  "tags": [
+    "Def-Scale",
+    "Shield",
+    "Damage Reduction",
+    "Buff",
+    "Melee"
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "name": "Yuis",
+  "image": "Yuis",
+  "rarity": "SSR",
+  "element": "Holy",
+  "class": "Rogue",
+  "role": "DPS",
+  "faction": "Odius",
+  "stats": {
+    "hp": "8,033",
+    "attack": "1,305",
+    "defense": "530"
+  },
+  "skills": {
+    "normal": {
+      "name": "Thunder Strike",
+      "description": "적 1명에게 공격력의 120%에 해당하는 성속성 피해를 준다."
+    },
+    "auto": {
+      "name": "Divine Thunder",
+      "cooldown": "5.0s",
+      "description": "[천극] 2중첩을 즉시 획득하고, 비검 4개를 발사해 현재 대상에게 공격력의 720%에 해당하는 성속성 피해를 준다."
+    },
+    "ultimate": {
+      "name": "Absolute Heaven's Punishment",
+      "energyCost": "4",
+      "description": "[천극] 2중첩을 즉시 획득하고, 대형 비검 1개를 발사해 현재 대상에게 공격력의 720%에 해당하는 성속성 피해를 준다. [강화 궁극기]: [천극]을 모두 소모하고 현재 대상을 조준해 비검을 연속 낙하시켜 총 공격력의 1440%에 해당하는 성속성 피해를 준다. 이 피해는 [추가 공격] 피해로 간주된다. 강화 궁극기로 동일 대상을 반복 공격하면 [추가 공격] 지속 시간이 갱신된다."
+    },
+    "passive": {
+      "name": "Heaven's Judgment",
+      "description": "아군이 궁극기를 사용하면 유이스가 [천극] 2중첩을 획득한다. 아군이 [추가 공격]을 발동하면 유이스가 [천극] 2중첩을 획득한다. [천극] 16중첩 시 [강화 궁극기]를 사용할 수 있다. 강화 궁극기 사용 가능 상태에서는 [천극]을 더 이상 획득하지 않는다. 강화 궁극기 사용 후 20초 동안 치명타 확률이 24%, 치명타 피해가 48% 증가한다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "자신의 공격력이 10% 증가한다. 전투 시작 시 공격력 500마다 자신의 치명타 피해가 7.5% 증가한다(최대 6회, 최대 45%).",
+    "requirements": {
+      "faction": "Odius",
+      "element": "Holy"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "전투 시작 시 [천극] 16중첩을 즉시 획득한다. [강화 궁극기] 에너지 소모가 3 감소한다."
+    },
+    {
+      "level": 2,
+      "effect": "강화 궁극기 사용 후 [천극] 4중첩을 즉시 획득하고, 20초 동안 치명타 피해가 30% 증가한다."
+    },
+    {
+      "level": 3,
+      "effect": "[스킬] 및 [일반 공격] 레벨과 최대 레벨이 +4 증가한다."
+    },
+    {
+      "level": 4,
+      "effect": "성속성 피해가 30% 증가한다."
+    },
+    {
+      "level": 5,
+      "effect": "[궁극기] 및 [패시브] 레벨과 최대 레벨이 +4 증가한다."
+    },
+    {
+      "level": 6,
+      "effect": "유이스가 동일 대상에게 [추가 공격] 피해를 12회 가하면, 추가로 대형 검 1개를 떨어뜨려 공격력의 150%에 해당하는 성속성 피해를 준다(해당 피해는 [추가 공격] 피해로 간주). 유이스의 [추가 공격] 피해는 대상의 속성 저항 20%를 관통한다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Frozen Heart",
+    "image": "Yuiscard",
+    "stats": {
+      "hp": "5,040",
+      "attack": "780",
+      "defense": "474"
+    },
+    "effects": [
+      "치명타 확률 +34%. 장착자의 [추가 공격] 피해 치명타 피해 +68%."
+    ]
+  },
+  "tags": [
+    "Range",
+    "Crit Rate",
+    "Crit Dmg",
+    "Enhanced Ultimate",
+    "Extra Attack"
+  ]
+}

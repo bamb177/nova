@@ -1,0 +1,90 @@
+{
+  "name": "Freya",
+  "image": "Freya",
+  "rarity": "SSR",
+  "element": "Ice",
+  "class": "Mage",
+  "role": "DPS",
+  "faction": "A.S.A",
+  "stats": {
+    "hp": "7,308",
+    "attack": "1,193",
+    "defense": "474",
+    "critRate": 16.8
+  },
+  "skills": {
+    "normal": {
+      "name": "Golden Wind Assault (金风突袭)",
+      "description": "지정한 적에게 공격력의 72%만큼 얼음 피해를 입힙니다."
+    },
+    "auto": {
+      "name": "Golden Wind's Wild Poetry (金风狂诗)",
+      "cooldown": "5.0s",
+      "description": "지정한 적과 주변 3m 내 적에게 공격력의 120%만큼 얼음 피해를 입힙니다. 이 피해는 기본 공격 피해로 간주됩니다."
+    },
+    "ultimate": {
+      "name": "Golden Wind's Bind (金风之缚)",
+      "energyCost": "3",
+      "description": "8초 동안 [황금의 욕망] 상태에 진입합니다: 기본 공격이 5m 내 적에게 추가로 원래 피해의 60%만큼 적중하며, 기본 공격 속도 +50%, 공격 속도 증가량 +60%가 됩니다. [황금의 욕망] 상태에서는 다른 스킬을 사용할 수 없지만 [빙성]을 사용할 수 있습니다. [빙성]: 대상에게 공격력의 480%만큼 얼음 피해를 입히며, 이 피해는 기본 공격 피해로 간주됩니다."
+    },
+    "passive": {
+      "name": "Goddess War Dance (女神战舞)",
+      "description": "얼음 강화: 모든 기본 공격이 추가로 공격력의 24%만큼 얼음 피해를 입힙니다. 연타 콤보: 기본 공격 또는 스킬을 10회 사용하면, 주요 대상에 대한 기본 공격이 5연타로 변경됩니다. 각 타격은 기본 공격 원래 피해의 20%를 입히며 5초간 지속됩니다."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill (组合技)",
+    "description": "치명타 확률 +7.5%. 전투 시작 시 치명타 확률 15%마다 치명타 피해 +7.5%(최대 6중첩, 최대 +45%).",
+    "requirements": {
+      "faction": "A.S.A",
+      "element": "Ice"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "[황금의 욕망] 상태 동안 공격력 +30%, 받는 피해 -30%."
+    },
+    {
+      "level": 2,
+      "effect": "전투 시작 즉시 [황금의 욕망] 상태에 진입합니다. [빙성] 사용 시 [황금의 욕망] 지속시간이 갱신됩니다. [황금의 욕망]의 범위 추가타 피해가 기본 공격 피해의 60% → 80%로 증가합니다."
+    },
+    {
+      "level": 3,
+      "effect": "[기본 공격]/[자동 스킬]/[궁극기]/[패시브] 레벨 및 레벨 상한 +2."
+    },
+    {
+      "level": 4,
+      "effect": "모든 얼음 피해 +30%."
+    },
+    {
+      "level": 5,
+      "effect": "[기본 공격]/[자동 스킬]/[궁극기]/[패시브] 레벨 및 레벨 상한 +2."
+    },
+    {
+      "level": 6,
+      "effect": "기본 공격이 얼음 저항 20%를 관통합니다. 기본 공격/스킬 10회 사용 후, 대상 및 주변 3m 내 적에게 공격력의 100%만큼 얼음 피해를 자동으로 가합니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Slave's Original Wish (奴仆的原愿)",
+    "image": "Freyacard",
+    "stats": {
+      "hp": "5,040",
+      "attack": "780",
+      "defense": "474"
+    },
+    "effects": [
+      "치명타 피해 +72%.",
+      "전장에 있는 적 1명당 기본 공격 피해 +12%(최대 4중첩, 최대 +48%)."
+    ]
+  },
+  "tags": [
+    "Ranged",
+    "Crit Damage",
+    "Crit Rate",
+    "Normal Attack",
+    "Attack Speed",
+    "AOE"
+  ]
+}

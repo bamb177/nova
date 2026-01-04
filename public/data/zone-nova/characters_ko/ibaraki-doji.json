@@ -1,0 +1,153 @@
+{
+  "name": "Ibaraki-doji",
+  "image": "Ibaraki-doji",
+  "rarity": "SSR",
+  "element": "Fire",
+  "class": "Debuffer",
+  "role": "Debuffer",
+  "faction": "Pingjing City",
+  "stats": {
+    "hp": "9,180",
+    "attack": "1,184",
+    "defense": "729",
+    "energyRecovery": "0.25/s",
+    "critRate": 0,
+    "critDamage": 50
+  },
+  "skills": {
+    "normal": {
+      "name": "Flame Arrow",
+      "level": "10+4",
+      "cooldown": "2.0s",
+      "description": "지정한 적에게 공격력의 120%만큼 화염 피해를 입힙니다."
+    },
+    "auto": {
+      "name": "Arrow of the Curse",
+      "level": "10+4",
+      "cooldown": "5.0s",
+      "description": "대상 및 반경 4m 내 적에게 공격력의 244.3%만큼 화염 피해를 입히고 [저주의 서약] 1중첩을 부여합니다. [저주의 서약]: 에너지 획득 효율 -35.8%, 받는 피해 +38.6%, 10초 지속."
+    },
+    "ultimate": {
+      "name": "Fire Phoenix Curse",
+      "level": "10+4",
+      "energyCost": "3",
+      "cooldown": "1.0s",
+      "description": "적 대상 방향으로 [화염 봉황]을 날려 경로상의 모든 적에게 공격력의 360%만큼 화염 피해를 입힙니다. 피격 대상에게 [화염 저주] 1중첩을 부여하여 궁극기 피격 피해 +87.9%, 10초 지속합니다. 또한 이 피해는 대상이 시전 중인 스킬을 [중단]시킬 수 있습니다."
+    },
+    "passive": {
+      "name": "Deboning",
+      "level": "10+4",
+      "description": "모든 공격이 적을 적중시키면 [적출]을 부여합니다. [적출]: 궁극기 피격 피해 +3.6%(최대 10중첩), 5초 지속."
+    }
+  },
+  "teamSkill": {
+    "name": "Combo Skill",
+    "level": "1",
+    "description": "전투 시작 시 모든 적 유닛의 총 피해량을 2.5% 감소시킵니다. 이바라키도지의 공격력이 1,000 증가할 때마다 효과가 100% 증가하며, 최대 300%까지 증가합니다.",
+    "requirements": {
+      "faction": "Heikyo Castle",
+      "element": "Fire",
+      "alternativeRequirement": "2 [Heikyo Castle] characters or 2 [Fire] characters"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "전투 시작 시, 첫 번째 궁극기 사용은 에너지를 소모하지 않습니다."
+    },
+    {
+      "level": 2,
+      "effect": "궁극기가 적중하면 [화염 압박]을 부여하여 대상의 공격력을 35% 감소시킵니다(3초)."
+    },
+    {
+      "level": 3,
+      "effect": "[기본 공격]/[스킬]/[궁극기]/[패시브] 레벨 및 레벨 상한 +2."
+    },
+    {
+      "level": 4,
+      "effect": "공격력 +30%."
+    },
+    {
+      "level": 5,
+      "effect": "[기본 공격]/[스킬]/[궁극기]/[패시브] 레벨 및 레벨 상한 +2."
+    },
+    {
+      "level": 6,
+      "effect": "궁극기 효과를 받은 대상의 모든 저항이 추가로 20% 감소합니다(5초)."
+    }
+  ],
+  "memoryCard": {
+    "name": "A Perfect Makeup Look?",
+    "image": "Ibaraki-dojicard",
+    "stats": {
+      "hp": "6,000",
+      "attack": "600",
+      "defense": "600"
+    },
+    "effects": [
+      "공격력 +40%.",
+      "궁극기가 피해를 주면 대상이 받는 피해 +36%, 받는 치유량 -40%(5초)."
+    ]
+  },
+  "tags": [
+    "Debuff",
+    "Ranged",
+    "Fire Damage",
+    "Ultimate Damage Amp",
+    "Energy Drain",
+    "Resistance Reduction",
+    "Attack Reduction",
+    "Interrupt",
+    "AoE"
+  ],
+  "damageAnalysis": {
+    "title": "Total Damage Taken Debuffs",
+    "description": "Ibaraki-doji has alot of damage taken debuffs, however she need alot of investment to be effective. like full dupe and memory, and the damage difference between her and Buffer is like 60% to 80% at best.",
+    "breakdown": [
+      {
+        "source": "Skill: Arrow of the Curse",
+        "value": "+38.6%",
+        "type": "All damage taken",
+        "duration": "10s"
+      },
+      {
+        "source": "ULT: Fire Phoenix Curse",
+        "value": "+87.9%",
+        "type": "Ultimate damage taken",
+        "duration": "10s"
+      },
+      {
+        "source": "Passive: Deboning (max 10 stacks)",
+        "value": "+36% (3.6% x 10)",
+        "type": "Ultimate damage taken",
+        "duration": "5s"
+      },
+      {
+        "source": "Memory: A Perfect Makeup Look?",
+        "value": "+36%",
+        "type": "All damage taken (on ULT hit)",
+        "duration": "5s"
+      },
+      {
+        "source": "Awakening 6",
+        "value": "-20% All Resistances",
+        "type": "Multiplicative damage increase",
+        "duration": "5s"
+      }
+    ],
+    "totals": [
+      {
+        "label": "Ultimate Skill Damage Taken",
+        "value": "+198.5%",
+        "calculation": "38.6% + 87.9% + 36% + 36%",
+        "note": "Nearly triples damage from teammate ultimates"
+      },
+      {
+        "label": "All Damage Taken",
+        "value": "+74.6%",
+        "calculation": "38.6% + 36%",
+        "note": "Inculdes DOT Damage too"
+      }
+    ]
+  }
+}
