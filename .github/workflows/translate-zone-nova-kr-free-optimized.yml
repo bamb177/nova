@@ -74,11 +74,12 @@ jobs:
             --min_hangul_ratio 0.20 \
             --max_len_mul 3.0 \
             --report public/data/zone-nova/translation_rolled_back.tsv \
-
+            --skip_if_translated \
+            --only afrodite,anubis,apollo
           # 예) 3개 테스트:
           # python scripts/translate_zone_nova_characters_free_hf_optimized.py \
           #   ... \
-            --only afrodite,anubis,apollo
+          #  --only afrodite,anubis,apollo
 
       - name: Commit and push if changed
         run: |
