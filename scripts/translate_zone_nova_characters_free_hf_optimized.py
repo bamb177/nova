@@ -15,9 +15,55 @@ import torch
 from transformers import MarianMTModel, MarianTokenizer
 
 
+# =========================
+# Utilities
+# =========================
 def sha(s: str) -> str:
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
+def has_hangul(text: str) -> bool:
+    return bool(re.search(r"[가-힣]", text or ""))
+
+def hangul_ratio(s: str) -> float:
+    if not s:
+        return 0.0
+    total = len(s)
+    if total == 0:
+        return 0.0
+    h = sum(1 for ch in s if "가" <= ch <= "힣")
+    return h / total
+
+def letters_ratio(s: str) -> float:
+    # 영문/숫자 비율(대략)
+    if not s:
+        return 0.0
+    total = len(s)
+    if total == 0:
+        return 0.0
+    cnt = sum(1 for ch in s if ("a" <= ch.lower() <= "z") or ("0" <= ch <= "9"))
+    return cnt / total
+
+def normalize_spaces(s: str) -> str:
+    s = re.sub(r"[ \t]+", " ", s or "").strip()
+    return s
+
+def parse_only_list(s: str) -> Optional[set]:
+    if not s:
+        return None
+    items = [x.strip() for x in s.split(",") if x.strip()]
+    if not items:
+        return None
+    out = set()
+    for it in items:
+        if it.endswith(".js"):
+            it = it[:-3]
+        out.add(it)
+    return out
+
+
+# =========================
+# Cache helpers
+# =========================
 def load_cache(cache_path: Path) -> Dict[str, str]:
     if cache_path.exists():
         try:
@@ -31,10 +77,10 @@ def save_cache(cache_path: Path, cache: Dict[str, str]) -> None:
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_text(json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8")
 
-def has_hangul(text: str) -> bool:
-    return bool(re.search(r"[가-힣]", text or ""))
 
-
+# =========================
+# Glossary
+# =========================
 def load_glossary(path: Path) -> Dict[str, str]:
     if path.exists():
         return json.loads(path.read_text(encoding="utf-8"))
@@ -50,6 +96,9 @@ def apply_glossary(text: str, glossary: Dict[str, str]) -> str:
     return text
 
 
+# =========================
+# Token protection
+# =========================
 TOKEN_PATTERNS = [
     r"\{[^}]+\}",
     r"\[[^\]]+\]",
@@ -78,11 +127,15 @@ def restore_tokens(text: str, placeholders: Dict[str, str]) -> str:
     return text
 
 
+# =========================
+# Style postprocess
+# =========================
 def postprocess_ko(text: str) -> str:
     t = (text or "").strip()
     if not t:
         return t
 
+    # honorific -> tooltip tone
     t = re.sub(r"합니다\.", "한다.", t)
     t = re.sub(r"됩니다\.", "된다.", t)
     t = re.sub(r"입니다\.", "이다.", t)
@@ -90,15 +143,20 @@ def postprocess_ko(text: str) -> str:
     t = re.sub(r"됩니다$", "된다", t)
     t = re.sub(r"입니다$", "이다", t)
 
+    # common fixes
     t = re.sub(r"지정된 적", "지정한 적", t)
     t = re.sub(r"지정된 대상", "지정한 대상", t)
 
+    # spacing
     t = re.sub(r"\s*%\s*", "%", t)
     t = re.sub(r"[ \t]+", " ", t)
     t = re.sub(r"\.\.+", ".", t)
     return t.strip()
 
 
+# =========================
+# JS loader
+# =========================
 def import_js_module(js_path: Path) -> Dict[str, Any]:
     js_path = js_path.resolve()
     with tempfile.TemporaryDirectory() as td:
@@ -140,6 +198,10 @@ def select_character_data_export(module_obj: Dict[str, Any]) -> Tuple[str, Dict[
                 score += 3
             if "teamSkill" in v:
                 score += 3
+            if "memoryCard" in v:
+                score += 2
+            if "awakenings" in v or "awakeningEffects" in v:
+                score += 2
             candidates.append((score, k, v))
 
     if not candidates:
@@ -150,6 +212,9 @@ def select_character_data_export(module_obj: Dict[str, Any]) -> Tuple[str, Dict[
     return (key, obj)
 
 
+# =========================
+# HF Marian batch translator
+# =========================
 class HFTranslator:
     def __init__(self, model_name: str, num_beams: int = 2):
         self.model_name = model_name
@@ -212,6 +277,9 @@ class HFTranslator:
         return [x.strip() for x in out]
 
 
+# =========================
+# Target field discovery (schema-robust)
+# =========================
 def path_has_ancestor(path: List[Any], ancestor: str) -> bool:
     return any(isinstance(p, str) and p == ancestor for p in path)
 
@@ -219,20 +287,22 @@ def is_target_field(path: List[Any], key: str, value: Any) -> bool:
     if not isinstance(key, str):
         return False
 
+    # skills/**/description, teamSkill/**/description
     if key == "description" and isinstance(value, str):
         if path_has_ancestor(path, "skills") or path_has_ancestor(path, "teamSkill"):
             return True
 
+    # awakenings/awakeningEffects/**/effect
     if key == "effect" and isinstance(value, str):
         if path_has_ancestor(path, "awakenings") or path_has_ancestor(path, "awakeningEffects"):
             return True
 
+    # memoryCard/effects: list[str]
     if key == "effects" and isinstance(value, list) and all(isinstance(x, str) for x in value):
         if path_has_ancestor(path, "memoryCard"):
             return True
 
     return False
-
 
 def collect_targets(obj: Any) -> List[Tuple[List[Any], str, Any]]:
     targets = []
@@ -257,6 +327,9 @@ def get_by_path(root: Any, path: List[Any]) -> Any:
     return cur
 
 
+# =========================
+# Heartbeat logger
+# =========================
 class Heartbeat:
     def __init__(self, interval_sec: int = 30):
         self.interval = max(5, int(interval_sec))
@@ -273,14 +346,77 @@ class Heartbeat:
             self.last = now
 
 
+# =========================
+# Quality gate (SAFE MODE 핵심)
+# =========================
+DEFAULT_BAD_TOKENS = [
+    # 실사용 중 관찰된 “쓰레기 토큰” 유형을 방어적으로 잡음
+    "betterstshell",
+    "get denied",
+    "cookies",
+    "skillsHan",
+    "nonbit",
+    "volru",
+    "por live",
+    "annex",
+    "theopen",
+    "inglas",
+    "reground",
+]
+
+def is_garbage_translation(
+    src: str,
+    dst: str,
+    min_hangul_ratio: float,
+    max_len_mul: float,
+    bad_tokens: List[str],
+) -> bool:
+    if not dst or not dst.strip():
+        return True
+
+    # 금칙 토큰
+    low = dst.lower()
+    for tok in bad_tokens:
+        if tok.lower() in low:
+            return True
+
+    # 한글 비율이 너무 낮으면 실패
+    if hangul_ratio(dst) < min_hangul_ratio:
+        return True
+
+    # 길이 폭주 방지
+    src_len = max(1, len(src))
+    if len(dst) > max(200, int(src_len * max_len_mul)):
+        return True
+
+    # 제어문자/이상 문자 방지
+    weird = sum(1 for ch in dst if ord(ch) < 32 and ch not in "\n\t")
+    if weird > 0:
+        return True
+
+    return False
+
+
+# =========================
+# Translation bulk (cache + gate + report)
+# =========================
 def translate_texts_bulk(
     translator: HFTranslator,
     texts: List[str],
     glossary: Dict[str, str],
     cache: Dict[str, str],
+    cache_salt: str,
     batch_size: int,
     heartbeat: Heartbeat,
-) -> Tuple[List[str], int, int]:
+    min_hangul_ratio: float,
+    max_len_mul: float,
+    bad_tokens: List[str],
+    report_rolled_back: List[str],
+    context_prefix: str,
+) -> Tuple[List[str], int, int, int]:
+    """
+    returns (translated_texts, cache_hit_count, generated_count, rolled_back_count)
+    """
     protected_list = []
     placeholders_list = []
     keys = []
@@ -289,22 +425,33 @@ def translate_texts_bulk(
         prot, ph = protect_tokens(t)
         protected_list.append(prot)
         placeholders_list.append(ph)
-        keys.append(sha(translator.model_name + "|" + t))
+        # cache key에 salt를 넣어 “오염된 과거 캐시” 자동 무효화
+        keys.append(sha(cache_salt + "|" + translator.model_name + "|" + t))
 
     results: List[Optional[str]] = [None] * len(texts)
 
     cache_hits = 0
     to_do_idx = []
     to_do_texts = []
+
     for i, k in enumerate(keys):
         if k in cache:
-            results[i] = cache[k]
-            cache_hits += 1
+            cached = cache[k]
+            # 캐시 오염 방지: 캐시 결과도 품질 게이트 통과 못하면 버림(재번역 또는 롤백)
+            if is_garbage_translation(texts[i], cached, min_hangul_ratio, max_len_mul, bad_tokens):
+                # 오염 캐시 제거
+                del cache[k]
+                to_do_idx.append(i)
+                to_do_texts.append(protected_list[i])
+            else:
+                results[i] = cached
+                cache_hits += 1
         else:
             to_do_idx.append(i)
             to_do_texts.append(protected_list[i])
 
     generated = 0
+    rolled_back = 0
 
     for start in range(0, len(to_do_texts), batch_size):
         heartbeat.ping(extra=f"batch {start//batch_size + 1}/{(len(to_do_texts)+batch_size-1)//batch_size}")
@@ -314,20 +461,31 @@ def translate_texts_bulk(
 
         for j, out in enumerate(outs):
             idx = to_do_idx[start + j]
+            src = texts[idx]
+
             out = restore_tokens(out, placeholders_list[idx])
             out = postprocess_ko(apply_glossary(out, glossary))
+            out = normalize_spaces(out)
 
-            if not has_hangul(out):
-                out = texts[idx]
+            # 안전 게이트: 실패면 원문 롤백 + 캐시 저장 금지
+            if is_garbage_translation(src, out, min_hangul_ratio, max_len_mul, bad_tokens):
+                rolled_back += 1
+                report_rolled_back.append(f"{context_prefix}\t{src}")
+                out = src  # 롤백
 
             results[idx] = out
-            if out != texts[idx]:
+
+            # 캐시 저장: “변경 + 게이트 통과”만 저장
+            if out != src and not is_garbage_translation(src, out, min_hangul_ratio, max_len_mul, bad_tokens):
                 cache[keys[idx]] = out
 
     final_results = [r if r is not None else texts[i] for i, r in enumerate(results)]
-    return final_results, cache_hits, generated
+    return final_results, cache_hits, generated, rolled_back
 
 
+# =========================
+# Skip-if-translated helper
+# =========================
 def maybe_already_translated(out_json_path: Path) -> bool:
     if not out_json_path.exists():
         return False
@@ -351,26 +509,15 @@ def maybe_already_translated(out_json_path: Path) -> bool:
     return True
 
 
-def parse_only_list(s: Optional[str]) -> Optional[set]:
-    if not s:
-        return None
-    items = [x.strip() for x in s.split(",") if x.strip()]
-    if not items:
-        return None
-    # allow ".js" suffix in input
-    out = set()
-    for it in items:
-        if it.endswith(".js"):
-            it = it[:-3]
-        out.add(it)
-    return out
-
-
+# =========================
+# Main
+# =========================
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default="public/data/zone-nova/characters")
     ap.add_argument("--out", default="public/data/zone-nova/characters_ko")
     ap.add_argument("--cache", default=".cache/zone_nova_translate_cache_free_hf.json")
+    ap.add_argument("--cache_salt", default="safe-v2", help="캐시 무효화/버전용 salt")
     ap.add_argument("--glossary", default="public/data/zone-nova/glossary_ko.json")
     ap.add_argument("--model_name", default="Helsinki-NLP/opus-mt-tc-big-en-ko")
     ap.add_argument("--num_beams", type=int, default=2)
@@ -378,16 +525,25 @@ def main():
     ap.add_argument("--skip_if_translated", action="store_true")
     ap.add_argument("--heartbeat_sec", type=int, default=30)
     ap.add_argument("--flush_each_file", action="store_true")
-    # NEW: test controls
+
+    # test controls
     ap.add_argument("--only", default="", help="comma-separated stems, e.g. afrodite,anubis,apollo")
     ap.add_argument("--limit", type=int, default=0, help="process first N files after filtering")
+
+    # safety gate controls
+    ap.add_argument("--min_hangul_ratio", type=float, default=0.20, help="번역문 한글 비율 최소값")
+    ap.add_argument("--max_len_mul", type=float, default=3.0, help="번역문 길이 폭주 제한(원문 대비 배수)")
+    ap.add_argument("--report", default="public/data/zone-nova/translation_rolled_back.tsv", help="롤백된 원문 리포트")
+
     args = ap.parse_args()
 
-    print("[START] translate_zone_nova_characters_free_hf_optimized.py")
+    print("[START] translate_zone_nova_characters_free_hf_optimized.py (SAFE)")
     print(f"[ENV] HF_HOME={os.getenv('HF_HOME')}")
-    print(f"[ARGS] src={args.src} out={args.out} cache={args.cache}")
-    print(f"[ARGS] model={args.model_name} beams={args.num_beams} batch={args.batch_size} skip={args.skip_if_translated}")
+    print(f"[ARGS] src={args.src} out={args.out}")
+    print(f"[ARGS] model={args.model_name} beams={args.num_beams} batch={args.batch_size}")
+    print(f"[ARGS] cache={args.cache} salt={args.cache_salt} skip={args.skip_if_translated}")
     print(f"[ARGS] only={args.only} limit={args.limit} heartbeat={args.heartbeat_sec}s")
+    print(f"[GATE] min_hangul_ratio={args.min_hangul_ratio} max_len_mul={args.max_len_mul}")
     sys.stdout.flush()
 
     heartbeat = Heartbeat(interval_sec=args.heartbeat_sec)
@@ -396,11 +552,13 @@ def main():
     out_dir = Path(args.out)
     cache_path = Path(args.cache)
     glossary_path = Path(args.glossary)
+    report_path = Path(args.report)
 
     if not src_dir.exists():
         raise RuntimeError(f"Source directory not found: {src_dir}")
 
     out_dir.mkdir(parents=True, exist_ok=True)
+
     cache = load_cache(cache_path)
     glossary = load_glossary(glossary_path)
 
@@ -412,7 +570,6 @@ def main():
 
     files = sorted(src_dir.glob("*.js"))
     only_set = parse_only_list(args.only)
-
     if only_set is not None:
         files = [f for f in files if f.stem in only_set]
         print(f"[FILTER] only={sorted(list(only_set))} -> {len(files)} files")
@@ -428,6 +585,10 @@ def main():
     total_changed = 0
     total_cache_hits = 0
     total_generated = 0
+    total_rolled_back = 0
+    rolled_back_report_rows: List[str] = []
+
+    bad_tokens = list(DEFAULT_BAD_TOKENS)
 
     for i, js_file in enumerate(files, start=1):
         heartbeat.ping(extra=f"file {i}/{len(files)}")
@@ -450,15 +611,20 @@ def main():
 
         field_refs = []
         texts: List[str] = []
+        contexts: List[str] = []
+
         for path, key, value in targets:
             container = get_by_path(data_obj, path)
+            ctx = f"{js_file.stem}:{'/'.join(str(x) for x in (path+[key]))}"
             if isinstance(value, str):
                 field_refs.append((container, key, value))
                 texts.append(value)
+                contexts.append(ctx)
             elif isinstance(value, list):
                 for idx2, item in enumerate(value):
                     field_refs.append((value, idx2, item))
                     texts.append(item)
+                    contexts.append(f"{ctx}[{idx2}]")
 
         total_targets += len(texts)
 
@@ -469,21 +635,48 @@ def main():
             sys.stdout.flush()
             continue
 
-        t0 = time.time()
-        translated, cache_hits, generated = translate_texts_bulk(
+        # translate in one bulk call, but report uses contexts
+        # (context_prefix is per-field inside report rows)
+        translated_all: List[str] = []
+        cache_hits = 0
+        generated = 0
+        rolled_back = 0
+
+        # 배치 번역은 전체 texts를 대상으로 하되, report에 context를 넣기 위해
+        # translate_texts_bulk()에 prefix를 넣고, 실제 row에는 prefix+src가 들어가도록 처리
+        # 여기서는 prefix를 임시로 넣고, 사후에 context 매핑으로 다시 저장한다.
+        tmp_report: List[str] = []
+        translated_all, cache_hits, generated, rolled_back = translate_texts_bulk(
             translator=translator,
             texts=texts,
             glossary=glossary,
             cache=cache,
+            cache_salt=args.cache_salt,
             batch_size=max(1, args.batch_size),
             heartbeat=heartbeat,
+            min_hangul_ratio=args.min_hangul_ratio,
+            max_len_mul=args.max_len_mul,
+            bad_tokens=bad_tokens,
+            report_rolled_back=tmp_report,
+            context_prefix="CTX",  # placeholder
         )
-        dt_tr = time.time() - t0
+
+        # tmp_report에는 "CTX\t<원문>" 형태만 쌓이므로, 실제 context를 붙여 재구성
+        # rolled_back 된 건 “src 그대로 반환된 항목”을 기준으로 잡는 게 더 정확하다.
+        # 여기서는 translate_texts_bulk에서 rolled_back 카운트를 신뢰하고,
+        # 실제 리포트는 contexts와 src를 함께 쌓는다.
+        for ctx, src, dst in zip(contexts, texts, translated_all):
+            if dst == src and not has_hangul(src):  # 영문인데 그대로면 롤백/미번역
+                rolled_back_report_rows.append(f"{ctx}\t{src}")
+
+        dt_tr = time.time() - t_file0
+
         total_cache_hits += cache_hits
         total_generated += generated
+        total_rolled_back += rolled_back
 
         changed_here = 0
-        for (container, key_or_idx, old), new in zip(field_refs, translated):
+        for (container, key_or_idx, old), new in zip(field_refs, translated_all):
             if new != old:
                 container[key_or_idx] = new
                 changed_here += 1
@@ -496,8 +689,8 @@ def main():
         print(
             f"[OK] {i}/{len(files)} {js_file.name} export={export_key} | "
             f"targets={len(texts)} changed={changed_here} | "
-            f"cache_hit={cache_hits} generated={generated} | "
-            f"tr={dt_tr:.1f}s file={dt_file:.1f}s"
+            f"cache_hit={cache_hits} generated={generated} rolled_back~={rolled_back} | "
+            f"file={dt_file:.1f}s"
         )
         sys.stdout.flush()
 
@@ -510,9 +703,17 @@ def main():
             print(f"[CACHE] saved at file {i} entries={len(cache)}")
             sys.stdout.flush()
 
+    # Save cache
     save_cache(cache_path, cache)
+
+    # Save report
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    header = "context\ttext\n"
+    report_path.write_text(header + "\n".join(rolled_back_report_rows), encoding="utf-8")
+
     print(f"[DONE] files={len(files)} total_targets={total_targets} changed={total_changed}")
-    print(f"[DONE] cache_entries={len(cache)} total_cache_hits={total_cache_hits} total_generated={total_generated}")
+    print(f"[DONE] cache_entries={len(cache)} cache_hits={total_cache_hits} generated={total_generated}")
+    print(f"[DONE] rolled_back_report_rows={len(rolled_back_report_rows)} -> {report_path}")
     sys.stdout.flush()
 
 
