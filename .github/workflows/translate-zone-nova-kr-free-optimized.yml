@@ -70,7 +70,7 @@ jobs:
             --model_name Helsinki-NLP/opus-mt-tc-big-en-ko \
             --num_beams 2 \
             --batch_size 16 \
-            --skip_if_translated
+            --skip_if_translated \
             --heartbeat_sec 30
 
       - name: Commit and push if changed
