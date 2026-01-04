@@ -193,7 +193,6 @@
       background: rgba(255,255,255,.03);
       color: rgba(255,255,255,.58);
     }
-
     .pill-neutral{
       background: rgba(255,255,255,.04);
       border-color: rgba(255,255,255,.12);
@@ -320,16 +319,6 @@
       justify-content: space-between;
       gap: 10px;
     }
-    .card-title small{
-      font-size: 12px;
-      color: rgba(255,255,255,.70);
-      font-weight: 850;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-      padding: 3px 8px;
-      border-radius: 999px;
-      white-space: nowrap;
-    }
     .card-desc{
       font-size: 14px;
       color: rgba(255,255,255,.78);
@@ -346,6 +335,19 @@
       white-space: pre-wrap;
     }
     .kv-k{ width: 180px; color: rgba(255,255,255,.86); font-weight: 900; }
+
+    /* === Skill Group (Auto/Ultimate/Passive/Normal/Team Skill) === */
+    .group{ margin-top: 12px; }
+    .group-title{
+      margin: 0 0 8px 0;
+      font-size: 13px;
+      font-weight: 950;
+      color: rgba(255,255,255,.86);
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+    }
 
     .raw summary{
       cursor:pointer;
@@ -469,10 +471,8 @@
   </div>
 
   <script>
-    // 서버에서 주입된 캐시
     const CHARS_RAW = {{ chars_json|safe }};
 
-    // ===== 유틸 =====
     function escapeHtml(str) {
       return (str || "")
         .replace(/&/g,"&amp;")
@@ -500,10 +500,8 @@
       return Array.from(m.values());
     }
 
-    // ===== 표시 규칙 =====
     const RARITY_ORDER = { "SSR": 3, "SR": 2, "R": 1, "-": 0 };
 
-    // 요소명 변경(표기만)
     const ELEM_LABEL = {
       "Fire": "Blaze",
       "Wind": "Storm",
@@ -527,7 +525,6 @@
       return "";
     }
 
-    // 클래스 debuffer -> Disruptor (표기)
     function classLabel(cls){
       const v = (cls || "-").toString().trim().toLowerCase();
       if (v === "debuffer") return "Disruptor";
@@ -540,8 +537,6 @@
       return (cls && cls !== "-") ? (cls.charAt(0).toUpperCase() + cls.slice(1)) : "-";
     }
 
-    // 역할: 첫 글자 대문자, dps는 DPS
-    // + Disruptor(원본 debuffer)면 역할은 DPS로 보이게
     function roleLabel(role, cls){
       const c = (cls || "-").toString().trim().toLowerCase();
       if (c === "debuffer") return "DPS";
@@ -569,7 +564,7 @@
       return ELEM_LABEL[v] || v || "-";
     }
 
-    // ===== 상세(모달) 렌더링: 스킬/각성/메모리카드 =====
+    // ===== detail helpers =====
     function pick(obj, ...keys) {
       for (const k of keys) {
         const v = obj?.[k];
@@ -595,6 +590,18 @@
       return `<table class="kv"><tbody>${rows}</tbody></table>`;
     }
 
+    // ✅ 단일 스킬 객체 판별: cooldown/description/name 같은 “필드 묶음”이면 true
+    function looksLikeSkillObject(o){
+      if (!o || typeof o !== "object" || Array.isArray(o)) return false;
+      const keys = [
+        "name","title","skillName",
+        "description","desc","text",
+        "cooldown","energyCost","cost","sp",
+        "type","category","target"
+      ];
+      return keys.some(k => o[k] !== undefined && o[k] !== null);
+    }
+
     function normalizeSkillEntry(x, fallbackTitle) {
       if (!x) return { title: fallbackTitle || "-", desc: "", extra: null };
 
@@ -615,12 +622,11 @@
           (typeof x.text === "string" && x.text) ||
           "";
 
-        // 부가 정보: damage/type/cooldown/cost/target 등(있으면 표로)
+        // 부가 정보(스칼라만): cooldown/energyCost 등
         const extra = {};
         for (const [k, v] of Object.entries(x)) {
           if (["name","title","skillName","description","desc","text"].includes(k)) continue;
           if (v === null || v === undefined) continue;
-          // 너무 큰 객체는 raw에서 확인하도록 제외
           if (typeof v === "object") continue;
           extra[k] = v;
         }
@@ -630,114 +636,99 @@
       return { title: fallbackTitle || "-", desc: String(x), extra: null };
     }
 
-    function renderSkillCards(skillsObjOrArr, groupLabel) {
-      if (isEmpty(skillsObjOrArr)) return "";
-
-      const cards = [];
-
-      if (Array.isArray(skillsObjOrArr)) {
-        for (let i = 0; i < skillsObjOrArr.length; i++) {
-          const s = normalizeSkillEntry(skillsObjOrArr[i], `${groupLabel || "스킬"} ${i+1}`);
-          cards.push(renderOneSkillCard(s, groupLabel));
-        }
-      } else if (typeof skillsObjOrArr === "object") {
-        // key별로 스킬이 묶여 있을 수 있음
-        for (const [k, v] of Object.entries(skillsObjOrArr)) {
-          // v가 스킬 1개 객체인 경우
-          if (typeof v === "object" && !Array.isArray(v) && (v.name || v.description || v.desc || v.text)) {
-            const s = normalizeSkillEntry(v, k);
-            cards.push(renderOneSkillCard(s, groupLabel || k));
-          } else {
-            // v가 배열/기타면 하위로 전개
-            if (Array.isArray(v)) {
-              for (let i = 0; i < v.length; i++) {
-                const s = normalizeSkillEntry(v[i], `${k} ${i+1}`);
-                cards.push(renderOneSkillCard(s, groupLabel || k));
-              }
-            } else if (typeof v === "string") {
-              const s = normalizeSkillEntry(v, k);
-              cards.push(renderOneSkillCard(s, groupLabel || k));
-            }
-          }
-        }
-      } else {
-        const s = normalizeSkillEntry(skillsObjOrArr, groupLabel || "스킬");
-        cards.push(renderOneSkillCard(s, groupLabel));
-      }
-
-      return cards.length ? `<div class="cards">${cards.join("")}</div>` : "";
-    }
-
-    function renderOneSkillCard(s, badgeLabel) {
-      const badge = badgeLabel ? `<small>${escapeHtml(badgeLabel)}</small>` : "";
-      const desc = s.desc ? `<div class="card-desc">${escapeHtml(s.desc)}</div>` : `<div class="card-desc" style="opacity:.75;">(설명 없음)</div>`;
+    function renderOneSkillCard(s) {
+      const desc = s.desc
+        ? `<div class="card-desc">${escapeHtml(s.desc)}</div>`
+        : `<div class="card-desc" style="opacity:.75;">(설명 없음)</div>`;
       const extra = s.extra ? renderKV(s.extra) : "";
       return `
         <div class="card">
-          <div class="card-title">
-            <span>${escapeHtml(String(s.title))}</span>
-            ${badge}
-          </div>
+          <div class="card-title"><span>${escapeHtml(String(s.title || "-"))}</span></div>
           ${desc}
           ${extra ? `<div style="margin-top:8px;">${extra}</div>` : ""}
         </div>
       `;
     }
 
-    function renderSkills(detail) {
-      const skills = pick(detail, "skills");
-      const teamSkill = pick(detail, "teamSkill", "team_skill", "team");
+    // ✅ 스킬 데이터(단일/배열/맵) → 카드 묶음
+    function renderSkillCards(skillsObjOrArr) {
+      if (isEmpty(skillsObjOrArr)) return `<div class="detail-empty">스킬 데이터 없음</div>`;
 
-      // 어떤 JSON은 skills가 {auto, ultimate, passive...} 형태일 수 있어 그룹별 추출
-      const groups = [];
-
-      if (skills && typeof skills === "object" && !Array.isArray(skills)) {
-        const auto = pick(skills, "auto");
-        const ultimate = pick(skills, "ultimate");
-        const passive = pick(skills, "passive");
-        const active = pick(skills, "active");
-        const basic = pick(skills, "basic");
-        const others = Object.keys(skills)
-          .filter(k => !["auto","ultimate","passive","active","basic"].includes(k));
-
-        if (!isEmpty(auto)) groups.push({ label: "Auto", data: auto });
-        if (!isEmpty(basic)) groups.push({ label: "Basic", data: basic });
-        if (!isEmpty(active)) groups.push({ label: "Active", data: active });
-        if (!isEmpty(ultimate)) groups.push({ label: "Ultimate", data: ultimate });
-        if (!isEmpty(passive)) groups.push({ label: "Passive", data: passive });
-
-        for (const k of others) {
-          if (!isEmpty(skills[k])) groups.push({ label: k, data: skills[k] });
-        }
-
-        // skills 객체 자체가 스킬 리스트처럼 생겼으면(키:스킬명, 값:desc) 그대로 렌더
-        if (groups.length === 0) {
-          const html = renderSkillCards(skills, "Skills");
-          return html || `<div class="detail-empty">스킬 데이터 없음</div>`;
-        }
-      } else {
-        // skills가 배열/문자열/단일객체인 경우
-        if (!isEmpty(skills)) groups.push({ label: "Skills", data: skills });
+      // 1) 단일 스킬 객체면 “절대 풀지 말고” 1카드
+      if (looksLikeSkillObject(skillsObjOrArr)) {
+        const s = normalizeSkillEntry(skillsObjOrArr, "Skill");
+        return `<div class="cards">${renderOneSkillCard(s)}</div>`;
       }
 
-      if (!isEmpty(teamSkill)) groups.push({ label: "Team Skill", data: teamSkill });
+      // 2) 배열이면 각각 카드
+      if (Array.isArray(skillsObjOrArr)) {
+        const cards = skillsObjOrArr
+          .map((x, idx) => renderOneSkillCard(normalizeSkillEntry(x, `Skill ${idx + 1}`)))
+          .join("");
+        return `<div class="cards">${cards}</div>`;
+      }
 
-      if (groups.length === 0) return `<div class="detail-empty">스킬 데이터 없음</div>`;
+      // 3) 객체 맵이면 value가 “스킬 객체”인 것만 카드로(필드 풀림 방지)
+      if (typeof skillsObjOrArr === "object") {
+        const cards = [];
 
-      return groups.map(g => {
-        const html = renderSkillCards(g.data, g.label);
-        return html ? html : "";
-      }).join("");
+        for (const [k, v] of Object.entries(skillsObjOrArr)) {
+          if (isEmpty(v)) continue;
+
+          if (looksLikeSkillObject(v)) {
+            cards.push(renderOneSkillCard(normalizeSkillEntry(v, k)));
+            continue;
+          }
+
+          if (Array.isArray(v)) {
+            for (let i = 0; i < v.length; i++) {
+              cards.push(renderOneSkillCard(normalizeSkillEntry(v[i], `${k} ${i + 1}`)));
+            }
+            continue;
+          }
+
+          // scalar/object-blob은 여기서 카드화하면 다시 뒤죽박죽 위험 → 무시
+        }
+
+        // 아무것도 못 뽑으면 전체를 1카드(최소 표시)
+        if (cards.length === 0) {
+          const s = normalizeSkillEntry(skillsObjOrArr, "Skill");
+          return `<div class="cards">${renderOneSkillCard(s)}</div>`;
+        }
+
+        return `<div class="cards">${cards.join("")}</div>`;
+      }
+
+      const s = normalizeSkillEntry(skillsObjOrArr, "Skill");
+      return `<div class="cards">${renderOneSkillCard(s)}</div>`;
+    }
+
+    // ✅ 스킬 탭: Auto/Ultimate/Passive/Normal/Team Skill 5개 고정 섹션
+    function renderSkills(detail) {
+      const skills = pick(detail, "skills") || {};
+      const teamSkill = pick(detail, "teamSkill", "team_skill", "team");
+
+      // Normal은 normal 우선, 없으면 basic을 Normal로 취급
+      const normalData = !isEmpty(skills?.normal) ? skills.normal : skills?.basic;
+
+      const sections = [
+        { id: "Auto", label: "Auto", data: skills?.auto },
+        { id: "Ultimate", label: "Ultimate", data: skills?.ultimate },
+        { id: "Passive", label: "Passive", data: skills?.passive },
+        { id: "Normal", label: "Normal", data: normalData },
+        { id: "Team Skill", label: "Team Skill", data: teamSkill },
+      ];
+
+      return sections.map(s => `
+        <div class="group">
+          <div class="group-title">${escapeHtml(s.label)}</div>
+          ${isEmpty(s.data) ? `<div class="detail-empty">${escapeHtml(s.label)} 데이터 없음</div>` : renderSkillCards(s.data)}
+        </div>
+      `).join("");
     }
 
     function normalizeAwakenings(aw) {
-      // 기대 형태:
-      // - [{level:1,effect:"..."}, ...]
-      // - [{...}, ...] (level/effect가 다른 키일 수 있음)
-      // - {levels:[...]}
-      // - {"1":{...},"2":{...}} 또는 {"1":"...", ...}
       if (!aw) return [];
-
       if (Array.isArray(aw)) return aw;
 
       if (typeof aw === "object") {
@@ -754,7 +745,6 @@
             });
         }
       }
-
       return [];
     }
 
@@ -800,7 +790,6 @@
 
       const name = pick(mem, "name", "title") || "Memory Card";
       const desc = pick(mem, "description", "desc", "text") || "";
-
       const effects = pick(mem, "effects", "effect");
 
       let effectsHtml = "";
@@ -818,7 +807,6 @@
       } else if (typeof effects === "string") {
         effectsHtml = `<div class="card-desc">${escapeHtml(effects)}</div>`;
       } else {
-        // effects가 없으면 mem 전체 키/값을 최소 표로
         effectsHtml = renderKV(mem);
       }
 
@@ -849,7 +837,6 @@
       ).join("");
 
       const panels = tabs.map(t => renderPanel(t.id, t.content, t.id === firstActive)).join("");
-
       const raw = `<details class="raw"><summary>Raw JSON 보기</summary><pre>${escapeHtml(JSON.stringify(detail || {}, null, 2))}</pre></details>`;
 
       return `
@@ -899,7 +886,6 @@
       openModal();
       modalBody.innerHTML = `<div class="modal-loading">Loading…</div>`;
       try {
-        // ✅ main.py에서 characters_ko로 읽도록 변경됨
         const r = await fetch(`/zones/zone-nova/characters/${encodeURIComponent(cid)}`, { cache: "no-store" });
         const j = await r.json();
         if (!j.ok) {
@@ -907,7 +893,6 @@
           return;
         }
 
-        // title: KO json에 name이 있을 수 있으니 우선 사용
         const detail = j.detail || {};
         const name = pick(detail, "name") || j.character?.name || j.id || "Character";
         modalTitle.textContent = name;
@@ -945,7 +930,6 @@
       }
     }
 
-    // 필터 옵션 채우기(표시 기준)
     const elems = uniqSorted(chars.map(c => normalizeElem(c.element)));
     const facts = uniqSorted(chars.map(c => normalizeFaction(c.faction)));
     const classes = uniqSorted(chars.map(c => classLabel(c.class)));
@@ -1051,13 +1035,11 @@
       $tbody.innerHTML = rows || `<tr><td colspan="7" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
     }
 
-    // 이벤트: 필터 변경 시 렌더
     [$q, $rarity, $elem, $faction, $class, $role].forEach(el => {
       el.addEventListener("input", render);
       el.addEventListener("change", render);
     });
 
-    // 전체 선택/해제
     document.getElementById("btnAll").addEventListener("click", () => {
       document.querySelectorAll(".chk-owned").forEach(x => x.checked = true);
     });
@@ -1065,12 +1047,10 @@
       document.querySelectorAll(".chk-owned").forEach(x => x.checked = false);
     });
 
-    // 클릭: 체크박스 클릭은 제외하고 캐릭터 셀 클릭 시 모달
     document.addEventListener("click", (e) => {
       const chk = e.target.closest(".chk-owned");
       if (chk) return;
 
-      // “이미지 클릭” 포함(셀 전체 클릭)
       const cell = e.target.closest(".char-cell.clickable");
       if (!cell) return;
 
