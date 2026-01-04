@@ -16,7 +16,7 @@ CLASS_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova"
 CHAR_META_JSON = os.path.join(DATA_DIR, "characters_meta.json")
 CHAR_JSON = os.path.join(DATA_DIR, "characters.json")
 
-# ✅ 변경: 캐릭터 상세는 characters_ko(캐릭터별 단일 json) 사용
+# ✅ 변경: 캐릭터별 단일 KO JSON 폴더
 CHAR_KO_DIR = os.path.join(DATA_DIR, "characters_ko")
 
 OVERRIDE_NAMES = os.path.join(DATA_DIR, "overrides_names.json")
@@ -30,14 +30,13 @@ app = Flask(__name__, static_folder="public", static_url_path="")
 RARITY_SCORE = {"SSR": 30, "SR": 18, "R": 10, "-": 0}
 VALID_IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 
-# ===== 클래스/역할 정의 =====
 CLASS_SET = {"buffer", "debuffer", "guardian", "healer", "mage", "rogue", "warrior"}
 ROLE_SET = {"buffer", "dps", "debuffer", "healer", "tank"}
 
 # ✅ 요청 반영: debuffer(=Disruptor)는 역할에서 DPS 취급
 CLASS_TO_ROLE = {
     "buffer": "buffer",
-    "debuffer": "dps",     # 변경
+    "debuffer": "dps",
     "healer": "healer",
     "guardian": "tank",
     "mage": "dps",
@@ -154,7 +153,7 @@ def normalize_class(v: str) -> str:
 def role_from_class(cls: str, cid: str) -> str:
     if not cls or cls == "-":
         return "-"
-    # Apep: warrior여도 tank 가능(기존)
+    # Apep: warrior여도 tank 가능
     if cid == "apep" and cls == "warrior":
         return "tank"
     return CLASS_TO_ROLE.get(cls, "-")
@@ -240,9 +239,6 @@ def _completeness_score(x: dict) -> int:
     return s
 
 def normalize_chars(raw_meta, raw_chars) -> list[dict]:
-    """
-    meta + characters.json 병합 후 정규화
-    """
     overrides_names, overrides_factions = _load_overrides()
 
     merged = []
@@ -256,14 +252,13 @@ def normalize_chars(raw_meta, raw_chars) -> list[dict]:
     class_icon_map = build_file_map(CLASS_ICON_DIR)
 
     out = []
-    by_namekey = {}  # name slug -> item (중복 제거 강화)
+    by_namekey = {}
 
     for c in merged:
         if not isinstance(c, dict):
             continue
 
         name = normalize_char_name(c.get("name") or "")
-        # ✅ 이름 오버라이드 적용
         if name in overrides_names:
             name = overrides_names[name]
 
@@ -287,7 +282,6 @@ def normalize_chars(raw_meta, raw_chars) -> list[dict]:
         cls = normalize_class(str(cls_raw) if cls_raw is not None else "")
         role = role_from_class(cls, cid)
 
-        # ===== 캐릭터 이미지 매칭 =====
         image_url = None
         special = {
             "snowgirl": "Snow",
@@ -310,7 +304,6 @@ def normalize_chars(raw_meta, raw_chars) -> list[dict]:
                     image_url = f"/images/games/zone-nova/characters/{real}"
                     break
 
-        # 아이콘
         elem_icon = None
         if element and element != "-":
             ek = element.lower()
@@ -338,7 +331,6 @@ def normalize_chars(raw_meta, raw_chars) -> list[dict]:
             "class_icon": class_icon,
         }
 
-        # ✅ 동일 이름 중복 제거(정보가 더 풍부한 쪽 우선)
         name_key = slug_id(name)
         if name_key:
             cur = by_namekey.get(name_key)
@@ -352,7 +344,6 @@ def normalize_chars(raw_meta, raw_chars) -> list[dict]:
 
     out.extend(by_namekey.values())
 
-    # ✅ 정렬: 등급(SSR>SR>R>-) 1차, 이름 2차
     rarity_order = {"SSR": 0, "SR": 1, "R": 2, "-": 9}
     out.sort(key=lambda x: (rarity_order.get(x.get("rarity","-"), 9), (x.get("name") or "").lower()))
 
@@ -406,7 +397,6 @@ def load_all(force: bool = False) -> None:
         if not (isinstance(adv, dict) and adv):
             raise RuntimeError("element_chart.json 포맷 오류: { adv:{...} } 형태가 필요합니다.")
 
-        # ✅ 속성명 변경 반영(adv map 키/값 변환)
         adv2 = {}
         for k, v in adv.items():
             kk = normalize_element(str(k))
@@ -570,6 +560,7 @@ def meta():
         "error": CACHE["error"],
         "source": CACHE["source"],
         "characters_ko_dir": CHAR_KO_DIR,
+        "detail_dir": CHAR_KO_DIR,
     })
 
 @app.get("/zones/zone-nova/characters")
@@ -588,16 +579,14 @@ def api_chars():
 def api_char_detail(cid: str):
     load_all()
     cid2 = slug_id(cid)
-
     by_id = {c["id"]: c for c in CACHE["chars"]}
     base = by_id.get(cid2)
     if not base:
         return jsonify({"ok": False, "error": f"unknown character id: {cid}"}), 404
 
-    # characters_ko는 "캐릭터별 단일 json 파일" 전제
+    # ✅ characters_ko/<cid>.json (캐릭터별 단일 JSON) 참조
     detail_path = os.path.join(CHAR_KO_DIR, f"{cid2}.json")
     detail = safe_load_json(detail_path)
-
     if detail is None:
         return jsonify({
             "ok": False,
