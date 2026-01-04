@@ -16,7 +16,7 @@ CLASS_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova"
 CHAR_META_JSON = os.path.join(DATA_DIR, "characters_meta.json")
 CHAR_JSON = os.path.join(DATA_DIR, "characters.json")
 
-# ✅ 변경: 캐릭터별 단일 KO JSON 폴더
+# ✅ 캐릭터 상세는 characters_ko(캐릭터별 단일 json) 사용
 CHAR_KO_DIR = os.path.join(DATA_DIR, "characters_ko")
 
 OVERRIDE_NAMES = os.path.join(DATA_DIR, "overrides_names.json")
@@ -33,7 +33,7 @@ VALID_IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 CLASS_SET = {"buffer", "debuffer", "guardian", "healer", "mage", "rogue", "warrior"}
 ROLE_SET = {"buffer", "dps", "debuffer", "healer", "tank"}
 
-# ✅ 요청 반영: debuffer(=Disruptor)는 역할에서 DPS 취급
+# ✅ debuffer(=Disruptor)는 역할에서 DPS 취급
 CLASS_TO_ROLE = {
     "buffer": "buffer",
     "debuffer": "dps",
@@ -346,7 +346,6 @@ def normalize_chars(raw_meta, raw_chars) -> list[dict]:
 
     rarity_order = {"SSR": 0, "SR": 1, "R": 2, "-": 9}
     out.sort(key=lambda x: (rarity_order.get(x.get("rarity","-"), 9), (x.get("name") or "").lower()))
-
     return out
 
 def normalize_bosses(raw) -> list[dict]:
@@ -560,7 +559,6 @@ def meta():
         "error": CACHE["error"],
         "source": CACHE["source"],
         "characters_ko_dir": CHAR_KO_DIR,
-        "detail_dir": CHAR_KO_DIR,
     })
 
 @app.get("/zones/zone-nova/characters")
@@ -579,14 +577,15 @@ def api_chars():
 def api_char_detail(cid: str):
     load_all()
     cid2 = slug_id(cid)
+
     by_id = {c["id"]: c for c in CACHE["chars"]}
     base = by_id.get(cid2)
     if not base:
         return jsonify({"ok": False, "error": f"unknown character id: {cid}"}), 404
 
-    # ✅ characters_ko/<cid>.json (캐릭터별 단일 JSON) 참조
     detail_path = os.path.join(CHAR_KO_DIR, f"{cid2}.json")
     detail = safe_load_json(detail_path)
+
     if detail is None:
         return jsonify({
             "ok": False,
