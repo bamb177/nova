@@ -71,7 +71,8 @@ jobs:
             --num_beams 2 \
             --batch_size 16 \
             --skip_if_translated \
-            --heartbeat_sec 30
+            --heartbeat_sec 30 \
+            --limit 5
 
       - name: Commit and push if changed
         run: |
