@@ -444,3 +444,7 @@ body{
   min-width: 920px; /* ✅ 화면이 좁으면 가로 스크롤이 실제로 생기게 */
 }
 
+/* 모바일에서 클릭/드래그 충돌 완화 */
+.char-cell{
+  -webkit-tap-highlight-color: transparent;
+}
