@@ -18,7 +18,7 @@
           캐릭터 {{ cache_count }}명 · 갱신 {{ last_refresh }}
         </div>
       </div>
-      <!-- ✅ 요청: 우측 상단 새로고침/데이터 배지 삭제 -->
+      <!-- ✅ 우측 상단 새로고침/데이터 배지 삭제 -->
     </div>
 
     {% if error %}
@@ -67,22 +67,24 @@
         </div>
 
         <div class="tier-row">
-          <label class="tier-check">
+          <!-- ✅ 문구 수정: 후보 제한이 아니라 “포함 조건”임을 명시 -->
+          <label class="tier-check" title="체크한 클래스가 파티(4인)에 포함되도록 구성합니다. 후보를 해당 클래스로만 제한하지 않습니다.">
             <input type="checkbox" id="useClassFilter" />
-            클래스 필터 사용
+            선택 클래스 포함 조건
           </label>
           <div class="tier-classes" id="tierClassBox" aria-disabled="true"></div>
         </div>
 
         <div class="tier-help">
-          조건: 보유 체크된 캐릭터 중 4인 구성 / SSS→SS→S→A 우선 / 콤보스킬(속성 2+ 또는 특성 2+) 필수 /
-          Tank(Guardian) 최대 1, Healer 최대 1
+          조건: 보유 체크된 캐릭터 중 4인 구성 / SSS→SS→S→A 우선 /
+          콤보스킬(속성 2+ 또는 특성 2+) 필수 /
+          Tank(Guardian) 최대 1, Healer 최대 1 /
+          (선택) “선택 클래스 포함 조건” ON 시 체크한 클래스가 파티에 포함
         </div>
 
         <div id="tierPartyResult" class="tier-result"></div>
       </div>
 
-      <!-- ✅ 모바일 가로 터치 스크롤 래퍼 -->
       <div class="table-wrap">
         <table class="table">
           <thead>
@@ -280,7 +282,6 @@
       return `<div class="cards">${renderOneSkillCard(s)}</div>`;
     }
 
-    // Auto/Ultimate/Passive/Normal/Team Skill 고정
     function renderSkills(detail) {
       const skills = pick(detail, "skills") || {};
       const teamSkill = pick(detail, "teamSkill", "team_skill", "team");
@@ -443,7 +444,6 @@
     backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeModal(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && backdrop.classList.contains("show")) closeModal(); });
 
-    // 중국어명 키가 무엇이든 이름 옆에 표시
     function setModalTitle(name, cn){
       const safeName = escapeHtml(name || "Character");
       const safeCn = cn ? escapeHtml(cn) : "";
@@ -617,9 +617,8 @@
 
     render();
 
-    // ===== Tier Party Builder (ALL_TIER_LISTS 기반) =====
+    // ===== Tier Party Builder =====
     let ALL_TIER_LISTS = null;
-
     const TIER_SCORE = { SSS: 4, SS: 3, S: 2, A: 1 }; // Situational 제외
 
     function keyify(s){
@@ -636,10 +635,8 @@
         if (!c?.id) continue;
         const id = String(c.id);
 
-        // name/raw_name 모두 키 등록 (raw_name이 없으면 name만으로도 동작)
         if (c.name) byKey.set(keyify(c.name), id);
         if (c.raw_name) byKey.set(keyify(c.raw_name), id);
-
         byKey.set(keyify(id), id);
       }
       return { byKey };
@@ -750,6 +747,23 @@
       return true;
     }
 
+    // ✅ (추가) “선택 클래스 포함 조건” 검사
+    function passesRequiredClasses(party, charsById, requiredClassSet){
+      if (!requiredClassSet || requiredClassSet.size === 0) return true;
+
+      const seen = new Set();
+      for (const cid of party){
+        const c = charsById.get(cid);
+        if (!c) continue;
+        seen.add(String(c.class || "-"));
+      }
+
+      for (const req of requiredClassSet){
+        if (!seen.has(req)) return false;
+      }
+      return true;
+    }
+
     function partyScore(party, rankMap, charsById){
       let sum = 0;
       const elem = new Map();
@@ -791,10 +805,10 @@
       const charsById = new Map(chars.map(c => [c.id, c]));
       let candidates = owned.filter(cid => charsById.has(cid));
 
+      // ✅ “포함 조건”으로만 사용 (후보를 제한하지 않음)
       const classSet = getEnabledClassSet();
-      if (classSet){
-        candidates = candidates.filter(cid => classSet.has(String(charsById.get(cid)?.class || "-")));
-        if (candidates.length < 4) return { ok:false, msg:"클래스 필터 적용 결과 후보가 4명 미만입니다." };
+      if (classSet && classSet.size > 4){
+        return { ok:false, msg:"선택 클래스는 최대 4개까지만 지정할 수 있습니다(4인 파티)." };
       }
 
       candidates.sort((a,b) => (rankMap.get(b) || 0) - (rankMap.get(a) || 0));
@@ -811,6 +825,9 @@
 
               // ✅ Tank/Healer 각각 최대 1명
               if (!passesTankHealerCap(party, charsById)) continue;
+
+              // ✅ (핵심) 선택 클래스 포함 조건
+              if (!passesRequiredClasses(party, charsById, classSet)) continue;
 
               // ✅ 콤보스킬 필수
               if (!hasComboSkill(party, charsById)) continue;
@@ -864,12 +881,11 @@
       if (!sel || !btn || !info) return;
       if (!ALL_TIER_LISTS) return;
 
-      const keys = Object.keys(ALL_TIER_LISTS)
-        .sort((a,b) => a.localeCompare(b));
-      
+      const keys = Object.keys(ALL_TIER_LISTS).sort((a,b) => a.localeCompare(b));
+
       sel.innerHTML = `<option value="">등급표 선택</option>` + keys.map(k => {
         const t = ALL_TIER_LISTS[k];
-        const nm = String(t?.name || k).trim();   // ✅ name 기반 표시
+        const nm = String(t?.name || k).trim();
         return `<option value="${escapeHtml(k)}">${escapeHtml(nm)}</option>`;
       }).join("");
 
@@ -884,7 +900,7 @@
           return;
         }
         const t = ALL_TIER_LISTS[k];
-        const nm = String(t?.name || "").trim().replace(/^\*\s*/, "");
+        const nm = String(t?.name || "").trim();
         info.textContent = `${nm} · lastUpdated: ${t.lastUpdated}`;
       }
 
@@ -910,16 +926,42 @@
     }
 
     window.addEventListener("tierlists:loaded", () => {
-      // tier-lists.js에서 export된 ALL_TIER_LISTS만 사용
       ALL_TIER_LISTS = window.__tierLists?.ALL_TIER_LISTS || null;
+
+      if (!ALL_TIER_LISTS) {
+        const sel = document.getElementById("tierPreset");
+        const info = document.getElementById("tierInfo");
+        if (sel) {
+          sel.innerHTML = `<option value="">등급표 로딩 실패</option>`;
+          sel.disabled = true;
+        }
+        if (info) {
+          info.textContent = "tier-lists.js(tier-list.js) 모듈을 불러오지 못했습니다. 경로/파일명을 확인하세요.";
+        }
+        return;
+      }
+
       initTierUI();
     });
   </script>
 
-  <!-- ✅ tier-lists.js ESM import -->
+  <!-- ✅ tier-lists 모듈 import (파일명 혼동 대비 fallback) -->
   <script type="module">
-    import * as mod from "/data/zone-nova/tier-lists.js";
-    window.__tierLists = mod;
+    const candidates = [
+      "/data/zone-nova/tier-lists.js",
+      "/data/zone-nova/tier-list.js"
+    ];
+
+    let mod = null;
+    for (const p of candidates) {
+      try {
+        mod = await import(p);
+        window.__tierLists = mod;
+        window.__tierListsPath = p;
+        break;
+      } catch (e) {}
+    }
+
     window.dispatchEvent(new Event("tierlists:loaded"));
   </script>
 </body>
