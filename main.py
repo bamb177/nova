@@ -9,25 +9,21 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 DATA_DIR = os.path.join(BASE_DIR, "public", "data", "zone-nova")
 IMG_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "characters")
-
 ELEM_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "element")
 CLASS_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "classes")
 
-CHAR_META_JSON = os.path.join(DATA_DIR, "characters_meta.json")
-CHAR_JSON = os.path.join(DATA_DIR, "characters.json")
-
-# ✅ 캐릭터 상세는 characters_ko(캐릭터별 단일 json) 사용
+# ✅ 캐릭터 데이터는 characters_ko만 사용
 CHAR_KO_DIR = os.path.join(DATA_DIR, "characters_ko")
 
+# (유지) rename/override, 보스/상성 데이터
 OVERRIDE_NAMES = os.path.join(DATA_DIR, "overrides_names.json")
 OVERRIDE_FACTIONS = os.path.join(DATA_DIR, "overrides_factions.json")
-
 ELEM_JSON = os.path.join(DATA_DIR, "element_chart.json")
 BOSS_JSON = os.path.join(DATA_DIR, "bosses.json")
 
 app = Flask(__name__, static_folder="public", static_url_path="")
 
-RARITY_SCORE = {"SSR": 30, "SR": 18}
+RARITY_SCORE = {"SSR": 30, "SR": 18, "R": 10, "-": 0}
 VALID_IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 
 CLASS_SET = {"buffer", "debuffer", "guardian", "healer", "mage", "rogue", "warrior"}
@@ -44,19 +40,19 @@ CLASS_TO_ROLE = {
     "warrior": "dps",
 }
 
-# ✅ 속성명 변경 반영
+# ✅ 속성명 변경 반영 (업스트림 Wind/Fire/Ice -> UI 표기 Storm/Blaze/Frost)
 ELEMENT_RENAME = {"Fire": "Blaze", "Wind": "Storm", "Ice": "Frost"}
 
 CACHE = {
     "chars": [],
+    "details": {},  # cid -> raw detail json
     "bosses": [],
     "element_adv": {"Blaze": "Storm", "Storm": "Frost", "Frost": "Holy", "Holy": "Chaos", "Chaos": "Blaze"},
     "last_refresh": None,
     "source": {
-        "characters": None,
+        "characters": "public/data/zone-nova/characters_ko/*.json",
         "element_chart": "public/data/zone-nova/element_chart.json",
         "bosses": "public/data/zone-nova/bosses.json",
-        "characters_ko": "public/data/zone-nova/characters_ko/*.json",
     },
     "error": None,
 }
@@ -127,41 +123,54 @@ def normalize_element(v: str) -> str:
     s = (v or "").strip()
     if not s:
         return "-"
-    s2 = s[:1].upper() + s[1:].lower()
+    s2 = s[:1].upper() + s[1:].lower()  # Wind, Fire, Ice, Holy, Chaos
     return ELEMENT_RENAME.get(s2, s2)
 
 def normalize_class(v: str) -> str:
     s = (v or "").strip()
     if not s:
         return "-"
-
     low = s.lower()
+
     alias = {
         "guard": "guardian",
         "tank": "guardian",
-        "dps": "warrior",
         "support": "buffer",
         "attacker": "warrior",
     }
-
     if low in CLASS_SET:
         return low
     if low in alias:
         return alias[low]
     return "-"
 
+def normalize_role(v: str) -> str:
+    s = (v or "").strip()
+    if not s:
+        return "-"
+    low = s.lower()
+    # file에서 DPS/Tank/Healer 등으로 들어오는 케이스 대응
+    if low in ROLE_SET:
+        if low == "debuffer":
+            return "dps"
+        return low
+    if low == "dps":
+        return "dps"
+    return "-"
+
 def role_from_class(cls: str, cid: str) -> str:
     if not cls or cls == "-":
         return "-"
-    # Apep: warrior여도 tank 가능
-    #if cid == "apep" and cls == "warrior":
-    #    return "tank"
+    # Apep: warrior여도 tank 가능(사용자 룰 유지)
+    if cid == "apep" and cls == "warrior":
+        return "tank"
     return CLASS_TO_ROLE.get(cls, "-")
 
-def candidate_image_keys(cid: str, name: str) -> list[str]:
+def candidate_image_keys(cid: str, name: str, image_hint: str | None = None) -> list[str]:
     out = []
     cid = (cid or "").strip()
     nm = (name or "").strip()
+    ih = (image_hint or "").strip()
 
     def add(x: str):
         x = (x or "").strip()
@@ -172,6 +181,8 @@ def candidate_image_keys(cid: str, name: str) -> list[str]:
         out.append(re.sub(r"[\s\-_]+", "", x.lower()))
         out.append(slug_id(re.sub(r"[\s\-_]+", "", x)))
 
+    # ✅ characters_ko에 image:"Apep" 같은 힌트가 있으니 최우선으로 포함
+    add(ih)
     add(nm)
     add(nm.replace("'", ""))
     add(nm.replace("’", ""))
@@ -191,162 +202,10 @@ def candidate_image_keys(cid: str, name: str) -> list[str]:
             uniq.append(x)
     return uniq
 
-def extract_char_list(raw) -> list[dict]:
-    if isinstance(raw, list):
-        return raw
-
-    if not isinstance(raw, dict):
-        raise RuntimeError("캐릭터 JSON 포맷 오류: 최상위가 list/dict가 아닙니다.")
-
-    v = raw.get("characters")
-    if isinstance(v, list):
-        return v
-    if isinstance(v, dict):
-        out = []
-        for k, val in v.items():
-            if isinstance(val, dict):
-                item = dict(val)
-                item["_id"] = k
-                out.append(item)
-        return out
-
-    dict_values = list(raw.values())
-    dict_like_cnt = sum(1 for x in dict_values if isinstance(x, dict))
-    if dict_like_cnt >= 3:
-        out = []
-        for k, val in raw.items():
-            if isinstance(val, dict):
-                item = dict(val)
-                item["_id"] = k
-                out.append(item)
-        return out
-
-    raise RuntimeError("캐릭터 JSON 포맷 오류: list 또는 {characters:[...]} 또는 맵 형태여야 합니다.")
-
 def _load_overrides():
     names = safe_load_json(OVERRIDE_NAMES)
     factions = safe_load_json(OVERRIDE_FACTIONS)
     return (names if isinstance(names, dict) else {}), (factions if isinstance(factions, dict) else {})
-
-def _completeness_score(x: dict) -> int:
-    s = 0
-    if (x.get("rarity") or "-") != "-": s += 3
-    if (x.get("element") or "-") != "-": s += 2
-    if (x.get("class") or "-") != "-": s += 2
-    if (x.get("role") or "-") != "-": s += 1
-    if x.get("image"): s += 1
-    if (x.get("faction") or "-") not in ("", "-"): s += 1
-    return s
-
-def normalize_chars(raw_meta, raw_chars) -> list[dict]:
-    overrides_names, overrides_factions = _load_overrides()
-
-    merged = []
-    if raw_meta is not None:
-        merged.extend(extract_char_list(raw_meta))
-    if raw_chars is not None:
-        merged.extend(extract_char_list(raw_chars))
-
-    char_img_map = build_file_map(IMG_DIR)
-    elem_icon_map = build_file_map(ELEM_ICON_DIR)
-    class_icon_map = build_file_map(CLASS_ICON_DIR)
-
-    out = []
-    by_namekey = {}
-
-    for c in merged:
-        if not isinstance(c, dict):
-            continue
-
-        name = normalize_char_name(c.get("name") or "")
-        if name in overrides_names:
-            name = overrides_names[name]
-
-        cid = (c.get("id") or c.get("_id") or "").strip()
-        if not cid:
-            cid = slug_id(name)
-        cid = slug_id(cid)
-        if not cid:
-            continue
-
-        rarity = (c.get("rarity") or "-").strip().upper()
-        element_raw = (c.get("element") or "-").strip()
-        element = normalize_element(element_raw)
-
-        faction = (c.get("faction") or c.get("Faction") or "-")
-        faction = (faction or "-").strip()
-        if faction in overrides_factions:
-            faction = overrides_factions[faction]
-
-        cls_raw = c.get("class") or c.get("Class") or c.get("job") or c.get("Job") or c.get("type") or c.get("Type") or c.get("role") or c.get("Role")
-        cls = normalize_class(str(cls_raw) if cls_raw is not None else "")
-        role = role_from_class(cls, cid)
-
-        image_url = None
-        special = {
-            "snowgirl": "Snow",
-            "morganlefay": "Morgan",
-            "morganle_fay": "Morgan",
-            "jeannedarc": "Jeanne D Arc",
-        }
-        forced_base = special.get(cid)
-        if forced_base:
-            for k in candidate_image_keys(cid, forced_base):
-                real = char_img_map.get(k)
-                if real:
-                    image_url = f"/images/games/zone-nova/characters/{real}"
-                    break
-
-        if not image_url:
-            for k in candidate_image_keys(cid, name):
-                real = char_img_map.get(k)
-                if real:
-                    image_url = f"/images/games/zone-nova/characters/{real}"
-                    break
-
-        elem_icon = None
-        if element and element != "-":
-            ek = element.lower()
-            real = elem_icon_map.get(ek) or elem_icon_map.get(slug_id(ek))
-            if real:
-                elem_icon = f"/images/games/zone-nova/element/{real}"
-
-        class_icon = None
-        if cls and cls != "-":
-            ck = cls.lower()
-            real = class_icon_map.get(ck) or class_icon_map.get(slug_id(ck))
-            if real:
-                class_icon = f"/images/games/zone-nova/classes/{real}"
-
-        item = {
-            "id": cid,
-            "name": name or cid,
-            "rarity": rarity,
-            "element": element,
-            "faction": faction if faction else "-",
-            "class": cls,
-            "role": role,
-            "image": image_url,
-            "element_icon": elem_icon,
-            "class_icon": class_icon,
-        }
-
-        name_key = slug_id(name)
-        if name_key:
-            cur = by_namekey.get(name_key)
-            if not cur:
-                by_namekey[name_key] = item
-            else:
-                if _completeness_score(item) > _completeness_score(cur):
-                    by_namekey[name_key] = item
-        else:
-            out.append(item)
-
-    out.extend(by_namekey.values())
-
-    rarity_order = {"SSR": 0, "SR": 1}
-    out.sort(key=lambda x: (rarity_order.get(x.get("rarity","-"), 9), (x.get("name") or "").lower()))
-    return out
 
 def normalize_bosses(raw) -> list[dict]:
     if isinstance(raw, dict) and isinstance(raw.get("bosses"), list):
@@ -379,18 +238,103 @@ def normalize_bosses(raw) -> list[dict]:
         })
     return out
 
+def load_characters_from_characters_ko() -> tuple[list[dict], dict]:
+    if not os.path.isdir(CHAR_KO_DIR):
+        raise RuntimeError(f"characters_ko 디렉터리 없음: {CHAR_KO_DIR}")
+
+    overrides_names, overrides_factions = _load_overrides()
+    char_img_map = build_file_map(IMG_DIR)
+    elem_icon_map = build_file_map(ELEM_ICON_DIR)
+    class_icon_map = build_file_map(CLASS_ICON_DIR)
+
+    chars = []
+    details = {}
+
+    files = [fn for fn in os.listdir(CHAR_KO_DIR) if fn.lower().endswith(".json")]
+    files.sort()
+
+    for fn in files:
+        cid = slug_id(os.path.splitext(fn)[0])
+        if not cid:
+            continue
+
+        path = os.path.join(CHAR_KO_DIR, fn)
+        d = safe_load_json(path)
+        if not isinstance(d, dict):
+            continue
+
+        details[cid] = d
+
+        name = normalize_char_name(d.get("name") or cid)
+        if name in overrides_names:
+            name = overrides_names[name]
+
+        rarity = (d.get("rarity") or "-").strip().upper()
+        element = normalize_element(str(d.get("element") or "-"))
+        faction = (d.get("faction") or "-")
+        faction = (str(faction).strip() if faction is not None else "-") or "-"
+        if faction in overrides_factions:
+            faction = overrides_factions[faction]
+
+        cls = normalize_class(str(d.get("class") or "-"))
+        role_raw = normalize_role(str(d.get("role") or "-"))
+        role = role_raw if role_raw != "-" else role_from_class(cls, cid)
+
+        # image mapping
+        image_url = None
+        image_hint = d.get("image")
+        if isinstance(image_hint, str):
+            image_hint = image_hint.strip()
+
+        for k in candidate_image_keys(cid, name, image_hint=image_hint):
+            real = char_img_map.get(k)
+            if real:
+                image_url = f"/images/games/zone-nova/characters/{real}"
+                break
+
+        elem_icon = None
+        if element and element != "-":
+            ek = element.lower()
+            real = elem_icon_map.get(ek) or elem_icon_map.get(slug_id(ek))
+            if real:
+                elem_icon = f"/images/games/zone-nova/element/{real}"
+
+        class_icon = None
+        if cls and cls != "-":
+            ck = cls.lower()
+            real = class_icon_map.get(ck) or class_icon_map.get(slug_id(ck))
+            if real:
+                class_icon = f"/images/games/zone-nova/classes/{real}"
+
+        chars.append({
+            "id": cid,
+            "name": name,
+            "rarity": rarity,
+            "element": element,
+            "faction": faction,
+            "class": cls,
+            "role": role,
+            "image": image_url,
+            "element_icon": elem_icon,
+            "class_icon": class_icon,
+        })
+
+    rarity_order = {"SSR": 0, "SR": 1, "R": 2, "-": 9}
+    chars.sort(key=lambda x: (rarity_order.get(x.get("rarity","-"), 9), (x.get("name") or "").lower()))
+    return chars, details
+
 def load_all(force: bool = False) -> None:
     if CACHE["chars"] and CACHE["bosses"] and not force:
         return
 
     CACHE["error"] = None
     try:
-        raw_meta = safe_load_json(CHAR_META_JSON)
-        raw_chars = safe_load_json(CHAR_JSON)
+        # ✅ 캐릭터: characters_ko만
+        chars, details = load_characters_from_characters_ko()
+        CACHE["chars"] = chars
+        CACHE["details"] = details
 
-        CACHE["source"]["characters"] = "public/data/zone-nova/characters_meta.json + characters.json"
-        CACHE["chars"] = normalize_chars(raw_meta, raw_chars)
-
+        # 상성
         edata = read_json_file(ELEM_JSON)
         adv = edata.get("adv") if isinstance(edata, dict) else None
         if not (isinstance(adv, dict) and adv):
@@ -403,6 +347,7 @@ def load_all(force: bool = False) -> None:
             adv2[kk] = vv
         CACHE["element_adv"] = adv2
 
+        # 보스
         bdata = read_json_file(BOSS_JSON)
         CACHE["bosses"] = normalize_bosses(bdata)
 
@@ -410,6 +355,7 @@ def load_all(force: bool = False) -> None:
 
     except Exception as e:
         CACHE["chars"] = []
+        CACHE["details"] = {}
         CACHE["bosses"] = []
         CACHE["last_refresh"] = now_iso()
         CACHE["error"] = str(e)
@@ -572,7 +518,7 @@ def api_chars():
         "characters": CACHE["chars"],
     })
 
-# ✅ 상세 조회 API: characters_ko/<cid>.json 반환
+# ✅ 상세 조회도 characters_ko에서만
 @app.get("/zones/zone-nova/characters/<cid>")
 def api_char_detail(cid: str):
     load_all()
@@ -580,17 +526,30 @@ def api_char_detail(cid: str):
 
     by_id = {c["id"]: c for c in CACHE["chars"]}
     base = by_id.get(cid2)
+
+    detail = CACHE["details"].get(cid2)
+    if not isinstance(detail, dict):
+        # 캐시에 없으면 파일에서 직접 시도
+        detail_path = os.path.join(CHAR_KO_DIR, f"{cid2}.json")
+        detail = safe_load_json(detail_path)
+
+    if not isinstance(detail, dict):
+        return jsonify({"ok": False, "error": f"characters_ko json not found: {cid2}.json"}), 404
+
+    # base가 없더라도 detail만으로 최소 base 생성
     if not base:
-        return jsonify({"ok": False, "error": f"unknown character id: {cid}"}), 404
-
-    detail_path = os.path.join(CHAR_KO_DIR, f"{cid2}.json")
-    detail = safe_load_json(detail_path)
-
-    if detail is None:
-        return jsonify({
-            "ok": False,
-            "error": f"characters_ko json not found: {cid2}.json",
-        }), 404
+        base = {
+            "id": cid2,
+            "name": detail.get("name") or cid2,
+            "rarity": (detail.get("rarity") or "-").strip().upper(),
+            "element": normalize_element(str(detail.get("element") or "-")),
+            "faction": (detail.get("faction") or "-") or "-",
+            "class": normalize_class(str(detail.get("class") or "-")),
+            "role": normalize_role(str(detail.get("role") or "-")),
+            "image": None,
+            "element_icon": None,
+            "class_icon": None,
+        }
 
     return jsonify({
         "ok": True,
@@ -630,8 +589,6 @@ def ui_select():
         last_refresh=CACHE["last_refresh"] or "N/A",
         error=CACHE["error"],
         chars_json=json.dumps(CACHE["chars"], ensure_ascii=False),
-        bosses_json=json.dumps(CACHE["bosses"], ensure_ascii=False),
-        adv_json=json.dumps(CACHE["element_adv"], ensure_ascii=False),
     )
 
 if __name__ == "__main__":
