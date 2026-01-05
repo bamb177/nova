@@ -577,3 +577,105 @@ body{
   }
 }
 
+/* ===== Tier Panel ===== */
+.tier-panel{
+  margin-top: 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 16px;
+  padding: 12px;
+}
+.tier-row{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.tier-label{
+  font-weight: 900;
+  color: rgba(255,255,255,.85);
+}
+.tier-check{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 850;
+  color: rgba(255,255,255,.85);
+}
+.tier-classes{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 0 0;
+}
+.tier-classes[aria-disabled="true"]{
+  opacity: .55;
+}
+.tier-class-item{
+  display:inline-flex;
+  gap: 6px;
+  align-items:center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  font-weight: 850;
+  color: rgba(255,255,255,.85);
+}
+.tier-help{
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(255,255,255,.65);
+}
+.tier-result{
+  margin-top: 10px;
+}
+.tier-error{
+  border:1px solid rgba(255,80,80,.35);
+  background: rgba(255,80,80,.10);
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-weight: 850;
+}
+.tier-grid{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 10px;
+}
+@media (min-width: 640px){
+  .tier-grid{ grid-template-columns: repeat(4, minmax(0,1fr)); }
+}
+.tier-card{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 14px;
+  padding: 10px;
+}
+.tier-card-top{
+  display:flex;
+  gap: 8px;
+  align-items:center;
+  margin-bottom: 8px;
+}
+.tier-name{
+  font-weight: 950;
+}
+.tier-card-sub{
+  display:flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tier-badge{
+  display:inline-flex;
+  align-items:center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 950;
+  font-size: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+}
+.tier-sss{ background: linear-gradient(90deg, rgba(255,255,170,.95), rgba(255,240,110,.92)); color: rgba(0,0,0,.78); }
+.tier-ss { background: linear-gradient(90deg, rgba(255,180,70,.92), rgba(255,120,40,.90)); color: rgba(0,0,0,.80); }
+.tier-s  { background: rgba(255,255,255,.10); }
+.tier-a  { background: rgba(255,255,255,.06); }
