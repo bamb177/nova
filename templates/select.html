@@ -630,7 +630,7 @@
     }
 
       function buildCharIndex(chars){
-        const byKey = new Map();
+        const byKey = new Map(); // key -> [id1, id2, ...] (rarity 내림차순)
         const byId = new Map((chars || []).map(c => [String(c.id), c]));
       
         function rarityVal(r){
@@ -641,34 +641,30 @@
           return 0;
         }
       
-        // 같은 key가 이미 있으면, rarity가 더 높은 캐릭터의 id를 유지
-        function setIfBetter(key, newId){
-          if (!key || !newId) return;
-          const prevId = byKey.get(key);
-          if (!prevId){
-            byKey.set(key, newId);
-            return;
-          }
-          const prev = byId.get(prevId);
-          const next = byId.get(newId);
-          if (!prev || !next){
-            byKey.set(key, newId);
-            return;
-          }
-          if (rarityVal(next.rarity) > rarityVal(prev.rarity)){
-            byKey.set(key, newId);
-          }
+        function addKey(key, id){
+          if (!key || !id) return;
+          const arr = byKey.get(key) || [];
+          if (!arr.includes(id)) arr.push(id);
+      
+          // rarity 높은 순으로 정렬 (SSR 우선)
+          arr.sort((a,b) => {
+            const A = byId.get(a);
+            const B = byId.get(b);
+            return rarityVal(B?.rarity) - rarityVal(A?.rarity);
+          });
+      
+          byKey.set(key, arr);
         }
       
         for (const c of (chars || [])){
           if (!c?.id) continue;
           const id = String(c.id);
       
-          if (c.name) setIfBetter(keyify(c.name), id);
-          if (c.raw_name) setIfBetter(keyify(c.raw_name), id);
+          if (c.name) addKey(keyify(c.name), id);
+          if (c.raw_name) addKey(keyify(c.raw_name), id);
       
-          // id 자체 키는 충돌 가능성이 낮지만 동일 규칙 적용
-          setIfBetter(keyify(id), id);
+          // id 자체도 key로 등록
+          addKey(keyify(id), id);
         }
       
         return { byKey };
@@ -687,7 +683,8 @@
         const list = Array.isArray(arr) ? arr : [];
         for (const it of list){
           const nm = (it && typeof it === "object") ? it.name : null;
-          const cid = byKey.get(keyify(nm));
+          const ids = byKey.get(keyify(nm));
+          const cid = (ids && ids.length) ? ids[0] : null; // ✅ SSR 우선
           if (!cid) continue;
 
           const prev = rank.get(cid) || 0;
