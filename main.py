@@ -15,21 +15,21 @@ CLASS_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova"
 # ✅ 캐릭터 데이터는 characters_ko만 사용
 CHAR_KO_DIR = os.path.join(DATA_DIR, "characters_ko")
 
-# (유지) rename/override, 보스/상성 데이터
+# (선택 유지) 이름/특성 치환
 OVERRIDE_NAMES = os.path.join(DATA_DIR, "overrides_names.json")
 OVERRIDE_FACTIONS = os.path.join(DATA_DIR, "overrides_factions.json")
+
+# (추천 기능용) 상성은 유지 가능 — 원치 않으면 관련 코드만 더 제거하면 됨
 ELEM_JSON = os.path.join(DATA_DIR, "element_chart.json")
-BOSS_JSON = os.path.join(DATA_DIR, "bosses.json")
 
 app = Flask(__name__, static_folder="public", static_url_path="")
 
-RARITY_SCORE = {"SSR": 30, "SR": 18, "R": 10, "-": 0}
 VALID_IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}
+RARITY_SCORE = {"SSR": 30, "SR": 18, "R": 10, "-": 0}
 
 CLASS_SET = {"buffer", "debuffer", "guardian", "healer", "mage", "rogue", "warrior"}
 ROLE_SET = {"buffer", "dps", "debuffer", "healer", "tank"}
 
-# ✅ debuffer(=Disruptor)는 역할에서 DPS 취급
 CLASS_TO_ROLE = {
     "buffer": "buffer",
     "debuffer": "dps",
@@ -40,19 +40,17 @@ CLASS_TO_ROLE = {
     "warrior": "dps",
 }
 
-# ✅ 속성명 변경 반영 (업스트림 Wind/Fire/Ice -> UI 표기 Storm/Blaze/Frost)
+# 업스트림 표기 보정
 ELEMENT_RENAME = {"Fire": "Blaze", "Wind": "Storm", "Ice": "Frost"}
 
 CACHE = {
     "chars": [],
     "details": {},  # cid -> raw detail json
-    "bosses": [],
     "element_adv": {"Blaze": "Storm", "Storm": "Frost", "Frost": "Holy", "Holy": "Chaos", "Chaos": "Blaze"},
     "last_refresh": None,
     "source": {
         "characters": "public/data/zone-nova/characters_ko/*.json",
         "element_chart": "public/data/zone-nova/element_chart.json",
-        "bosses": "public/data/zone-nova/bosses.json",
     },
     "error": None,
 }
@@ -123,7 +121,7 @@ def normalize_element(v: str) -> str:
     s = (v or "").strip()
     if not s:
         return "-"
-    s2 = s[:1].upper() + s[1:].lower()  # Wind, Fire, Ice, Holy, Chaos
+    s2 = s[:1].upper() + s[1:].lower()
     return ELEMENT_RENAME.get(s2, s2)
 
 def normalize_class(v: str) -> str:
@@ -149,7 +147,6 @@ def normalize_role(v: str) -> str:
     if not s:
         return "-"
     low = s.lower()
-    # file에서 DPS/Tank/Healer 등으로 들어오는 케이스 대응
     if low in ROLE_SET:
         if low == "debuffer":
             return "dps"
@@ -161,10 +158,10 @@ def normalize_role(v: str) -> str:
 def role_from_class(cls: str, cid: str) -> str:
     if not cls or cls == "-":
         return "-"
-    # Apep: warrior여도 tank 가능(사용자 룰 유지)
-    if cid == "apep" and cls == "warrior":
-        return "tank"
-    return CLASS_TO_ROLE.get(cls, "-")
+    # 사용자 룰 유지: Apep은 warrior여도 tank 가능
+    # if cid == "apep" and cls == "warrior":
+    #     return "tank"
+    # return CLASS_TO_ROLE.get(cls, "-")
 
 def candidate_image_keys(cid: str, name: str, image_hint: str | None = None) -> list[str]:
     out = []
@@ -181,19 +178,12 @@ def candidate_image_keys(cid: str, name: str, image_hint: str | None = None) -> 
         out.append(re.sub(r"[\s\-_]+", "", x.lower()))
         out.append(slug_id(re.sub(r"[\s\-_]+", "", x)))
 
-    # ✅ characters_ko에 image:"Apep" 같은 힌트가 있으니 최우선으로 포함
-    add(ih)
+    add(ih)   # ✅ characters_ko의 image 힌트 우선
     add(nm)
     add(nm.replace("'", ""))
     add(nm.replace("’", ""))
     add(nm.replace(" ", ""))
     add(cid)
-
-    if cid == "jeannedarc" or "jeanne" in cid:
-        add("Jeanne D Arc")
-        add("JeanneDArc")
-        add("Joanof Arc")
-        add("JoanofArc")
 
     seen, uniq = set(), []
     for x in out:
@@ -206,37 +196,6 @@ def _load_overrides():
     names = safe_load_json(OVERRIDE_NAMES)
     factions = safe_load_json(OVERRIDE_FACTIONS)
     return (names if isinstance(names, dict) else {}), (factions if isinstance(factions, dict) else {})
-
-def normalize_bosses(raw) -> list[dict]:
-    if isinstance(raw, dict) and isinstance(raw.get("bosses"), list):
-        bosses = raw["bosses"]
-    else:
-        raise RuntimeError("bosses.json 포맷 오류: { bosses:[...] } 형태가 필요합니다.")
-
-    out, seen = [], set()
-    for b in bosses:
-        if not isinstance(b, dict):
-            continue
-        bid = slug_id(b.get("id") or b.get("name") or "")
-        if not bid or bid in seen:
-            continue
-        seen.add(bid)
-
-        weak = b.get("weakness") or None
-        if isinstance(weak, str):
-            weak = normalize_element(weak)
-
-        enemy = b.get("enemy_element") or None
-        if isinstance(enemy, str):
-            enemy = normalize_element(enemy)
-
-        out.append({
-            "id": bid,
-            "name": (b.get("name") or bid).strip(),
-            "weakness": weak,
-            "enemy_element": enemy,
-        })
-    return out
 
 def load_characters_from_characters_ko() -> tuple[list[dict], dict]:
     if not os.path.isdir(CHAR_KO_DIR):
@@ -271,7 +230,8 @@ def load_characters_from_characters_ko() -> tuple[list[dict], dict]:
 
         rarity = (d.get("rarity") or "-").strip().upper()
         element = normalize_element(str(d.get("element") or "-"))
-        faction = (d.get("faction") or "-")
+
+        faction = d.get("faction")
         faction = (str(faction).strip() if faction is not None else "-") or "-"
         if faction in overrides_factions:
             faction = overrides_factions[faction]
@@ -280,7 +240,6 @@ def load_characters_from_characters_ko() -> tuple[list[dict], dict]:
         role_raw = normalize_role(str(d.get("role") or "-"))
         role = role_raw if role_raw != "-" else role_from_class(cls, cid)
 
-        # image mapping
         image_url = None
         image_hint = d.get("image")
         if isinstance(image_hint, str):
@@ -324,39 +283,32 @@ def load_characters_from_characters_ko() -> tuple[list[dict], dict]:
     return chars, details
 
 def load_all(force: bool = False) -> None:
-    if CACHE["chars"] and CACHE["bosses"] and not force:
+    if CACHE["chars"] and not force:
         return
 
     CACHE["error"] = None
     try:
-        # ✅ 캐릭터: characters_ko만
         chars, details = load_characters_from_characters_ko()
         CACHE["chars"] = chars
         CACHE["details"] = details
 
-        # 상성
-        edata = read_json_file(ELEM_JSON)
-        adv = edata.get("adv") if isinstance(edata, dict) else None
-        if not (isinstance(adv, dict) and adv):
-            raise RuntimeError("element_chart.json 포맷 오류: { adv:{...} } 형태가 필요합니다.")
-
-        adv2 = {}
-        for k, v in adv.items():
-            kk = normalize_element(str(k))
-            vv = normalize_element(str(v))
-            adv2[kk] = vv
-        CACHE["element_adv"] = adv2
-
-        # 보스
-        bdata = read_json_file(BOSS_JSON)
-        CACHE["bosses"] = normalize_bosses(bdata)
+        # element_chart는 추천 계산용(원하면 제거 가능)
+        if os.path.isfile(ELEM_JSON):
+            edata = read_json_file(ELEM_JSON)
+            adv = edata.get("adv") if isinstance(edata, dict) else None
+            if isinstance(adv, dict) and adv:
+                adv2 = {}
+                for k, v in adv.items():
+                    kk = normalize_element(str(k))
+                    vv = normalize_element(str(v))
+                    adv2[kk] = vv
+                CACHE["element_adv"] = adv2
 
         CACHE["last_refresh"] = now_iso()
 
     except Exception as e:
         CACHE["chars"] = []
         CACHE["details"] = {}
-        CACHE["bosses"] = []
         CACHE["last_refresh"] = now_iso()
         CACHE["error"] = str(e)
 
@@ -380,13 +332,12 @@ def resolve_ids(input_list: list[str], chars: list[dict]) -> list[str]:
             uniq.append(v)
     return uniq
 
-def breakdown(c: dict, mode: str, enemy_element: str | None, boss_weakness: str | None, adv_map: dict) -> dict:
+def breakdown(c: dict, mode: str, enemy_element: str | None, adv_map: dict) -> dict:
     rarity = c.get("rarity") or "-"
     element = c.get("element") or "-"
     role = (c.get("role") or "-").lower()
 
     rarity_pts = RARITY_SCORE.get(rarity, 0)
-    boss_bonus = 25 if (boss_weakness and element == boss_weakness) else 0
 
     adv_bonus = 0
     dis_penalty = 0
@@ -400,13 +351,12 @@ def breakdown(c: dict, mode: str, enemy_element: str | None, boss_weakness: str 
     role_bonus = 0
     if mode == "pvp" and role in ("tank", "healer"):
         role_bonus = 6
-    if mode == "boss" and role in ("buffer",):
-        role_bonus = 6
+    if mode == "pve" and role in ("buffer",):
+        role_bonus = 4
 
-    total = rarity_pts + boss_bonus + adv_bonus + dis_penalty + role_bonus
+    total = rarity_pts + adv_bonus + dis_penalty + role_bonus
     return {
         "rarity_pts": rarity_pts,
-        "boss_bonus": boss_bonus,
         "adv_bonus": adv_bonus,
         "dis_penalty": dis_penalty,
         "role_bonus": role_bonus,
@@ -419,7 +369,6 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
     required = resolve_ids(payload.get("required") or [], chars)
     banned = set(resolve_ids(payload.get("banned") or [], chars))
     enemy_element = payload.get("enemy_element") or None
-    boss_weakness = payload.get("boss_weakness") or None
 
     by_id = {c["id"]: c for c in chars}
     pool = [by_id[i] for i in owned if i in by_id and i not in banned]
@@ -434,7 +383,7 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
             issues.append(f"필수 포함 캐릭터({r})가 보유 목록에 없습니다.")
 
     def score(c: dict) -> int:
-        return breakdown(c, mode, enemy_element, boss_weakness, adv_map)["total"]
+        return breakdown(c, mode, enemy_element, adv_map)["total"]
 
     party = []
     for rid in required:
@@ -451,7 +400,7 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
         c = by_id.get(pid)
         if not c:
             continue
-        bd = breakdown(c, mode, enemy_element, boss_weakness, adv_map)
+        bd = breakdown(c, mode, enemy_element, adv_map)
         members.append({
             "id": c["id"],
             "name": c.get("name") or c["id"],
@@ -475,7 +424,6 @@ def recommend_party(payload: dict, chars: list[dict], adv_map: dict) -> dict:
             "required": required,
             "banned": sorted(list(banned)),
             "enemy_element": enemy_element,
-            "boss_weakness": boss_weakness,
         },
         "best_party": {
             "party_size": 4,
@@ -500,7 +448,6 @@ def meta():
     return jsonify({
         "title": APP_TITLE,
         "characters_cached": len(CACHE["chars"]),
-        "bosses_cached": len(CACHE["bosses"]),
         "last_refresh": CACHE["last_refresh"],
         "error": CACHE["error"],
         "source": CACHE["source"],
@@ -518,7 +465,6 @@ def api_chars():
         "characters": CACHE["chars"],
     })
 
-# ✅ 상세 조회도 characters_ko에서만
 @app.get("/zones/zone-nova/characters/<cid>")
 def api_char_detail(cid: str):
     load_all()
@@ -529,14 +475,12 @@ def api_char_detail(cid: str):
 
     detail = CACHE["details"].get(cid2)
     if not isinstance(detail, dict):
-        # 캐시에 없으면 파일에서 직접 시도
         detail_path = os.path.join(CHAR_KO_DIR, f"{cid2}.json")
         detail = safe_load_json(detail_path)
 
     if not isinstance(detail, dict):
         return jsonify({"ok": False, "error": f"characters_ko json not found: {cid2}.json"}), 404
 
-    # base가 없더라도 detail만으로 최소 base 생성
     if not base:
         base = {
             "id": cid2,
@@ -559,17 +503,6 @@ def api_char_detail(cid: str):
         "detail_source": f"public/data/zone-nova/characters_ko/{cid2}.json",
     })
 
-@app.get("/zones/zone-nova/bosses")
-def api_bosses():
-    load_all()
-    return jsonify({
-        "count": len(CACHE["bosses"]),
-        "last_refresh": CACHE["last_refresh"],
-        "source": CACHE["source"]["bosses"],
-        "error": CACHE["error"],
-        "bosses": CACHE["bosses"],
-    })
-
 @app.post("/recommend/v3")
 def api_recommend():
     load_all()
@@ -585,7 +518,6 @@ def ui_select():
         "select.html",
         title=APP_TITLE,
         cache_count=len(CACHE["chars"]),
-        boss_count=len(CACHE["bosses"]),
         last_refresh=CACHE["last_refresh"] or "N/A",
         error=CACHE["error"],
         chars_json=json.dumps(CACHE["chars"], ensure_ascii=False),
