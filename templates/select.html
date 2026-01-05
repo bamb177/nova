@@ -864,17 +864,13 @@
       if (!sel || !btn || !info) return;
       if (!ALL_TIER_LISTS) return;
 
-      // ✅ 요청: name이 *로 시작하는 것만
       const keys = Object.keys(ALL_TIER_LISTS)
-        .filter(k => String(ALL_TIER_LISTS[k]?.name || "").trim().startsWith("*"))
         .sort((a,b) => a.localeCompare(b));
-
+      
       sel.innerHTML = `<option value="">등급표 선택</option>` + keys.map(k => {
         const t = ALL_TIER_LISTS[k];
-        const nm = String(t?.name || k).trim();
-        const cleanName = nm.startsWith("*") ? nm.replace(/^\*\s*/, "") : nm;
-        const label = `${cleanName} (${k})`;
-        return `<option value="${escapeHtml(k)}">${escapeHtml(label)}</option>`;
+        const nm = String(t?.name || k).trim();   // ✅ name 기반 표시
+        return `<option value="${escapeHtml(k)}">${escapeHtml(nm)}</option>`;
       }).join("");
 
       sel.disabled = false;
