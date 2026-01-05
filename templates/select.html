@@ -18,10 +18,7 @@
           캐릭터 {{ cache_count }}명 · 갱신 {{ last_refresh }}
         </div>
       </div>
-      <div class="actions">
-        <a class="btn" href="/refresh">새로고침</a>
-        <div class="badge">데이터: <span id="sourceHint">-</span></div>
-      </div>
+      <!-- ✅ 요청: 우측 상단 새로고침/데이터 배지 삭제 -->
     </div>
 
     {% if error %}
@@ -79,13 +76,13 @@
 
         <div class="tier-help">
           조건: 보유 체크된 캐릭터 중 4인 구성 / SSS→SS→S→A 우선 / 콤보스킬(속성 2+ 또는 특성 2+) 필수 /
-          Tank·Healer는 각각 최대 1명
+          Tank(Guardian) 최대 1, Healer 최대 1
         </div>
 
         <div id="tierPartyResult" class="tier-result"></div>
       </div>
 
-      <!-- ✅ 테이블 가로 스크롤 래퍼 -->
+      <!-- ✅ 모바일 가로 터치 스크롤 래퍼 -->
       <div class="table-wrap">
         <table class="table">
           <thead>
@@ -283,6 +280,7 @@
       return `<div class="cards">${renderOneSkillCard(s)}</div>`;
     }
 
+    // Auto/Ultimate/Passive/Normal/Team Skill 고정
     function renderSkills(detail) {
       const skills = pick(detail, "skills") || {};
       const teamSkill = pick(detail, "teamSkill", "team_skill", "team");
@@ -445,6 +443,7 @@
     backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeModal(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && backdrop.classList.contains("show")) closeModal(); });
 
+    // 중국어명 키가 무엇이든 이름 옆에 표시
     function setModalTitle(name, cn){
       const safeName = escapeHtml(name || "Character");
       const safeCn = cn ? escapeHtml(cn) : "";
@@ -476,8 +475,6 @@
 
     // ===== List Render =====
     const chars = dedupeById(CHARS_RAW || []);
-    document.getElementById("sourceHint").textContent =
-      "characters_ko/*.json (리스트/상세) + tier-lists.js";
 
     const $tbody = document.getElementById("tbody");
     const $q = document.getElementById("q");
@@ -560,6 +557,7 @@
           ? `<img class="char-img" src="${escapeHtml(c.image)}" alt="">`
           : `<div class="char-img"></div>`;
 
+        // ✅ 아이콘은 pill 내부에 포함
         const elemIcon = c.element_icon ? `<img class="mini-icon" src="${escapeHtml(c.element_icon)}" alt="">` : "";
         const classIcon = c.class_icon ? `<img class="mini-icon" src="${escapeHtml(c.class_icon)}" alt="">` : "";
 
@@ -572,25 +570,19 @@
                 <div class="char-name">${escapeHtml(nm)}</div>
               </div>
             </td>
-
             <td class="col-elem">
               <span class="pill pill-neutral pill-with-icon">
                 ${elemIcon}
                 <span class="pill-text">${escapeHtml(elem)}</span>
               </span>
             </td>
-
-            <td class="col-faction">
-              <span class="pill pill-neutral">${escapeHtml(faction)}</span>
-            </td>
-
+            <td class="col-faction"><span class="pill pill-neutral">${escapeHtml(faction)}</span></td>
             <td class="col-class">
               <span class="pill pill-neutral pill-with-icon">
                 ${classIcon}
                 <span class="pill-text">${escapeHtml(cls)}</span>
               </span>
             </td>
-
             <td class="col-role"><span class="pill pill-neutral">${escapeHtml(role)}</span></td>
             <td class="col-rarity"><span class="pill ${rarityPillClass(rar)}">${escapeHtml(rar)}</span></td>
           </tr>
@@ -625,9 +617,10 @@
 
     render();
 
-    // ===== Tier Party Builder (export const 선택 / prefix 필터 / Tank+Healer 제한) =====
-    let TIER_MOD = null;
-    const TIER_SCORE = { SSS: 4, SS: 3, S: 2, A: 1 };
+    // ===== Tier Party Builder (ALL_TIER_LISTS 기반) =====
+    let ALL_TIER_LISTS = null;
+
+    const TIER_SCORE = { SSS: 4, SS: 3, S: 2, A: 1 }; // Situational 제외
 
     function keyify(s){
       return String(s || "")
@@ -641,30 +634,21 @@
       const byKey = new Map();
       for (const c of (chars || [])){
         if (!c?.id) continue;
-        const cid = String(c.id);
-        byKey.set(keyify(cid), cid);
-        if (c.name) byKey.set(keyify(c.name), cid);
-        if (c.raw_name) byKey.set(keyify(c.raw_name), cid);
+        const id = String(c.id);
+
+        // name/raw_name 모두 키 등록 (raw_name이 없으면 name만으로도 동작)
+        if (c.name) byKey.set(keyify(c.name), id);
+        if (c.raw_name) byKey.set(keyify(c.raw_name), id);
+
+        byKey.set(keyify(id), id);
       }
       return { byKey };
     }
 
-    function normalizeTierRoot(obj){
-      if (obj?.tiers && typeof obj.tiers === "object") return obj.tiers;
-      if (obj && typeof obj === "object"){
-        const keys = Object.keys(obj).map(k => k.toUpperCase());
-        const hasTier = keys.some(k => ["SSS","SS","S","A"].includes(k));
-        if (hasTier) return obj;
-      }
-      return null;
-    }
-
-    function buildRankMapFromTierList(tierListObj, chars){
-      const tiers = normalizeTierRoot(tierListObj);
-      if (!tiers) return new Map();
-
+    function buildRankMapFromTierList(tierList, chars){
       const { byKey } = buildCharIndex(chars);
       const rank = new Map();
+      const tiers = tierList?.tiers || {};
 
       for (const [tier, arr] of Object.entries(tiers)){
         const T = String(tier).toUpperCase();
@@ -672,9 +656,7 @@
 
         const list = Array.isArray(arr) ? arr : [];
         for (const it of list){
-          const nm = (it && typeof it === "object") ? it.name : (typeof it === "string" ? it : null);
-          if (!nm) continue;
-
+          const nm = (it && typeof it === "object") ? it.name : null;
           const cid = byKey.get(keyify(nm));
           if (!cid) continue;
 
@@ -683,20 +665,6 @@
         }
       }
       return rank;
-    }
-
-    function buildRankMapFromAllLists(allListsObj, chars){
-      if (!allListsObj || typeof allListsObj !== "object") return new Map();
-
-      const merged = new Map();
-      for (const v of Object.values(allListsObj)){
-        const m = buildRankMapFromTierList(v, chars);
-        for (const [cid, sc] of m.entries()){
-          const prev = merged.get(cid) || 0;
-          merged.set(cid, Math.max(prev, sc));
-        }
-      }
-      return merged;
     }
 
     function getOwnedSelectedIds(){
@@ -742,27 +710,6 @@
       return picked.size ? picked : null;
     }
 
-    function roleFlags(c){
-      const role = String(c?.role || "").toLowerCase();
-      const cls  = String(c?.class || "").toLowerCase();
-      const isTank = role.includes("tank") || cls === "guardian";
-      const isHealer = role.includes("healer") || cls === "healer";
-      return { isTank, isHealer };
-    }
-
-    function satisfyTankHealerLimit(party, charsById){
-      let tank = 0, healer = 0;
-      for (const cid of party){
-        const c = charsById.get(cid);
-        if (!c) continue;
-        const f = roleFlags(c);
-        if (f.isTank) tank++;
-        if (f.isHealer) healer++;
-        if (tank > 1 || healer > 1) return false;
-      }
-      return true;
-    }
-
     function hasComboSkill(party, charsById){
       const elem = new Map();
       const fac = new Map();
@@ -777,6 +724,30 @@
       const maxElem = Math.max(0, ...elem.values());
       const maxFac = Math.max(0, ...fac.values());
       return (maxElem >= 2) || (maxFac >= 2);
+    }
+
+    function isTank(c){
+      const cls = String(c?.class || "").toLowerCase();
+      const role = String(c?.role || "").toLowerCase();
+      return cls === "guardian" || role === "tank";
+    }
+
+    function isHealer(c){
+      const cls = String(c?.class || "").toLowerCase();
+      const role = String(c?.role || "").toLowerCase();
+      return cls === "healer" || role === "healer";
+    }
+
+    function passesTankHealerCap(party, charsById){
+      let tank = 0, healer = 0;
+      for (const cid of party){
+        const c = charsById.get(cid);
+        if (!c) continue;
+        if (isTank(c)) tank++;
+        if (isHealer(c)) healer++;
+        if (tank > 1 || healer > 1) return false;
+      }
+      return true;
     }
 
     function partyScore(party, rankMap, charsById){
@@ -838,7 +809,10 @@
             for (let l=k+1; l<pool.length; l++){
               const party = [pool[i], pool[j], pool[k], pool[l]];
 
-              if (!satisfyTankHealerLimit(party, charsById)) continue;
+              // ✅ Tank/Healer 각각 최대 1명
+              if (!passesTankHealerCap(party, charsById)) continue;
+
+              // ✅ 콤보스킬 필수
               if (!hasComboSkill(party, charsById)) continue;
 
               const sc = partyScore(party, rankMap, charsById);
@@ -848,9 +822,7 @@
         }
       }
 
-      if (!best) {
-        return { ok:false, msg:"조건(콤보스킬 + Tank/Healer 제한)을 만족하는 4인 조합을 찾지 못했습니다." };
-      }
+      if (!best) return { ok:false, msg:"조건을 만족하는 4인 조합을 찾지 못했습니다." };
       return { ok:true, party: best.party };
     }
 
@@ -867,22 +839,16 @@
       const cards = res.party.map(cid => {
         const c = charsById.get(cid);
         const tier = tierLabelFromScore(rankMap.get(cid) || 0);
-        const nm = c?.name || cid;
-        const elem = c?.element || "-";
-        const fac = c?.faction || "-";
-        const cls = c?.class || "-";
-        const role = c?.role || "-";
         return `
           <div class="tier-card">
             <div class="tier-card-top">
               <span class="tier-badge tier-${tier.toLowerCase()}">${escapeHtml(tier)}</span>
-              <span class="tier-name">${escapeHtml(nm)}</span>
+              <span class="tier-name">${escapeHtml(c?.name || cid)}</span>
             </div>
             <div class="tier-card-sub">
-              <span class="pill pill-neutral">${escapeHtml(elem)}</span>
-              <span class="pill pill-neutral">${escapeHtml(fac)}</span>
-              <span class="pill pill-neutral">${escapeHtml(cls)}</span>
-              <span class="pill pill-neutral">${escapeHtml(role)}</span>
+              <span class="pill pill-neutral">${escapeHtml(c?.element || "-")}</span>
+              <span class="pill pill-neutral">${escapeHtml(c?.faction || "-")}</span>
+              <span class="pill pill-neutral">${escapeHtml(c?.class || "-")}</span>
             </div>
           </div>
         `;
@@ -891,29 +857,24 @@
       box.innerHTML = `<div class="tier-grid">${cards}</div>`;
     }
 
-    function tierPresetKeys(mod){
-      const allow = /^(ALL|GUILD|NEW|PVE|PVP|RIFT)/;
-      return Object.keys(mod || {})
-        .filter(k => allow.test(k))
-        .sort((a,b) => a.localeCompare(b));
-    }
-
-    function presetLabel(k, v){
-      const name = v?.name;
-      if (typeof name === "string" && name.trim()) return `${k} · ${name}`;
-      return k;
-    }
-
     function initTierUI(){
       const sel = document.getElementById("tierPreset");
       const btn = document.getElementById("btnBuildTierParty");
       const info = document.getElementById("tierInfo");
-      if (!sel || !btn) return;
+      if (!sel || !btn || !info) return;
+      if (!ALL_TIER_LISTS) return;
 
-      const keys = tierPresetKeys(TIER_MOD);
+      // ✅ 요청: name이 *로 시작하는 것만
+      const keys = Object.keys(ALL_TIER_LISTS)
+        .filter(k => String(ALL_TIER_LISTS[k]?.name || "").trim().startsWith("*"))
+        .sort((a,b) => a.localeCompare(b));
+
       sel.innerHTML = `<option value="">등급표 선택</option>` + keys.map(k => {
-        const v = TIER_MOD[k];
-        return `<option value="${escapeHtml(k)}">${escapeHtml(presetLabel(k, v))}</option>`;
+        const t = ALL_TIER_LISTS[k];
+        const nm = String(t?.name || k).trim();
+        const cleanName = nm.startsWith("*") ? nm.replace(/^\*\s*/, "") : nm;
+        const label = `${cleanName} (${k})`;
+        return `<option value="${escapeHtml(k)}">${escapeHtml(label)}</option>`;
       }).join("");
 
       sel.disabled = false;
@@ -921,64 +882,45 @@
 
       initTierClassCheckboxes();
 
-      function updateInfo(){
-        const k = sel.value;
-        const v = (k && TIER_MOD) ? TIER_MOD[k] : null;
-
-        if (!info) return;
-        if (!v){
+      function renderInfo(k){
+        if (!k || !ALL_TIER_LISTS[k]){
           info.textContent = "";
           return;
         }
-
-        if (k === "ALL_TIER_LISTS"){
-          info.textContent = "ALL_TIER_LISTS: 전체 리스트에서 캐릭터별 최고 티어를 사용합니다.";
-          return;
-        }
-
-        const meta = [
-          v.name ? `name: ${v.name}` : null,
-          v.lastUpdated ? `lastUpdated: ${v.lastUpdated}` : null,
-          v.description ? v.description : null,
-        ].filter(Boolean).join(" · ");
-        info.textContent = meta;
+        const t = ALL_TIER_LISTS[k];
+        const nm = String(t?.name || "").trim().replace(/^\*\s*/, "");
+        info.textContent = `${nm} · lastUpdated: ${t.lastUpdated}`;
       }
 
       sel.addEventListener("change", () => {
-        updateInfo();
-        const box = document.getElementById("tierPartyResult");
-        if (box) box.innerHTML = "";
+        renderInfo(sel.value);
+        document.getElementById("tierPartyResult").innerHTML = "";
       });
 
       btn.addEventListener("click", () => {
         const k = sel.value;
-        if (!k){
+        if (!k) {
           renderTierPartyResult(new Map(), { ok:false, msg:"등급표를 먼저 선택하세요." });
           return;
         }
-
-        let rankMap = new Map();
-        if (k === "ALL_TIER_LISTS"){
-          rankMap = buildRankMapFromAllLists(TIER_MOD.ALL_TIER_LISTS, chars);
-        } else {
-          rankMap = buildRankMapFromTierList(TIER_MOD[k], chars);
-        }
+        const tierList = ALL_TIER_LISTS[k];
+        const rankMap = buildRankMapFromTierList(tierList, chars);
 
         const res = buildBestTierParty(rankMap);
         renderTierPartyResult(rankMap, res);
       });
 
-      updateInfo();
+      renderInfo(sel.value);
     }
 
     window.addEventListener("tierlists:loaded", () => {
-      TIER_MOD = window.__tierLists || null;
-      if (!TIER_MOD) return;
+      // tier-lists.js에서 export된 ALL_TIER_LISTS만 사용
+      ALL_TIER_LISTS = window.__tierLists?.ALL_TIER_LISTS || null;
       initTierUI();
     });
   </script>
 
-  <!-- ✅ tier-lists.js 를 ES module 로 import -->
+  <!-- ✅ tier-lists.js ESM import -->
   <script type="module">
     import * as mod from "/data/zone-nova/tier-lists.js";
     window.__tierLists = mod;
