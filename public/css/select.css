@@ -419,3 +419,28 @@ body{
   top: 0;
   z-index: 1;
 }
+
+/* ✅ 모바일 가로 스와이프(테이블) */
+.table-wrap{
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  /* iOS 스무스 스크롤 */
+  -webkit-overflow-scrolling: touch;
+
+  /* 터치 제스처: 가로/세로 모두 허용 */
+  touch-action: pan-x pan-y;
+
+  /* 스크롤 체인 방지(선택) */
+  overscroll-behavior: contain;
+
+  /* 테두리 라운드 유지용 */
+  border-radius: 16px;
+}
+
+/* table은 래퍼가 스크롤을 담당하므로 radius/overflow는 래퍼가 담당 */
+.table{
+  min-width: 920px; /* ✅ 화면이 좁으면 가로 스크롤이 실제로 생기게 */
+}
+
