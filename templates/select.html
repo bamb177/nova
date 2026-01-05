@@ -30,13 +30,39 @@
 
     <div class="panel">
       <div class="filters">
+        <!-- ===== Tier Party Builder ===== -->
+      <div class="tier-panel">
+        <div class="tier-row">
+          <label class="tier-label">등급표</label>
+          <select id="tierPreset" class="select" disabled>
+            <option value="">tier-lists.js 로딩중...</option>
+          </select>
+      
+          <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
+        </div>
+      
+        <div class="tier-row">
+          <label class="tier-check">
+            <input type="checkbox" id="useClassFilter" />
+            클래스 필터 사용
+          </label>
+      
+          <div class="tier-classes" id="tierClassBox" aria-disabled="true"></div>
+        </div>
+      
+        <div class="tier-help">
+          조건: 보유 체크된 캐릭터 중 4인 구성 / SSS→SS→S→A 우선 /
+          콤보 스킬(속성 2+ 또는 특성 2+) 필수
+        </div>
+      
+        <div id="tierPartyResult" class="tier-result"></div>
+      </div>
+
         <input id="q" class="input" type="text" placeholder="검색 (이름/ID/특성/속성)" autocomplete="off" />
         <select id="rarityFilter" class="select">
           <option value="">등급(전체)</option>
           <option value="SSR">SSR</option>
           <option value="SR">SR</option>
-          <option value="R">R</option>
-          <option value="-">-</option>
         </select>
         <select id="elemFilter" class="select">
           <option value="">속성(전체)</option>
@@ -588,8 +614,333 @@
       const cid = cell.dataset.cid;
       if (cid) fetchAndOpen(cid);
     });
+    
+        // ===== Tier Party Builder (from tier-lists.js) =====
+    let TIER_EXPORTS = null;          // import된 모듈 전체
+    let TIER_PRESETS = [];            // export const 이름 목록
+    let TIER_RANK_MAP = new Map();    // cid -> tierScore (선택된 프리셋 기준)
+    
+    // 점수: SSS > SS > S > A (나머지 0)
+    const TIER_SCORE = { SSS: 4, SS: 3, S: 2, A: 1 };
+    
+    // 캐릭터 매칭(이름/ID)
+    function buildCharIndex(chars){
+      const byId = new Map();
+      const byName = new Map();
+      for (const c of (chars || [])){
+        if (!c?.id) continue;
+        byId.set(String(c.id).toLowerCase(), c.id);
+        if (c.name) byName.set(String(c.name).toLowerCase(), c.id);
+        if (c.raw_name) byName.set(String(c.raw_name).toLowerCase(), c.id);
+      }
+      return { byId, byName };
+    }
+    
+    function normalizeTierRoot(obj){
+      // tier 키를 가진 object를 찾아서 반환(1~2단계 탐색)
+      if (!obj || typeof obj !== "object") return null;
+    
+      const keys = Object.keys(obj).map(k => k.toUpperCase());
+      const hasTierKeys = (k) => ["SSS","SS","S","A"].includes(k);
+      if (keys.some(hasTierKeys)) return obj;
+    
+      // 1단계 하위 탐색
+      for (const v of Object.values(obj)){
+        if (v && typeof v === "object" && !Array.isArray(v)){
+          const k2 = Object.keys(v).map(k => k.toUpperCase());
+          if (k2.some(hasTierKeys)) return v;
+        }
+      }
+      return null;
+    }
+    
+    function extractIdFromTierItem(x){
+      // tier list 요소가 string or object일 수 있음
+      if (x == null) return null;
+      if (typeof x === "string") return x.trim();
+      if (typeof x === "object"){
+        const v = x.id || x.cid || x.key || x.name || x.character || x.unit;
+        if (typeof v === "string") return v.trim();
+      }
+      return null;
+    }
+    
+    function buildTierRankMapFromPreset(presetObj, chars){
+      const root = normalizeTierRoot(presetObj);
+      if (!root) return new Map();
+    
+      const { byId, byName } = buildCharIndex(chars);
+    
+      const map = new Map();
+      for (const [k, list] of Object.entries(root)){
+        const tier = String(k).toUpperCase();
+        if (!TIER_SCORE[tier]) continue;
+    
+        const arr = Array.isArray(list) ? list : [];
+        for (const item of arr){
+          const raw = extractIdFromTierItem(item);
+          if (!raw) continue;
+    
+          const key = raw.toLowerCase();
+          const cid = byId.get(key) || byName.get(key) || null;
+          if (!cid) continue;
+    
+          // 동일 캐릭터가 여러 tier에 있으면 더 높은 tier만 유지
+          const prev = map.get(cid) || 0;
+          map.set(cid, Math.max(prev, TIER_SCORE[tier]));
+        }
+      }
+      return map;
+    }
+    
+    function getOwnedSelectedIds(){
+      // 기존 체크박스(.chk-owned) 기준
+      const out = [];
+      document.querySelectorAll(".chk-owned").forEach(chk => {
+        if (chk.checked && chk.dataset.cid) out.push(chk.dataset.cid);
+      });
+      return out;
+    }
+    
+    function getEnabledClassSet(){
+      const use = document.getElementById("useClassFilter")?.checked;
+      if (!use) return null;
+    
+      const picked = new Set();
+      document.querySelectorAll(".tier-class-item input[type=checkbox]").forEach(x => {
+        if (x.checked) picked.add(x.value);
+      });
+      return picked.size ? picked : null;
+    }
+    
+    function hasComboSkill(party, charsById){
+      // 콤보스킬 조건: 속성 2+ OR 특성 2+
+      const elemCount = new Map();
+      const facCount = new Map();
+    
+      for (const cid of party){
+        const c = charsById.get(cid);
+        if (!c) continue;
+        const e = (c.element || "-");
+        const f = (c.faction || "-");
+        elemCount.set(e, (elemCount.get(e) || 0) + 1);
+        facCount.set(f, (facCount.get(f) || 0) + 1);
+      }
+      const maxElem = Math.max(0, ...elemCount.values());
+      const maxFac = Math.max(0, ...facCount.values());
+      return (maxElem >= 2) || (maxFac >= 2);
+    }
+    
+    function partyScore(party, rankMap, charsById){
+      // 티어 점수 합 + 콤보 보너스(약간)
+      let sum = 0;
+      for (const cid of party){
+        sum += (rankMap.get(cid) || 0) * 100;
+      }
+    
+      // 콤보 보너스(속성/특성 중복 많을수록 약간 가산)
+      const elemCount = new Map();
+      const facCount = new Map();
+      for (const cid of party){
+        const c = charsById.get(cid);
+        if (!c) continue;
+        const e = (c.element || "-");
+        const f = (c.faction || "-");
+        elemCount.set(e, (elemCount.get(e) || 0) + 1);
+        facCount.set(f, (facCount.get(f) || 0) + 1);
+      }
+      const maxElem = Math.max(0, ...elemCount.values());
+      const maxFac = Math.max(0, ...facCount.values());
+      sum += (maxElem >= 2 ? 15 : 0);
+      sum += (maxFac >= 2 ? 15 : 0);
+      sum += (maxElem >= 3 ? 10 : 0);
+      sum += (maxFac >= 3 ? 10 : 0);
+    
+      return sum;
+    }
+    
+    function buildBestTierParty(){
+      const owned = getOwnedSelectedIds();
+      if (owned.length < 4){
+        return { ok:false, msg:"보유 체크가 4명 이상이어야 합니다." };
+      }
+    
+      const classSet = getEnabledClassSet();
+    
+      const charsById = new Map(chars.map(c => [c.id, c]));
+      let candidates = owned.filter(cid => charsById.has(cid));
+    
+      // 클래스 필터 적용(선택된 클래스만 후보)
+      if (classSet){
+        candidates = candidates.filter(cid => {
+          const cls = String(charsById.get(cid)?.class || "-");
+          return classSet.has(cls);
+        });
+        if (candidates.length < 4){
+          return { ok:false, msg:"클래스 필터 적용 결과 후보가 4명 미만입니다." };
+        }
+      }
+    
+      // 티어 점수로 후보 정렬
+      candidates.sort((a,b) => (TIER_RANK_MAP.get(b) || 0) - (TIER_RANK_MAP.get(a) || 0));
+    
+      // 조합 폭 제한(너무 많으면 조합 수 폭증) - 상위 N명만으로 탐색
+      const N = Math.min(28, candidates.length);
+      const pool = candidates.slice(0, N);
+    
+      // 4인 조합 브루트포스(최대 C(28,4)=20475 → 브라우저에서 충분)
+      let best = null;
+      for (let i=0; i<pool.length-3; i++){
+        for (let j=i+1; j<pool.length-2; j++){
+          for (let k=j+1; k<pool.length-1; k++){
+            for (let l=k+1; l<pool.length; l++){
+              const party = [pool[i], pool[j], pool[k], pool[l]];
+              if (!hasComboSkill(party, charsById)) continue;
+    
+              const sc = partyScore(party, TIER_RANK_MAP, charsById);
+              if (!best || sc > best.score){
+                best = { party, score: sc };
+              }
+            }
+          }
+        }
+      }
+    
+      if (!best){
+        return { ok:false, msg:"콤보스킬(속성 2+ 또는 특성 2+)을 만족하는 4인 조합을 찾지 못했습니다." };
+      }
+    
+      return { ok:true, party: best.party };
+    }
+    
+    function tierLabelFromScore(s){
+      if (s === 4) return "SSS";
+      if (s === 3) return "SS";
+      if (s === 2) return "S";
+      if (s === 1) return "A";
+      return "-";
+    }
+    
+    function renderTierPartyResult(res){
+      const box = document.getElementById("tierPartyResult");
+      if (!box) return;
+    
+      if (!res.ok){
+        box.innerHTML = `<div class="tier-error">${escapeHtml(res.msg || "실패")}</div>`;
+        return;
+      }
+    
+      const charsById = new Map(chars.map(c => [c.id, c]));
+      const rows = res.party.map(cid => {
+        const c = charsById.get(cid);
+        const tier = tierLabelFromScore(TIER_RANK_MAP.get(cid) || 0);
+        const nm = c?.name || cid;
+        const elem = c?.element || "-";
+        const fac = c?.faction || "-";
+        const cls = c?.class || "-";
+    
+        return `
+          <div class="tier-card">
+            <div class="tier-card-top">
+              <span class="tier-badge tier-${tier.toLowerCase()}">${escapeHtml(tier)}</span>
+              <span class="tier-name">${escapeHtml(nm)}</span>
+            </div>
+            <div class="tier-card-sub">
+              <span class="pill pill-neutral">${escapeHtml(elem)}</span>
+              <span class="pill pill-neutral">${escapeHtml(fac)}</span>
+              <span class="pill pill-neutral">${escapeHtml(cls)}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    
+      box.innerHTML = `<div class="tier-grid">${rows}</div>`;
+    }
+    
+    function initTierClassCheckboxes(){
+      const box = document.getElementById("tierClassBox");
+      if (!box) return;
+    
+      // 화면에 있는 캐릭터 class 목록으로 생성
+      const classes = Array.from(new Set(chars.map(c => String(c.class || "-")).filter(v => v && v !== "-")))
+        .sort((a,b) => a.localeCompare(b));
+    
+      box.innerHTML = classes.map(cls => `
+        <label class="tier-class-item">
+          <input type="checkbox" value="${escapeHtml(cls)}" disabled>
+          <span>${escapeHtml(cls)}</span>
+        </label>
+      `).join("");
+    
+      const use = document.getElementById("useClassFilter");
+      const toggle = () => {
+        const on = !!use.checked;
+        box.setAttribute("aria-disabled", String(!on));
+        box.querySelectorAll("input[type=checkbox]").forEach(x => x.disabled = !on);
+      };
+      use.addEventListener("change", toggle);
+      toggle();
+    }
+    
+    function initTierUI(){
+      const sel = document.getElementById("tierPreset");
+      const btn = document.getElementById("btnBuildTierParty");
+      if (!sel || !btn) return;
+    
+      // export const 목록 뽑기(함수/기본값 제외)
+      TIER_PRESETS = Object.keys(TIER_EXPORTS || {})
+        .filter(k => k !== "default" && !k.startsWith("__"))
+        .sort((a,b) => a.localeCompare(b));
+    
+      sel.innerHTML = `<option value="">등급표 선택</option>` + TIER_PRESETS.map(k =>
+        `<option value="${escapeHtml(k)}">${escapeHtml(k)}</option>`
+      ).join("");
+    
+      sel.disabled = false;
+      btn.disabled = false;
+    
+      initTierClassCheckboxes();
+    
+      function applyPreset(){
+        const key = sel.value;
+        if (!key){
+          TIER_RANK_MAP = new Map();
+          return;
+        }
+        const presetObj = TIER_EXPORTS[key];
+        TIER_RANK_MAP = buildTierRankMapFromPreset(presetObj, chars);
+      }
+    
+      sel.addEventListener("change", () => {
+        applyPreset();
+        document.getElementById("tierPartyResult").innerHTML = "";
+      });
+    
+      btn.addEventListener("click", () => {
+        applyPreset();
+        if (!sel.value){
+          renderTierPartyResult({ ok:false, msg:"등급표를 먼저 선택하세요." });
+          return;
+        }
+        const res = buildBestTierParty();
+        renderTierPartyResult(res);
+      });
+    }
 
+    
     render();
+
+    window.addEventListener("tierlists:loaded", () => {
+      TIER_EXPORTS = window.__TIER_EXPORTS__;
+      initTierUI();
+    });
+    
   </script>
+  <script type="module">
+    import * as tiers from "/data/zone-nova/tier-lists.js";
+    window.__TIER_EXPORTS__ = tiers;
+    window.dispatchEvent(new Event("tierlists:loaded"));
+  </script>
+
 </body>
 </html>
