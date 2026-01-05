@@ -458,18 +458,21 @@ body{
   background: linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
 }
 
-.icon-pill{
+.pill-with-icon{
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  vertical-align: middle;
 }
 
-.mini-icon{
-  width: 18px;
-  height: 18px;
+.pill-with-icon .mini-icon{
+  width: 16px;
+  height: 16px;
   border-radius: 4px;
   object-fit: cover;
   flex: 0 0 auto;
 }
 
-
+.pill-with-icon .pill-text{
+  line-height: 1;
+}
