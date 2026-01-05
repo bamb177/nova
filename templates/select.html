@@ -528,6 +528,9 @@
         const role = roleLabel(c.role);
         const rar = (c.rarity || "-").toString().toUpperCase();
 
+        const elemIcon = c.element_icon ? `<img class="mini-icon" src="${escapeHtml(c.element_icon)}" alt="">` : "";
+        const classIcon = c.class_icon ? `<img class="mini-icon" src="${escapeHtml(c.class_icon)}" alt="">` : "";
+
         const img = c.image
           ? `<img class="char-img" src="${escapeHtml(c.image)}" alt="">`
           : `<div class="char-img"></div>`;
@@ -541,9 +544,19 @@
                 <div class="char-name">${escapeHtml(nm)}</div>
               </div>
             </td>
-            <td class="col-elem"><span class="pill pill-neutral">${escapeHtml(elem)}</span></td>
+            <td class="col-elem">
+              <div class="icon-pill">
+                ${elemIcon}
+                <span class="pill pill-neutral">${escapeHtml(elem)}</span>
+              </div>
+            </td>
             <td class="col-faction"><span class="pill pill-neutral">${escapeHtml(faction)}</span></td>
-            <td class="col-class"><span class="pill pill-neutral">${escapeHtml(cls)}</span></td>
+            <td class="col-class">
+              <div class="icon-pill">
+                ${classIcon}
+                <span class="pill pill-neutral">${escapeHtml(cls)}</span>
+              </div>
+            </td>
             <td class="col-role"><span class="pill pill-neutral">${escapeHtml(role)}</span></td>
             <td class="col-rarity"><span class="pill ${rarityPillClass(rar)}">${escapeHtml(rar)}</span></td>
           </tr>
