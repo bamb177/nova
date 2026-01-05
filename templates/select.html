@@ -629,18 +629,51 @@
         .trim();
     }
 
-    function buildCharIndex(chars){
-      const byKey = new Map();
-      for (const c of (chars || [])){
-        if (!c?.id) continue;
-        const id = String(c.id);
-
-        if (c.name) byKey.set(keyify(c.name), id);
-        if (c.raw_name) byKey.set(keyify(c.raw_name), id);
-        byKey.set(keyify(id), id);
+      function buildCharIndex(chars){
+        const byKey = new Map();
+        const byId = new Map((chars || []).map(c => [String(c.id), c]));
+      
+        function rarityVal(r){
+          const x = String(r || "-").toUpperCase();
+          if (x === "SSR") return 3;
+          if (x === "SR")  return 2;
+          if (x === "R")   return 1;
+          return 0;
+        }
+      
+        // 같은 key가 이미 있으면, rarity가 더 높은 캐릭터의 id를 유지
+        function setIfBetter(key, newId){
+          if (!key || !newId) return;
+          const prevId = byKey.get(key);
+          if (!prevId){
+            byKey.set(key, newId);
+            return;
+          }
+          const prev = byId.get(prevId);
+          const next = byId.get(newId);
+          if (!prev || !next){
+            byKey.set(key, newId);
+            return;
+          }
+          if (rarityVal(next.rarity) > rarityVal(prev.rarity)){
+            byKey.set(key, newId);
+          }
+        }
+      
+        for (const c of (chars || [])){
+          if (!c?.id) continue;
+          const id = String(c.id);
+      
+          if (c.name) setIfBetter(keyify(c.name), id);
+          if (c.raw_name) setIfBetter(keyify(c.raw_name), id);
+      
+          // id 자체 키는 충돌 가능성이 낮지만 동일 규칙 적용
+          setIfBetter(keyify(id), id);
+        }
+      
+        return { byKey };
       }
-      return { byKey };
-    }
+
 
     function buildRankMapFromTierList(tierList, chars){
       const { byKey } = buildCharIndex(chars);
