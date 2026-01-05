@@ -762,4 +762,64 @@ body{
   min-width: 920px;
 }
 
+/* ===== Mobile layout: readability & stacking ===== */
+@media (max-width: 520px){
+  .topbar .title h1{
+    font-size: 20px;
+    line-height: 1.15;
+  }
+  .topbar .meta{
+    font-size: 12px;
+    opacity: .85;
+  }
+
+  /* 검색/필터 영역: 2열 그리드, 검색창은 전체폭 */
+  .filters{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  #q{
+    grid-column: 1 / -1; /* 검색창은 한 줄 전체 */
+  }
+
+  /* 전체선택/해제 버튼이 2열에서 잘 보이도록 */
+  #btnAll, #btnNone{
+    width: 100%;
+  }
+
+  /* 등급표 패널: 행들은 세로로 쌓이게 */
+  .tier-panel{
+    padding: 14px;
+  }
+  .tier-row{
+    display: grid;
+    grid-template-columns: 1fr; /* 모바일은 1열 */
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  /* 등급표 선택, 파티구성 버튼 풀폭 */
+  #tierPreset,
+  #btnBuildTierParty{
+    width: 100%;
+  }
+
+  /* 클래스 체크 박스 영역 줄바꿈 최적화 */
+  .tier-classes{
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2열 */
+    gap: 10px;
+  }
+  .tier-class-item{
+    width: 100%;
+  }
+
+  /* 추천 결과 카드: 1열/2열은 취향인데, 현재는 2열 유지 */
+  .tier-grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+}
 
