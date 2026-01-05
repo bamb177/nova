@@ -55,7 +55,7 @@
         <button class="btn" id="btnNone" type="button">전체 해제</button>
       </div>
 
-      <!-- ✅ 모바일 가로 스와이프를 위한 래퍼 -->
+      <!-- ✅ 모바일 가로 터치 스크롤을 위한 래퍼 -->
       <div class="table-wrap">
         <table class="table">
           <thead>
@@ -113,49 +113,14 @@
 
     const RARITY_ORDER = { "SSR": 3, "SR": 2, "R": 1, "-": 0 };
 
-    const ELEM_LABEL = {
-      "Fire": "Blaze",
-      "Wind": "Storm",
-      "Ice": "Frost",
-      "Holy": "Holy",
-      "Chaos": "Chaos",
-      "Blaze": "Blaze",
-      "Storm": "Storm",
-      "Frost": "Frost"
-    };
-
-    function elemClass(label){
-      const v = (label || "").toString();
-      const x = ELEM_LABEL[v] || v || "-";
-      const low = x.toLowerCase();
-      if (low === "blaze") return "elem-blaze";
-      if (low === "storm") return "elem-storm";
-      if (low === "frost") return "elem-frost";
-      if (low === "holy")  return "elem-holy";
-      if (low === "chaos") return "elem-chaos";
-      return "";
-    }
-
     function classLabel(cls){
-      const v = (cls || "-").toString().trim().toLowerCase();
-      if (v === "debuffer") return "Disruptor";
-      if (v === "guardian") return "Guardian";
-      if (v === "healer") return "Healer";
-      if (v === "buffer") return "Buffer";
-      if (v === "mage") return "Mage";
-      if (v === "rogue") return "Rogue";
-      if (v === "warrior") return "Warrior";
-      return (cls && cls !== "-") ? (cls.charAt(0).toUpperCase() + cls.slice(1)) : "-";
+      const v = (cls || "-").toString().trim();
+      return v || "-";
     }
 
-    function roleLabel(role, cls){
-      const c = (cls || "-").toString().trim().toLowerCase();
-      if (c === "debuffer") return "DPS";
-
-      const r = (role || "-").toString().trim().toLowerCase();
-      if (r === "dps") return "DPS";
-      if (r === "-" || !r) return "-";
-      return r.charAt(0).toUpperCase() + r.slice(1);
+    function roleLabel(role){
+      const v = (role || "-").toString().trim();
+      return v || "-";
     }
 
     function rarityPillClass(r){
@@ -164,15 +129,6 @@
       if (v === "SR") return "pill-sr";
       if (v === "R") return "pill-r";
       return "pill-none";
-    }
-
-    function normalizeFaction(f){
-      return (f || "-").toString().trim() || "-";
-    }
-
-    function normalizeElem(e){
-      const v = (e || "-").toString().trim();
-      return ELEM_LABEL[v] || v || "-";
     }
 
     // ===== detail helpers =====
@@ -201,15 +157,9 @@
       return `<table class="kv"><tbody>${rows}</tbody></table>`;
     }
 
-    // 단일 스킬 객체 판별
     function looksLikeSkillObject(o){
       if (!o || typeof o !== "object" || Array.isArray(o)) return false;
-      const keys = [
-        "name","title","skillName",
-        "description","desc","text",
-        "cooldown","energyCost","cost","sp",
-        "type","category","target"
-      ];
+      const keys = ["name","title","skillName","description","desc","text","cooldown","energyCost","cost","type","category"];
       return keys.some(k => o[k] !== undefined && o[k] !== null);
     }
 
@@ -303,7 +253,7 @@
       return `<div class="cards">${renderOneSkillCard(s)}</div>`;
     }
 
-    // 5 섹션 고정 + (3) 색상 구분용 class 부여
+    // Auto/Ultimate/Passive/Normal/Team Skill 고정 + 색상 구분(class)
     function renderSkills(detail) {
       const skills = pick(detail, "skills") || {};
       const teamSkill = pick(detail, "teamSkill", "team_skill", "team");
@@ -311,11 +261,11 @@
       const normalData = !isEmpty(skills?.normal) ? skills.normal : skills?.basic;
 
       const sections = [
-        { key: "auto",     label: "Auto",      data: skills?.auto,     css: "group-auto" },
-        { key: "ultimate", label: "Ultimate",  data: skills?.ultimate, css: "group-ultimate" },
-        { key: "passive",  label: "Passive",   data: skills?.passive,  css: "group-passive" },
-        { key: "normal",   label: "Normal",    data: normalData,       css: "group-normal" },
-        { key: "team",     label: "Team Skill",data: teamSkill,        css: "group-team" },
+        { label: "Auto",       data: skills?.auto,     css: "group-auto" },
+        { label: "Ultimate",   data: skills?.ultimate, css: "group-ultimate" },
+        { label: "Passive",    data: skills?.passive,  css: "group-passive" },
+        { label: "Normal",     data: normalData,       css: "group-normal" },
+        { label: "Team Skill", data: teamSkill,        css: "group-team" },
       ];
 
       return sections.map(s => `
@@ -329,20 +279,8 @@
     function normalizeAwakenings(aw) {
       if (!aw) return [];
       if (Array.isArray(aw)) return aw;
-
       if (typeof aw === "object") {
         if (Array.isArray(aw.levels)) return aw.levels;
-
-        const numKeys = Object.keys(aw).filter(k => /^\d+$/.test(k));
-        if (numKeys.length) {
-          return numKeys
-            .sort((a,b)=> Number(a)-Number(b))
-            .map(k => {
-              const v = aw[k];
-              if (typeof v === "object" && v) return { level: Number(k), ...v };
-              return { level: Number(k), effect: v };
-            });
-        }
       }
       return [];
     }
@@ -428,7 +366,6 @@
         { id: "awakenings", label: "각성", content: renderAwakenings(detail) },
         { id: "memory", label: "메모리카드", content: renderMemoryCard(detail) },
       ];
-
       const firstActive = "skills";
 
       const tabBtns = tabs.map(t =>
@@ -449,11 +386,9 @@
     function bindTabEvents() {
       const root = document.getElementById("modalBody");
       if (!root) return;
-
       root.onclick = (e) => {
         const btn = e.target.closest(".tab-btn");
         if (!btn) return;
-
         const tab = btn.dataset.tab;
         if (!tab) return;
 
@@ -462,7 +397,7 @@
       };
     }
 
-    // ===== 모달 =====
+    // ===== Modal =====
     const backdrop = document.getElementById("modalBackdrop");
     const modalBody = document.getElementById("modalBody");
     const modalTitle = document.getElementById("modalTitle");
@@ -481,7 +416,7 @@
     backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeModal(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && backdrop.classList.contains("show")) closeModal(); });
 
-    // (2) 중국어명은 title로 대체하지 않고 “이름 옆”에 표시
+    // 중국어명 키가 무엇이든 이름 옆에 표시
     function setModalTitle(name, cn){
       const safeName = escapeHtml(name || "Character");
       const safeCn = cn ? escapeHtml(cn) : "";
@@ -500,12 +435,10 @@
         }
 
         const detail = j.detail || {};
-
         const name = pick(detail, "name") || j.character?.name || j.id || "Character";
         const cn = pick(detail, "chineseName", "chinesename", "chinessname", "cnName", "cn_name");
 
         setModalTitle(name, cn);
-
         modalBody.innerHTML = renderDetailTabs(detail);
         bindTabEvents();
       } catch (e) {
@@ -513,10 +446,10 @@
       }
     }
 
-    // ===== 렌더 =====
+    // ===== List Render =====
     const chars = dedupeById(CHARS_RAW || []);
-      // ✅ 소스 힌트만 보스 제거 버전으로 갱신
-    document.getElementById("sourceHint").textContent = "characters_ko/*.json (리스트/상세 모두)";
+    document.getElementById("sourceHint").textContent =
+      "characters_ko/*.json (리스트/상세)";
 
     const $tbody = document.getElementById("tbody");
     const $q = document.getElementById("q");
@@ -540,15 +473,10 @@
       }
     }
 
-    const elems = uniqSorted(chars.map(c => normalizeElem(c.element)));
-    const facts = uniqSorted(chars.map(c => normalizeFaction(c.faction)));
-    const classes = uniqSorted(chars.map(c => classLabel(c.class)));
-    const roles = uniqSorted(chars.map(c => roleLabel(c.role, c.class)));
-
-    fillSelect($elem, elems);
-    fillSelect($faction, facts);
-    fillSelect($class, classes);
-    fillSelect($role, roles);
+    fillSelect($elem, uniqSorted(chars.map(c => (c.element || "-"))));
+    fillSelect($faction, uniqSorted(chars.map(c => (c.faction || "-"))));
+    fillSelect($class, uniqSorted(chars.map(c => classLabel(c.class))));
+    fillSelect($role, uniqSorted(chars.map(c => roleLabel(c.role))));
 
     function matchFilters(c){
       const q = ($q.value || "").trim().toLowerCase();
@@ -560,20 +488,18 @@
 
       const name = (c.name || "").toString().toLowerCase();
       const id = (c.id || "").toString().toLowerCase();
-      const faction = normalizeFaction(c.faction).toLowerCase();
-      const elem = normalizeElem(c.element);
-      const cls = classLabel(c.class);
-      const role = roleLabel(c.role, c.class);
+      const faction = (c.faction || "-").toString().toLowerCase();
+      const elem = (c.element || "-").toString();
 
       if (q){
         const ok = name.includes(q) || id.includes(q) || faction.includes(q) || elem.toLowerCase().includes(q);
         if (!ok) return false;
       }
       if (rarityV && (c.rarity || "-").toString().toUpperCase() !== rarityV) return false;
-      if (elemV && elem !== elemV) return false;
-      if (factionV && normalizeFaction(c.faction) !== factionV) return false;
-      if (classV && cls !== classV) return false;
-      if (roleV && role !== roleV) return false;
+      if (elemV && (c.element || "-") !== elemV) return false;
+      if (factionV && (c.faction || "-") !== factionV) return false;
+      if (classV && classLabel(c.class) !== classV) return false;
+      if (roleV && roleLabel(c.role) !== roleV) return false;
 
       return true;
     }
@@ -596,29 +522,11 @@
         const cid = c.id;
         const nm = c.name || cid;
 
-        const elem = normalizeElem(c.element);
-        const elemPill = (elem && elem !== "-")
-          ? `<span class="pill pill-elem ${elemClass(elem)}">${c.element_icon ? `<img src="${escapeHtml(c.element_icon)}" alt="">` : ""}${escapeHtml(elem)}</span>`
-          : `<span class="pill pill-none">-</span>`;
-
-        const faction = normalizeFaction(c.faction);
-        const factionPill = (faction && faction !== "-")
-          ? `<span class="pill pill-neutral">${escapeHtml(faction)}</span>`
-          : `<span class="pill pill-none">-</span>`;
-
+        const elem = (c.element || "-");
+        const faction = (c.faction || "-");
         const cls = classLabel(c.class);
-        const clsIcon = c.class_icon ? `<img src="${escapeHtml(c.class_icon)}" alt="">` : "";
-        const clsPill = (cls && cls !== "-")
-          ? `<span class="pill pill-neutral">${clsIcon}${escapeHtml(cls)}</span>`
-          : `<span class="pill pill-none">-</span>`;
-
-        const role = roleLabel(c.role, c.class);
-        const rolePill = (role && role !== "-")
-          ? `<span class="pill pill-neutral">${escapeHtml(role)}</span>`
-          : `<span class="pill pill-none">-</span>`;
-
+        const role = roleLabel(c.role);
         const rar = (c.rarity || "-").toString().toUpperCase();
-        const rarPill = `<span class="pill ${rarityPillClass(rar)}">${escapeHtml(rar)}</span>`;
 
         const img = c.image
           ? `<img class="char-img" src="${escapeHtml(c.image)}" alt="">`
@@ -633,11 +541,11 @@
                 <div class="char-name">${escapeHtml(nm)}</div>
               </div>
             </td>
-            <td class="col-elem">${elemPill}</td>
-            <td class="col-faction">${factionPill}</td>
-            <td class="col-class">${clsPill}</td>
-            <td class="col-role">${rolePill}</td>
-            <td class="col-rarity">${rarPill}</td>
+            <td class="col-elem"><span class="pill pill-neutral">${escapeHtml(elem)}</span></td>
+            <td class="col-faction"><span class="pill pill-neutral">${escapeHtml(faction)}</span></td>
+            <td class="col-class"><span class="pill pill-neutral">${escapeHtml(cls)}</span></td>
+            <td class="col-role"><span class="pill pill-neutral">${escapeHtml(role)}</span></td>
+            <td class="col-rarity"><span class="pill ${rarityPillClass(rar)}">${escapeHtml(rar)}</span></td>
           </tr>
         `;
       }).join("");
