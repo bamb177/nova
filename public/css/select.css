@@ -717,3 +717,49 @@ body{
   touch-action: pan-x pan-y;
 }
 
+/* ===== FIX: Mobile vertical scroll must work ===== */
+html, body{
+  height: 100%;
+}
+
+body{
+  /* 기존 overflow:hidden 등이 있어도 무조건 스크롤 허용 */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 화면은 flex로 유지하되, 내부 스크롤이 막히지 않게 */
+.wrap{
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel{
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  /* 기존 overflow:hidden이 있으면 내부 스크롤/터치가 죽습니다 */
+  overflow: visible !important;
+}
+
+/* 테이블 영역은 가로 스크롤 + (필요 시) 세로도 가능 */
+.table-wrap{
+  flex: 1 1 auto;
+  min-height: 0;
+
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+}
+
+/* 테이블은 가로 스크롤 유지를 위해 최소 폭 유지 */
+.table{
+  min-width: 920px;
+}
+
+
