@@ -420,31 +420,41 @@ body{
   z-index: 1;
 }
 
-/* ✅ 모바일 가로 스와이프(테이블) */
+/* ✅ 모바일 가로 터치 스크롤(테이블) */
 .table-wrap{
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-
-  /* iOS 스무스 스크롤 */
   -webkit-overflow-scrolling: touch;
-
-  /* 터치 제스처: 가로/세로 모두 허용 */
   touch-action: pan-x pan-y;
-
-  /* 스크롤 체인 방지(선택) */
   overscroll-behavior: contain;
-
-  /* 테두리 라운드 유지용 */
   border-radius: 16px;
 }
 
-/* table은 래퍼가 스크롤을 담당하므로 radius/overflow는 래퍼가 담당 */
+/* 테이블은 가로 스크롤이 생기도록 최소 폭 보장 */
 .table{
-  min-width: 920px; /* ✅ 화면이 좁으면 가로 스크롤이 실제로 생기게 */
+  min-width: 920px;
 }
 
-/* 모바일에서 클릭/드래그 충돌 완화 */
-.char-cell{
-  -webkit-tap-highlight-color: transparent;
+/* Auto/Ultimate/Passive/Normal/Team Skill 색상 구분 (이미 있으면 유지) */
+.group-auto .group-title{
+  border-color: rgba(120,220,255,.22);
+  background: linear-gradient(90deg, rgba(120,220,255,.14), rgba(255,255,255,.03));
 }
+.group-ultimate .group-title{
+  border-color: rgba(255,180,70,.22);
+  background: linear-gradient(90deg, rgba(255,180,70,.14), rgba(255,255,255,.03));
+}
+.group-passive .group-title{
+  border-color: rgba(200,170,255,.22);
+  background: linear-gradient(90deg, rgba(200,170,255,.14), rgba(255,255,255,.03));
+}
+.group-normal .group-title{
+  border-color: rgba(160,250,220,.22);
+  background: linear-gradient(90deg, rgba(160,250,220,.14), rgba(255,255,255,.03));
+}
+.group-team .group-title{
+  border-color: rgba(255,255,255,.18);
+  background: linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+}
+
