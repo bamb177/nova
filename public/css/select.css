@@ -679,3 +679,41 @@ body{
 .tier-ss { background: linear-gradient(90deg, rgba(255,180,70,.92), rgba(255,120,40,.90)); color: rgba(0,0,0,.80); }
 .tier-s  { background: rgba(255,255,255,.10); }
 .tier-a  { background: rgba(255,255,255,.06); }
+
+/* ===== Mobile scroll fix: scroll inside panel, not body ===== */
+html, body { height: 100%; }
+
+body{
+  /* 모바일에서 전체 스크롤이 막히는 케이스 제거 */
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+/* 한 화면을 정확히 잡고, panel이 남은 높이를 먹게 */
+.wrap{
+  height: 100dvh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* ✅ 여기서 세로 스크롤 발생 */
+.panel{
+  flex: 1 1 auto;
+  min-height: 0;                 /* 중요: flex child 스크롤 활성화 */
+  overflow-y: auto;              /* ✅ 세로 스크롤 */
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+/* 테이블은 가로 스크롤만 */
+.table-wrap{
+  overflow-x: auto;
+  overflow-y: visible;           /* panel이 세로를 담당 */
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+}
+
