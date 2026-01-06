@@ -19,7 +19,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Copy memories -> public card
+      - name: Debug - show repo root and key dirs
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PWD=$(pwd)"
+          echo "Top-level:"
+          ls -la
+          echo "Check src/assets/images/games/zone-nova:"
+          ls -la src/assets/images/games/zone-nova || true
+          echo "Check public/images/games/zone-nova:"
+          ls -la public/images/games/zone-nova || true
+
+      - name: Copy memories -> public card (with verification)
         shell: bash
         run: |
           set -euo pipefail
@@ -27,15 +39,36 @@ jobs:
           SRC="src/assets/images/games/zone-nova/memories"
           DST="public/images/games/zone-nova/card"
 
+          # 1) 소스 폴더 존재 강제 확인 (없으면 실패로 처리)
           if [ ! -d "$SRC" ]; then
-            echo "[SKIP] Source folder not found: $SRC"
-            exit 0
+            echo "[ERROR] Source folder not found: $SRC"
+            echo "Search candidates under src/assets/images/games/zone-nova:"
+            find src/assets/images/games/zone-nova -maxdepth 3 -type d -print || true
+            exit 1
           fi
 
           mkdir -p "$DST"
 
-          # 완전 동기화(미러링): SRC에 없는 파일은 DST에서도 삭제됨
+          echo "SRC listing (top 50 files):"
+          find "$SRC" -type f | head -n 50 || true
+
+          # 2) 복사: rsync 미러링
           rsync -av --delete "$SRC"/ "$DST"/
+
+          echo "DST listing (top 50 files):"
+          find "$DST" -type f | head -n 50 || true
+
+      - name: Debug - git status and ignored check
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "git status:"
+          git status --porcelain || true
+
+          echo "Ignored check (if nothing shows in status, this matters):"
+          # 대상 경로가 .gitignore에 걸리면 add가 안 먹습니다.
+          git check-ignore -v public/images/games/zone-nova/card || true
+          git check-ignore -v public/images/games/zone-nova/card/** || true
 
       - name: Commit & push if changed
         shell: bash
@@ -46,7 +79,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
 
-            git add public/images/games/zone-nova/card
+            git add -A public/images/games/zone-nova/card
             git commit -m "Copy memories images to public card"
             git push
           else
