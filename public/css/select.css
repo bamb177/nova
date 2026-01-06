@@ -823,3 +823,70 @@ body{
   }
 }
 
+/* ===== Top title: place refresh next to h1 ===== */
+.topbar .title-row{
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.topbar .title-row h1{
+  margin:0;
+}
+.topbar .refresh{
+  font-weight:800;
+  opacity:.85;
+  white-space:nowrap;
+}
+
+/* 모바일에서 타이틀/갱신이 너무 커지지 않게 */
+@media (max-width: 520px){
+  .topbar .refresh{
+    font-size:.92rem;
+  }
+}
+
+/* ===== Mobile filters: keep "search + class" compact on the top ===== */
+@media (max-width: 520px){
+  .filters{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  /* 공통 높이/패딩: 필터 영역 세로 높이 줄이기 */
+  .filters .input,
+  .filters .select,
+  .filters .btn{
+    height:36px;
+    padding:0 10px;
+    font-size:14px;
+  }
+
+  /* 1행: 검색(넓게) + 클래스(좁게) */
+  .filters #q{
+    flex: 1 1 calc(70% - 8px);
+    min-width: 200px;
+  }
+  .filters #classFilter{
+    flex: 1 1 calc(30% - 8px);
+    min-width: 120px;
+  }
+
+  /* 나머지 셀렉트들은 2열로 */
+  .filters #rarityFilter,
+  .filters #elemFilter,
+  .filters #factionFilter,
+  .filters #roleFilter{
+    flex: 1 1 calc(50% - 8px);
+    min-width: 140px;
+  }
+
+  /* 버튼도 2열로 */
+  .filters #btnAll,
+  .filters #btnNone{
+    flex: 1 1 calc(50% - 8px);
+    min-width: 140px;
+  }
+}
+
