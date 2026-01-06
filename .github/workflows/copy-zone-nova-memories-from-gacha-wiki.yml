@@ -1,0 +1,96 @@
+name: Copy Zone Nova Memories Images (gacha-wiki -> nova)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: copy-zone-nova-memories-from-gacha-wiki
+  cancel-in-progress: true
+
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+
+    env:
+      # (중요) gacha-wiki 리포의 owner/repo 로 바꾸세요.
+      # 예: bamb177/gacha-wiki
+      SOURCE_REPO: bamb177/gacha-wiki
+      SOURCE_REF: main
+
+      SRC_PATH: src/assets/images/games/zone-nova/memories
+      DST_PATH: public/images/games/zone-nova/card
+
+    steps:
+      # 1) 타겟(=현재 리포) 체크아웃
+      - name: Checkout target (this repo)
+        uses: actions/checkout@v4
+        with:
+          path: target
+          fetch-depth: 0
+
+      # 2) 소스(gacha-wiki) 체크아웃
+      - name: Checkout source (gacha-wiki)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SOURCE_REPO }}
+          ref: ${{ env.SOURCE_REF }}
+          path: source
+          # public repo면 github.token으로 충분합니다.
+          # private repo면 Settings > Secrets 에 GH_PAT (repo 권한 PAT) 추가 후 사용하세요.
+          token: ${{ secrets.GH_PAT || github.token }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify source path
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "=== source repo root ==="
+          ls -la source | head -n 50
+          echo "=== check src path ==="
+          if [ ! -d "source/${SRC_PATH}" ]; then
+            echo "[ERROR] Source folder not found: source/${SRC_PATH}"
+            echo "Search candidates under source/src (depth 5):"
+            find source/src -maxdepth 5 -type d -print || true
+            exit 1
+          fi
+          echo "[OK] Found: source/${SRC_PATH}"
+          echo "Sample files:"
+          find "source/${SRC_PATH}" -maxdepth 1 -type f | head -n 30 || true
+
+      - name: Copy only image files to target public card
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p "target/${DST_PATH}"
+
+          # jpg 중심이지만 png/webp도 같이 이미지로 취급해서 복사
+          rsync -av --delete \
+            --include='*/' \
+            --include='*.jpg' --include='*.jpeg' --include='*.png' --include='*.webp' \
+            --exclude='*' \
+            "source/${SRC_PATH}/" "target/${DST_PATH}/"
+
+          echo "=== copied files sample ==="
+          find "target/${DST_PATH}" -type f | head -n 50 || true
+
+      - name: Commit & push (target repo) if changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd target
+
+          if git status --porcelain | grep -q .; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+
+            git add -A "${DST_PATH}"
+            git commit -m "Sync Zone Nova memory images from gacha-wiki"
+            git push
+          else
+            echo "[NO CHANGES] Nothing to commit."
+          fi
