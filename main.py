@@ -373,4 +373,6 @@ def ui_select():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "10000"))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    debug = os.getenv("FLASK_DEBUG") == "1"
+    app.run(host="0.0.0.0", port=port, debug=debug)
+
