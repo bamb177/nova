@@ -17,7 +17,7 @@ jobs:
     env:
       # (중요) gacha-wiki 리포의 owner/repo 로 바꾸세요.
       # 예: bamb177/gacha-wiki
-      SOURCE_REPO: bamb177/gacha-wiki
+      SOURCE_REPO: boring877/gacha-wiki
       SOURCE_REF: main
 
       SRC_PATH: src/assets/images/games/zone-nova/memories
