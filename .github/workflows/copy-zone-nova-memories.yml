@@ -2,9 +2,6 @@ name: Copy Zone Nova Memories Images to Public Card
 
 on:
   workflow_dispatch:
-  schedule:
-    # 매일 03:20 KST = 18:20 UTC
-    - cron: "20 18 * * *"
 
 permissions:
   contents: write
