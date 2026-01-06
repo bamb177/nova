@@ -3,3 +3,4 @@ requests
 gunicorn
 beautifulsoup4
 argostranslate==1.10.0
+gunicorn
