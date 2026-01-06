@@ -70,8 +70,8 @@
       flex-wrap:wrap;
     }
     .memcard-img{
-      width: 240px;
-      height: 150px;
+      width: 150px;
+      height: 240px;
       border-radius:14px;
       object-fit:cover;
       box-shadow: 0 6px 16px rgba(0,0,0,.35);
@@ -82,7 +82,7 @@
     .memcard-imgcell{
       vertical-align: top;
       padding-top: 10px;
-      width: 260px;
+      width: 180px;
     }
 
 
@@ -546,7 +546,7 @@
 
           effectsHtml = `
             <table class="awak-table">
-              <thead><tr><th style="width:260px;">카드</th><th>효과</th></tr></thead>
+              <thead><tr><th style="width:180px;">카드</th><th>효과</th></tr></thead>
               <tbody>${tbody}</tbody>
             </table>
           `;
@@ -755,10 +755,12 @@ function uniqSorted(values){
           const r = await fetch(url, { cache: "force-cache" });
           if (!r.ok) continue;
           const j = await r.json();
-          const hp = pick(j, "hp", "HP");
-          const attack = pick(j, "attack", "atk", "ATK");
-          const defense = pick(j, "defense", "def", "DEF");
-          const stats = {
+          
+          const s = (j && typeof j === "object" && j.stats && typeof j.stats === "object") ? j.stats : j;
+          const hp = pick(s, "hp", "HP");
+          const attack = pick(s, "attack", "atk", "ATK");
+          const defense = pick(s, "defense", "def", "DEF");
+const stats = {
             hp: hp ?? "-",
             attack: attack ?? "-",
             defense: defense ?? "-",
