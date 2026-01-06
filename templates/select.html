@@ -103,14 +103,13 @@
     .tier-class-inline{
       flex: 1 1 auto;
       min-width: 420px;
-      display: grid;
-      grid-template-columns: 210px 1fr;
+      display: flex;
       align-items: center;
       gap: 12px;
       padding: 10px 12px;
       border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
       box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
     }
     .tier-check-inline{
@@ -127,10 +126,6 @@
     }
     /* On small screens, keep layout tidy */
     @media (max-width: 720px){
-      .tier-class-inline{ min-width: 0; width: 100%; grid-template-columns: 1fr; align-items: start; }
-      .tier-classes-inline{ display: grid; grid-template-columns: 1fr 1fr; }
-      @media (max-width: 420px){ .tier-classes-inline{ grid-template-columns: 1fr; } }
-
       .tier-topline{ flex-wrap: wrap; }
       .tier-class-inline{
         min-width: 0;
@@ -237,11 +232,56 @@
     .th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
     .th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
 
+  
+    /* === Stats sortable headers === */
+    th.th-sort{
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      padding-right: 18px;
+    }
+    th.th-sort::after{
+      content: "↕";
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: .45;
+      font-size: 12px;
+    }
+    th.th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
+    th.th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
+
+    /* === Tier class condition: 2-column layout (no horizontal scrollbar) === */
+    .tier-class-inline{
+      display: grid;
+      grid-template-columns: 210px 1fr;
+      align-items: start;
+      gap: 12px;
+    }
+    .tier-classes-inline{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 12px;
+      overflow: visible !important;
+    }
+    @media (max-width: 720px){
+      .tier-class-inline{ grid-template-columns: 1fr; }
+      .tier-classes-inline{ grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 420px){
+      .tier-classes-inline{ grid-template-columns: 1fr; }
+    }
+
   </style>
 </head>
 
 <body>
-  <div class="wrap">
+  
+  <div id="jsErrorBanner" style="display:none;position:sticky;top:0;z-index:9999;background:rgba(180,40,40,.92);color:#fff;padding:10px 14px;font-weight:700;border-bottom:1px solid rgba(255,255,255,.25);">
+    JS 오류: <span id="jsErrorText"></span>
+  </div>
+<div class="wrap">
 
     <!-- ===== Topbar ===== -->
     <div class="topbar">
@@ -335,7 +375,7 @@
             <tr>
               <th class="col-check">선택</th>
               <th>캐릭터</th>
-              <th class=\"col-hp\">체력</th><th class=\"col-atk\">공격력</th><th class=\"col-def\">방어력</th>
+              <th class="col-hp th-sort" data-sort="hp">체력</th><th class="col-atk th-sort" data-sort="attack">공격력</th><th class="col-def th-sort" data-sort="defense">방어력</th>
               <th class="col-elem">속성</th>
               <th class="col-faction">특성</th>
               <th class="col-class">클래스</th>
@@ -735,6 +775,19 @@
       }
     }
 
+    // ===== JS error banner =====
+    (function(){
+      const banner = document.getElementById('jsErrorBanner');
+      const text = document.getElementById('jsErrorText');
+      if (!banner || !text) return;
+      function show(msg){
+        text.textContent = String(msg || 'unknown');
+        banner.style.display = 'block';
+      }
+      window.addEventListener('error', (e) => { show(e?.message || e); });
+      window.addEventListener('unhandledrejection', (e) => { show(e?.reason || e); });
+    })();
+
     // ===== List render =====
     function dedupeById(list){
       const m = new Map();
@@ -819,28 +872,27 @@ function uniqSorted(values){
       if (STAT_CACHE.has(cid)) return STAT_CACHE.get(cid);
 
       // Try common static paths
-      const enc = encodeURIComponent(String(cid));
+      
+      const cidStr = String(cid);
+      const cidKey = slugKey(cidStr);
+      // filename overrides (test case)
+      const OV_FILE = (cidKey === "aphrodite") ? "afrodite" : null;
+
+const enc = encodeURIComponent(String(cid));
       const encLower = encodeURIComponent(String(cid).toLowerCase());
       const candidates = [
+        ...(OV_FILE ? [
+          `/data/zone-nova/characters_ko/${encodeURIComponent(OV_FILE)}.json`,
+          `/public/data/zone-nova/characters_ko/${encodeURIComponent(OV_FILE)}.json`,
+        ] : []),
+
         `/data/zone-nova/characters_ko/${enc}.json`,
         `/data/zone-nova/characters_ko/${encLower}.json`,
         `/public/data/zone-nova/characters_ko/${enc}.json`,
         `/public/data/zone-nova/characters_ko/${encLower}.json`,
       ];
 
-      
-      // Filename mismatch override (example: Aphrodite -> afrodite.json)
-      try{
-        const key = String(cid || "").toLowerCase();
-        if (key.includes("aphrodite")) {
-          const a = "afrodite";
-          candidates.unshift(
-            `/data/zone-nova/characters_ko/${a}.json`,
-            `/public/data/zone-nova/characters_ko/${a}.json`
-          );
-        }
-      }catch(e){}
-for (const url of candidates){
+      for (const url of candidates){
         try{
           const r = await fetch(url, { cache: "no-store" });
           if (!r.ok) continue;
@@ -912,7 +964,7 @@ const stats = {
 
 
 
-async async function render(){
+async function render(){
       
       const base = chars.filter(matchFilters);
 
@@ -969,9 +1021,9 @@ const rows = filtered.map(c => {
                 <div class="char-name">${escapeHtml(nm)}</div>
               </div>
             </td>
-            <td class=\"col-hp\" data-stat=\"hp\" data-cid=\"${escapeHtml(cid)}\">-</td>
-            <td class=\"col-atk\" data-stat=\"attack\" data-cid=\"${escapeHtml(cid)}\">-</td>
-            <td class=\"col-def\" data-stat=\"defense\" data-cid=\"${escapeHtml(cid)}\">-</td>
+            <td class="col-hp" data-stat="hp" data-cid="${escapeHtml(cid)}">-</td>
+            <td class="col-atk" data-stat="attack" data-cid="${escapeHtml(cid)}">-</td>
+            <td class="col-def" data-stat="defense" data-cid="${escapeHtml(cid)}">-</td>
             <td class="col-elem">
               <span class="pill pill-neutral pill-with-icon">
                 ${elemIcon}
@@ -1019,10 +1071,25 @@ const rows = filtered.map(c => {
 
     render();
 
-    
-    /* init stats fill */
-    try{ fillStatsForVisibleRows(); }catch(e){}
-// ===== Filters collapse (mobile) =====
+
+    // Click stat headers to sort (toggle asc/desc)
+    (function bindStatHeaderSort(){
+      const table = document.querySelector(".table");
+      if (!table) return;
+      const thead = table.querySelector("thead");
+      if (!thead) return;
+      thead.addEventListener("click", (e) => {
+        const th = e.target.closest("th.th-sort");
+        if (!th) return;
+        const key = th.dataset.sort;
+        if (!key) return;
+        if (SORT_STATE.key === key) SORT_STATE.dir = (SORT_STATE.dir === "asc") ? "desc" : "asc";
+        else { SORT_STATE.key = key; SORT_STATE.dir = "desc"; }
+        render();
+      });
+    })();
+
+    // ===== Filters collapse (mobile) =====
     // - 모바일에서는 기본 접힘
     // - 사용자가 한 번 열고/닫으면 localStorage로 기억
     (function initFiltersCollapse(){
