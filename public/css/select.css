@@ -583,20 +583,40 @@ body{
   padding: 12px;
 }
 
-.tier-panel-head{
+/* ✅ details 요약 헤더: 검색/필터와 동일한 (열기/닫기) UX */
+.tier-summary{
+  list-style: none;
+  cursor: pointer;
   display:flex;
   align-items:center;
-  justify-content: space-between;
+  justify-content:space-between;
   gap: 10px;
-  margin-bottom: 10px;
-}
-
-.tier-panel-title{
   font-weight: 950;
   color: rgba(255,255,255,.90);
 }
+.tier-summary::-webkit-details-marker{ display:none; }
+.tier-summary-title{ font-weight: 950; }
+.tier-summary-hint{
+  font-size: 12px;
+  font-weight: 850;
+  color: rgba(255,255,255,.65);
+  white-space: nowrap;
+}
 
-.tier-toggle{ padding: 8px 10px; border-radius: 12px; }
+.tier-body{ margin-top: 10px; }
+
+/* 접혀 있을 때(= summary만 보일 때) 얇게 */
+.tier-panel:not([open]){
+  padding: 8px 10px;
+}
+.tier-panel:not([open]) .tier-body{
+  display:none;
+}
+
+
+.tier-actions{
+  gap: 8px;
+}
 
 .tier-row{
   display: flex;
