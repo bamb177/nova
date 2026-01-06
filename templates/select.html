@@ -11,11 +11,13 @@
 </head>
 
 <body>
-  <div class="wrap">
     <div class="topbar">
       <div class="title">
-        <h1>{{ title }}</h1>
-        <div class="meta">캐릭터 {{ cache_count }}명 · 갱신 {{ last_refresh }}</div>
+        <div class="title-row">
+          <h1>{{ title }}</h1>
+          <div class="refresh">갱신 {{ last_refresh }}</div>
+        </div>
+        <div class="meta">캐릭터 {{ cache_count }}명</div>
       </div>
     </div>
 
