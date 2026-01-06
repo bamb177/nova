@@ -1,0 +1,59 @@
+name: Copy Zone Nova Memory Images
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "src/assets/images/games/zone-nova/memories/**"
+      - ".github/workflows/copy-zone-nova-memories.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: copy-zone-nova-memories
+  cancel-in-progress: true
+
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Copy images to public
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SRC="src/assets/images/games/zone-nova/memories"
+          DST="public/images/games/zone-nova/card"
+
+          mkdir -p "$DST"
+
+          if [ ! -d "$SRC" ]; then
+            echo "[SKIP] Source directory not found: $SRC"
+            exit 0
+          fi
+
+          # jpg만 복사 (원본 보존). 동일 파일명은 덮어쓰기.
+          # rsync가 가장 안전하게 변경분만 반영함.
+          rsync -av --delete \
+            --include='*/' --include='*.jpg' --exclude='*' \
+            "$SRC/" "$DST/"
+
+      - name: Commit & Push if changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git status --porcelain | grep -q .; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/images/games/zone-nova/card
+            git commit -m "Sync Zone Nova memory images to public"
+            git push
+          else
+            echo "[OK] No changes to commit."
+          fi
