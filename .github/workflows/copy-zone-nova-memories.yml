@@ -1,4 +1,4 @@
-name: Copy Zone Nova Memories Images to Public Card
+name: Copy Memories -> public card (from another ref)
 
 on:
   workflow_dispatch:
@@ -7,81 +7,79 @@ permissions:
   contents: write
 
 concurrency:
-  group: copy-zone-nova-memories-to-public-card
+  group: copy-memories-to-public-card
   cancel-in-progress: true
 
 jobs:
-  copy:
+  sync:
     runs-on: ubuntu-latest
+    env:
+      TARGET_REF: main
+      SOURCE_REF: main  # <-- 여기를 src/assets/...가 있는 브랜치로 변경하세요
+
+      SRC_PATH: src/assets/images/games/zone-nova/memories
+      DST_PATH: public/images/games/zone-nova/card
+
     steps:
-      - name: Checkout
+      # 1) 타겟(커밋/푸시할 브랜치) checkout
+      - name: Checkout target ref
         uses: actions/checkout@v4
         with:
+          ref: ${{ env.TARGET_REF }}
+          path: target
           fetch-depth: 0
 
-      - name: Debug - show repo root and key dirs
+      # 2) 소스(assets 존재 브랜치) checkout
+      - name: Checkout source ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_REF }}
+          path: source
+          fetch-depth: 0
+
+      - name: Debug - show folders
         shell: bash
         run: |
           set -euo pipefail
-          echo "PWD=$(pwd)"
-          echo "Top-level:"
-          ls -la
-          echo "Check src/assets/images/games/zone-nova:"
-          ls -la src/assets/images/games/zone-nova || true
-          echo "Check public/images/games/zone-nova:"
-          ls -la public/images/games/zone-nova || true
+          echo "Target root:"
+          ls -la target | head
+          echo "Source root:"
+          ls -la source | head
+          echo "Check source path:"
+          ls -la "source/${SRC_PATH}" || true
 
-      - name: Copy memories -> public card (with verification)
+      - name: Copy (mirror) source -> target
         shell: bash
         run: |
           set -euo pipefail
 
-          SRC="src/assets/images/games/zone-nova/memories"
-          DST="public/images/games/zone-nova/card"
-
-          # 1) 소스 폴더 존재 강제 확인 (없으면 실패로 처리)
-          if [ ! -d "$SRC" ]; then
-            echo "[ERROR] Source folder not found: $SRC"
-            echo "Search candidates under src/assets/images/games/zone-nova:"
-            find src/assets/images/games/zone-nova -maxdepth 3 -type d -print || true
+          if [ ! -d "source/${SRC_PATH}" ]; then
+            echo "[ERROR] Source folder not found: source/${SRC_PATH}"
+            echo "Search candidates under source/:"
+            find source -maxdepth 5 -type d -name "zone-nova" -o -name "memories" || true
             exit 1
           fi
 
-          mkdir -p "$DST"
+          mkdir -p "target/${DST_PATH}"
 
-          echo "SRC listing (top 50 files):"
-          find "$SRC" -type f | head -n 50 || true
+          rsync -av --delete "source/${SRC_PATH}/" "target/${DST_PATH}/"
 
-          # 2) 복사: rsync 미러링
-          rsync -av --delete "$SRC"/ "$DST"/
-
-          echo "DST listing (top 50 files):"
-          find "$DST" -type f | head -n 50 || true
-
-      - name: Debug - git status and ignored check
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "git status:"
-          git status --porcelain || true
-
-          echo "Ignored check (if nothing shows in status, this matters):"
-          # 대상 경로가 .gitignore에 걸리면 add가 안 먹습니다.
-          git check-ignore -v public/images/games/zone-nova/card || true
-          git check-ignore -v public/images/games/zone-nova/card/** || true
+          echo "Copied file sample:"
+          find "target/${DST_PATH}" -type f | head -n 30 || true
 
       - name: Commit & push if changed
         shell: bash
         run: |
           set -euo pipefail
+          cd target
 
           if git status --porcelain | grep -q .; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
 
-            git add -A public/images/games/zone-nova/card
+            git add -A "${DST_PATH}"
             git commit -m "Copy memories images to public card"
-            git push
+            git push origin "${TARGET_REF}"
           else
             echo "[NO CHANGES] Nothing to commit."
           fi
