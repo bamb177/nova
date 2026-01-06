@@ -6,20 +6,20 @@
   <title>{{ title }}</title>
 
   <!-- 공통/페이지 CSS 분리 유지 -->
-  <link rel="stylesheet" href="/css/style.css" />
-  <link rel="stylesheet" href="/css/select.css" />
+  <link rel="stylesheet" href="/css/select.css?v={{ last_refresh }}" />
 </head>
 
-<body>
-    <div class="topbar">
-      <div class="title">
-        <div class="title-row">
-          <h1>{{ title }}</h1>
-          <div class="refresh">갱신 {{ last_refresh }}</div>
+  <body>
+      <div class="topbar">
+        <div class="title">
+          <div class="title-row">
+            <h1>{{ title }}</h1>
+            <div class="refresh">갱신 {{ last_refresh }}</div>
+          </div>
+          <div class="meta">캐릭터 {{ cache_count }}명</div>
         </div>
-        <div class="meta">캐릭터 {{ cache_count }}명</div>
       </div>
-    </div>
+
 
     {% if error %}
       <div class="error">로딩 오류: {{ error }}</div>
