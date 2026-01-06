@@ -1,17 +1,16 @@
-name: Copy Zone Nova Memory Images
+name: Copy Zone Nova Memories Images to Public Card
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - "src/assets/images/games/zone-nova/memories/**"
-      - ".github/workflows/copy-zone-nova-memories.yml"
+  schedule:
+    # 매일 03:20 KST = 18:20 UTC
+    - cron: "20 18 * * *"
 
 permissions:
   contents: write
 
 concurrency:
-  group: copy-zone-nova-memories
+  group: copy-zone-nova-memories-to-public-card
   cancel-in-progress: true
 
 jobs:
@@ -23,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Copy images to public
+      - name: Copy memories -> public card
         shell: bash
         run: |
           set -euo pipefail
@@ -31,29 +30,28 @@ jobs:
           SRC="src/assets/images/games/zone-nova/memories"
           DST="public/images/games/zone-nova/card"
 
-          mkdir -p "$DST"
-
           if [ ! -d "$SRC" ]; then
-            echo "[SKIP] Source directory not found: $SRC"
+            echo "[SKIP] Source folder not found: $SRC"
             exit 0
           fi
 
-          # jpg만 복사 (원본 보존). 동일 파일명은 덮어쓰기.
-          # rsync가 가장 안전하게 변경분만 반영함.
-          rsync -av --delete \
-            --include='*/' --include='*.jpg' --exclude='*' \
-            "$SRC/" "$DST/"
+          mkdir -p "$DST"
 
-      - name: Commit & Push if changed
+          # 완전 동기화(미러링): SRC에 없는 파일은 DST에서도 삭제됨
+          rsync -av --delete "$SRC"/ "$DST"/
+
+      - name: Commit & push if changed
         shell: bash
         run: |
           set -euo pipefail
+
           if git status --porcelain | grep -q .; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
+
             git add public/images/games/zone-nova/card
-            git commit -m "Sync Zone Nova memory images to public"
+            git commit -m "Copy memories images to public card"
             git push
           else
-            echo "[OK] No changes to commit."
+            echo "[NO CHANGES] Nothing to commit."
           fi
