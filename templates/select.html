@@ -61,6 +61,29 @@
       .tier-topline{ flex-wrap:nowrap; }
     }
 
+  
+    /* Memory Card image (modal) */
+    .memcard-wrap{
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+    }
+    .memcard-img{
+      width:128px;
+      height:128px;
+      border-radius:14px;
+      object-fit:cover;
+      box-shadow: 0 6px 16px rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+    }
+    .memcard-img.hidden{ display:none; }
+    .memcard-imgcell{
+      vertical-align: top;
+      padding-top: 10px;
+    }
+
   </style>
 </head>
 
@@ -421,14 +444,38 @@
 
       let effectsHtml = "";
       if (Array.isArray(effects)) {
-        effectsHtml = `
-          <table class="awak-table">
-            <thead><tr><th style="width:110px;">순번</th><th>효과</th></tr></thead>
-            <tbody>
-              ${effects.map((e, i) => `<tr><td style="font-weight:950;">${i+1}</td><td>${escapeHtml(typeof e === "string" ? e : JSON.stringify(e, null, 2))}</td></tr>`).join("")}
-            </tbody>
-          </table>
-        `;
+        const charName = pick(detail, "name") || "";
+        const imgUrl = `/images/games/zone-nova/card/${encodeURIComponent(String(charName))}card.jpg`;
+
+        const effRows = (effects || []).map(e => {
+          if (typeof e === "string") return e;
+          try { return JSON.stringify(e, null, 2); } catch { return String(e); }
+        });
+
+        if (effRows.length === 0) {
+          effectsHtml = `<div class="detail-empty">효과 데이터 없음</div>`;
+        } else {
+          const first = effRows[0];
+          const rest = effRows.slice(1);
+
+          const tbody = [
+            `<tr>
+               <td class="memcard-imgcell" rowspan="${effRows.length}">
+                 <img class="memcard-img" src="${imgUrl}" alt="Memory Card"
+                      onerror="this.classList.add('hidden');" />
+               </td>
+               <td>${escapeHtml(first)}</td>
+             </tr>`,
+            ...rest.map(x => `<tr><td>${escapeHtml(x)}</td></tr>`)
+          ].join("");
+
+          effectsHtml = `
+            <table class="awak-table">
+              <thead><tr><th style="width:160px;">카드</th><th>효과</th></tr></thead>
+              <tbody>${tbody}</tbody>
+            </table>
+          `;
+        }
       } else if (effects && typeof effects === "object") {
         effectsHtml = renderKV(effects);
       } else if (typeof effects === "string") {
