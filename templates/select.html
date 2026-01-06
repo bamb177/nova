@@ -42,6 +42,25 @@
       text-overflow: ellipsis;
       max-width: 190px;
     }
+  
+    /* ✅ Tier 상단 버튼(전체선택/해제) 우측 정렬 */
+    .tier-topline{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .tier-topline .tier-actions-inline{
+      margin-left:auto;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:nowrap;
+    }
+    @media (min-width: 900px){
+      .tier-topline{ flex-wrap:nowrap; }
+    }
+
   </style>
 </head>
 
@@ -109,21 +128,17 @@
         </summary>
 
         <div class="tier-body">
-          <div class="tier-row">
+          <div class="tier-row tier-topline">
             <select id="tierPreset" class="select" disabled>
               <option value="">tier-lists.js 로딩중...</option>
             </select>
             <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
-          </div>
 
-          <div class="tier-row tier-sub">
-            <div id="tierInfo" class="tier-info"></div>
-          </div>
-
-          <!-- ✅ 보유 체크 전체 선택/해제는 등급표 영역으로 이동 -->
-          <div class="tier-row tier-sub tier-actions">
-            <button class="btn" id="btnAll" type="button">전체 선택</button>
-            <button class="btn" id="btnNone" type="button">전체 해제</button>
+            <!-- ✅ 전체선택/전체해제: 등급표 상단 우측 정렬 -->
+            <div class="tier-actions-inline">
+              <button class="btn" id="btnAll" type="button">전체 선택</button>
+              <button class="btn" id="btnNone" type="button">전체 해제</button>
+            </div>
           </div>
 
           <div class="tier-row">
@@ -132,13 +147,6 @@
               선택 클래스 포함 조건
             </label>
             <div class="tier-classes" id="tierClassBox" aria-disabled="true"></div>
-          </div>
-
-          <div class="tier-help" id="tierHelp">
-            구성: (카테고리별) Guild 3 / PVE 1 / PVP 2 / Rift 2<br>
-            공통 조건: SSS→SS→S→A 우선 / 콤보스킬(속성 2+ 또는 특성 2+) 필수 /
-            모든 파티원이 콤보 조건에 참여 / Tank(Guardian) 최대 1, Healer 최대 1 /
-            (선택) “선택 클래스 포함 조건” ON 시 체크한 클래스가 파티에 포함
           </div>
 
           <div id="tierPartyResult" class="tier-result"></div>
@@ -1121,9 +1129,10 @@
     function initTierUI(){
       const sel = document.getElementById("tierPreset");
       const btn = document.getElementById("btnBuildTierParty");
-      const info = document.getElementById("tierInfo");
-      const help = document.getElementById("tierHelp");
-      if (!sel || !btn || !info) return;
+      // ✅ 요청사항: 구성조건/lastUpdated 안내 영역 제거(없어도 동작)
+      const info = document.getElementById("tierInfo"); // (없을 수 있음)
+      const help = document.getElementById("tierHelp"); // (없을 수 있음)
+      if (!sel || !btn) return;
       if (!ALL_TIER_LISTS) return;
 
       const keys = Object.keys(ALL_TIER_LISTS).sort((a,b) => a.localeCompare(b));
@@ -1140,34 +1149,9 @@
       initTierClassCheckboxes();
 
       function renderInfo(k){
-        if (!k || !ALL_TIER_LISTS[k]){
-          info.textContent = "";
-          if (help) {
-            help.innerHTML = `구성: (카테고리별) Guild 3 / PVE 1 / PVP 2 / Rift 2<br>
-            공통 조건: SSS→SS→S→A 우선 / 콤보스킬(속성 2+ 또는 특성 2+) 필수 /
-            모든 파티원이 콤보 조건에 참여 / Tank(Guardian) 최대 1, Healer 최대 1 /
-            (선택) “선택 클래스 포함 조건” ON 시 체크한 클래스가 파티에 포함`;
-          }
-          return;
-        }
-        const t = ALL_TIER_LISTS[k];
-        const nm = String(t?.name || "").trim();
-        info.textContent = `${nm} · lastUpdated: ${t.lastUpdated}`;
-
-        // ✅ 선택한 등급표 유형에 맞게 '구성' 안내를 단순화
-        if (help) {
-          let buildLine = "구성: (카테고리별) Guild 3 / PVE 1 / PVP 2 / Rift 2";
-          const kk = String(k || "").toLowerCase();
-          if (kk === "pvp") buildLine = "구성: PVP 2";
-          else if (kk === "pve" || kk === "new-player") buildLine = "구성: PVE 1";
-          else if (kk === "rift") buildLine = "구성: Rift 2";
-          else if (kk === "guild-raid") buildLine = "구성: Guild 3";
-
-          help.innerHTML = `${buildLine}<br>
-            공통 조건: SSS→SS→S→A 우선 / 콤보스킬(속성 2+ 또는 특성 2+) 필수 /
-            모든 파티원이 콤보 조건에 참여 / Tank(Guardian) 최대 1, Healer 최대 1 /
-            (선택) “선택 클래스 포함 조건” ON 시 체크한 클래스가 파티에 포함`;
-        }
+        // ✅ 요청사항: 구성조건/lastUpdated 등의 안내 문구는 표시하지 않음
+        if (info) info.textContent = "";
+        if (help) help.innerHTML = "";
       }
 
       sel.addEventListener("change", () => {
