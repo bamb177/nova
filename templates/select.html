@@ -61,48 +61,53 @@
             <select id="roleFilter" class="select">
               <option value="">역할(전체)</option>
             </select>
-
-            <button class="btn" id="btnAll" type="button">전체 선택</button>
-            <button class="btn" id="btnNone" type="button">전체 해제</button>
           </div>
         </div>
       </details>
 
-      <!-- ===== Tier Party Builder ===== -->
-      <div class="tier-panel" id="tierPanel">
-        <div class="tier-panel-head">
-          <div class="tier-panel-title">등급표</div>
-          <button class="btn tier-toggle" id="tierToggle" type="button">접기</button>
-        </div>
+      <!-- ===== Tier Party Builder (details: open/close like filters) ===== -->
+      <details class="tier-panel" id="tierPanel" open>
+        <summary class="tier-summary">
+          <span class="tier-summary-title">등급표</span>
+          <span class="tier-summary-hint">(열기/닫기)</span>
+        </summary>
 
-        <div class="tier-row">
-          <select id="tierPreset" class="select" disabled>
-            <option value="">tier-lists.js 로딩중...</option>
-          </select>
-          <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
-        </div>
+        <div class="tier-body">
+          <div class="tier-row">
+            <select id="tierPreset" class="select" disabled>
+              <option value="">tier-lists.js 로딩중...</option>
+            </select>
+            <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
+          </div>
 
-        <div class="tier-row tier-sub">
-          <div id="tierInfo" class="tier-info"></div>
-        </div>
+          <div class="tier-row tier-sub">
+            <div id="tierInfo" class="tier-info"></div>
+          </div>
 
-        <div class="tier-row">
-          <label class="tier-check" title="체크한 클래스가 파티(4인)에 포함되도록 구성합니다. 후보를 해당 클래스로만 제한하지 않습니다.">
-            <input type="checkbox" id="useClassFilter" />
-            선택 클래스 포함 조건
-          </label>
-          <div class="tier-classes" id="tierClassBox" aria-disabled="true"></div>
-        </div>
+          <!-- ✅ 보유 체크 전체 선택/해제는 등급표 영역으로 이동 -->
+          <div class="tier-row tier-sub tier-actions">
+            <button class="btn" id="btnAll" type="button">전체 선택</button>
+            <button class="btn" id="btnNone" type="button">전체 해제</button>
+          </div>
 
-        <div class="tier-help">
-          구성: (카테고리별) Guild 3 / PVE 1 / PVP 2 / Rift 2<br>
-          공통 조건: SSS→SS→S→A 우선 / 콤보스킬(속성 2+ 또는 특성 2+) 필수 /
-          모든 파티원이 콤보 조건에 참여 / Tank(Guardian) 최대 1, Healer 최대 1 /
-          (선택) “선택 클래스 포함 조건” ON 시 체크한 클래스가 파티에 포함
-        </div>
+          <div class="tier-row">
+            <label class="tier-check" title="체크한 클래스가 파티(4인)에 포함되도록 구성합니다. 후보를 해당 클래스로만 제한하지 않습니다.">
+              <input type="checkbox" id="useClassFilter" />
+              선택 클래스 포함 조건
+            </label>
+            <div class="tier-classes" id="tierClassBox" aria-disabled="true"></div>
+          </div>
 
-        <div id="tierPartyResult" class="tier-result"></div>
-      </div>
+          <div class="tier-help" id="tierHelp">
+            구성: (카테고리별) Guild 3 / PVE 1 / PVP 2 / Rift 2<br>
+            공통 조건: SSS→SS→S→A 우선 / 콤보스킬(속성 2+ 또는 특성 2+) 필수 /
+            모든 파티원이 콤보 조건에 참여 / Tank(Guardian) 최대 1, Healer 최대 1 /
+            (선택) “선택 클래스 포함 조건” ON 시 체크한 클래스가 파티에 포함
+          </div>
+
+          <div id="tierPartyResult" class="tier-result"></div>
+        </div>
+      </details>
 
       <!-- ===== Characters list ===== -->
       <div class="table-wrap">
@@ -981,6 +986,28 @@
       };
     }
 
+    // ✅ 선택한 등급표(pve/pvp/rift/guild-raid/...)에 맞춰 결과 카테고리를 제한
+    function buildPartiesByPresetKey(rankMap, presetKey){
+      const k = String(presetKey || "").toLowerCase();
+
+      // 기본값: 기존과 동일(전체 카테고리)
+      const def = { order: ["Guild", "PVE", "PVP", "Rift"], data: buildAllCategoryParties(rankMap) };
+
+      if (k === "pvp") {
+        return { order: ["PVP"], data: { PVP: buildPartiesForCategory(rankMap, 2) } };
+      }
+      if (k === "pve" || k === "new-player") {
+        return { order: ["PVE"], data: { PVE: buildPartiesForCategory(rankMap, 1) } };
+      }
+      if (k === "rift") {
+        return { order: ["Rift"], data: { Rift: buildPartiesForCategory(rankMap, 2) } };
+      }
+      if (k === "guild-raid") {
+        return { order: ["Guild"], data: { Guild: buildPartiesForCategory(rankMap, 3) } };
+      }
+      return def;
+    }
+
     function renderTierPartyResult(rankMap, res){
       const box = document.getElementById("tierPartyResult");
       if (!box) return;
@@ -995,15 +1022,11 @@
       const renderOneParty = (party) => {
         const cards = party.map(cid => {
           const c = charsById.get(cid);
-          const tier = tierLabelFromScore(rankMap.get(cid) || 0);
-          const rar = String(c?.rarity || "-").toUpperCase();
 
           return `
             <div class="tier-card">
               <div class="tier-card-top">
-                <span class="tier-badge tier-${tier.toLowerCase()}">${escapeHtml(tier)}</span>
                 <span class="tier-name">${escapeHtml(c?.name || cid)}</span>
-                <span class="pill ${rarityPillClass(rar)}">${escapeHtml(rar)}</span>
               </div>
               <div class="tier-card-sub">
                 <span class="pill pill-neutral">${escapeHtml(c?.element || "-")}</span>
@@ -1018,7 +1041,9 @@
       };
 
       const sections = res.data;
-      const order = ["Guild", "PVE", "PVP", "Rift"];
+      const order = Array.isArray(res.order) && res.order.length
+        ? res.order
+        : ["Guild", "PVE", "PVP", "Rift"];
 
       const html = order.map(cat => {
         const parties = sections[cat] || [];
@@ -1056,6 +1081,7 @@
       const sel = document.getElementById("tierPreset");
       const btn = document.getElementById("btnBuildTierParty");
       const info = document.getElementById("tierInfo");
+      const help = document.getElementById("tierHelp");
       if (!sel || !btn || !info) return;
       if (!ALL_TIER_LISTS) return;
 
@@ -1075,11 +1101,32 @@
       function renderInfo(k){
         if (!k || !ALL_TIER_LISTS[k]){
           info.textContent = "";
+          if (help) {
+            help.innerHTML = `구성: (카테고리별) Guild 3 / PVE 1 / PVP 2 / Rift 2<br>
+            공통 조건: SSS→SS→S→A 우선 / 콤보스킬(속성 2+ 또는 특성 2+) 필수 /
+            모든 파티원이 콤보 조건에 참여 / Tank(Guardian) 최대 1, Healer 최대 1 /
+            (선택) “선택 클래스 포함 조건” ON 시 체크한 클래스가 파티에 포함`;
+          }
           return;
         }
         const t = ALL_TIER_LISTS[k];
         const nm = String(t?.name || "").trim();
         info.textContent = `${nm} · lastUpdated: ${t.lastUpdated}`;
+
+        // ✅ 선택한 등급표 유형에 맞게 '구성' 안내를 단순화
+        if (help) {
+          let buildLine = "구성: (카테고리별) Guild 3 / PVE 1 / PVP 2 / Rift 2";
+          const kk = String(k || "").toLowerCase();
+          if (kk === "pvp") buildLine = "구성: PVP 2";
+          else if (kk === "pve" || kk === "new-player") buildLine = "구성: PVE 1";
+          else if (kk === "rift") buildLine = "구성: Rift 2";
+          else if (kk === "guild-raid") buildLine = "구성: Guild 3";
+
+          help.innerHTML = `${buildLine}<br>
+            공통 조건: SSS→SS→S→A 우선 / 콤보스킬(속성 2+ 또는 특성 2+) 필수 /
+            모든 파티원이 콤보 조건에 참여 / Tank(Guardian) 최대 1, Healer 최대 1 /
+            (선택) “선택 클래스 포함 조건” ON 시 체크한 클래스가 파티에 포함`;
+        }
       }
 
       sel.addEventListener("change", () => {
@@ -1096,37 +1143,40 @@
         const tierList = ALL_TIER_LISTS[k];
         const rankMap = buildRankMapFromTierList(tierList, chars);
 
-        const data = buildAllCategoryParties(rankMap);
-        renderTierPartyResult(rankMap, { ok:true, data });
+        const built = buildPartiesByPresetKey(rankMap, k);
+        renderTierPartyResult(rankMap, { ok:true, ...built });
       });
 
       renderInfo(sel.value);
     }
 
-    // 모바일: 등급표 패널 기본 접기 + 토글
-    (function initTierCollapse(){
-      const panel = document.getElementById("tierPanel");
-      const btn = document.getElementById("tierToggle");
-      if (!panel || !btn) return;
+    // ===== Tier (details) collapse: 검색/필터와 동일한 (열기/닫기) UX =====
+    // - 모바일에서는 기본 접힘
+    // - 사용자가 한 번 열고/닫으면 localStorage로 기억
+    (function initTierDetailsCollapse(){
+      const d = document.getElementById("tierPanel");
+      if (!d) return;
 
+      const KEY = "tierPanelOpen";
       const mq = window.matchMedia("(max-width: 520px)");
-      const apply = () => {
-        if (mq.matches) {
-          panel.classList.add("collapsed");
-          btn.textContent = "펼치기";
-        } else {
-          panel.classList.remove("collapsed");
-          btn.textContent = "접기";
-        }
+
+      const applyDefault = () => {
+        if (mq.matches) d.removeAttribute("open");
+        else d.setAttribute("open", "");
       };
 
-      btn.addEventListener("click", () => {
-        panel.classList.toggle("collapsed");
-        btn.textContent = panel.classList.contains("collapsed") ? "펼치기" : "접기";
+      const saved = localStorage.getItem(KEY);
+      if (saved === "1") d.setAttribute("open", "");
+      else if (saved === "0") d.removeAttribute("open");
+      else applyDefault();
+
+      d.addEventListener("toggle", () => {
+        localStorage.setItem(KEY, d.open ? "1" : "0");
       });
 
-      mq.addEventListener?.("change", apply);
-      apply();
+      mq.addEventListener?.("change", () => {
+        if (localStorage.getItem(KEY) == null) applyDefault();
+      });
     })();
 
     window.addEventListener("tierlists:loaded", () => {
