@@ -70,8 +70,8 @@
       flex-wrap:wrap;
     }
     .memcard-img{
-      width:128px;
-      height:128px;
+      width: 240px;
+      height: 150px;
       border-radius:14px;
       object-fit:cover;
       box-shadow: 0 6px 16px rgba(0,0,0,.35);
@@ -82,6 +82,17 @@
     .memcard-imgcell{
       vertical-align: top;
       padding-top: 10px;
+      width: 260px;
+    }
+
+
+  
+    /* Stats columns (HP/ATK/DEF) */
+    .col-hp, .col-atk, .col-def { width: 90px; text-align: right; }
+    td.col-hp, td.col-atk, td.col-def { font-weight: 800; color: rgba(255,255,255,.86); }
+    @media (max-width: 520px){
+      /* On very small screens, allow horizontal scroll rather than wrap */
+      .col-hp, .col-atk, .col-def { width: 78px; }
     }
 
   </style>
@@ -139,7 +150,15 @@
             <select id="roleFilter" class="select">
               <option value="">역할(전체)</option>
             </select>
-          </div>
+          
+
+            <select id="sortBy" class="select">
+              <option value="rarity">정렬(등급/이름)</option>
+              <option value="hp">정렬(체력↓)</option>
+              <option value="attack">정렬(공격력↓)</option>
+              <option value="defense">정렬(방어력↓)</option>
+            </select>
+</div>
         </div>
       </details>
 
@@ -183,6 +202,7 @@
             <tr>
               <th class="col-check">선택</th>
               <th>캐릭터</th>
+              <th class=\"col-hp\">체력</th><th class=\"col-atk\">공격력</th><th class=\"col-def\">방어력</th>
               <th class="col-elem">속성</th>
               <th class="col-faction">특성</th>
               <th class="col-class">클래스</th>
@@ -471,7 +491,7 @@
 
           effectsHtml = `
             <table class="awak-table">
-              <thead><tr><th style="width:160px;">카드</th><th>효과</th></tr></thead>
+              <thead><tr><th style="width:260px;">카드</th><th>효과</th></tr></thead>
               <tbody>${tbody}</tbody>
             </table>
           `;
@@ -604,7 +624,10 @@
     const $class = document.getElementById("classFilter");
     const $role = document.getElementById("roleFilter");
 
-    function uniqSorted(values){
+    
+
+    const $sort = document.getElementById("sortBy");
+function uniqSorted(values){
       return Array.from(new Set(values.filter(v => v && v !== "-")))
         .sort((a,b) => a.localeCompare(b));
     }
@@ -658,9 +681,114 @@
       });
     }
 
-    function render(){
-      const filtered = sortChars(chars.filter(matchFilters));
-      const rows = filtered.map(c => {
+    
+    // ===== Stats (HP/ATK/DEF) loaded from /data/zone-nova/characters_ko/<id>.json =====
+    const STAT_CACHE = new Map(); // cid -> {hp, attack, defense}
+
+    async function fetchStats(cid){
+      if (!cid) return null;
+      if (STAT_CACHE.has(cid)) return STAT_CACHE.get(cid);
+
+      // Try common static paths
+      const candidates = [
+        `/data/zone-nova/characters_ko/${encodeURIComponent(cid)}.json`,
+        `/data/zone-nova/characters_ko/${encodeURIComponent(cid)}.js`,
+      ];
+
+      for (const url of candidates){
+        try{
+          const r = await fetch(url, { cache: "force-cache" });
+          if (!r.ok) continue;
+          const j = await r.json();
+          const hp = pick(j, "hp", "HP");
+          const attack = pick(j, "attack", "atk", "ATK");
+          const defense = pick(j, "defense", "def", "DEF");
+          const stats = {
+            hp: hp ?? "-",
+            attack: attack ?? "-",
+            defense: defense ?? "-",
+          };
+          STAT_CACHE.set(cid, stats);
+          return stats;
+        }catch(e){}
+      }
+
+      // cache miss
+      const stats = { hp: "-", attack: "-", defense: "-" };
+      STAT_CACHE.set(cid, stats);
+      return stats;
+    }
+
+    function fillStatsForVisibleRows(){
+      // fetch stats asynchronously for rendered rows
+      const cells = document.querySelectorAll('td[data-stat][data-cid]');
+      const need = new Set();
+      cells.forEach(td => {
+        const cid = td.dataset.cid;
+        if (cid && !STAT_CACHE.has(cid)) need.add(cid);
+      });
+      // fire and forget
+      need.forEach(async (cid) => {
+        const stats = await fetchStats(cid);
+        document.querySelectorAll(`td[data-stat][data-cid="${CSS.escape(cid)}"]`).forEach(td => {
+          const k = td.dataset.stat;
+          const v = stats?.[k] ?? "-";
+          td.textContent = String(v);
+        });
+      });
+
+      // fill already cached
+      cells.forEach(td => {
+        const cid = td.dataset.cid;
+        const k = td.dataset.stat;
+        const st = STAT_CACHE.get(cid);
+        if (st && st[k] !== undefined) td.textContent = String(st[k]);
+      });
+    }
+    // ===== Sorting (supports stats) =====
+    let RENDER_SEQ = 0;
+
+    function statNum(v){
+      if (v === null || v === undefined) return -1;
+      const n = Number(String(v).replace(/,/g, ""));
+      return Number.isFinite(n) ? n : -1;
+    }
+
+
+async function render(){
+      const token = ++RENDER_SEQ;
+      const base = chars.filter(matchFilters);
+
+      const sortKey = ($sort?.value || "rarity");
+      let filtered = [];
+
+      if (sortKey === "hp" || sortKey === "attack" || sortKey === "defense") {
+        // Ensure stats are loaded for all candidates (46명 규모라 전체 로딩도 부담 적음)
+        const ids = base.map(c => c.id).filter(Boolean);
+        await Promise.all(ids.map(cid => fetchStats(cid)));
+        // If a newer render started while awaiting, abort
+        if (token !== RENDER_SEQ) return;
+
+        filtered = base.slice().sort((a,b) => {
+          const sa = STAT_CACHE.get(a.id);
+          const sb = STAT_CACHE.get(b.id);
+          const va = statNum(sa?.[sortKey]);
+          const vb = statNum(sb?.[sortKey]);
+          if (vb !== va) return vb - va;
+
+          // tie-breakers: rarity then name
+          const ra = rarityVal(a.rarity);
+          const rb = rarityVal(b.rarity);
+          if (rb !== ra) return rb - ra;
+
+          const na = (a.name || a.id || "").toString();
+          const nb = (b.name || b.id || "").toString();
+          return na.localeCompare(nb);
+        });
+      } else {
+        filtered = sortChars(base);
+      }
+const rows = filtered.map(c => {
         const cid = c.id;
         const nm = c.name || cid;
 
@@ -686,6 +814,9 @@
                 <div class="char-name">${escapeHtml(nm)}</div>
               </div>
             </td>
+            <td class=\"col-hp\" data-stat=\"hp\" data-cid=\"${escapeHtml(cid)}\">-</td>
+            <td class=\"col-atk\" data-stat=\"attack\" data-cid=\"${escapeHtml(cid)}\">-</td>
+            <td class=\"col-def\" data-stat=\"defense\" data-cid=\"${escapeHtml(cid)}\">-</td>
             <td class="col-elem">
               <span class="pill pill-neutral pill-with-icon">
                 ${elemIcon}
@@ -705,10 +836,10 @@
         `;
       }).join("");
 
-      $tbody.innerHTML = rows || `<tr><td colspan="7" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
+      $tbody.innerHTML = rows || `<tr><td colspan="10" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
     }
 
-    [$q, $rarity, $elem, $faction, $class, $role].forEach(el => {
+    [$q, $rarity, $elem, $faction, $class, $role, $sort].forEach(el => {
       el.addEventListener("input", render);
       el.addEventListener("change", render);
     });
