@@ -151,16 +151,6 @@
       color: rgba(255,255,255,.58);
     }
 
-  
-    /* ===== Readability: larger typography ===== */
-    body{ font-size: 16px; }
-    .topbar h1{ font-size: 22px; }
-    .filters-summary-title{ font-size: 18px; }
-    .filters-summary-hint{ font-size: 14px; opacity:.85; }
-    .input, .select, select, .btn{ font-size: 15px; }
-    .table th{ font-size: 14.5px; }
-    .table td{ font-size: 14.5px; }
-    .pill{ font-size: 13.5px; }
 
     /* ===== Tier top layout: clean grid on PC ===== */
     @media (min-width: 900px){
@@ -232,9 +222,6 @@
     .th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
     .th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
 
-  
-    /* ===== Content font scale (exclude Search/Filter + Tier panels) ===== */
-    :root{ --content-scale: 1.5; }
 
     /* Keep panels at base size */
     #filtersPanel, #tierPanel{
@@ -398,7 +385,15 @@
         .replace(/'/g,"&#39;");
     }
 
-    function pick(obj, ...keys) {
+    
+
+    function formatDescText(s){
+      // Sentence breaks: insert <br> after . ? ! when followed by whitespace
+      // Keep it conservative: only when there is at least one space/newline after punctuation.
+      const t = String(s ?? "");
+      return t.replace(/([\.\?\!])\s+/g, \"$1<br>\");
+    }
+function pick(obj, ...keys) {
       for (const k of keys) {
         const v = obj?.[k];
         if (v !== undefined && v !== null) return v;
@@ -663,7 +658,7 @@
       return `
         <div class="card">
           <div class="card-title"><span>${escapeHtml(String(name))}</span></div>
-          ${desc ? `<div class="card-desc">${escapeHtml(String(desc))}</div>` : ""}
+          ${desc ? `<div class="card-desc">${formatDescText(escapeHtml(String(desc)))}</div>` : ""}
           <div style="margin-top:10px;">${effectsHtml}</div>
         </div>
       `;
