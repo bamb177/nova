@@ -151,6 +151,87 @@
       color: rgba(255,255,255,.58);
     }
 
+  
+    /* ===== Readability: larger typography ===== */
+    body{ font-size: 16px; }
+    .topbar h1{ font-size: 22px; }
+    .filters-summary-title{ font-size: 18px; }
+    .filters-summary-hint{ font-size: 14px; opacity:.85; }
+    .input, .select, select, .btn{ font-size: 15px; }
+    .table th{ font-size: 14.5px; }
+    .table td{ font-size: 14.5px; }
+    .pill{ font-size: 13.5px; }
+
+    /* ===== Tier top layout: clean grid on PC ===== */
+    @media (min-width: 900px){
+      .tier-topline{
+        display: grid;
+        grid-template-columns: 280px 180px 1fr auto;
+        gap: 12px;
+        align-items: center;
+      }
+      .tier-topline #tierPreset{ width: 100%; min-width: 0; }
+      .tier-topline #btnBuildTierParty{ width: 100%; }
+      .tier-actions-inline{
+        margin-left: 0;           /* grid 모드에서는 불필요 */
+        justify-self: end;
+      }
+      .tier-actions-inline .btn{
+        min-width: 96px;
+        padding: 10px 14px;
+      }
+      .tier-class-inline{
+        min-width: 0;             /* grid에서 넘침 방지 */
+        padding: 10px 12px;
+      }
+      .tier-classes-inline{
+        flex-wrap: nowrap;        /* 2줄로 떨어지지 않게 */
+        overflow-x: auto;         /* 길면 가로 스크롤 */
+        scrollbar-width: thin;
+        padding-bottom: 2px;
+      }
+      .tier-classes-inline::-webkit-scrollbar{ height: 8px; }
+      .tier-classes-inline::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.14); border-radius: 999px; }
+      .tier-classes-inline .tier-class-item{ white-space: nowrap; }
+    }
+
+    /* Tier panel box itself a bit clearer */
+    .tier-class-inline{
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+    .tier-check-inline{
+      font-size: 15px;
+      font-weight: 950;
+    }
+
+  
+    @media (max-width: 720px){
+      .tier-actions-inline .btn{ min-width: 84px; }
+      .tier-class-inline{ padding: 10px 10px; }
+      .tier-classes-inline{ gap: 8px; }
+    }
+
+  
+    /* Sortable stat headers */
+    .th-sort{
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      padding-right: 18px;
+    }
+    .th-sort::after{
+      content: "↕";
+      position: absolute;
+      right: 6px;
+      opacity: .45;
+      font-size: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
+    .th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
+
   </style>
 </head>
 
@@ -191,8 +272,6 @@
               <option value="">등급(전체)</option>
               <option value="SSR">SSR</option>
               <option value="SR">SR</option>
-              <option value="R">R</option>
-              <option value="-">-</option>
             </select>
 
             <select id="elemFilter" class="select">
@@ -205,14 +284,6 @@
 
             <select id="roleFilter" class="select">
               <option value="">역할(전체)</option>
-            </select>
-          
-
-            <select id="sortBy" class="select">
-              <option value="rarity">정렬(등급/이름)</option>
-              <option value="hp">정렬(체력↓)</option>
-              <option value="attack">정렬(공격력↓)</option>
-              <option value="defense">정렬(방어력↓)</option>
             </select>
 </div>
         </div>
@@ -678,10 +749,6 @@
     const $faction = document.getElementById("factionFilter");
     const $class = document.getElementById("classFilter");
     const $role = document.getElementById("roleFilter");
-
-    
-
-    const $sort = document.getElementById("sortBy");
 function uniqSorted(values){
       return Array.from(new Set(values.filter(v => v && v !== "-")))
         .sort((a,b) => a.localeCompare(b));
@@ -745,14 +812,18 @@ function uniqSorted(values){
       if (STAT_CACHE.has(cid)) return STAT_CACHE.get(cid);
 
       // Try common static paths
+      const enc = encodeURIComponent(String(cid));
+      const encLower = encodeURIComponent(String(cid).toLowerCase());
       const candidates = [
-        `/data/zone-nova/characters_ko/${encodeURIComponent(cid)}.json`,
-        `/data/zone-nova/characters_ko/${encodeURIComponent(cid)}.js`,
+        `/data/zone-nova/characters_ko/${enc}.json`,
+        `/data/zone-nova/characters_ko/${encLower}.json`,
+        `/public/data/zone-nova/characters_ko/${enc}.json`,
+        `/public/data/zone-nova/characters_ko/${encLower}.json`,
       ];
 
       for (const url of candidates){
         try{
-          const r = await fetch(url, { cache: "force-cache" });
+          const r = await fetch(url, { cache: "no-store" });
           if (!r.ok) continue;
           const j = await r.json();
           
@@ -802,8 +873,8 @@ const stats = {
         if (st && st[k] !== undefined) td.textContent = String(st[k]);
       });
     }
-    // ===== Sorting (supports stats) =====
-    let RENDER_SEQ = 0;
+    // ===== Stats sorting by header click =====
+    const SORT_STATE = { key: null, dir: "desc" }; // key: hp|attack|defense|null, dir: asc|desc
 
     function statNum(v){
       if (v === null || v === undefined) return -1;
@@ -811,33 +882,38 @@ const stats = {
       return Number.isFinite(n) ? n : -1;
     }
 
+    function updateStatHeaderIndicators(){
+      document.querySelectorAll("th.th-sort").forEach(th => {
+        th.classList.remove("sort-asc", "sort-desc");
+        if (SORT_STATE.key && th.dataset.sort === SORT_STATE.key){
+          th.classList.add(SORT_STATE.dir === "asc" ? "sort-asc" : "sort-desc");
+        }
+      });
+    }
+
+
 
 async function render(){
-      const token = ++RENDER_SEQ;
+      
       const base = chars.filter(matchFilters);
 
-      const sortKey = ($sort?.value || "rarity");
+      // Sort: default (rarity/name) or stats(header)
       let filtered = [];
-
-      if (sortKey === "hp" || sortKey === "attack" || sortKey === "defense") {
-        // Ensure stats are loaded for all candidates (46명 규모라 전체 로딩도 부담 적음)
+      if (SORT_STATE.key === "hp" || SORT_STATE.key === "attack" || SORT_STATE.key === "defense") {
         const ids = base.map(c => c.id).filter(Boolean);
         await Promise.all(ids.map(cid => fetchStats(cid)));
-        // If a newer render started while awaiting, abort
-        if (token !== RENDER_SEQ) return;
-
         filtered = base.slice().sort((a,b) => {
           const sa = STAT_CACHE.get(a.id);
           const sb = STAT_CACHE.get(b.id);
-          const va = statNum(sa?.[sortKey]);
-          const vb = statNum(sb?.[sortKey]);
-          if (vb !== va) return vb - va;
-
+          const va = statNum(sa?.[SORT_STATE.key]);
+          const vb = statNum(sb?.[SORT_STATE.key]);
+          if (va !== vb) {
+            return (SORT_STATE.dir === "asc") ? (va - vb) : (vb - va);
+          }
           // tie-breakers: rarity then name
           const ra = rarityVal(a.rarity);
           const rb = rarityVal(b.rarity);
           if (rb !== ra) return rb - ra;
-
           const na = (a.name || a.id || "").toString();
           const nb = (b.name || b.id || "").toString();
           return na.localeCompare(nb);
@@ -845,6 +921,9 @@ async function render(){
       } else {
         filtered = sortChars(base);
       }
+
+      updateStatHeaderIndicators();
+
 const rows = filtered.map(c => {
         const cid = c.id;
         const nm = c.name || cid;
@@ -896,7 +975,7 @@ const rows = filtered.map(c => {
       $tbody.innerHTML = rows || `<tr><td colspan="10" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
     }
 
-    [$q, $rarity, $elem, $faction, $class, $role, $sort].forEach(el => {
+    [$q, $rarity, $elem, $faction, $class, $role].forEach(el => {
       el.addEventListener("input", render);
       el.addEventListener("change", render);
     });
