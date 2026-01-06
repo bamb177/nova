@@ -232,6 +232,34 @@
     .th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
     .th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
 
+  
+    /* ===== Content font scale (exclude Search/Filter + Tier panels) ===== */
+    :root{ --content-scale: 1.5; }
+
+    /* Keep panels at base size */
+    #filtersPanel, #tierPanel{
+      font-size: 1em;
+    }
+
+    /* Scale main content */
+    .table-wrap,
+    .table-wrap table,
+    .modal,
+    .modal *:not(#filtersPanel):not(#tierPanel){
+      font-size: calc(1em * var(--content-scale));
+    }
+
+    /* Fine-tune within the table so pills don't become comically large */
+    .table-wrap .pill{
+      font-size: 0.80em; /* relative to scaled context */
+    }
+    .table-wrap .char-name{
+      font-size: 1.05em;
+    }
+    .table-wrap .col-hp, .table-wrap .col-atk, .table-wrap .col-def{
+      font-size: 0.95em;
+    }
+
   </style>
 </head>
 
@@ -272,6 +300,8 @@
               <option value="">등급(전체)</option>
               <option value="SSR">SSR</option>
               <option value="SR">SR</option>
+              <option value="R">R</option>
+              <option value="-">-</option>
             </select>
 
             <select id="elemFilter" class="select">
@@ -811,7 +841,27 @@ function uniqSorted(values){
       if (!cid) return null;
       if (STAT_CACHE.has(cid)) return STAT_CACHE.get(cid);
 
-      // Try common static paths
+      
+      // Prefer the same JSON endpoint used by the detail modal (guaranteed to be reachable)
+      try{
+        const r = await fetch(`/zones/zone-nova/characters/${encodeURIComponent(String(cid))}`, { cache: "no-store" });
+        if (r.ok){
+          const j = await r.json();
+          if (j && j.ok){
+            const detail = j.detail || {};
+            const s = (detail && typeof detail === "object" && detail.stats && typeof detail.stats === "object") ? detail.stats : {};
+            const stats = {
+              hp: pick(s, "hp", "HP") ?? "-",
+              attack: pick(s, "attack", "atk", "ATK") ?? "-",
+              defense: pick(s, "defense", "def", "DEF") ?? "-",
+            };
+            STAT_CACHE.set(cid, stats);
+            return stats;
+          }
+        }
+      }catch(e){}
+
+      // Fallback: try static json files if the API is unavailable
       const enc = encodeURIComponent(String(cid));
       const encLower = encodeURIComponent(String(cid).toLowerCase());
       const candidates = [
@@ -826,20 +876,18 @@ function uniqSorted(values){
           const r = await fetch(url, { cache: "no-store" });
           if (!r.ok) continue;
           const j = await r.json();
-          
           const s = (j && typeof j === "object" && j.stats && typeof j.stats === "object") ? j.stats : j;
-          const hp = pick(s, "hp", "HP");
-          const attack = pick(s, "attack", "atk", "ATK");
-          const defense = pick(s, "defense", "def", "DEF");
-const stats = {
-            hp: hp ?? "-",
-            attack: attack ?? "-",
-            defense: defense ?? "-",
+          const stats = {
+            hp: pick(s, "hp", "HP") ?? "-",
+            attack: pick(s, "attack", "atk", "ATK") ?? "-",
+            defense: pick(s, "defense", "def", "DEF") ?? "-",
           };
           STAT_CACHE.set(cid, stats);
           return stats;
         }catch(e){}
       }
+
+    
 
       // cache miss
       const stats = { hp: "-", attack: "-", defense: "-" };
