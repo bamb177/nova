@@ -756,3 +756,66 @@ body{
     min-width: 140px;
   }
 }
+
+/* =========================
+   FORCE OVERRIDES (append at very bottom)
+   - Fix: refresh next to title
+   - Fix: Mobile first row = search + class
+========================= */
+
+/* Title row */
+.topbar .title-row{
+  display:flex !important;
+  align-items:baseline !important;
+  gap:10px !important;
+  flex-wrap:wrap !important;
+}
+.topbar .refresh{
+  font-weight:800 !important;
+  opacity:.85 !important;
+  white-space:nowrap !important;
+}
+
+/* Mobile: search + class in first row */
+@media (max-width: 520px){
+  .filters{
+    display:grid !important;
+    grid-template-columns: 2fr 1fr !important; /* 검색 넓게 / 클래스 좁게 */
+    gap:8px !important;
+    align-items:stretch !important;
+  }
+
+  /* 공통 높이 */
+  .filters .input,
+  .filters .select,
+  .filters .btn{
+    height:36px !important;
+    padding:0 10px !important;
+    font-size:14px !important;
+    width:100% !important;
+    min-width:0 !important;
+  }
+
+  /* 1행: 검색 + 클래스 고정 */
+  .filters #q{
+    grid-column: 1 / 2 !important;
+    grid-row: 1 !important;
+    min-width:0 !important;
+  }
+  .filters #classFilter{
+    grid-column: 2 / 3 !important;
+    grid-row: 1 !important;
+    min-width:0 !important;
+  }
+
+  /* 2행부터: 나머지 자동 배치(2열) */
+  .filters #rarityFilter,
+  .filters #elemFilter,
+  .filters #factionFilter,
+  .filters #roleFilter,
+  .filters #btnAll,
+  .filters #btnNone{
+    grid-column: auto !important;
+  }
+}
+
