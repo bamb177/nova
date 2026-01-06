@@ -8,45 +8,39 @@
   <!-- 공통/페이지 CSS 분리 유지 -->
   <link rel="stylesheet" href="/css/select.css?v={{ last_refresh }}" />
 
-  <!-- ✅ select.html 단독 오버라이드 (PC 1줄 정렬 + 등급표 상단 버튼 정렬) -->
+  <!-- ✅ Tier 결과 카드 이미지 + PC 폭 확장 오버라이드 -->
   <style>
-    /* (2) PC에서 검색/필터 6개 컨트롤을 1줄 고정 */
-    @media (min-width: 900px){
-      #filtersPanel .filters{
-        display:flex;
-        flex-wrap: nowrap;
-        align-items: center;
-      }
-      #filtersPanel .filters .input{
-        flex: 1 1 360px;
-        min-width: 260px;
-      }
-      #filtersPanel .filters .select{
-        flex: 0 1 150px;
-        width: 150px;
-        min-width: 120px; /* 한 줄 유지 위해 최소폭 축소 */
-      }
+    /* (2) 전체 페이지 폭 확장 (PC) */
+    @media (min-width: 1100px){
+      .wrap{ max-width: 1600px !important; }
     }
 
-    /* (3) 등급표 상단(콤보/구성/전체선택/전체해제) 같은 줄 + 우측 끝 정렬 */
-    .tier-topline{
+    /* (1) 등급표 파티 카드: 좌측 초상화 + 이름 */
+    .tier-card-top{
       display:flex;
       align-items:center;
-      gap: 10px;
-      flex-wrap: nowrap;
+      gap:10px;
     }
-    .tier-topline .tier-actions-inline{
-      margin-left:auto;
-      display:flex;
-      gap: 8px;
-      align-items:center;
-      flex-wrap: nowrap;
+    .tier-portrait{
+      width:44px;
+      height:44px;
+      border-radius:12px;
+      object-fit:cover;
+      flex:0 0 auto;
+      box-shadow: 0 8px 18px rgba(0,0,0,.25);
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
     }
-    /* PC에서 등급표 콤보가 너무 좁지 않게 */
-    @media (min-width: 900px){
-      .tier-topline #tierPreset{
-        min-width: 260px;
-      }
+    .tier-portrait-empty{
+      display:block;
+    }
+
+    /* (2) 긴 특성명(예: Heikyo Castle) 2줄 방지: 1줄 유지 + 넘치면 말줄임 */
+    .tier-card-sub .pill{
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 190px;
     }
   </style>
 </head>
@@ -107,31 +101,29 @@
         </div>
       </details>
 
-      <!-- ===== Tier Party Builder (✅ filters와 동일한 레이아웃/클래스 구조로 통일) ===== -->
-      <details id="tierPanel" class="filters-box tier-panel" open>
-        <summary class="filters-summary tier-summary">
-          <span class="filters-summary-title tier-summary-title">등급표</span>
-          <span class="filters-summary-hint tier-summary-hint">(열기/닫기)</span>
+      <!-- ===== Tier Party Builder (details: open/close like filters) ===== -->
+      <details class="tier-panel" id="tierPanel" open>
+        <summary class="tier-summary">
+          <span class="tier-summary-title">등급표</span>
+          <span class="tier-summary-hint">(열기/닫기)</span>
         </summary>
 
-        <div class="filters-body tier-body">
-
-          <!-- ✅ (3) 콤보/구성/전체선택/전체해제를 같은 줄로 배치, 버튼은 맨 오른쪽 -->
-          <div class="tier-row tier-topline">
+        <div class="tier-body">
+          <div class="tier-row">
             <select id="tierPreset" class="select" disabled>
               <option value="">tier-lists.js 로딩중...</option>
             </select>
-
             <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
-
-            <div class="tier-actions-inline">
-              <button class="btn" id="btnAll" type="button">전체 선택</button>
-              <button class="btn" id="btnNone" type="button">전체 해제</button>
-            </div>
           </div>
 
           <div class="tier-row tier-sub">
             <div id="tierInfo" class="tier-info"></div>
+          </div>
+
+          <!-- ✅ 보유 체크 전체 선택/해제는 등급표 영역으로 이동 -->
+          <div class="tier-row tier-sub tier-actions">
+            <button class="btn" id="btnAll" type="button">전체 선택</button>
+            <button class="btn" id="btnNone" type="button">전체 해제</button>
           </div>
 
           <div class="tier-row">
@@ -685,6 +677,8 @@
     render();
 
     // ===== Filters collapse (mobile) =====
+    // - 모바일에서는 기본 접힘
+    // - 사용자가 한 번 열고/닫으면 localStorage로 기억
     (function initFiltersCollapse(){
       const d = document.getElementById("filtersPanel");
       if (!d) return;
@@ -707,6 +701,7 @@
       });
 
       mq.addEventListener?.("change", () => {
+        // 저장값이 없을 때만 자동 적용(사용자 선택을 덮어쓰지 않음)
         if (localStorage.getItem(KEY) == null) applyDefault();
       });
     })();
@@ -719,6 +714,7 @@
       return slugKey(s);
     }
 
+    // key -> [id...] (동명이인/오버라이드 충돌 대비)
     function buildCharIndex(chars){
       const byKey = new Map();
       const byId = new Map((chars || []).map(c => [String(c.id), c]));
@@ -727,6 +723,7 @@
         if (!key || !id) return;
         const arr = byKey.get(key) || [];
         if (!arr.includes(id)) arr.push(id);
+        // SSR 우선 정렬(있어도 되고 없어도 되지만, 일관성 위해 유지)
         arr.sort((a,b) => rarityVal(byId.get(b)?.rarity) - rarityVal(byId.get(a)?.rarity));
         byKey.set(key, arr);
       }
@@ -741,6 +738,7 @@
       return { byKey };
     }
 
+    // ✅ 동일 name이 여러 id로 매핑되면 "전부" rankMap에 반영
     function buildRankMapFromTierList(tierList, chars){
       const { byKey } = buildCharIndex(chars);
       const rank = new Map();
@@ -824,6 +822,7 @@
       return (maxElem >= 2) || (maxFac >= 2);
     }
 
+    // ✅ 모든 파티원이 콤보(속성2+ 또는 특성2+)에 “참여”해야 함
     function allMembersContributeToCombo(party, charsById){
       const elemCount = new Map();
       const facCount = new Map();
@@ -899,7 +898,11 @@
 
       for (const cid of party){
         const c = charsById.get(cid);
+
+        // tier 점수
         sum += (rankMap.get(cid) || 0) * 100;
+
+        // rarity 보너스(동명이인 충돌 상황에서 SSR 우선 선택 유도)
         sum += rarityVal(c?.rarity) * 5;
 
         if (!c) continue;
@@ -920,15 +923,26 @@
       return sum;
     }
 
-    function getOwnedSelectedIdsSafe(){
-      return getOwnedSelectedIds();
+    function tierLabelFromScore(s){
+      if (s === 4) return "SSS";
+      if (s === 3) return "SS";
+      if (s === 2) return "S";
+      if (s === 1) return "A";
+      return "-";
     }
 
+    /**
+     * ✅ 한 번에 "최고 1개 파티"를 뽑는다(현재 남아있는 후보 중)
+     * - usedSet(카테고리 내부 중복 금지)을 반영해 후보에서 제외
+     * - 조건 만족하는 4인 조합 중 점수 최고 선택
+     */
     function buildBestPartyOnce(rankMap, usedSet){
-      const owned = getOwnedSelectedIdsSafe();
+      const owned = getOwnedSelectedIds();
       if (owned.length < 4) return { ok:false, msg:"보유 체크가 4명 이상이어야 합니다." };
 
       const charsById = new Map(chars.map(c => [c.id, c]));
+
+      // usedSet에 포함된 캐릭터는 제외(= 같은 카테고리 안에서 중복 금지)
       const candidatesAll = owned
         .filter(cid => charsById.has(cid))
         .filter(cid => !usedSet.has(cid));
@@ -942,7 +956,10 @@
         return { ok:false, msg:"선택 클래스는 최대 4개까지만 지정할 수 있습니다(4인 파티)." };
       }
 
+      // tier 우선 정렬(없으면 0)
       const candidates = candidatesAll.slice().sort((a,b) => (rankMap.get(b) || 0) - (rankMap.get(a) || 0));
+
+      // 탐색 풀 제한(브라우저 성능 보호)
       const N = Math.min(28, candidates.length);
       const pool = candidates.slice(0, N);
 
@@ -955,6 +972,7 @@
 
               if (!passesTankHealerCap(party, charsById)) continue;
               if (!passesRequiredClasses(party, charsById, classSet)) continue;
+
               if (!hasComboSkill(party, charsById)) continue;
               if (!allMembersContributeToCombo(party, charsById)) continue;
 
@@ -969,6 +987,9 @@
       return { ok:true, party: best.party };
     }
 
+    /**
+     * ✅ 카테고리별로 n개 파티 만들기(카테고리 내부 중복 금지)
+     */
     function buildPartiesForCategory(rankMap, n){
       const used = new Set();
       const parties = [];
@@ -978,12 +999,20 @@
         if (!res.ok) break;
 
         parties.push(res.party);
+        // 같은 카테고리 내 중복 금지: 선택된 4명은 used에 추가
         for (const cid of res.party) used.add(cid);
       }
 
       return parties;
     }
 
+    /**
+     * ✅ 최종 요구사항:
+     * - Guild 3 (중복 없이)
+     * - PVE 1
+     * - PVP 2 (중복 없이)
+     * - Rift 2 (중복 없이)
+     */
     function buildAllCategoryParties(rankMap){
       return {
         Guild: buildPartiesForCategory(rankMap, 3),
@@ -993,14 +1022,25 @@
       };
     }
 
+    // ✅ 선택한 등급표(pve/pvp/rift/guild-raid/...)에 맞춰 결과 카테고리를 제한
     function buildPartiesByPresetKey(rankMap, presetKey){
       const k = String(presetKey || "").toLowerCase();
+
+      // 기본값: 기존과 동일(전체 카테고리)
       const def = { order: ["Guild", "PVE", "PVP", "Rift"], data: buildAllCategoryParties(rankMap) };
 
-      if (k === "pvp") return { order: ["PVP"], data: { PVP: buildPartiesForCategory(rankMap, 2) } };
-      if (k === "pve" || k === "new-player") return { order: ["PVE"], data: { PVE: buildPartiesForCategory(rankMap, 1) } };
-      if (k === "rift") return { order: ["Rift"], data: { Rift: buildPartiesForCategory(rankMap, 2) } };
-      if (k === "guild-raid") return { order: ["Guild"], data: { Guild: buildPartiesForCategory(rankMap, 3) } };
+      if (k === "pvp") {
+        return { order: ["PVP"], data: { PVP: buildPartiesForCategory(rankMap, 2) } };
+      }
+      if (k === "pve" || k === "new-player") {
+        return { order: ["PVE"], data: { PVE: buildPartiesForCategory(rankMap, 1) } };
+      }
+      if (k === "rift") {
+        return { order: ["Rift"], data: { Rift: buildPartiesForCategory(rankMap, 2) } };
+      }
+      if (k === "guild-raid") {
+        return { order: ["Guild"], data: { Guild: buildPartiesForCategory(rankMap, 3) } };
+      }
       return def;
     }
 
@@ -1018,9 +1058,15 @@
       const renderOneParty = (party) => {
         const cards = party.map(cid => {
           const c = charsById.get(cid);
+
+          const img = c?.image
+            ? `<img class="tier-portrait" src="${escapeHtml(c.image)}" alt="">`
+            : `<div class="tier-portrait tier-portrait-empty"></div>`;
+
           return `
             <div class="tier-card">
               <div class="tier-card-top">
+                ${img}
                 <span class="tier-name">${escapeHtml(c?.name || cid)}</span>
               </div>
               <div class="tier-card-sub">
@@ -1036,7 +1082,9 @@
       };
 
       const sections = res.data;
-      const order = Array.isArray(res.order) && res.order.length ? res.order : ["Guild", "PVE", "PVP", "Rift"];
+      const order = Array.isArray(res.order) && res.order.length
+        ? res.order
+        : ["Guild", "PVE", "PVP", "Rift"];
 
       const html = order.map(cat => {
         const parties = sections[cat] || [];
@@ -1106,6 +1154,7 @@
         const nm = String(t?.name || "").trim();
         info.textContent = `${nm} · lastUpdated: ${t.lastUpdated}`;
 
+        // ✅ 선택한 등급표 유형에 맞게 '구성' 안내를 단순화
         if (help) {
           let buildLine = "구성: (카테고리별) Guild 3 / PVE 1 / PVP 2 / Rift 2";
           const kk = String(k || "").toLowerCase();
@@ -1142,7 +1191,9 @@
       renderInfo(sel.value);
     }
 
-    // ===== Tier (details) collapse =====
+    // ===== Tier (details) collapse: 검색/필터와 동일한 (열기/닫기) UX =====
+    // - 모바일에서는 기본 접힘
+    // - 사용자가 한 번 열고/닫으면 localStorage로 기억
     (function initTierDetailsCollapse(){
       const d = document.getElementById("tierPanel");
       if (!d) return;
