@@ -95,6 +95,62 @@
       .col-hp, .col-atk, .col-def { width: 78px; }
     }
 
+  
+    /* Tier panel: move class condition row into top line (better readability) */
+    .tier-topline{
+      align-items: flex-start;
+    }
+    .tier-class-inline{
+      flex: 1 1 auto;
+      min-width: 420px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .tier-check-inline{
+      white-space: nowrap;
+      font-weight: 900;
+      color: rgba(255,255,255,.92);
+    }
+    .tier-classes-inline{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-left: 4px;
+    }
+    /* On small screens, keep layout tidy */
+    @media (max-width: 720px){
+      .tier-topline{ flex-wrap: wrap; }
+      .tier-class-inline{
+        min-width: 0;
+        width: 100%;
+        order: 3;
+      }
+      .tier-topline .tier-actions-inline{
+        order: 4;
+        width: 100%;
+        justify-content: flex-end;
+      }
+    }
+
+    /* Select dropdown readability (options contrast) */
+    select, .select{
+      color: rgba(255,255,255,.92);
+    }
+    select option{
+      background: #0b1222;
+      color: rgba(255,255,255,.90);
+    }
+    select option:disabled{
+      color: rgba(255,255,255,.58);
+    }
+
   </style>
 </head>
 
@@ -176,22 +232,21 @@
             </select>
             <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
 
-            <!-- ✅ 전체선택/전체해제: 등급표 상단 우측 정렬 -->
+            
+            <div class="tier-class-inline" id="tierClassInline">
+              <label class="tier-check tier-check-inline" title="체크한 클래스가 파티(4인)에 포함되도록 구성합니다. 후보를 해당 클래스로만 제한하지 않습니다.">
+                <input type="checkbox" id="useClassFilter" />
+                선택 클래스 포함 조건
+              </label>
+              <div class="tier-classes tier-classes-inline" id="tierClassBox" aria-disabled="true"></div>
+            </div>
+<!-- ✅ 전체선택/전체해제: 등급표 상단 우측 정렬 -->
             <div class="tier-actions-inline">
               <button class="btn" id="btnAll" type="button">전체 선택</button>
               <button class="btn" id="btnNone" type="button">전체 해제</button>
             </div>
           </div>
-
-          <div class="tier-row">
-            <label class="tier-check" title="체크한 클래스가 파티(4인)에 포함되도록 구성합니다. 후보를 해당 클래스로만 제한하지 않습니다.">
-              <input type="checkbox" id="useClassFilter" />
-              선택 클래스 포함 조건
-            </label>
-            <div class="tier-classes" id="tierClassBox" aria-disabled="true"></div>
-          </div>
-
-          <div id="tierPartyResult" class="tier-result"></div>
+<div id="tierPartyResult" class="tier-result"></div>
         </div>
       </details>
 
