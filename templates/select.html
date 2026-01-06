@@ -102,12 +102,12 @@
     }
     .tier-class-inline{
       flex: 1 1 auto;
-      min-width: 520px;
+      min-width: 420px;
       display: grid;
       grid-template-columns: 210px 1fr;
-      align-items: start;
+      align-items: center;
       gap: 12px;
-      padding: 12px 14px;
+      padding: 10px 12px;
       border-radius: 14px;
       border: 1px solid rgba(255,255,255,.12);
       background: rgba(255,255,255,.05);
@@ -115,38 +115,33 @@
     }
     .tier-check-inline{
       white-space: nowrap;
-      font-weight: 950;
+      font-weight: 900;
       color: rgba(255,255,255,.92);
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding-top: 2px;
     }
     .tier-classes-inline{
-      
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px 12px;
-        align-items: start;
-        overflow: visible;
-        padding-bottom: 0;
-}
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-left: 4px;
+    }
     /* On small screens, keep layout tidy */
     @media (max-width: 720px){
-.tier-topline{ flex-wrap: wrap; }
-        .tier-class-inline{
-    min-width: 0;
-    width: 100%;
-    grid-template-columns: 1fr;
-  }
-  .tier-classes-inline{ grid-template-columns: 1fr 1fr; }
-  @media (max-width: 420px){ .tier-classes-inline{ grid-template-columns: 1fr; } }
-.tier-topline .tier-actions-inline{
+      .tier-class-inline{ min-width: 0; width: 100%; grid-template-columns: 1fr; align-items: start; }
+      .tier-classes-inline{ display: grid; grid-template-columns: 1fr 1fr; }
+      @media (max-width: 420px){ .tier-classes-inline{ grid-template-columns: 1fr; } }
+
+      .tier-topline{ flex-wrap: wrap; }
+      .tier-class-inline{
+        min-width: 0;
+        width: 100%;
+        order: 3;
+      }
+      .tier-topline .tier-actions-inline{
         order: 4;
         width: 100%;
         justify-content: flex-end;
-      
-}
+      }
     }
 
     /* Select dropdown readability (options contrast) */
@@ -197,8 +192,11 @@
       .tier-classes-inline{
         flex-wrap: nowrap;        /* 2줄로 떨어지지 않게 */
         overflow-x: auto;         /* 길면 가로 스크롤 */
+        scrollbar-width: thin;
         padding-bottom: 2px;
       }
+      .tier-classes-inline::-webkit-scrollbar{ height: 8px; }
+      .tier-classes-inline::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.14); border-radius: 999px; }
       .tier-classes-inline .tier-class-item{ white-space: nowrap; }
     }
 
@@ -337,7 +335,7 @@
             <tr>
               <th class="col-check">선택</th>
               <th>캐릭터</th>
-              <th class="col-hp th-sort" data-sort="hp">체력</th><th class="col-atk th-sort" data-sort="attack">공격력</th><th class="col-def th-sort" data-sort="defense">방어력</th>
+              <th class=\"col-hp\">체력</th><th class=\"col-atk\">공격력</th><th class=\"col-def\">방어력</th>
               <th class="col-elem">속성</th>
               <th class="col-faction">특성</th>
               <th class="col-class">클래스</th>
@@ -751,8 +749,6 @@
 
     const chars = dedupeById(CHARS_RAW || []);
 
-    const CHAR_BY_ID = new Map(chars.map(c => [String(c.id), c]));
-
     const $tbody = document.getElementById("tbody");
     const $q = document.getElementById("q");
     const $rarity = document.getElementById("rarityFilter");
@@ -818,72 +814,50 @@ function uniqSorted(values){
     // ===== Stats (HP/ATK/DEF) loaded from /data/zone-nova/characters_ko/<id>.json =====
     const STAT_CACHE = new Map(); // cid -> {hp, attack, defense}
 
-    
     async function fetchStats(cid){
       if (!cid) return null;
-      cid = String(cid);
-
       if (STAT_CACHE.has(cid)) return STAT_CACHE.get(cid);
 
-      const cobj = CHAR_BY_ID.get(cid);
-      const cname = (cobj?.name || "").toString();
+      // Try common static paths
+      const enc = encodeURIComponent(String(cid));
+      const encLower = encodeURIComponent(String(cid).toLowerCase());
+      const candidates = [
+        `/data/zone-nova/characters_ko/${enc}.json`,
+        `/data/zone-nova/characters_ko/${encLower}.json`,
+        `/public/data/zone-nova/characters_ko/${enc}.json`,
+        `/public/data/zone-nova/characters_ko/${encLower}.json`,
+      ];
 
-      // filename overrides (known mismatches)
-      const OV = new Map([
-        ["aphrodite", "afrodite"],   // user provided test case: public/data/.../afrodite.json
-      ]);
-
-      const keys = [];
-      const pushKey = (k) => {
-        const kk = String(k || "").trim();
-        if (!kk) return;
-        if (!keys.includes(kk)) keys.push(kk);
-      };
-
-      // base keys
-      pushKey(cid);
-      pushKey(cid.toLowerCase());
-      pushKey(slugKey(cid));
-      if (cname){
-        pushKey(cname);
-        pushKey(cname.toLowerCase());
-        pushKey(slugKey(cname));
-      }
-
-      // apply override if key matches
-      const overrideKey = OV.get(slugKey(cname) || slugKey(cid));
-      if (overrideKey) pushKey(overrideKey);
-
-      // build candidate urls
-      const candidates = [];
-      for (const k of keys){
-        const enc = encodeURIComponent(k);
-        candidates.push(`/data/zone-nova/characters_ko/${enc}.json`);
-        candidates.push(`/public/data/zone-nova/characters_ko/${enc}.json`);
-      }
-
-      for (const url of candidates){
+      
+      // Filename mismatch override (example: Aphrodite -> afrodite.json)
+      try{
+        const key = String(cid || "").toLowerCase();
+        if (key.includes("aphrodite")) {
+          const a = "afrodite";
+          candidates.unshift(
+            `/data/zone-nova/characters_ko/${a}.json`,
+            `/public/data/zone-nova/characters_ko/${a}.json`
+          );
+        }
+      }catch(e){}
+for (const url of candidates){
         try{
           const r = await fetch(url, { cache: "no-store" });
           if (!r.ok) continue;
           const j = await r.json();
-
+          
           const s = (j && typeof j === "object" && j.stats && typeof j.stats === "object") ? j.stats : j;
           const hp = pick(s, "hp", "HP");
           const attack = pick(s, "attack", "atk", "ATK");
           const defense = pick(s, "defense", "def", "DEF");
-
-          const stats = { hp: hp ?? "-", attack: attack ?? "-", defense: defense ?? "-" };
+const stats = {
+            hp: hp ?? "-",
+            attack: attack ?? "-",
+            defense: defense ?? "-",
+          };
           STAT_CACHE.set(cid, stats);
           return stats;
         }catch(e){}
-      }
-
-      const stats = { hp: "-", attack: "-", defense: "-" };
-      STAT_CACHE.set(cid, stats);
-      return stats;
-    }
-catch(e){}
       }
 
       // cache miss
@@ -938,7 +912,7 @@ catch(e){}
 
 
 
-async function render(){
+async async function render(){
       
       const base = chars.filter(matchFilters);
 
@@ -995,9 +969,9 @@ const rows = filtered.map(c => {
                 <div class="char-name">${escapeHtml(nm)}</div>
               </div>
             </td>
-            <td class="col-hp" data-stat="hp" data-cid="${escapeHtml(cid)}">-</td>
-            <td class="col-atk" data-stat="attack" data-cid="${escapeHtml(cid)}">-</td>
-            <td class="col-def" data-stat="defense" data-cid="${escapeHtml(cid)}">-</td>
+            <td class=\"col-hp\" data-stat=\"hp\" data-cid=\"${escapeHtml(cid)}\">-</td>
+            <td class=\"col-atk\" data-stat=\"attack\" data-cid=\"${escapeHtml(cid)}\">-</td>
+            <td class=\"col-def\" data-stat=\"defense\" data-cid=\"${escapeHtml(cid)}\">-</td>
             <td class="col-elem">
               <span class="pill pill-neutral pill-with-icon">
                 ${elemIcon}
@@ -1018,7 +992,9 @@ const rows = filtered.map(c => {
       }).join("");
 
       $tbody.innerHTML = rows || `<tr><td colspan="10" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
-    }
+    
+      fillStatsForVisibleRows();
+}
 
     [$q, $rarity, $elem, $faction, $class, $role].forEach(el => {
       el.addEventListener("input", render);
@@ -1040,26 +1016,13 @@ const rows = filtered.map(c => {
       const cid = cell.dataset.cid;
       if (cid) fetchAndOpen(cid);
     });
+
     render();
 
-    // Click stat headers to sort (toggle asc/desc)
-    (function bindStatHeaderSort(){
-      const table = document.querySelector(".table");
-      if (!table) return;
-      const thead = table.querySelector("thead");
-      if (!thead) return;
-      thead.addEventListener("click", (e) => {
-        const th = e.target.closest("th.th-sort");
-        if (!th) return;
-        const key = th.dataset.sort;
-        if (!key) return;
-        if (SORT_STATE.key === key) SORT_STATE.dir = (SORT_STATE.dir === "asc") ? "desc" : "asc";
-        else { SORT_STATE.key = key; SORT_STATE.dir = "desc"; }
-        render();
-      });
-    })();
-
-    // ===== Filters collapse (mobile) =====
+    
+    /* init stats fill */
+    try{ fillStatsForVisibleRows(); }catch(e){}
+// ===== Filters collapse (mobile) =====
     // - 모바일에서는 기본 접힘
     // - 사용자가 한 번 열고/닫으면 localStorage로 기억
     (function initFiltersCollapse(){
