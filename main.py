@@ -19,7 +19,7 @@ CHAR_IMG_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", 
 ELEM_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "element")
 CLASS_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "classes")
 
-VALID_IMG_EXT = {".jpg"}  # ✅ 전부 jpg
+VALID_IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}  # ✅ jpg만 고정하지 않기
 
 ELEMENT_RENAME = {"Fire": "Blaze", "Wind": "Storm", "Ice": "Frost"}
 
@@ -149,37 +149,40 @@ def candidate_image_keys(cid: str, raw_name: str, display_name: str, image_hint:
             uniq.append(x)
     return uniq
 
+def find_file_by_stem(folder: str, stem: str) -> str | None:
+    """폴더 내에서 base name이 stem과 같은 파일을(대소문자 무시) 찾아 파일명 반환"""
+    if not os.path.isdir(folder):
+        return None
+    target = (stem or "").strip().lower()
+    if not target:
+        return None
+
+    for fn in os.listdir(folder):
+        base, ext = os.path.splitext(fn)
+        if ext.lower() in VALID_IMG_EXT and base.lower() == target:
+            return fn
+    return None
+
 
 def element_icon_url(element: str) -> str | None:
-    """
-    ✅ element 폴더: blaze.jpg, chaos.jpg, frost.jpg, holy.jpg, storm.jpg (전부 소문자)
-    """
     if not element or element == "-":
         return None
-    fn = f"{element.lower()}.jpg"
-    fs = os.path.join(ELEM_ICON_DIR, fn)
-    if os.path.isfile(fs):
+    fn = find_file_by_stem(ELEM_ICON_DIR, element)  # Blaze/Storm/Frost/Chaos/Holy
+    if fn:
         return f"/images/games/zone-nova/element/{fn}"
     return None
 
 
 def class_icon_url(cls: str) -> str | None:
-    """
-    ✅ classes 폴더: Buffer.jpg, Debuffer.jpg, Guardian.jpg, Healer.jpg, Mage.jpg, Rogue.jpg, Warrior.jpg
-    """
     if not cls or cls == "-":
         return None
     cls_clean = str(cls).strip()
     if not cls_clean:
         return None
-
-    # 파일명은 TitleCase 고정(첫글자 대문자, 나머지 소문자)로 존재한다고 가정
-    fn = f"{cls_clean[:1].upper()}{cls_clean[1:].lower()}.jpg"
-    fs = os.path.join(CLASS_ICON_DIR, fn)
-    if os.path.isfile(fs):
+    fn = find_file_by_stem(CLASS_ICON_DIR, cls_clean)  # Guardian/Healer/...
+    if fn:
         return f"/images/games/zone-nova/classes/{fn}"
     return None
-
 
 def load_all(force: bool = False) -> None:
     if CACHE["chars"] and not force:
