@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{{ title }}</title>
 
+  <!-- 공통/페이지 CSS 분리 유지 -->
   <link rel="stylesheet" href="/css/style.css" />
   <link rel="stylesheet" href="/css/select.css" />
 </head>
@@ -14,11 +15,8 @@
     <div class="topbar">
       <div class="title">
         <h1>{{ title }}</h1>
-        <div class="meta">
-          캐릭터 {{ cache_count }}명 · 갱신 {{ last_refresh }}
-        </div>
+        <div class="meta">캐릭터 {{ cache_count }}명 · 갱신 {{ last_refresh }}</div>
       </div>
-      <!-- ✅ 우측 상단 새로고침/데이터 배지 삭제 -->
     </div>
 
     {% if error %}
@@ -26,6 +24,7 @@
     {% endif %}
 
     <div class="panel">
+      <!-- ===== Filters ===== -->
       <div class="filters">
         <input id="q" class="input" type="text" placeholder="검색 (이름/ID/특성/속성)" autocomplete="off" />
         <select id="rarityFilter" class="select">
@@ -53,9 +52,13 @@
       </div>
 
       <!-- ===== Tier Party Builder ===== -->
-      <div class="tier-panel">
+      <div class="tier-panel" id="tierPanel">
+        <div class="tier-panel-head">
+          <div class="tier-panel-title">등급표</div>
+          <button class="btn tier-toggle" id="tierToggle" type="button">접기</button>
+        </div>
+
         <div class="tier-row">
-          <label class="tier-label">등급표</label>
           <select id="tierPreset" class="select" disabled>
             <option value="">tier-lists.js 로딩중...</option>
           </select>
@@ -67,7 +70,6 @@
         </div>
 
         <div class="tier-row">
-          <!-- ✅ 문구 수정: 후보 제한이 아니라 “포함 조건”임을 명시 -->
           <label class="tier-check" title="체크한 클래스가 파티(4인)에 포함되도록 구성합니다. 후보를 해당 클래스로만 제한하지 않습니다.">
             <input type="checkbox" id="useClassFilter" />
             선택 클래스 포함 조건
@@ -78,6 +80,7 @@
         <div class="tier-help">
           조건: 보유 체크된 캐릭터 중 4인 구성 / SSS→SS→S→A 우선 /
           콤보스킬(속성 2+ 또는 특성 2+) 필수 /
+          모든 파티원이 콤보 조건에 참여 /
           Tank(Guardian) 최대 1, Healer 최대 1 /
           (선택) “선택 클래스 포함 조건” ON 시 체크한 클래스가 파티에 포함
         </div>
@@ -85,6 +88,7 @@
         <div id="tierPartyResult" class="tier-result"></div>
       </div>
 
+      <!-- ===== Characters list ===== -->
       <div class="table-wrap">
         <table class="table">
           <thead>
@@ -129,38 +133,6 @@
         .replace(/'/g,"&#39;");
     }
 
-    function dedupeById(list){
-      const m = new Map();
-      for (const c of (list || [])){
-        if (!c) continue;
-        const id = (c.id || "").toString().trim();
-        if (!id) continue;
-        if (!m.has(id)) m.set(id, c);
-      }
-      return Array.from(m.values());
-    }
-
-    const RARITY_ORDER = { "SSR": 3, "SR": 2, "R": 1, "-": 0 };
-
-    function classLabel(cls){
-      const v = (cls || "-").toString().trim();
-      return v || "-";
-    }
-
-    function roleLabel(role){
-      const v = (role || "-").toString().trim();
-      return v || "-";
-    }
-
-    function rarityPillClass(r){
-      const v = (r || "-").toString().trim().toUpperCase();
-      if (v === "SSR") return "pill-ssr";
-      if (v === "SR") return "pill-sr";
-      if (v === "R") return "pill-r";
-      return "pill-none";
-    }
-
-    // ===== detail helpers =====
     function pick(obj, ...keys) {
       for (const k of keys) {
         const v = obj?.[k];
@@ -177,6 +149,37 @@
       return false;
     }
 
+    function slugKey(s){
+      return String(s || "")
+        .toLowerCase()
+        .replace(/[’']/g, "")
+        .replace(/[\s\-_]+/g, "")
+        .trim();
+    }
+
+    const RARITY_ORDER = { "SSR": 3, "SR": 2, "R": 1, "-": 0 };
+    function rarityVal(r){
+      const x = String(r || "-").toUpperCase();
+      return RARITY_ORDER[x] ?? 0;
+    }
+
+    function classLabel(cls){
+      const v = (cls || "-").toString().trim();
+      return v || "-";
+    }
+    function roleLabel(role){
+      const v = (role || "-").toString().trim();
+      return v || "-";
+    }
+    function rarityPillClass(r){
+      const v = (r || "-").toString().trim().toUpperCase();
+      if (v === "SSR") return "pill-ssr";
+      if (v === "SR") return "pill-sr";
+      if (v === "R") return "pill-r";
+      return "pill-none";
+    }
+
+    // ===== Modal rendering (skills/awakenings/memory) =====
     function renderKV(obj) {
       if (!obj || typeof obj !== "object") return `<div class="detail-empty">데이터 없음</div>`;
       const rows = Object.entries(obj).map(([k, v]) => {
@@ -285,7 +288,6 @@
     function renderSkills(detail) {
       const skills = pick(detail, "skills") || {};
       const teamSkill = pick(detail, "teamSkill", "team_skill", "team");
-
       const normalData = !isEmpty(skills?.normal) ? skills.normal : skills?.basic;
 
       const sections = [
@@ -307,9 +309,7 @@
     function normalizeAwakenings(aw) {
       if (!aw) return [];
       if (Array.isArray(aw)) return aw;
-      if (typeof aw === "object") {
-        if (Array.isArray(aw.levels)) return aw.levels;
-      }
+      if (typeof aw === "object" && Array.isArray(aw.levels)) return aw.levels;
       return [];
     }
 
@@ -328,7 +328,6 @@
     function renderAwakenings(detail) {
       const aw = pick(detail, "awakenings", "awakening");
       const rows = normalizeAwakenings(aw);
-
       if (!rows.length) return `<div class="detail-empty">각성 데이터 없음</div>`;
 
       const tbody = rows.map((x, idx) => {
@@ -348,10 +347,7 @@
     function renderMemoryCard(detail) {
       const mem = pick(detail, "memoryCard", "memory_card");
       if (isEmpty(mem)) return `<div class="detail-empty">메모리카드 데이터 없음</div>`;
-
-      if (typeof mem !== "object") {
-        return `<div class="detail-empty">${escapeHtml(String(mem))}</div>`;
-      }
+      if (typeof mem !== "object") return `<div class="detail-empty">${escapeHtml(String(mem))}</div>`;
 
       const name = pick(mem, "name", "title") || "Memory Card";
       const desc = pick(mem, "description", "desc", "text") || "";
@@ -425,7 +421,7 @@
       };
     }
 
-    // ===== Modal =====
+    // ===== Modal open/close =====
     const backdrop = document.getElementById("modalBackdrop");
     const modalBody = document.getElementById("modalBody");
     const modalTitle = document.getElementById("modalTitle");
@@ -473,7 +469,18 @@
       }
     }
 
-    // ===== List Render =====
+    // ===== List render =====
+    function dedupeById(list){
+      const m = new Map();
+      for (const c of (list || [])){
+        if (!c) continue;
+        const id = (c.id || "").toString().trim();
+        if (!id) continue;
+        if (!m.has(id)) m.set(id, c);
+      }
+      return Array.from(m.values());
+    }
+
     const chars = dedupeById(CHARS_RAW || []);
 
     const $tbody = document.getElementById("tbody");
@@ -488,7 +495,6 @@
       return Array.from(new Set(values.filter(v => v && v !== "-")))
         .sort((a,b) => a.localeCompare(b));
     }
-
     function fillSelect(sel, values){
       for (const v of values){
         const opt = document.createElement("option");
@@ -525,16 +531,14 @@
       if (factionV && (c.faction || "-") !== factionV) return false;
       if (classV && classLabel(c.class) !== classV) return false;
       if (roleV && roleLabel(c.role) !== roleV) return false;
-
       return true;
     }
 
     function sortChars(list){
       return list.slice().sort((a,b) => {
-        const ra = RARITY_ORDER[(a.rarity || "-").toString().toUpperCase()] ?? 0;
-        const rb = RARITY_ORDER[(b.rarity || "-").toString().toUpperCase()] ?? 0;
+        const ra = rarityVal(a.rarity);
+        const rb = rarityVal(b.rarity);
         if (rb !== ra) return rb - ra;
-
         const na = (a.name || a.id || "").toString();
         const nb = (b.name || b.id || "").toString();
         return na.localeCompare(nb);
@@ -557,7 +561,6 @@
           ? `<img class="char-img" src="${escapeHtml(c.image)}" alt="">`
           : `<div class="char-img"></div>`;
 
-        // ✅ 아이콘은 pill 내부에 포함
         const elemIcon = c.element_icon ? `<img class="mini-icon" src="${escapeHtml(c.element_icon)}" alt="">` : "";
         const classIcon = c.class_icon ? `<img class="mini-icon" src="${escapeHtml(c.class_icon)}" alt="">` : "";
 
@@ -607,10 +610,8 @@
     document.addEventListener("click", (e) => {
       const chk = e.target.closest(".chk-owned");
       if (chk) return;
-
       const cell = e.target.closest(".char-cell.clickable");
       if (!cell) return;
-
       const cid = cell.dataset.cid;
       if (cid) fetchAndOpen(cid);
     });
@@ -619,58 +620,37 @@
 
     // ===== Tier Party Builder =====
     let ALL_TIER_LISTS = null;
-    const TIER_SCORE = { SSS: 4, SS: 3, S: 2, A: 1 }; // Situational 제외
+    const TIER_SCORE = { SSS: 4, SS: 3, S: 2, A: 1 };
 
     function keyify(s){
-      return String(s || "")
-        .toLowerCase()
-        .replace(/[’']/g, "")
-        .replace(/[\s\-_]+/g, "")
-        .trim();
+      return slugKey(s);
     }
 
-      function buildCharIndex(chars){
-        const byKey = new Map(); // key -> [id1, id2, ...] (rarity 내림차순)
-        const byId = new Map((chars || []).map(c => [String(c.id), c]));
-      
-        function rarityVal(r){
-          const x = String(r || "-").toUpperCase();
-          if (x === "SSR") return 3;
-          if (x === "SR")  return 2;
-          if (x === "R")   return 1;
-          return 0;
-        }
-      
-        function addKey(key, id){
-          if (!key || !id) return;
-          const arr = byKey.get(key) || [];
-          if (!arr.includes(id)) arr.push(id);
-      
-          // rarity 높은 순으로 정렬 (SSR 우선)
-          arr.sort((a,b) => {
-            const A = byId.get(a);
-            const B = byId.get(b);
-            return rarityVal(B?.rarity) - rarityVal(A?.rarity);
-          });
-      
-          byKey.set(key, arr);
-        }
-      
-        for (const c of (chars || [])){
-          if (!c?.id) continue;
-          const id = String(c.id);
-      
-          if (c.name) addKey(keyify(c.name), id);
-          if (c.raw_name) addKey(keyify(c.raw_name), id);
-      
-          // id 자체도 key로 등록
-          addKey(keyify(id), id);
-        }
-      
-        return { byKey };
+    // key -> [id...] (동명이인/오버라이드 충돌 대비)
+    function buildCharIndex(chars){
+      const byKey = new Map();
+      const byId = new Map((chars || []).map(c => [String(c.id), c]));
+
+      function addKey(key, id){
+        if (!key || !id) return;
+        const arr = byKey.get(key) || [];
+        if (!arr.includes(id)) arr.push(id);
+        // SSR 우선 정렬(있어도 되고 없어도 되지만, 일관성 위해 유지)
+        arr.sort((a,b) => rarityVal(byId.get(b)?.rarity) - rarityVal(byId.get(a)?.rarity));
+        byKey.set(key, arr);
       }
 
+      for (const c of (chars || [])){
+        if (!c?.id) continue;
+        const id = String(c.id);
+        if (c.name) addKey(keyify(c.name), id);
+        if (c.raw_name) addKey(keyify(c.raw_name), id);
+        addKey(keyify(id), id);
+      }
+      return { byKey };
+    }
 
+    // ✅ 핵심: 동일 name이 여러 id로 매핑되면 "전부" rankMap에 반영
     function buildRankMapFromTierList(tierList, chars){
       const { byKey } = buildCharIndex(chars);
       const rank = new Map();
@@ -684,11 +664,12 @@
         for (const it of list){
           const nm = (it && typeof it === "object") ? it.name : null;
           const ids = byKey.get(keyify(nm));
-          const cid = (ids && ids.length) ? ids[0] : null; // ✅ SSR 우선
-          if (!cid) continue;
+          if (!ids || !ids.length) continue;
 
-          const prev = rank.get(cid) || 0;
-          rank.set(cid, Math.max(prev, TIER_SCORE[T]));
+          for (const cid of ids){
+            const prev = rank.get(cid) || 0;
+            rank.set(cid, Math.max(prev, TIER_SCORE[T]));
+          }
         }
       }
       return rank;
@@ -753,6 +734,35 @@
       return (maxElem >= 2) || (maxFac >= 2);
     }
 
+    // ✅ 모든 파티원이 콤보(속성2+ 또는 특성2+)에 “참여”해야 함
+    function allMembersContributeToCombo(party, charsById){
+      const elemCount = new Map();
+      const facCount = new Map();
+
+      for (const cid of party){
+        const c = charsById.get(cid);
+        if (!c) continue;
+        const e = c.element || "-";
+        const f = c.faction || "-";
+        elemCount.set(e, (elemCount.get(e) || 0) + 1);
+        facCount.set(f, (facCount.get(f) || 0) + 1);
+      }
+
+      for (const cid of party){
+        const c = charsById.get(cid);
+        if (!c) return false;
+
+        const e = c.element || "-";
+        const f = c.faction || "-";
+
+        const eOk = e !== "-" && (elemCount.get(e) || 0) >= 2;
+        const fOk = f !== "-" && (facCount.get(f) || 0) >= 2;
+
+        if (!eOk && !fOk) return false;
+      }
+      return true;
+    }
+
     function isTank(c){
       const cls = String(c?.class || "").toLowerCase();
       const role = String(c?.role || "").toLowerCase();
@@ -777,7 +787,6 @@
       return true;
     }
 
-    // ✅ (추가) “선택 클래스 포함 조건” 검사
     function passesRequiredClasses(party, charsById, requiredClassSet){
       if (!requiredClassSet || requiredClassSet.size === 0) return true;
 
@@ -800,8 +809,14 @@
       const fac = new Map();
 
       for (const cid of party){
-        sum += (rankMap.get(cid) || 0) * 100;
         const c = charsById.get(cid);
+
+        // tier 점수
+        sum += (rankMap.get(cid) || 0) * 100;
+
+        // ✅ rarity 보너스(동명이인 충돌 상황에서 SSR 우선 선택 유도)
+        sum += rarityVal(c?.rarity) * 5;
+
         if (!c) continue;
         const e = c.element || "-";
         const f = c.faction || "-";
@@ -833,16 +848,17 @@
       if (owned.length < 4) return { ok:false, msg:"보유 체크가 4명 이상이어야 합니다." };
 
       const charsById = new Map(chars.map(c => [c.id, c]));
-      let candidates = owned.filter(cid => charsById.has(cid));
+      const candidatesAll = owned.filter(cid => charsById.has(cid));
 
-      // ✅ “포함 조건”으로만 사용 (후보를 제한하지 않음)
       const classSet = getEnabledClassSet();
       if (classSet && classSet.size > 4){
         return { ok:false, msg:"선택 클래스는 최대 4개까지만 지정할 수 있습니다(4인 파티)." };
       }
 
-      candidates.sort((a,b) => (rankMap.get(b) || 0) - (rankMap.get(a) || 0));
+      // tier 우선 정렬(없으면 0)
+      const candidates = candidatesAll.slice().sort((a,b) => (rankMap.get(b) || 0) - (rankMap.get(a) || 0));
 
+      // 탐색 풀 제한(모바일/브라우저 성능)
       const N = Math.min(28, candidates.length);
       const pool = candidates.slice(0, N);
 
@@ -853,14 +869,14 @@
             for (let l=k+1; l<pool.length; l++){
               const party = [pool[i], pool[j], pool[k], pool[l]];
 
-              // ✅ Tank/Healer 각각 최대 1명
               if (!passesTankHealerCap(party, charsById)) continue;
-
-              // ✅ (핵심) 선택 클래스 포함 조건
               if (!passesRequiredClasses(party, charsById, classSet)) continue;
 
-              // ✅ 콤보스킬 필수
+              // ✅ 파티 콤보 필수
               if (!hasComboSkill(party, charsById)) continue;
+
+              // ✅ 모든 파티원이 콤보에 참여
+              if (!allMembersContributeToCombo(party, charsById)) continue;
 
               const sc = partyScore(party, rankMap, charsById);
               if (!best || sc > best.score) best = { party, score: sc };
@@ -886,11 +902,14 @@
       const cards = res.party.map(cid => {
         const c = charsById.get(cid);
         const tier = tierLabelFromScore(rankMap.get(cid) || 0);
+        const rar = String(c?.rarity || "-").toUpperCase();
+
         return `
           <div class="tier-card">
             <div class="tier-card-top">
               <span class="tier-badge tier-${tier.toLowerCase()}">${escapeHtml(tier)}</span>
               <span class="tier-name">${escapeHtml(c?.name || cid)}</span>
+              <span class="pill ${rarityPillClass(rar)}">${escapeHtml(rar)}</span>
             </div>
             <div class="tier-card-sub">
               <span class="pill pill-neutral">${escapeHtml(c?.element || "-")}</span>
@@ -947,13 +966,38 @@
         }
         const tierList = ALL_TIER_LISTS[k];
         const rankMap = buildRankMapFromTierList(tierList, chars);
-
         const res = buildBestTierParty(rankMap);
         renderTierPartyResult(rankMap, res);
       });
 
       renderInfo(sel.value);
     }
+
+    // 모바일: 등급표 패널 기본 접기 + 토글
+    (function initTierCollapse(){
+      const panel = document.getElementById("tierPanel");
+      const btn = document.getElementById("tierToggle");
+      if (!panel || !btn) return;
+
+      const mq = window.matchMedia("(max-width: 520px)");
+      const apply = () => {
+        if (mq.matches) {
+          panel.classList.add("collapsed");
+          btn.textContent = "펼치기";
+        } else {
+          panel.classList.remove("collapsed");
+          btn.textContent = "접기";
+        }
+      };
+
+      btn.addEventListener("click", () => {
+        panel.classList.toggle("collapsed");
+        btn.textContent = panel.classList.contains("collapsed") ? "펼치기" : "접기";
+      });
+
+      mq.addEventListener?.("change", apply);
+      apply();
+    })();
 
     window.addEventListener("tierlists:loaded", () => {
       ALL_TIER_LISTS = window.__tierLists?.ALL_TIER_LISTS || null;
