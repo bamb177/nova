@@ -379,12 +379,13 @@ if __name__ == "__main__":
     debug = os.getenv("FLASK_DEBUG") == "1"
     app.run(host="0.0.0.0", port=port, debug=debug)
 
+# main.py 상단 import에 render_template가 이미 있다면 생략
+
 @app.route("/runes")
 def runes_page():
-    # 캐시버스터/표시용 갱신값(프로젝트에서 이미 last_refresh를 계산 중이면 그 값을 재사용해도 됨)
-    last_refresh = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+    # 다른 페이지와 동일하게 title/last_refresh를 내려주고 싶으면 기존 방식 재사용
     return render_template(
         "runes.html",
-        title=f"{APP_TITLE} - 룬 정보",
-        last_refresh=last_refresh,
+        title="룬 정보",
+        last_refresh=os.getenv("LAST_REFRESH", ""),  # 기존 프로젝트 변수 방식에 맞춰 조정
     )
