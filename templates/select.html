@@ -490,12 +490,12 @@ html, body{
     
 
     function formatDescText(s){
-      const t = String(s ?? \"\");
-      // Korean sentence breaks: force newline after \"다.\" when followed by whitespace
+      const t = String(s ?? "");
+      // Korean sentence breaks: force newline after "다." when followed by whitespace
       // Also keep basic breaks after . ? !
       return t
-        .replace(/다\.(\s+)/g, \"다.<br>\")
-        .replace(/([\.\?\!])\s+/g, \"$1<br>\");
+        .replace(/다\.(\s+)/g, "다.<br>")
+        .replace(/([\.\?\!])\s+/g, "$1<br>");
     }
 function pick(obj, ...keys) {
       for (const k of keys) {
@@ -594,7 +594,7 @@ function pick(obj, ...keys) {
 
     function renderOneSkillCard(s) {
       const desc = s.desc
-        ? `<div class="card-desc">${escapeHtml(s.desc)}</div>`
+        ? `<div class="card-desc">${formatDescText(escapeHtml(s.desc))}</div>`
         : `<div class="card-desc" style="opacity:.75;">(설명 없음)</div>`;
       const extra = s.extra ? renderKV(s.extra) : "";
       return `
