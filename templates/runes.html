@@ -24,10 +24,16 @@
   <div class="wrap">
     <div class="panel">
       <div class="runes-head">
-        <h2>룬 세트</h2>
-
-        <div class="runes-controls">
-          <input id="q" class="input" placeholder="룬 이름 검색 (예: Alpha, Giants)" />
+        <div class="runes-title">
+          <h2>룬 세트</h2>
+          <div class="runes-sub">검색/필터로 빠르게 찾고, 2세트·4세트 효과를 확인하세요.</div>
+        </div>
+      
+        <div class="runes-controls" role="search">
+          <label class="sr-only" for="q">룬 검색</label>
+          <input id="q" class="input" placeholder="룬 이름 검색 (예: Alpha, Giants)" autocomplete="off" />
+      
+          <label class="sr-only" for="filter">필터</label>
           <select id="filter" class="select">
             <option value="all">전체</option>
             <option value="guild">길드 레이드 전용</option>
@@ -35,6 +41,7 @@
           </select>
         </div>
       </div>
+
 
       <div id="runeGrid" class="rune-grid"></div>
     </div>
