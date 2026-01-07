@@ -275,7 +275,43 @@
 
   
     /* ===== Mobile vertical scroll fix (character list) ===== */
+
+    /* ===== Mobile: allow vertical + horizontal scrolling INSIDE character list ===== */
     html, body{
+      height: auto !important;
+      min-height: 100% !important;
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+    }
+
+    /* Make the list area a true scroll container on mobile */
+    .table-wrap{
+      overflow: auto !important;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+      overscroll-behavior: contain;
+      /* Use small-viewport units for mobile address-bar changes */
+      max-height: calc(100svh - 310px);
+      border-radius: 18px;
+    }
+
+    /* Ensure the table can exceed viewport width so horizontal scroll is possible */
+    .table{
+      min-width: 980px;
+    }
+
+    /* On desktop, let the page scroll normally (no forced max-height) */
+    @media (min-width: 900px){
+      .table-wrap{ max-height: none; overflow: visible; }
+      .table{ min-width: 0; }
+    }
+
+    /* Allow gestures even on nested elements */
+    .table-wrap *{ touch-action: pan-x pan-y; }
+
+html, body{
       height: auto !important;
       min-height: 100% !important;
       overflow-x: hidden !important;
