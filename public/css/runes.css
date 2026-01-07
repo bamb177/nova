@@ -55,24 +55,21 @@
   line-height: 1.35;
 }
 
-/* 모바일: 검색/필터 2열로 안정적으로 배치 */
 .runes-controls{
   display: grid;
-  grid-template-columns: 1fr 140px;
+  grid-template-columns: 1fr; /* 기존 1fr 140px 같은 설정 제거 */
   gap: 10px;
   align-items: center;
-
-  /* 스크롤 중에도 상단에 남게 하고 싶으면 sticky */
   position: sticky;
   top: 8px;
   z-index: 5;
-
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: rgba(0,0,0,.26);
   backdrop-filter: blur(6px);
 }
+
 
 /* PC: 컨트롤은 우측으로, 더 넓게 */
 @media (min-width: 900px){
