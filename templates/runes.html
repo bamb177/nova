@@ -32,15 +32,7 @@
         <div class="runes-controls" role="search">
           <label class="sr-only" for="q">룬 검색</label>
           <input id="q" class="input" placeholder="룬 이름 검색 (예: Alpha, Giants)" autocomplete="off" />
-      
-          <label class="sr-only" for="filter">필터</label>
-          <select id="filter" class="select">
-            <option value="all">전체</option>
-            <option value="guild">길드 레이드 전용</option>
-            <option value="restricted">클래스 제한 있음</option>
-          </select>
         </div>
-      </div>
 
 
       <div id="runeGrid" class="rune-grid"></div>
@@ -74,19 +66,33 @@
 
   <script type="module">
     import { RUNE_SETS, MAIN_STATS_BY_POSITION } from "/data/zone-nova/runes.js";
-
-    const runeGrid = document.getElementById("runeGrid");
-    const q = document.getElementById("q");
-    const filter = document.getElementById("filter");
-    const mainStats = document.getElementById("mainStats");
-
-    function isGuildOnly(r) {
-      const note = (r.note || "").toLowerCase();
-      return note.includes("길드") || note.includes("guild");
-    }
-    function isRestricted(r) {
-      return !!r.classRestriction;
-    }
+      
+      const runeGrid = document.getElementById("runeGrid");
+      const q = document.getElementById("q");
+      const mainStats = document.getElementById("mainStats");
+      
+      function renderRunes() {
+        const keyword = (q.value || "").trim().toLowerCase();
+      
+        const entries = Object.entries(RUNE_SETS);
+        const filtered = entries.filter(([key, r]) => {
+          const hay = `${key} ${r.name}`.toLowerCase();
+          if (keyword && !hay.includes(keyword)) return false;
+          return true;
+        });
+      
+        runeGrid.innerHTML = filtered.map(([key, r]) => runeCard(key, r)).join("");
+      
+        if (!filtered.length) {
+          runeGrid.innerHTML = `<div class="empty">검색 결과가 없습니다.</div>`;
+        }
+      }
+      
+      q.addEventListener("input", renderRunes);
+      
+      renderRunes();
+      renderMainStats();
+      
 
     function runeCard(key, r) {
       const badges = [];
