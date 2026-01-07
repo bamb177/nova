@@ -487,7 +487,17 @@ html, body{
         .replace(/'/g,"&#39;");
     }
 
-    function pick(obj, ...keys) {
+    
+
+    function formatDescText(s){
+      const t = String(s ?? \"\");
+      // Korean sentence breaks: force newline after \"다.\" when followed by whitespace
+      // Also keep basic breaks after . ? !
+      return t
+        .replace(/다\.(\s+)/g, \"다.<br>\")
+        .replace(/([\.\?\!])\s+/g, \"$1<br>\");
+    }
+function pick(obj, ...keys) {
       for (const k of keys) {
         const v = obj?.[k];
         if (v !== undefined && v !== null) return v;
@@ -752,7 +762,7 @@ html, body{
       return `
         <div class="card">
           <div class="card-title"><span>${escapeHtml(String(name))}</span></div>
-          ${desc ? `<div class="card-desc">${escapeHtml(String(desc))}</div>` : ""}
+          ${desc ? `<div class="card-desc">${formatDescText(escapeHtml(String(desc)))}</div>` : ""}
           <div style="margin-top:10px;">${effectsHtml}</div>
         </div>
       `;
