@@ -83,20 +83,20 @@ export const RUNE_SETS = {
       "Within 10 seconds after combat starts, your team's energy gain efficiency is increased by 30%",
     note: 'This effect cannot stack. Daleth 4-piece set effects in the team will be disabled. This can only be obtained in guild raids',
   },
-  HP: {
-    name: 'HP',
-    chineseName: '生命',
-    image: 'HP.jpg',
-    twoPiece: 'HP increased by 10%',
-    fourPiece: 'HP increased by an additional 15%',
-  },
-  DEF: {
-    name: 'Defense',
-    chineseName: '防御',
-    image: 'DEF.jpg',
-    twoPiece: 'Defense increased by 10%',
-    fourPiece: 'Defense increased by an additional 15%',
-  },
+//  HP: {
+//   name: 'HP',
+//   chineseName: '生命',
+//    image: 'HP.jpg',
+//    twoPiece: 'HP increased by 10%',
+//    fourPiece: 'HP increased by an additional 15%',
+//  },
+//  DEF: {
+//    name: 'Defense',
+//    chineseName: '防御',
+//    image: 'DEF.jpg',
+//   twoPiece: 'Defense increased by 10%',
+//    fourPiece: 'Defense increased by an additional 15%',
+//  },
 };
 
 // Main stats by rune position (fixed for all characters)
