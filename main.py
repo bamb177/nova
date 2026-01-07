@@ -379,3 +379,12 @@ if __name__ == "__main__":
     debug = os.getenv("FLASK_DEBUG") == "1"
     app.run(host="0.0.0.0", port=port, debug=debug)
 
+@app.route("/runes")
+def runes_page():
+    # 캐시버스터/표시용 갱신값(프로젝트에서 이미 last_refresh를 계산 중이면 그 값을 재사용해도 됨)
+    last_refresh = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+    return render_template(
+        "runes.html",
+        title=f"{APP_TITLE} - 룬 정보",
+        last_refresh=last_refresh,
+    )
