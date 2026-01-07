@@ -318,24 +318,31 @@ html, body{
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
     }
-    /* Ensure the main list container can scroll naturally on touch */
-    .table-wrap{
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
-    }
-    /* Some browsers treat table as a touch target; keep vertical pan enabled */
-    .table, .table *{
-      touch-action: pan-y;
-    }
-
-    /* ===== Background: remove multi-radial seams, use a single fixed gradient ===== */
+/* ===== Background: remove multi-radial seams, use a single fixed gradient ===== */
     body{
       background: linear-gradient(180deg, #070b14 0%, #0b1222 100%) fixed !important;
     }
     /* Panels remain consistent on the simplified background */
     .panel, .table-wrap, .modal-card, .tier-panel, .tier-class-inline{
       background: rgba(255,255,255,.035);
+    }
+
+  
+    /* ===== FINAL OVERRIDE: allow horizontal scroll inside character list (mobile) ===== */
+    @media (max-width: 900px){
+      .table-wrap{
+        overflow-x: auto !important;
+        overflow-y: auto !important;
+        touch-action: pan-x pan-y !important;
+      }
+      .table, .table *{
+        touch-action: pan-x pan-y !important;
+      }
+      /* Ensure content actually overflows horizontally */
+      .table{
+        min-width: 1100px !important;
+        table-layout: auto !important;
+      }
     }
 
   </style>
