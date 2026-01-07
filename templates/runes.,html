@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{ title }}</title>
+  <link rel="stylesheet" href="/css/runes.css?v={{ last_refresh }}" />
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-left">
+      <a class="back-btn" href="/">← 메인</a>
+      <div class="title">
+        <h1>룬 정보</h1>
+        <div class="meta">데이터: <code>/data/zone-nova/runes.js</code></div>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <label class="toggle">
+        <input id="groupBySet" type="checkbox" checked />
+        <span>세트로 묶기</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="filters">
+      <input id="q" class="input" type="text" placeholder="룬/세트/설명 검색" />
+      <select id="setFilter" class="select">
+        <option value="">전체 세트</option>
+      </select>
+    </div>
+
+    <div id="status" class="status">로딩 중…</div>
+    <div id="grid" class="grid"></div>
+  </div>
+
+  <script type="module">
+    const DATA_URL = "/data/zone-nova/runes.js";
+    const IMG_BASE = "/images/games/zone-nova/runes/";
+
+    const $status = document.getElementById("status");
+    const $grid = document.getElementById("grid");
+    const $q = document.getElementById("q");
+    const $setFilter = document.getElementById("setFilter");
+    const $groupBySet = document.getElementById("groupBySet");
+
+    function isObject(v) {
+      return v && typeof v === "object" && !Array.isArray(v);
+    }
+
+    function normalizeToArray(data) {
+      if (Array.isArray(data)) return data;
+
+      if (isObject(data)) {
+        for (const k of ["runes", "items", "list", "data"]) {
+          if (Array.isArray(data[k])) return data[k];
+        }
+        // 객체가 {id: {...}, id2: {...}} 형태면 values 사용
+        const vals = Object.values(data);
+        if (vals.every(isObject)) return vals;
+      }
+      return [];
+    }
+
+    function collectJpgStrings(node, out) {
+      if (!node) return;
+      if (typeof node === "string") {
+        if (node.toLowerCase().includes(".jpg")) out.push(node);
+        return;
+      }
+      if (Array.isArray(node)) {
+        for (const v of node) collectJpgStrings(v, out);
+        return;
+      }
+      if (isObject(node)) {
+        for (const v of Object.values(node)) collectJpgStrings(v, out);
+      }
+    }
+
+    function toRuneImgUrl(anyJpgString) {
+      // "xxx/yyy/abc.jpg" 같은 것도 들어올 수 있으니 파일명만 뽑아서 IMG_BASE 붙임
+      const s = String(anyJpgString || "");
+      const file = s.split("/").pop();
+      return file ? (IMG_BASE + file) : "";
+    }
+
+    function pick(obj, keys) {
+      for (const k of keys) {
+        if (obj && obj[k] != null && obj[k] !== "") return obj[k];
+      }
+      return "";
+    }
+
+    function runeName(r) {
+      return (
+        pick(r, ["name_ko", "nameKo", "nameKR", "name", "title", "id"]) ||
+        "이름 없음"
+      );
+    }
+
+    function runeSet(r) {
+      return pick(r, ["set_ko", "setKo", "setName", "set", "group", "family", "type"]);
+    }
+
+    function runeDesc(r) {
+      return pick(r, [
+        "desc_ko", "descKo", "description_ko", "description", "desc",
+        "effect", "text"
+      ]);
+    }
+
+    function runeBonus2(r) {
+      return pick(r, ["bonus2_ko", "bonus2", "set2", "twoSet", "effect2"]);
+    }
+
+    function runeBonus4(r) {
+      return pick(r, ["bonus4_ko", "bonus4", "set4", "fourSet", "effect4"]);
+    }
+
+    function runeSlot(r) {
+      return pick(r, ["slot", "pos", "position", "place", "index"]);
+    }
+
+    function runeImg(r) {
+      // 흔한 키 먼저 체크 → 없으면 객체 전체를 훑어서 jpg 문자열 하나라도 찾기
+      const direct = pick(r, ["img", "image", "icon", "jpg", "file", "filename"]);
+      if (typeof direct === "string" && direct.toLowerCase().includes(".jpg")) {
+        return toRuneImgUrl(direct);
+      }
+      const jpgs = [];
+      collectJpgStrings(r, jpgs);
+      return jpgs.length ? toRuneImgUrl(jpgs[0]) : "";
+    }
+
+    function buildSetOptions(items) {
+      const sets = new Set();
+      for (const r of items) {
+        const s = runeSet(r);
+        if (s) sets.add(s);
+      }
+      const sorted = [...sets].sort((a, b) => a.localeCompare(b, "ko"));
+      for (const s of sorted) {
+        const opt = document.createElement("option");
+        opt.value = s;
+        opt.textContent = s;
+        $setFilter.appendChild(opt);
+      }
+    }
+
+    function matches(r, query, setVal) {
+      const q = (query || "").trim().toLowerCase();
+      const s = runeSet(r) || "";
+      if (setVal && s !== setVal) return false;
+
+      if (!q) return true;
+
+      const blob = [
+        runeName(r),
+        s,
+        runeDesc(r),
+        runeBonus2(r),
+        runeBonus4(r),
+        String(runeSlot(r) || ""),
+        JSON.stringify(r),
+      ].join(" ").toLowerCase();
+
+      return blob.includes(q);
+    }
+
+    function renderCard(r) {
+      const name = runeName(r);
+      const set = runeSet(r);
+      const desc = runeDesc(r);
+      const b2 = runeBonus2(r);
+      const b4 = runeBonus4(r);
+      const slot = runeSlot(r);
+      const img = runeImg(r);
+
+      const el = document.createElement("div");
+      el.className = "card";
+
+      el.innerHTML = `
+        <div class="card-top">
+          <div class="thumb">
+            ${img ? `<img src="${img}" alt="${name}" loading="lazy" />` : `<div class="thumb-empty">NO IMG</div>`}
+          </div>
+          <div class="card-title">
+            <div class="name">${escapeHtml(name)}</div>
+            <div class="sub">
+              ${set ? `<span class="pill">${escapeHtml(set)}</span>` : ""}
+              ${slot !== "" ? `<span class="pill muted">슬롯 ${escapeHtml(String(slot))}</span>` : ""}
+            </div>
+          </div>
+        </div>
+
+        ${desc ? `<div class="desc">${escapeHtml(desc)}</div>` : ""}
+
+        ${(b2 || b4) ? `
+          <div class="bonus">
+            ${b2 ? `<div><span class="k">2세트</span> ${escapeHtml(b2)}</div>` : ""}
+            ${b4 ? `<div><span class="k">4세트</span> ${escapeHtml(b4)}</div>` : ""}
+          </div>
+        ` : ""}
+
+        <details class="raw">
+          <summary>원본 데이터 보기</summary>
+          <pre>${escapeHtml(JSON.stringify(r, null, 2))}</pre>
+        </details>
+      `;
+
+      return el;
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function groupBySet(items) {
+      const map = new Map();
+      for (const r of items) {
+        const key = runeSet(r) || "세트 미지정";
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(r);
+      }
+      // 세트명 정렬
+      return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], "ko"));
+    }
+
+    function render(items) {
+      const q = $q.value;
+      const setVal = $setFilter.value;
+      const filtered = items.filter(r => matches(r, q, setVal));
+
+      $grid.innerHTML = "";
+      $status.textContent = `표시 ${filtered.length}개`;
+
+      if ($groupBySet.checked) {
+        for (const [setName, arr] of groupBySet(filtered)) {
+          const section = document.createElement("section");
+          section.className = "set-section";
+
+          const header = document.createElement("div");
+          header.className = "set-header";
+          header.innerHTML = `<h2>${escapeHtml(setName)}</h2><div class="count">${arr.length}개</div>`;
+          section.appendChild(header);
+
+          const inner = document.createElement("div");
+          inner.className = "set-grid";
+          for (const r of arr) inner.appendChild(renderCard(r));
+          section.appendChild(inner);
+
+          $grid.appendChild(section);
+        }
+      } else {
+        for (const r of filtered) $grid.appendChild(renderCard(r));
+      }
+    }
+
+    async function loadRunes() {
+      // 1) ESM import 시도 (가장 깔끔)
+      try {
+        const mod = await import(DATA_URL);
+        const data = mod?.default ?? mod?.runes ?? mod?.data ?? mod;
+        return normalizeToArray(data);
+      } catch (e) {
+        // 2) import 실패 시 fetch로 텍스트를 받아 export default 파싱(방어용)
+        const res = await fetch(DATA_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error(`룬 데이터 로딩 실패: ${res.status}`);
+        const txt = await res.text();
+
+        // export default ...; 형태에서 ... 부분만 뽑기
+        const m = txt.match(/export\s+default\s+([\s\S]*?);?\s*$/);
+        if (!m) throw new Error("runes.js에서 export default를 찾지 못했습니다.");
+
+        // JS 객체/배열을 eval 없이 파싱하기 어렵기 때문에,
+        // 최소한의 방어로 Function을 사용 (동일 출처 정적 파일 가정)
+        const val = (new Function(`return (${m[1]});`))();
+        return normalizeToArray(val);
+      }
+    }
+
+    let ALL = [];
+
+    function bind() {
+      const rerender = () => render(ALL);
+      $q.addEventListener("input", rerender);
+      $setFilter.addEventListener("change", rerender);
+      $groupBySet.addEventListener("change", rerender);
+    }
+
+    (async () => {
+      try {
+        $status.textContent = "룬 데이터 로딩 중…";
+        ALL = await loadRunes();
+        buildSetOptions(ALL);
+        bind();
+        render(ALL);
+      } catch (e) {
+        console.error(e);
+        $status.textContent = "룬 데이터 로딩 실패";
+        $grid.innerHTML = `<div class="error">${String(e?.message || e)}</div>`;
+      }
+    })();
+  </script>
+</body>
+</html>
