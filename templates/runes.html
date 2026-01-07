@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{{ title }}</title>
 
-  <!-- 공통 스타일이 있으면 유지 -->
   <link rel="stylesheet" href="/css/select.css?v={{ last_refresh }}" />
   <link rel="stylesheet" href="/css/runes.css?v={{ last_refresh }}" />
 </head>
@@ -26,14 +25,14 @@
       <div class="runes-head">
         <div class="runes-title">
           <h2>룬 세트</h2>
-          <div class="runes-sub">검색/필터로 빠르게 찾고, 2세트·4세트 효과를 확인하세요.</div>
+          <div class="runes-sub">검색으로 빠르게 찾고, 2세트·4세트 효과를 확인하세요.</div>
         </div>
-      
+
         <div class="runes-controls" role="search">
           <label class="sr-only" for="q">룬 검색</label>
           <input id="q" class="input" placeholder="룬 이름 검색 (예: Alpha, Giants)" autocomplete="off" />
         </div>
-
+      </div> <!-- ✅ runes-head 닫기 -->
 
       <div id="runeGrid" class="rune-grid"></div>
     </div>
@@ -66,48 +65,48 @@
 
   <script type="module">
     import { RUNE_SETS, MAIN_STATS_BY_POSITION } from "/data/zone-nova/runes.js";
-      
-      const runeGrid = document.getElementById("runeGrid");
-      const q = document.getElementById("q");
-      const mainStats = document.getElementById("mainStats");
-      
-      function renderRunes() {
-        const keyword = (q.value || "").trim().toLowerCase();
-      
-        const entries = Object.entries(RUNE_SETS);
-        const filtered = entries.filter(([key, r]) => {
-          const hay = `${key} ${r.name}`.toLowerCase();
-          if (keyword && !hay.includes(keyword)) return false;
-          return true;
-        });
-      
-        runeGrid.innerHTML = filtered.map(([key, r]) => runeCard(key, r)).join("");
-      
-        if (!filtered.length) {
-          runeGrid.innerHTML = `<div class="empty">검색 결과가 없습니다.</div>`;
-        }
-      }
-      
-      q.addEventListener("input", renderRunes);
-      
-      renderRunes();
-      renderMainStats();
-      
+
+    const runeGrid = document.getElementById("runeGrid");
+    const q = document.getElementById("q");
+    const mainStats = document.getElementById("mainStats");
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function isGuildOnly(r) {
+      const note = (r.note || "").toLowerCase();
+      // 한글/영문 모두 대응
+      return note.includes("길드") || note.includes("guild");
+    }
 
     function runeCard(key, r) {
       const badges = [];
       if (isGuildOnly(r)) badges.push(`<span class="badge">길드 레이드</span>`);
       if (r.classRestriction) badges.push(`<span class="badge">클래스 제한</span>`);
 
-      const two = r.twoPiece ? `<div class="line"><span class="tag">2세트</span><span>${escapeHtml(r.twoPiece)}</span></div>` : "";
-      const four = r.fourPiece ? `<div class="line"><span class="tag">4세트</span><span>${escapeHtml(r.fourPiece)}</span></div>` : "";
+      const two = r.twoPiece
+        ? `<div class="line"><span class="tag">2세트</span><span>${escapeHtml(r.twoPiece)}</span></div>`
+        : "";
+      const four = r.fourPiece
+        ? `<div class="line"><span class="tag">4세트</span><span>${escapeHtml(r.fourPiece)}</span></div>`
+        : "";
+      const restriction = r.classRestriction
+        ? `<div class="note">적용 제한: ${escapeHtml(r.classRestriction)}</div>`
+        : "";
       const note = r.note ? `<div class="note">※ ${escapeHtml(r.note)}</div>` : "";
-      const restriction = r.classRestriction ? `<div class="note">적용 제한: ${escapeHtml(r.classRestriction)}</div>` : "";
 
       return `
         <article class="rune-card" data-key="${escapeHtml(key)}">
           <div class="thumb">
-            <img loading="lazy" src="/images/games/zone-nova/runes/${encodeURIComponent(r.image)}" alt="${escapeHtml(r.name)}" />
+            <img loading="lazy"
+              src="/images/games/zone-nova/runes/${encodeURIComponent(r.image)}"
+              alt="${escapeHtml(r.name)}" />
           </div>
           <div class="body">
             <div class="top">
@@ -127,16 +126,11 @@
 
     function renderRunes() {
       const keyword = (q.value || "").trim().toLowerCase();
-      const f = filter.value;
 
       const entries = Object.entries(RUNE_SETS);
       const filtered = entries.filter(([key, r]) => {
         const hay = `${key} ${r.name}`.toLowerCase();
         if (keyword && !hay.includes(keyword)) return false;
-
-        if (f === "guild" && !isGuildOnly(r)) return false;
-        if (f === "restricted" && !isRestricted(r)) return false;
-
         return true;
       });
 
@@ -169,18 +163,9 @@
       mainStats.innerHTML = `<div class="ms-grid">${items}</div>`;
     }
 
-    function escapeHtml(str) {
-      return String(str)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
     q.addEventListener("input", renderRunes);
-    filter.addEventListener("change", renderRunes);
 
+    // 초기 렌더
     renderRunes();
     renderMainStats();
   </script>
