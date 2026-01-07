@@ -1,96 +1,354 @@
-/* runes.css */
-.wrap { max-width: 1200px; margin: 0 auto; padding: 14px; }
-.panel { margin: 14px 0; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.03); }
-.panel h2 { margin: 0 0 12px; font-size: 18px; }
+/* runes.css — responsive & mobile-first */
 
-.runes-head { display: flex; gap: 12px; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; }
-.runes-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.input, .select {
-  height: 38px;
-  padding: 0 12px;
-  border-radius: 10px;
-  border: 1px solid var(--line2);
-  background: rgba(0,0,0,.15);
-  color: var(--txt);
-  outline: none;
+/* ---------- Layout base ---------- */
+.wrap{
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 12px;
 }
-.input { width: min(320px, 78vw); }
 
-.rune-grid {
+.panel{
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255,255,255,.03);
+}
+
+/* 모바일에서 제목/문단이 빡빡하지 않게 */
+.panel h2{
+  margin: 0 0 10px;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+@media (min-width: 900px){
+  .wrap{ padding: 16px; }
+  .panel{ padding: 16px; }
+  .panel h2{ font-size: 20px; }
+}
+
+/* Screen reader only */
+.sr-only{
+  position:absolute;
+  width:1px; height:1px;
+  padding:0; margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
+}
+
+/* ---------- Header / Controls ---------- */
+.runes-head{
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-@media (min-width: 900px) {
-  .rune-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
-.rune-card {
+.runes-title h2{ margin: 0; }
+.runes-sub{
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+/* 모바일: 검색/필터 2열로 안정적으로 배치 */
+.runes-controls{
   display: grid;
-  grid-template-columns: 86px 1fr;
-  gap: 12px;
+  grid-template-columns: 1fr 140px;
+  gap: 10px;
+  align-items: center;
+
+  /* 스크롤 중에도 상단에 남게 하고 싶으면 sticky */
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+
+  padding: 10px;
   border: 1px solid var(--line);
   border-radius: 14px;
+  background: rgba(0,0,0,.26);
+  backdrop-filter: blur(6px);
+}
+
+/* PC: 컨트롤은 우측으로, 더 넓게 */
+@media (min-width: 900px){
+  .runes-head{
+    grid-template-columns: 1fr 520px;
+    align-items: end;
+    gap: 12px;
+  }
+  .runes-controls{
+    grid-template-columns: 1fr 180px;
+    top: 12px;
+    padding: 12px;
+  }
+}
+
+/* 입력 컨트롤: 터치/클릭 영역 확대 + 가독성 */
+.input, .select{
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line2);
+  background: rgba(0,0,0,.18);
+  color: var(--txt);
+  outline: none;
+  font-size: 14px;
+}
+
+.input::placeholder{ color: rgba(255,255,255,.45); }
+
+.input:focus, .select:focus{
+  border-color: rgba(255,255,255,.28);
+}
+
+/* ---------- Rune grid ---------- */
+/* 모바일: 1열 고정(가독성) */
+.rune-grid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+/* 태블릿: 2열 */
+@media (min-width: 600px){
+  .rune-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+/* PC: 3열, 큰 화면: 4열 */
+@media (min-width: 980px){
+  .rune-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1280px){
+  .rune-grid{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* ---------- Rune card ---------- */
+/* 카드 안쪽 overflow/줄바꿈 이슈 방지 */
+.rune-card{
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 12px;
+
+  border: 1px solid var(--line);
+  border-radius: 16px;
   overflow: hidden;
   background: rgba(0,0,0,.18);
-}
-.thumb { width: 86px; height: 86px; display: grid; place-items: center; background: rgba(0,0,0,.25); }
-.thumb img { width: 70px; height: 70px; object-fit: contain; }
 
-.body { padding: 10px 12px 12px; }
-.top { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
-.name { margin: 0; font-size: 15px; font-weight: 750; }
-.badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-.badge {
+  /* 스크롤 성능: 브라우저 힌트 */
+  content-visibility: auto;
+  contain-intrinsic-size: 140px;
+}
+
+/* 모바일에서 손가락으로 누르기 좋게 */
+.rune-card:active{
+  transform: translateY(1px);
+}
+
+/* 이미지 영역 */
+.thumb{
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,.28);
+}
+.thumb img{
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  image-rendering: auto;
+}
+
+/* 카드 본문 */
+.body{
+  padding: 12px 12px 12px 0;
+  min-width: 0; /* 긴 문자열 줄바꿈 허용 */
+}
+
+.top{
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.name{
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.2;
+
+  /* 긴 룬명 대비 */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* 배지: 과도하게 길어지면 다음 줄로 */
+.badges{
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.badge{
   font-size: 11px;
-  padding: 3px 8px;
+  padding: 4px 8px;
   border-radius: 999px;
   border: 1px solid var(--line2);
   color: var(--muted);
   background: rgba(255,255,255,.04);
+  white-space: nowrap;
 }
 
-.effects { margin-top: 8px; display: grid; gap: 6px; }
-.line { display: grid; grid-template-columns: 48px 1fr; gap: 8px; align-items: start; }
-.tag {
+/* 효과 라인 */
+.effects{
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+/* “2세트/4세트” 태그와 설명을 모바일에서도 깨끗하게 */
+.line{
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+}
+.tag{
   font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 8px;
+  padding: 3px 8px;
+  border-radius: 10px;
   border: 1px solid var(--line);
   color: var(--muted);
   background: rgba(255,255,255,.03);
   text-align: center;
+  white-space: nowrap;
 }
-.note { margin-top: 8px; font-size: 12px; color: var(--muted); line-height: 1.35; }
+.line span:last-child{
+  font-size: 13px;
+  color: var(--txt);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
 
-.empty { padding: 18px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; }
+/* note / restriction */
+.note{
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
 
-.mainstats .ms-grid {
+/* 빈 결과 */
+.empty{
+  padding: 18px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: rgba(0,0,0,.12);
+}
+
+/* ---------- Main stats grid ---------- */
+.mainstats .ms-grid{
   display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
 }
-@media (min-width: 900px) {
-  .mainstats .ms-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (min-width: 700px){
+  .mainstats .ms-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
-.ms-card {
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 12px;
-  background: rgba(0,0,0,.16);
+@media (min-width: 1100px){
+  .mainstats .ms-grid{
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
-.ms-title { font-weight: 800; margin-bottom: 6px; }
-.ms-stat { font-size: 13px; color: var(--txt); margin-bottom: 4px; }
-.ms-desc { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
-.ms-card ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); }
-.ms-card li { margin: 4px 0; }
 
-.substats-note { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
-.substats-table { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-.substats-table .row {
+.ms-card{
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(0,0,0,.16);
+  min-width: 0;
+}
+
+.ms-title{
+  font-weight: 850;
+  margin-bottom: 8px;
+}
+
+.ms-stat{
+  font-size: 13px;
+  color: var(--txt);
+  margin-bottom: 6px;
+}
+
+.ms-desc{
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  line-height: 1.35;
+}
+
+.ms-card ul{
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+.ms-card li{
+  margin: 4px 0;
+  line-height: 1.35;
+}
+
+/* ---------- Sub stats table ---------- */
+.substats-note{
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  line-height: 1.35;
+}
+
+.substats-table{
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.substats-table .row{
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 10px;
   padding: 10px 12px;
   border-top: 1px solid var(--line);
 }
-.substats-table .row.head { border-top: 0; background: rgba(255,255,255,.04); font-weight: 800; }
+
+.substats-table .row.head{
+  border-top: 0;
+  background: rgba(255,255,255,.04);
+  font-weight: 850;
+}
+
+@media (max-width: 420px){
+  /* 초소형 폰: 표를 세로형으로 */
+  .substats-table .row{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Reduce motion (accessibility) ---------- */
+@media (prefers-reduced-motion: reduce){
+  .rune-card{ transition: none; }
+  .rune-card:active{ transform: none; }
+}
