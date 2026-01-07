@@ -383,9 +383,8 @@ if __name__ == "__main__":
 
 @app.route("/runes")
 def runes_page():
-    # 다른 페이지와 동일하게 title/last_refresh를 내려주고 싶으면 기존 방식 재사용
     return render_template(
         "runes.html",
         title="룬 정보",
-        last_refresh=os.getenv("LAST_REFRESH", ""),  # 기존 프로젝트 변수 방식에 맞춰 조정
+        last_refresh=os.getenv("LAST_REFRESH", ""),
     )
