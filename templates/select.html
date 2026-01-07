@@ -273,6 +273,35 @@
       .tier-classes-inline{ grid-template-columns: 1fr; }
     }
 
+  
+    /* ===== Mobile vertical scroll fix (character list) ===== */
+    html, body{
+      height: auto !important;
+      min-height: 100% !important;
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+    /* Ensure the main list container can scroll naturally on touch */
+    .table-wrap{
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+    }
+    /* Some browsers treat table as a touch target; keep vertical pan enabled */
+    .table, .table *{
+      touch-action: pan-y;
+    }
+
+    /* ===== Background: remove multi-radial seams, use a single fixed gradient ===== */
+    body{
+      background: linear-gradient(180deg, #070b14 0%, #0b1222 100%) fixed !important;
+    }
+    /* Panels remain consistent on the simplified background */
+    .panel, .table-wrap, .modal-card, .tier-panel, .tier-class-inline{
+      background: rgba(255,255,255,.035);
+    }
+
   </style>
 </head>
 
