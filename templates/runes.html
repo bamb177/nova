@@ -4,218 +4,160 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{{ title }}</title>
+
+  <!-- 공통 스타일이 있으면 유지 -->
+  <link rel="stylesheet" href="/css/select.css?v={{ last_refresh }}" />
   <link rel="stylesheet" href="/css/runes.css?v={{ last_refresh }}" />
 </head>
 
 <body>
   <div class="topbar">
-    <div class="topbar-left">
-      <a class="back-btn" href="/">← 메인</a>
-      <div class="title">
-        <h1>룬 정보</h1>
-        <div class="meta">데이터: <code>/data/zone-nova/runes.js</code></div>
+    <div class="title">
+      <div class="title-row">
+        <h1>{{ title }}</h1>
+        <div class="refresh">갱신 {{ last_refresh }}</div>
       </div>
-    </div>
-
-    <div class="topbar-right">
-      <label class="toggle">
-        <input id="groupBySet" type="checkbox" checked />
-        <span>세트로 묶기</span>
-      </label>
+      <div class="meta">Rune Sets / Main Stats / Sub Stats</div>
     </div>
   </div>
 
-  <div class="panel">
-    <div class="filters">
-      <input id="q" class="input" type="text" placeholder="룬/세트/설명 검색" />
-      <select id="setFilter" class="select">
-        <option value="">전체 세트</option>
-      </select>
+  <div class="wrap">
+    <div class="panel">
+      <div class="runes-head">
+        <h2>룬 세트</h2>
+
+        <div class="runes-controls">
+          <input id="q" class="input" placeholder="룬 이름 검색 (예: Alpha, Giants)" />
+          <select id="filter" class="select">
+            <option value="all">전체</option>
+            <option value="guild">길드 레이드 전용</option>
+            <option value="restricted">클래스 제한 있음</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="runeGrid" class="rune-grid"></div>
     </div>
 
-    <div id="status" class="status">로딩 중…</div>
-    <div id="grid" class="grid"></div>
+    <div class="panel">
+      <h2>위치별 메인 스탯</h2>
+      <div id="mainStats" class="mainstats"></div>
+    </div>
+
+    <div class="panel">
+      <h2>서브 스탯 가능 목록</h2>
+      <div class="substats-note">
+        모든 룬은 아래 서브 스탯 중 조합으로 등장할 수 있습니다. (희귀도/강화에 따라 개수·수치 상이)
+      </div>
+
+      <div class="substats-table">
+        <div class="row head">
+          <div>스탯 타입</div>
+          <div>가능 형태</div>
+        </div>
+        <div class="row"><div>공격력</div><div>고정 수치, %</div></div>
+        <div class="row"><div>HP</div><div>고정 수치, %</div></div>
+        <div class="row"><div>방어력</div><div>고정 수치, %</div></div>
+        <div class="row"><div>치명타 확률</div><div>%만</div></div>
+        <div class="row"><div>치명타 피해</div><div>%만</div></div>
+        <div class="row"><div>관통</div><div>고정 수치만</div></div>
+      </div>
+    </div>
   </div>
 
   <script type="module">
-    const DATA_URL = "/data/zone-nova/runes.js";
-    const IMG_BASE = "/images/games/zone-nova/runes/";
+    import { RUNE_SETS, MAIN_STATS_BY_POSITION } from "/data/zone-nova/runes.js";
 
-    const $status = document.getElementById("status");
-    const $grid = document.getElementById("grid");
-    const $q = document.getElementById("q");
-    const $setFilter = document.getElementById("setFilter");
-    const $groupBySet = document.getElementById("groupBySet");
+    const runeGrid = document.getElementById("runeGrid");
+    const q = document.getElementById("q");
+    const filter = document.getElementById("filter");
+    const mainStats = document.getElementById("mainStats");
 
-    function isObject(v) {
-      return v && typeof v === "object" && !Array.isArray(v);
+    function isGuildOnly(r) {
+      const note = (r.note || "").toLowerCase();
+      return note.includes("길드") || note.includes("guild");
+    }
+    function isRestricted(r) {
+      return !!r.classRestriction;
     }
 
-    function normalizeToArray(data) {
-      if (Array.isArray(data)) return data;
+    function runeCard(key, r) {
+      const badges = [];
+      if (isGuildOnly(r)) badges.push(`<span class="badge">길드 레이드</span>`);
+      if (r.classRestriction) badges.push(`<span class="badge">클래스 제한</span>`);
 
-      if (isObject(data)) {
-        for (const k of ["runes", "items", "list", "data"]) {
-          if (Array.isArray(data[k])) return data[k];
-        }
-        // 객체가 {id: {...}, id2: {...}} 형태면 values 사용
-        const vals = Object.values(data);
-        if (vals.every(isObject)) return vals;
-      }
-      return [];
-    }
+      const two = r.twoPiece ? `<div class="line"><span class="tag">2세트</span><span>${escapeHtml(r.twoPiece)}</span></div>` : "";
+      const four = r.fourPiece ? `<div class="line"><span class="tag">4세트</span><span>${escapeHtml(r.fourPiece)}</span></div>` : "";
+      const note = r.note ? `<div class="note">※ ${escapeHtml(r.note)}</div>` : "";
+      const restriction = r.classRestriction ? `<div class="note">적용 제한: ${escapeHtml(r.classRestriction)}</div>` : "";
 
-    function collectJpgStrings(node, out) {
-      if (!node) return;
-      if (typeof node === "string") {
-        if (node.toLowerCase().includes(".jpg")) out.push(node);
-        return;
-      }
-      if (Array.isArray(node)) {
-        for (const v of node) collectJpgStrings(v, out);
-        return;
-      }
-      if (isObject(node)) {
-        for (const v of Object.values(node)) collectJpgStrings(v, out);
-      }
-    }
-
-    function toRuneImgUrl(anyJpgString) {
-      // "xxx/yyy/abc.jpg" 같은 것도 들어올 수 있으니 파일명만 뽑아서 IMG_BASE 붙임
-      const s = String(anyJpgString || "");
-      const file = s.split("/").pop();
-      return file ? (IMG_BASE + file) : "";
-    }
-
-    function pick(obj, keys) {
-      for (const k of keys) {
-        if (obj && obj[k] != null && obj[k] !== "") return obj[k];
-      }
-      return "";
-    }
-
-    function runeName(r) {
-      return (
-        pick(r, ["name_ko", "nameKo", "nameKR", "name", "title", "id"]) ||
-        "이름 없음"
-      );
-    }
-
-    function runeSet(r) {
-      return pick(r, ["set_ko", "setKo", "setName", "set", "group", "family", "type"]);
-    }
-
-    function runeDesc(r) {
-      return pick(r, [
-        "desc_ko", "descKo", "description_ko", "description", "desc",
-        "effect", "text"
-      ]);
-    }
-
-    function runeBonus2(r) {
-      return pick(r, ["bonus2_ko", "bonus2", "set2", "twoSet", "effect2"]);
-    }
-
-    function runeBonus4(r) {
-      return pick(r, ["bonus4_ko", "bonus4", "set4", "fourSet", "effect4"]);
-    }
-
-    function runeSlot(r) {
-      return pick(r, ["slot", "pos", "position", "place", "index"]);
-    }
-
-    function runeImg(r) {
-      // 흔한 키 먼저 체크 → 없으면 객체 전체를 훑어서 jpg 문자열 하나라도 찾기
-      const direct = pick(r, ["img", "image", "icon", "jpg", "file", "filename"]);
-      if (typeof direct === "string" && direct.toLowerCase().includes(".jpg")) {
-        return toRuneImgUrl(direct);
-      }
-      const jpgs = [];
-      collectJpgStrings(r, jpgs);
-      return jpgs.length ? toRuneImgUrl(jpgs[0]) : "";
-    }
-
-    function buildSetOptions(items) {
-      const sets = new Set();
-      for (const r of items) {
-        const s = runeSet(r);
-        if (s) sets.add(s);
-      }
-      const sorted = [...sets].sort((a, b) => a.localeCompare(b, "ko"));
-      for (const s of sorted) {
-        const opt = document.createElement("option");
-        opt.value = s;
-        opt.textContent = s;
-        $setFilter.appendChild(opt);
-      }
-    }
-
-    function matches(r, query, setVal) {
-      const q = (query || "").trim().toLowerCase();
-      const s = runeSet(r) || "";
-      if (setVal && s !== setVal) return false;
-
-      if (!q) return true;
-
-      const blob = [
-        runeName(r),
-        s,
-        runeDesc(r),
-        runeBonus2(r),
-        runeBonus4(r),
-        String(runeSlot(r) || ""),
-        JSON.stringify(r),
-      ].join(" ").toLowerCase();
-
-      return blob.includes(q);
-    }
-
-    function renderCard(r) {
-      const name = runeName(r);
-      const set = runeSet(r);
-      const desc = runeDesc(r);
-      const b2 = runeBonus2(r);
-      const b4 = runeBonus4(r);
-      const slot = runeSlot(r);
-      const img = runeImg(r);
-
-      const el = document.createElement("div");
-      el.className = "card";
-
-      el.innerHTML = `
-        <div class="card-top">
+      return `
+        <article class="rune-card" data-key="${escapeHtml(key)}">
           <div class="thumb">
-            ${img ? `<img src="${img}" alt="${name}" loading="lazy" />` : `<div class="thumb-empty">NO IMG</div>`}
+            <img loading="lazy" src="/images/games/zone-nova/runes/${encodeURIComponent(r.image)}" alt="${escapeHtml(r.name)}" />
           </div>
-          <div class="card-title">
-            <div class="name">${escapeHtml(name)}</div>
-            <div class="sub">
-              ${set ? `<span class="pill">${escapeHtml(set)}</span>` : ""}
-              ${slot !== "" ? `<span class="pill muted">슬롯 ${escapeHtml(String(slot))}</span>` : ""}
+          <div class="body">
+            <div class="top">
+              <h3 class="name">${escapeHtml(r.name)}</h3>
+              <div class="badges">${badges.join("")}</div>
             </div>
+            <div class="effects">
+              ${two}
+              ${four}
+            </div>
+            ${restriction}
+            ${note}
           </div>
-        </div>
-
-        ${desc ? `<div class="desc">${escapeHtml(desc)}</div>` : ""}
-
-        ${(b2 || b4) ? `
-          <div class="bonus">
-            ${b2 ? `<div><span class="k">2세트</span> ${escapeHtml(b2)}</div>` : ""}
-            ${b4 ? `<div><span class="k">4세트</span> ${escapeHtml(b4)}</div>` : ""}
-          </div>
-        ` : ""}
-
-        <details class="raw">
-          <summary>원본 데이터 보기</summary>
-          <pre>${escapeHtml(JSON.stringify(r, null, 2))}</pre>
-        </details>
+        </article>
       `;
-
-      return el;
     }
 
-    function escapeHtml(s) {
-      return String(s)
+    function renderRunes() {
+      const keyword = (q.value || "").trim().toLowerCase();
+      const f = filter.value;
+
+      const entries = Object.entries(RUNE_SETS);
+      const filtered = entries.filter(([key, r]) => {
+        const hay = `${key} ${r.name}`.toLowerCase();
+        if (keyword && !hay.includes(keyword)) return false;
+
+        if (f === "guild" && !isGuildOnly(r)) return false;
+        if (f === "restricted" && !isRestricted(r)) return false;
+
+        return true;
+      });
+
+      runeGrid.innerHTML = filtered.map(([key, r]) => runeCard(key, r)).join("");
+
+      if (!filtered.length) {
+        runeGrid.innerHTML = `<div class="empty">검색 결과가 없습니다.</div>`;
+      }
+    }
+
+    function renderMainStats() {
+      const items = Object.entries(MAIN_STATS_BY_POSITION)
+        .sort((a, b) => Number(a[0]) - Number(b[0]))
+        .map(([pos, v]) => {
+          const list = v.availableStats
+            ? `<ul>${v.availableStats.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ul>`
+            : "";
+
+          return `
+            <div class="ms-card">
+              <div class="ms-title">${escapeHtml(v.name || `Position ${pos}`)}</div>
+              ${v.stat ? `<div class="ms-stat">${escapeHtml(v.stat)}</div>` : ""}
+              ${v.description ? `<div class="ms-desc">${escapeHtml(v.description)}</div>` : ""}
+              ${list}
+            </div>
+          `;
+        })
+        .join("");
+
+      mainStats.innerHTML = `<div class="ms-grid">${items}</div>`;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
@@ -223,92 +165,11 @@
         .replaceAll("'", "&#039;");
     }
 
-    function groupBySet(items) {
-      const map = new Map();
-      for (const r of items) {
-        const key = runeSet(r) || "세트 미지정";
-        if (!map.has(key)) map.set(key, []);
-        map.get(key).push(r);
-      }
-      // 세트명 정렬
-      return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], "ko"));
-    }
+    q.addEventListener("input", renderRunes);
+    filter.addEventListener("change", renderRunes);
 
-    function render(items) {
-      const q = $q.value;
-      const setVal = $setFilter.value;
-      const filtered = items.filter(r => matches(r, q, setVal));
-
-      $grid.innerHTML = "";
-      $status.textContent = `표시 ${filtered.length}개`;
-
-      if ($groupBySet.checked) {
-        for (const [setName, arr] of groupBySet(filtered)) {
-          const section = document.createElement("section");
-          section.className = "set-section";
-
-          const header = document.createElement("div");
-          header.className = "set-header";
-          header.innerHTML = `<h2>${escapeHtml(setName)}</h2><div class="count">${arr.length}개</div>`;
-          section.appendChild(header);
-
-          const inner = document.createElement("div");
-          inner.className = "set-grid";
-          for (const r of arr) inner.appendChild(renderCard(r));
-          section.appendChild(inner);
-
-          $grid.appendChild(section);
-        }
-      } else {
-        for (const r of filtered) $grid.appendChild(renderCard(r));
-      }
-    }
-
-    async function loadRunes() {
-      // 1) ESM import 시도 (가장 깔끔)
-      try {
-        const mod = await import(DATA_URL);
-        const data = mod?.default ?? mod?.runes ?? mod?.data ?? mod;
-        return normalizeToArray(data);
-      } catch (e) {
-        // 2) import 실패 시 fetch로 텍스트를 받아 export default 파싱(방어용)
-        const res = await fetch(DATA_URL, { cache: "no-store" });
-        if (!res.ok) throw new Error(`룬 데이터 로딩 실패: ${res.status}`);
-        const txt = await res.text();
-
-        // export default ...; 형태에서 ... 부분만 뽑기
-        const m = txt.match(/export\s+default\s+([\s\S]*?);?\s*$/);
-        if (!m) throw new Error("runes.js에서 export default를 찾지 못했습니다.");
-
-        // JS 객체/배열을 eval 없이 파싱하기 어렵기 때문에,
-        // 최소한의 방어로 Function을 사용 (동일 출처 정적 파일 가정)
-        const val = (new Function(`return (${m[1]});`))();
-        return normalizeToArray(val);
-      }
-    }
-
-    let ALL = [];
-
-    function bind() {
-      const rerender = () => render(ALL);
-      $q.addEventListener("input", rerender);
-      $setFilter.addEventListener("change", rerender);
-      $groupBySet.addEventListener("change", rerender);
-    }
-
-    (async () => {
-      try {
-        $status.textContent = "룬 데이터 로딩 중…";
-        ALL = await loadRunes();
-        buildSetOptions(ALL);
-        bind();
-        render(ALL);
-      } catch (e) {
-        console.error(e);
-        $status.textContent = "룬 데이터 로딩 실패";
-        $grid.innerHTML = `<div class="error">${String(e?.message || e)}</div>`;
-      }
-    })();
+    renderRunes();
+    renderMainStats();
   </script>
 </body>
 </html>
