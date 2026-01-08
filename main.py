@@ -171,6 +171,85 @@ def find_file_by_stem(folder: str, stem: str) -> str | None:
             return fn
     return None
 
+def _norm_key(s: str) -> str:
+    s = (s or "").strip().lower()
+    # 공백/하이픈/언더스코어/점 제거
+    s = re.sub(r"[\s\-_\.]+", "", s)
+    # 기타 특수문자 제거
+    s = re.sub(r"[^a-z0-9가-힣]", "", s)
+    return s
+
+
+def build_rune_image_map(folder: str) -> dict[str, str]:
+    """
+    public/images/games/zone-nova/runes 폴더를 스캔해서
+    세트명(Hert/Gimel 등) -> 실제 파일명으로 매핑(대소문자/공백 차이 흡수)
+    """
+    m: dict[str, str] = {}
+    if not os.path.isdir(folder):
+        return m
+
+    # 하위 폴더가 있을 가능성까지 대비 (os.walk)
+    for root, _, files in os.walk(folder):
+        for fn in files:
+            ext = os.path.splitext(fn)[1].lower()
+            if ext not in VALID_IMG_EXT:
+                continue
+
+            base = os.path.splitext(fn)[0]
+            rel = os.path.relpath(os.path.join(root, fn), folder).replace("\\", "/")
+
+            keys = set()
+            keys.add(base.lower())
+            keys.add(_norm_key(base))
+
+            # 숫자 제거 버전도(혹시 파일명이 Hert_01 같은 경우)
+            keys.add(re.sub(r"\d+", "", base.lower()))
+            keys.add(_norm_key(re.sub(r"\d+", "", base)))
+
+            # "rune" 같은 접미/접두가 붙은 케이스 흡수
+            b2 = re.sub(r"\brune\b", "", base, flags=re.I).strip()
+            keys.add(b2.lower())
+            keys.add(_norm_key(b2))
+
+            for k in list(keys):
+                if k:
+                    # 최초 1회만 저장(중복 시 먼저 발견된 파일 우선)
+                    m.setdefault(k, rel)
+
+    return m
+
+
+def resolve_rune_icon(set_name: str, rune_map: dict[str, str]) -> str | None:
+    """
+    세트명으로 룬 아이콘 URL을 복원한다.
+    """
+    if not set_name:
+        return None
+
+    candidates = [
+        set_name,
+        set_name.lower(),
+        _norm_key(set_name),
+        re.sub(r"\d+", "", set_name.lower()),
+        _norm_key(re.sub(r"\d+", "", set_name)),
+        f"{set_name} rune",
+        f"rune {set_name}",
+        _norm_key(f"{set_name} rune"),
+        _norm_key(f"rune {set_name}"),
+    ]
+
+    for c in candidates:
+        key = c if c == c.lower() else c.lower()
+        if key in rune_map:
+            return f"/images/games/zone-nova/runes/{rune_map[key]}"
+        nk = _norm_key(c)
+        if nk in rune_map:
+            return f"/images/games/zone-nova/runes/{rune_map[nk]}"
+
+    return None
+
+
 
 def element_icon_url(element: str) -> str | None:
     if not element or element == "-":
