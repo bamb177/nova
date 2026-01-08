@@ -25,14 +25,9 @@
       <div class="runes-head">
         <div class="runes-title">
           <h2>룬 세트</h2>
-          <div class="runes-sub">검색으로 빠르게 찾고, 2세트·4세트 효과를 확인하세요.</div>
+          <div class="runes-sub">2세트·4세트 효과를 한눈에 확인하세요.</div>
         </div>
-
-        <div class="runes-controls" role="search">
-          <label class="sr-only" for="q">룬 검색</label>
-          <input id="q" class="input" placeholder="룬 이름 검색 (예: Alpha, Giants)" autocomplete="off" />
-        </div>
-      </div> <!-- ✅ runes-head 닫기 -->
+      </div>
 
       <div id="runeGrid" class="rune-grid"></div>
     </div>
@@ -67,7 +62,6 @@
     import { RUNE_SETS, MAIN_STATS_BY_POSITION } from "/data/zone-nova/runes.js";
 
     const runeGrid = document.getElementById("runeGrid");
-    const q = document.getElementById("q");
     const mainStats = document.getElementById("mainStats");
 
     function escapeHtml(str) {
@@ -81,7 +75,6 @@
 
     function isGuildOnly(r) {
       const note = (r.note || "").toLowerCase();
-      // 한글/영문 모두 대응
       return note.includes("길드") || note.includes("guild");
     }
 
@@ -96,6 +89,7 @@
       const four = r.fourPiece
         ? `<div class="line"><span class="tag">4세트</span><span>${escapeHtml(r.fourPiece)}</span></div>`
         : "";
+
       const restriction = r.classRestriction
         ? `<div class="note">적용 제한: ${escapeHtml(r.classRestriction)}</div>`
         : "";
@@ -125,19 +119,15 @@
     }
 
     function renderRunes() {
-      const keyword = (q.value || "").trim().toLowerCase();
-
       const entries = Object.entries(RUNE_SETS);
-      const filtered = entries.filter(([key, r]) => {
-        const hay = `${key} ${r.name}`.toLowerCase();
-        if (keyword && !hay.includes(keyword)) return false;
-        return true;
-      });
 
-      runeGrid.innerHTML = filtered.map(([key, r]) => runeCard(key, r)).join("");
+      // 보기 좋게 name 기준 정렬(원하면 제거 가능)
+      entries.sort((a, b) => String(a[1]?.name || "").localeCompare(String(b[1]?.name || "")));
 
-      if (!filtered.length) {
-        runeGrid.innerHTML = `<div class="empty">검색 결과가 없습니다.</div>`;
+      runeGrid.innerHTML = entries.map(([key, r]) => runeCard(key, r)).join("");
+
+      if (!entries.length) {
+        runeGrid.innerHTML = `<div class="empty">표시할 룬이 없습니다.</div>`;
       }
     }
 
@@ -163,9 +153,6 @@
       mainStats.innerHTML = `<div class="ms-grid">${items}</div>`;
     }
 
-    q.addEventListener("input", renderRunes);
-
-    // 초기 렌더
     renderRunes();
     renderMainStats();
   </script>
