@@ -4,42 +4,36 @@
 export const RUNE_SETS = {
   Alpha: {
     name: 'Alpha',
- // chineseName: '阿尔法符',
     image: 'Alpha.jpg',
     twoPiece: '공격력 +8%',
     fourPiece: '기본 공격 피해 +30%',
   },
   'Shattered-Foundation': {
     name: 'Shattered Foundation',
- //   chineseName: '碎基',
     image: 'Shattered-Foundation.jpg',
     twoPiece: '방어력 +12%',
     fourPiece: '보호막 효과 +20%',
   },
   Beth: {
     name: 'Beth',
-  //  chineseName: '贝丝',
     image: 'Beth.jpg',
     twoPiece: '치명타 확률 +6%',
     fourPiece: 'HP가 80% 이상일 때 치명타 피해 +24%',
   },
   Zahn: {
     name: 'Zahn',
-//    chineseName: '札恩',
     image: 'Zahn.jpg',
     twoPiece: 'HP +8%',
     fourPiece: '궁극기 사용 후 받는 피해 5% 감소 (10초)',
   },
   Daleth: {
     name: 'Daleth',
-//    chineseName: '达莱特',
     image: 'Daleth.jpg',
     twoPiece: '회복 효과 +10%',
     fourPiece: '전투 시작 시 즉시 에너지 1 획득',
   },
   Epsilon: {
     name: 'Epsilon',
-//    chineseName: '埃普西隆',
     image: 'Epsilon.jpg',
     twoPiece: '추가 공격 피해 +20%',
     fourPiece: '궁극기 사용 후 아군 전체의 피해가 10% 증가하며, 10초간 지속',
@@ -47,7 +41,6 @@ export const RUNE_SETS = {
   },
   Hert: {
     name: 'Hert Extra Attack Damage',
-//    chineseName: '赫特追击伤害',
     image: 'Hert-Pursuit-Damage.jpg',
     twoPiece: '추가 공격 피해 +20%',
     fourPiece: '추가 공격 피해를 가한 후 치명타 확률 +15% (10초)',
@@ -55,7 +48,6 @@ export const RUNE_SETS = {
   },
   'Gimel-Continuous-Damage': {
     name: 'Gimel Continuous Damage',
-//    chineseName: '吉梅尔持续伤害',
     image: 'Gimel-Continuous-Damage.jpg',
     twoPiece: '지속 피해 +20%',
     fourPiece: '지속 피해를 가한 후 자신의 공격력이 2% 증가하며 최대 10중첩, 5초간 지속',
@@ -63,35 +55,33 @@ export const RUNE_SETS = {
   },
   Giants: {
     name: 'Giants [Vulnerability]',
-//    chineseName: '巨人 [脆弱]',
     image: 'Giants.jpg',
     twoPiece: '공격력 +8%',
-    fourPiece: '장착 캐릭터가 디버퍼 클래스일 경우, 궁극기 피해를 받은 대상이 5초간 받는 피해 10% 증가',
+    fourPiece:
+      '장착 캐릭터가 디버퍼 클래스일 경우, 궁극기 피해를 받은 대상이 5초간 받는 피해 10% 증가',
     classRestriction: 'Debuffer',
-    note: '동일 효과 중첩 불가. 길드 레이드에서만 획득 가능',,
+    note: '동일 효과 중첩 불가. 길드 레이드에서만 획득 가능',
   },
   Tide: {
     name: 'Tide [Energy]',
-//    chineseName: '潮汐 [能量]',
     image: 'Tide.jpg',
     twoPiece: '방어력 +12%',
     fourPiece: '전투 시작 후 10초 동안 아군 전체의 에너지 획득 효율 +30%',
     note: '효과 중첩 불가. 파티 내 Daleth 4세트 효과는 비활성화됨. 길드 레이드 전용',
   },
-//  HP: {
-//   name: 'HP',
-//   chineseName: '生命',
-//    image: 'HP.jpg',
-//    twoPiece: 'HP increased by 10%',
-//    fourPiece: 'HP increased by an additional 15%',
-//  },
-//  DEF: {
-//    name: 'Defense',
-//    chineseName: '防御',
-//    image: 'DEF.jpg',
-//   twoPiece: 'Defense increased by 10%',
-//    fourPiece: 'Defense increased by an additional 15%',
-//  },
+
+  // HP: {
+  //   name: 'HP',
+  //   image: 'HP.jpg',
+  //   twoPiece: 'HP +10%',
+  //   fourPiece: 'HP 추가 +15%',
+  // },
+  // DEF: {
+  //   name: 'Defense',
+  //   image: 'DEF.jpg',
+  //   twoPiece: '방어력 +10%',
+  //   fourPiece: '방어력 추가 +15%',
+  // },
 };
 
 // Main stats by rune position (fixed for all characters)
@@ -164,13 +154,13 @@ export function buildRuneRecommendation(mainRuneKey, secondaryRuneKey, options =
   }
 
   return {
-    name: `${mainRune.name} 4-piece + ${secondaryRune.name} 2-piece`,
+    name: `${mainRune.name} 4세트 + ${secondaryRune.name} 2세트`,
     englishName: `${mainRune.name} 4-piece + ${secondaryRune.name} 2-piece`,
     mainRune: mainRuneKey,
     secondaryRune: secondaryRuneKey,
-    mainRune2Piece: `2-piece: ${mainRune.twoPiece}`,
-    mainRune4Piece: `4-piece: ${mainRune.fourPiece}`,
-    secondaryRuneEffect: `2-piece: ${secondaryRune.twoPiece}`,
+    mainRune2Piece: `2세트: ${mainRune.twoPiece}`,
+    mainRune4Piece: `4세트: ${mainRune.fourPiece}`,
+    secondaryRuneEffect: `2세트: ${secondaryRune.twoPiece}`,
     ...options,
   };
 }
