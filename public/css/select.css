@@ -28,6 +28,14 @@ body{
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+
+  /* ✅ 배경이 ‘끊겨 보이는’ 체감을 줄이는 핵심: 배경을 뷰포트에 고정 */
+  background-attachment: fixed;
+}
+
+/* ✅ fixed가 모바일(iOS 계열)에서 이슈가 있으면 자동으로 scroll로 */
+@supports (-webkit-touch-callout: none){
+  body{ background-attachment: scroll; }
 }
 
 .wrap{
@@ -99,9 +107,26 @@ body{
 ========================= */
 .panel{
   border:1px solid var(--line);
-  background: rgba(255,255,255,.03);
+
+  /* ✅ 기존: rgba(255,255,255,.03) 덩어리 느낌 → 유리(Glass) 카드로 */
+  background: rgba(255,255,255,.045);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
   border-radius: 16px;
   padding: 14px;
+
+  /* ✅ margin-top으로 쌓이면 ‘박스 단위로 끊김’이 더 잘 보임 → 제거 */
+  margin-top: 0;
+
+  /* ✅ 카드가 떠 보이게(끊김 체감↓, 완성도↑) */
+  box-shadow:
+    0 10px 24px rgba(0,0,0,.22),
+    inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+/* ✅ 패널 간 간격은 형제 결합으로 통일 (기존 margin-top 대체) */
+.panel + .panel{
   margin-top: 12px;
 }
 
@@ -120,7 +145,12 @@ body{
 ========================= */
 .filters-box{
   border:1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
+
+  /* ✅ filters 박스도 동일한 유리 톤으로 통일 */
+  background: rgba(255,255,255,.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
   border-radius: 16px;
   padding: 10px 12px;
 }
@@ -200,7 +230,11 @@ body{
   border-radius: 16px;
   border: 1px solid var(--line);
   margin-top: 12px;
-  background: rgba(255,255,255,.02);
+
+  /* ✅ 테이블도 유리 톤으로 살짝 통일 */
+  background: rgba(255,255,255,.025);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .table thead th{
@@ -209,7 +243,10 @@ body{
   font-size: 13px;
   color: rgba(255,255,255,.78);
   border-bottom: 1px solid var(--line);
-  background: rgba(255,255,255,.03);
+
+  /* ✅ 헤더도 ‘단절되는 진한 바’ 느낌 최소화 */
+  background: rgba(255,255,255,.035);
+
   position: sticky;
   top: 0;
   z-index: 1;
@@ -417,7 +454,11 @@ body{
   padding: 6px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
+
+  /* ✅ 탭 바도 유리 톤 */
+  background: rgba(255,255,255,.035);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .tab-btn{
@@ -447,7 +488,12 @@ body{
 .card{
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
+
+  /* ✅ 카드도 동일 톤으로 이어지게 */
+  background: rgba(255,255,255,.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
   padding: 12px;
 }
 
@@ -578,9 +624,18 @@ body{
 .tier-panel{
   margin-top: 12px;
   border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
+
+  /* ✅ tier-panel도 동일 톤으로 */
+  background: rgba(255,255,255,.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
   border-radius: 16px;
   padding: 12px;
+
+  box-shadow:
+    0 10px 24px rgba(0,0,0,.18),
+    inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 /* ✅ details 요약 헤더: 검색/필터와 동일한 (열기/닫기) UX */
@@ -612,7 +667,6 @@ body{
 .tier-panel:not([open]) .tier-body{
   display:none;
 }
-
 
 .tier-actions{
   gap: 8px;
@@ -689,7 +743,12 @@ body{
 
 .tier-card{
   border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
+
+  /* ✅ 결과 카드도 동일 톤으로 */
+  background: rgba(255,255,255,.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
   border-radius: 14px;
   padding: 10px;
 }
@@ -748,7 +807,12 @@ body{
 .tier-section{
   margin-top: 12px;
   border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.02);
+
+  /* ✅ 섹션도 끊김이 덜 보이도록 톤 통일 */
+  background: rgba(255,255,255,.035);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
   border-radius: 16px;
   padding: 12px;
 }
@@ -830,5 +894,10 @@ body{
   .filters #btnAll,
   .filters #btnNone{
     grid-column: auto !important;
+  }
+
+  /* ✅ 모바일에서 카드 라운드 살짝 정리 */
+  .panel, .filters-box, .tier-panel, .tier-section, .card{
+    border-radius: 14px;
   }
 }
