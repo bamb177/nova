@@ -1,4 +1,23 @@
 {
-  "version": 1,
-  "overrides": {}
+  "_example_character_id": {
+    "builds": [
+      {
+        "title": "수동 지정 예시",
+        "setPlan": [
+          { "set": "Beth", "pieces": 4 },
+          { "set": "Alpha", "pieces": 2 }
+        ],
+        "slots": {
+          "1": ["HP (Flat Value)"],
+          "2": ["Attack (Flat Value)"],
+          "3": ["Defense (Flat Value)"],
+          "4": ["Critical Rate (%)", "Critical Damage (%)"],
+          "5": ["Blaze Attribute Damage (%)", "Attack (%)"],
+          "6": ["Attack (%)"]
+        },
+        "substats": ["Critical Rate (%)", "Critical Damage (%)", "Attack (%)", "Attack Penetration (%)"],
+        "notes": ["이 캐릭터는 수동 오버라이드 적용 대상"]
+      }
+    ]
+  }
 }
