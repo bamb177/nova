@@ -1,22 +1,21 @@
 {
-  "_example_character_id": {
+  "_comment": "캐릭터별 추천 룬 수동 오버라이드. key는 characters_ko 파일명(=cid) 기준 slug 입니다.",
+  "example-character-id": {
     "builds": [
       {
         "title": "수동 지정 예시",
         "setPlan": [
-          { "set": "Beth", "pieces": 4 },
-          { "set": "Alpha", "pieces": 2 }
+          { "set": "Alpha", "pieces": 4 },
+          { "set": "Beth", "pieces": 2 }
         ],
         "slots": {
-          "1": ["HP (Flat Value)"],
-          "2": ["Attack (Flat Value)"],
-          "3": ["Defense (Flat Value)"],
-          "4": ["Critical Rate (%)", "Critical Damage (%)"],
-          "5": ["Blaze Attribute Damage (%)", "Attack (%)"],
+          "4": ["Critical Rate (%)", "Attack Penetration (%)"],
+          "5": ["Element Attribute Damage (%)", "Attack (%)"],
           "6": ["Attack (%)"]
         },
         "substats": ["Critical Rate (%)", "Critical Damage (%)", "Attack (%)", "Attack Penetration (%)"],
-        "notes": ["이 캐릭터는 수동 오버라이드 적용 대상"]
+        "notes": ["콘텐츠/운영에 따라 조정"],
+        "rationale": ["예외 캐릭터는 rune_overrides.json으로 수동 지정합니다."]
       }
     ]
   }
