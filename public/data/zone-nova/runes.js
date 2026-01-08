@@ -44,14 +44,14 @@ export const RUNE_SETS = {
     image: 'Hert-Pursuit-Damage.jpg',
     twoPiece: '추가 공격 피해 +20%',
     fourPiece: '추가 공격 피해를 가한 후 치명타 확률 +15% (10초)',
-//    note: '길드 레이드에서만 획득 가능',
+    note: '길드 레이드에서만 획득 가능',
   },
   'Gimel-Continuous-Damage': {
     name: 'Gimel Continuous Damage',
     image: 'Gimel-Continuous-Damage.jpg',
     twoPiece: '지속 피해 +20%',
     fourPiece: '지속 피해를 가한 후 자신의 공격력이 2% 증가하며 최대 10중첩, 5초간 지속',
- //   note: '길드 레이드에서만 획득 가능',
+    note: '길드 레이드에서만 획득 가능',
   },
   Giants: {
     name: 'Giants [Vulnerability]',
@@ -60,7 +60,7 @@ export const RUNE_SETS = {
     fourPiece:
       '장착 캐릭터가 디버퍼 클래스일 경우, 궁극기 피해를 받은 대상이 5초간 받는 피해 10% 증가',
     classRestriction: 'Debuffer',
-    note: '동일 효과 중첩 불가. 길드 레이드에서만 획득 가능',
+    note: '동일 효과 중첩 불가. 길드 레이드에서만 획득가능',
   },
   Tide: {
     name: 'Tide [Energy]',
