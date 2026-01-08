@@ -44,7 +44,7 @@ export const RUNE_SETS = {
     image: 'Hert-Pursuit-Damage.jpg',
     twoPiece: '추가 공격 피해 +20%',
     fourPiece: '추가 공격 피해를 가한 후 치명타 확률 +15% (10초)',
-    note: '길드 레이드에서만 획득 가능',
+//    note: '길드 레이드에서만 획득 가능',
   },
   'Gimel-Continuous-Damage': {
     name: 'Gimel Continuous Damage',
