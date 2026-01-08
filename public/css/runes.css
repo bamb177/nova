@@ -349,3 +349,15 @@
   .rune-card{ transition: none; }
   .rune-card:active{ transform: none; }
 }
+
+/* runes page topbar padding + center container */
+.topbar .title{
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 14px 12px;
+}
+
+@media (min-width: 900px){
+  .topbar .title{ padding: 16px 16px; }
+}
+
