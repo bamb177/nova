@@ -51,7 +51,7 @@ export const RUNE_SETS = {
     image: 'Gimel-Continuous-Damage.jpg',
     twoPiece: '지속 피해 +20%',
     fourPiece: '지속 피해를 가한 후 자신의 공격력이 2% 증가하며 최대 10중첩, 5초간 지속',
-    note: '길드 레이드에서만 획득 가능',
+ //   note: '길드 레이드에서만 획득 가능',
   },
   Giants: {
     name: 'Giants [Vulnerability]',
