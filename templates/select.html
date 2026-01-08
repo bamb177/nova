@@ -29,332 +29,21 @@
       flex:0 0 auto;
       box-shadow: 0 8px 18px rgba(0,0,0,.25);
       background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.10);
     }
     .tier-portrait-empty{
-      display:block;
+      display:inline-block;
     }
-
-    /* (2) 긴 특성명(예: Heikyo Castle) 2줄 방지: 1줄 유지 + 넘치면 말줄임 */
-    .tier-card-sub .pill{
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 190px;
-    }
-  
-    /* ✅ Tier 상단 버튼(전체선택/해제) 우측 정렬 */
-    .tier-topline{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .tier-topline .tier-actions-inline{
-      margin-left:auto;
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:nowrap;
-    }
-    @media (min-width: 900px){
-      .tier-topline{ flex-wrap:nowrap; }
-    }
-
-  
-    /* Memory Card image (modal) */
-    .memcard-wrap{
-      display:flex;
-      gap:14px;
-      align-items:flex-start;
-      flex-wrap:wrap;
-    }
-    .memcard-img{
-      width: 150px;
-      height: 240px;
-      border-radius:14px;
-      object-fit:cover;
-      box-shadow: 0 6px 16px rgba(0,0,0,.35);
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.06);
-    }
-    .memcard-img.hidden{ display:none; }
-    .memcard-imgcell{
-      vertical-align: top;
-      padding-top: 10px;
-      width: 180px;
-    }
-
-
-    /* Stats columns (HP/ATK/DEF/CRIT) */
-    .col-hp, .col-atk, .col-def, .col-crit { width: 90px; text-align: right; }
-    td.col-hp, td.col-atk, td.col-def, td.col-crit { font-weight: 800; color: rgba(255,255,255,.86); }
-    
-    @media (max-width: 520px){
-      .col-hp, .col-atk, .col-def, .col-crit { width: 78px; }
-    }
-  
-    /* Tier panel: move class condition row into top line (better readability) */
-    .tier-topline{
-      align-items: flex-start;
-    }
-    .tier-class-inline{
-      flex: 1 1 auto;
-      min-width: 420px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
-    }
-    .tier-check-inline{
-      white-space: nowrap;
+    .tier-name{
       font-weight: 900;
-      color: rgba(255,255,255,.92);
+      letter-spacing: .2px;
     }
-    .tier-classes-inline{
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      margin-left: 4px;
-    }
-    /* On small screens, keep layout tidy */
-    @media (max-width: 720px){
-      .tier-topline{ flex-wrap: wrap; }
-      .tier-class-inline{
-        min-width: 0;
-        width: 100%;
-        order: 3;
-      }
-      .tier-topline .tier-actions-inline{
-        order: 4;
-        width: 100%;
-        justify-content: flex-end;
-      }
-    }
-
-    /* Select dropdown readability (options contrast) */
-    select, .select{
-      color: rgba(255,255,255,.92);
-    }
-    select option{
-      background: #0b1222;
-      color: rgba(255,255,255,.90);
-    }
-    select option:disabled{
-      color: rgba(255,255,255,.58);
-    }
-
-  
-    /* ===== Readability: larger typography ===== */
-    body{ font-size: 16px; }
-    .topbar h1{ font-size: 22px; }
-    .filters-summary-title{ font-size: 18px; }
-    .filters-summary-hint{ font-size: 14px; opacity:.85; }
-    .input, .select, select, .btn{ font-size: 15px; }
-    .table th{ font-size: 14.5px; }
-    .table td{ font-size: 14.5px; }
-    .pill{ font-size: 13.5px; }
-
-    /* ===== Tier top layout: clean grid on PC ===== */
-    @media (min-width: 900px){
-      .tier-topline{
-        display: grid;
-        grid-template-columns: 280px 180px 1fr auto;
-        gap: 12px;
-        align-items: center;
-      }
-      .tier-topline #tierPreset{ width: 100%; min-width: 0; }
-      .tier-topline #btnBuildTierParty{ width: 100%; }
-      .tier-actions-inline{
-        margin-left: 0;           /* grid 모드에서는 불필요 */
-        justify-self: end;
-      }
-      .tier-actions-inline .btn{
-        min-width: 96px;
-        padding: 10px 14px;
-      }
-      .tier-class-inline{
-        min-width: 0;             /* grid에서 넘침 방지 */
-        padding: 10px 12px;
-      }
-      .tier-classes-inline{
-        flex-wrap: nowrap;        /* 2줄로 떨어지지 않게 */
-        overflow-x: auto;         /* 길면 가로 스크롤 */
-        scrollbar-width: thin;
-        padding-bottom: 2px;
-      }
-      .tier-classes-inline::-webkit-scrollbar{ height: 8px; }
-      .tier-classes-inline::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.14); border-radius: 999px; }
-      .tier-classes-inline .tier-class-item{ white-space: nowrap; }
-    }
-
-    /* Tier panel box itself a bit clearer */
-    .tier-class-inline{
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.12);
-    }
-    .tier-check-inline{
-      font-size: 15px;
-      font-weight: 950;
-    }
-
-  
-    @media (max-width: 720px){
-      .tier-actions-inline .btn{ min-width: 84px; }
-      .tier-class-inline{ padding: 10px 10px; }
-      .tier-classes-inline{ gap: 8px; }
-    }
-
-  
-    /* Sortable stat headers */
-    .th-sort{
-      cursor: pointer;
-      user-select: none;
-      position: relative;
-      padding-right: 18px;
-    }
-    .th-sort::after{
-      content: "↕";
-      position: absolute;
-      right: 6px;
-      opacity: .45;
-      font-size: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-    .th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
-    .th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
-
-  
-    /* === Stats sortable headers === */
-    th.th-sort{
-      cursor: pointer;
-      user-select: none;
-      position: relative;
-      padding-right: 18px;
-    }
-    th.th-sort::after{
-      content: "↕";
-      position: absolute;
-      right: 6px;
-      top: 50%;
-      transform: translateY(-50%);
-      opacity: .45;
-      font-size: 12px;
-    }
-    th.th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
-    th.th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
-
-    /* === Tier class condition: 2-column layout (no horizontal scrollbar) === */
-    .tier-class-inline{
-      display: grid;
-      grid-template-columns: 210px 1fr;
-      align-items: start;
-      gap: 12px;
-    }
-    .tier-classes-inline{
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px 12px;
-      overflow: visible !important;
-    }
-    @media (max-width: 720px){
-      .tier-class-inline{ grid-template-columns: 1fr; }
-      .tier-classes-inline{ grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 420px){
-      .tier-classes-inline{ grid-template-columns: 1fr; }
-    }
-
-  
-    /* ===== Mobile vertical scroll fix (character list) ===== */
-
-    /* ===== Mobile: allow vertical + horizontal scrolling INSIDE character list ===== */
-    html, body{
-      height: auto !important;
-      min-height: 100% !important;
-      overflow-x: hidden !important;
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-x pan-y;
-    }
-
-    /* Make the list area a true scroll container on mobile */
-    .table-wrap{
-      overflow: auto !important;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-x pan-y;
-      overscroll-behavior: contain;
-      /* Use small-viewport units for mobile address-bar changes */
-      max-height: calc(100svh - 310px);
-      border-radius: 18px;
-    }
-
-    /* Ensure the table can exceed viewport width so horizontal scroll is possible */
-    .table{
-      min-width: 980px;
-    }
-
-    /* On desktop, let the page scroll normally (no forced max-height) */
-    @media (min-width: 900px){
-      .table-wrap{ max-height: none; overflow: visible; }
-      .table{ min-width: 0; }
-    }
-
-    /* Allow gestures even on nested elements */
-    .table-wrap *{ touch-action: pan-x pan-y; }
-
-html, body{
-      height: auto !important;
-      min-height: 100% !important;
-      overflow-x: hidden !important;
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch;
-    }
-/* ===== Background: remove multi-radial seams, use a single fixed gradient ===== */
-    body{
-      background: linear-gradient(180deg, #070b14 0%, #0b1222 100%) fixed !important;
-    }
-    /* Panels remain consistent on the simplified background */
-    .panel, .table-wrap, .modal-card, .tier-panel, .tier-class-inline{
-      background: rgba(255,255,255,.035);
-    }
-
-  
-    /* ===== FINAL OVERRIDE: allow horizontal scroll inside character list (mobile) ===== */
-    @media (max-width: 900px){
-      .table-wrap{
-        overflow-x: auto !important;
-        overflow-y: auto !important;
-        touch-action: pan-x pan-y !important;
-      }
-      .table, .table *{
-        touch-action: pan-x pan-y !important;
-      }
-      /* Ensure content actually overflows horizontally */
-      .table{
-        min-width: 1100px !important;
-        table-layout: auto !important;
-      }
-    }
-
   </style>
 </head>
 
 <body>
-  
-  <div id="jsErrorBanner" style="display:none;position:sticky;top:0;z-index:9999;background:rgba(180,40,40,.92);color:#fff;padding:10px 14px;font-weight:700;border-bottom:1px solid rgba(255,255,255,.25);">
-    JS 오류: <span id="jsErrorText"></span>
-  </div>
-<div class="wrap">
-
-    <!-- ===== Topbar ===== -->
-    <div class="topbar">
+  <div class="topbar">
+    <div class="title">
       <div class="title-row">
         <h1>{{ title }}</h1>
         <a class="navbtn" href="/runes">룬 정보</a>
@@ -362,424 +51,426 @@ html, body{
         <div class="refresh">갱신 {{ last_refresh }}</div>
       </div>
     </div>
-    
-  
-    {% if error %}
-      <div class="error">로딩 오류: {{ error }}</div>
-    {% endif %}
+  </div>
+
+  {% if error %}
+    <div class="error">로딩 오류: {{ error }}</div>
+  {% endif %}
+
+  <div class="wrap">
 
     <div class="panel">
+      <!-- ===== Filters ===== -->
+      <div class="filters">
+        <input class="input" id="q" placeholder="검색 (이름)" />
 
-      <!-- ===== Filters (Mobile collapsible) ===== -->
-      <details id="filtersPanel" class="filters-box" open>
-        <summary class="filters-summary">
-          <span class="filters-summary-title">검색/필터</span>
-          <span class="filters-summary-hint">(열기/닫기)</span>
-        </summary>
+        <select class="select" id="rarity">
+          <option value="">등급(전체)</option>
+          <option value="SSR">SSR</option>
+          <option value="SR">SR</option>
+          <option value="R">R</option>
+        </select>
 
-        <div class="filters-body">
-          <div class="filters">
-            <input id="q" class="input" type="text" placeholder="검색 (이름/ID/특성/속성)" autocomplete="off" />
+        <select class="select" id="element">
+          <option value="">속성(전체)</option>
+        </select>
 
-            <select id="classFilter" class="select">
-              <option value="">클래스(전체)</option>
-            </select>
+        <select class="select" id="faction">
+          <option value="">파벌(전체)</option>
+        </select>
 
-            <select id="rarityFilter" class="select">
-              <option value="">등급(전체)</option>
-              <option value="SSR">SSR</option>
-              <option value="SR">SR</option>
-              <option value="R">R</option>
-              <option value="-">-</option>
-            </select>
+        <select class="select" id="cls">
+          <option value="">클래스(전체)</option>
+        </select>
 
-            <select id="elemFilter" class="select">
-              <option value="">속성(전체)</option>
-            </select>
-
-            <select id="factionFilter" class="select">
-              <option value="">특성(전체)</option>
-            </select>
-
-            <select id="roleFilter" class="select">
-              <option value="">역할(전체)</option>
-            </select>
-</div>
-        </div>
-      </details>
-
-      <!-- ===== Tier Party Builder (details: open/close like filters) ===== -->
-      <details class="tier-panel" id="tierPanel" open>
-        <summary class="tier-summary">
-          <span class="tier-summary-title">등급표</span>
-          <span class="tier-summary-hint">(열기/닫기)</span>
-        </summary>
-
-        <div class="tier-body">
-          <div class="tier-row tier-topline">
-            <select id="tierPreset" class="select" disabled>
-              <option value="">tier-lists.js 로딩중...</option>
-            </select>
-            <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
-
-            
-            <div class="tier-class-inline" id="tierClassInline">
-              <label class="tier-check tier-check-inline" title="체크한 클래스가 파티(4인)에 포함되도록 구성합니다. 후보를 해당 클래스로만 제한하지 않습니다.">
-                <input type="checkbox" id="useClassFilter" />
-                선택 클래스 포함 조건
-              </label>
-              <div class="tier-classes tier-classes-inline" id="tierClassBox" aria-disabled="true"></div>
-            </div>
-<!-- ✅ 전체선택/전체해제: 등급표 상단 우측 정렬 -->
-            <div class="tier-actions-inline">
-              <button class="btn" id="btnAll" type="button">전체 선택</button>
-              <button class="btn" id="btnNone" type="button">전체 해제</button>
-            </div>
-          </div>
-<div id="tierPartyResult" class="tier-result"></div>
-        </div>
-      </details>
-
-      <!-- ===== Characters list ===== -->
-      <div class="table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th class="col-check">선택</th>
-              <th>캐릭터</th>
-              <th class="col-hp th-sort" data-sort="hp">체력</th>
-              <th class="col-def th-sort" data-sort="defense">방어력</th>
-              <th class="col-atk th-sort" data-sort="attack">공격력</th>
-              <th class="col-crit th-sort" data-sort="critRate">크리%</th>
-              <th class="col-elem">속성</th>
-              <th class="col-faction">특성</th>
-              <th class="col-class">클래스</th>
-              <th class="col-role">역할</th>
-              <th class="col-rarity">등급</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
+        <button class="btn" id="btnClear" type="button">초기화</button>
+        <a class="btn" href="/refresh">강제 갱신</a>
       </div>
 
-    </div><!-- /.panel -->
-  </div><!-- /.wrap -->
+      <!-- ===== List ===== -->
+      <div id="list" class="list"></div>
+    </div>
+
+    <!-- ===== Tier Party Result ===== -->
+    <div class="panel tier-section">
+      <h2>추천 파티</h2>
+      <div id="tierPartyResult"></div>
+    </div>
+
+  </div>
 
   <!-- ===== Modal ===== -->
-  <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal" id="modal" hidden>
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal-head">
-        <div class="modal-title" id="modalTitle">Character</div>
-        <button class="modal-close" id="modalClose" type="button">×</button>
+        <div class="modal-title">
+          <div id="modalTitle" class="modal-title-main"></div>
+          <div id="modalSub" class="modal-title-sub"></div>
+        </div>
+        <button class="modal-close" id="modalClose" aria-label="Close" type="button">✕</button>
       </div>
-      <div class="modal-body" id="modalBody">
-        <div class="modal-loading">Loading…</div>
-      </div>
+      <div class="modal-body" id="modalBody"></div>
     </div>
   </div>
 
   <script>
-    const CHARS_RAW = {{ chars_json|safe }};
+    // ===== Data bootstrap =====
+    const chars = {{ chars_json|safe }};
 
-    function escapeHtml(str) {
-      return (str || "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#39;");
+    // ===== Utilities =====
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#39;");
     }
 
-    
-
-    function formatDescText(s){
-      const t = String(s ?? "");
-      // Korean sentence breaks: force newline after "다." when followed by whitespace
-      // Also keep basic breaks after . ? !
-      return t
-        .replace(/다\.(\s+)/g, "다.<br>")
-        .replace(/([\.\?\!])\s+/g, "$1<br>");
-    }
-function pick(obj, ...keys) {
-      for (const k of keys) {
-        const v = obj?.[k];
-        if (v !== undefined && v !== null) return v;
+    function pick(obj, ...keys){
+      for (const k of keys){
+        if (obj && obj[k] != null) return obj[k];
       }
       return null;
     }
 
-    function isEmpty(v) {
-      if (v === null || v === undefined) return true;
-      if (Array.isArray(v)) return v.length === 0;
-      if (typeof v === "object") return Object.keys(v).length === 0;
-      if (typeof v === "string") return v.trim() === "";
-      return false;
+    function uniq(arr){
+      return [...new Set(arr.filter(Boolean))];
     }
 
-    function slugKey(s){
-      return String(s || "")
-        .toLowerCase()
-        .replace(/[’']/g, "")
-        .replace(/[\s\-_]+/g, "")
-        .trim();
+    function buildOptions(){
+      const els = uniq(chars.map(c => c.element));
+      const fac = uniq(chars.map(c => c.faction));
+      const cls = uniq(chars.map(c => c.class));
+
+      const set = (id, values) => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const cur = sel.value;
+        const opts = ['<option value="">'+sel.options[0].text+'</option>']
+          .concat(values.sort().map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`));
+        sel.innerHTML = opts.join("");
+        sel.value = cur;
+      };
+
+      set("element", els);
+      set("faction", fac);
+      set("cls", cls);
     }
 
-    const RARITY_ORDER = { "SSR": 3, "SR": 2, "R": 1, "-": 0 };
-    function rarityVal(r){
-      const x = String(r || "-").toUpperCase();
-      return RARITY_ORDER[x] ?? 0;
-    }
+    // ===== Render list =====
+    function renderList(){
+      const q = (document.getElementById("q")?.value || "").trim().toLowerCase();
+      const rarity = document.getElementById("rarity")?.value || "";
+      const element = document.getElementById("element")?.value || "";
+      const faction = document.getElementById("faction")?.value || "";
+      const cls = document.getElementById("cls")?.value || "";
 
-    function classLabel(cls){
-      const v = (cls || "-").toString().trim();
-      return v || "-";
-    }
-    function roleLabel(role){
-      const v = (role || "-").toString().trim();
-      return v || "-";
-    }
-    function rarityPillClass(r){
-      const v = (r || "-").toString().trim().toUpperCase();
-      if (v === "SSR") return "pill-ssr";
-      if (v === "SR") return "pill-sr";
-      if (v === "R") return "pill-r";
-      return "pill-none";
-    }
+      const out = chars.filter(c => {
+        if (q && !(c.name || "").toLowerCase().includes(q)) return false;
+        if (rarity && c.rarity !== rarity) return false;
+        if (element && c.element !== element) return false;
+        if (faction && c.faction !== faction) return false;
+        if (cls && c.class !== cls) return false;
+        return true;
+      });
 
-    // ===== Modal rendering (skills/awakenings/memory) =====
-    function renderKV(obj) {
-      if (!obj || typeof obj !== "object") return `<div class="detail-empty">데이터 없음</div>`;
-      const rows = Object.entries(obj).map(([k, v]) => {
-        const vv = (typeof v === "object") ? JSON.stringify(v) : String(v);
-        return `<tr><td class="kv-k">${escapeHtml(k)}</td><td class="kv-v">${escapeHtml(vv)}</td></tr>`;
+      const box = document.getElementById("list");
+      if (!box) return;
+
+      if (!out.length){
+        box.innerHTML = `<div class="empty">검색 결과가 없습니다.</div>`;
+        return;
+      }
+
+      box.innerHTML = out.map(c => {
+        const img = c.image
+          ? `<img class="portrait" src="${escapeHtml(c.image)}" alt="">`
+          : `<div class="portrait portrait-empty"></div>`;
+
+        const elemIcon = c.element_icon
+          ? `<img class="mini-ico" src="${escapeHtml(c.element_icon)}" alt="">`
+          : "";
+        const clsIcon = c.class_icon
+          ? `<img class="mini-ico" src="${escapeHtml(c.class_icon)}" alt="">`
+          : "";
+
+        const badges = `
+          <span class="pill pill-neutral">${escapeHtml(c.rarity || "-")}</span>
+          <span class="pill pill-neutral">${elemIcon}${escapeHtml(c.element || "-")}</span>
+          <span class="pill pill-neutral">${escapeHtml(c.faction || "-")}</span>
+          <span class="pill pill-neutral">${clsIcon}${escapeHtml(c.class || "-")}</span>
+        `;
+
+        return `
+          <div class="card" data-id="${escapeHtml(c.id)}">
+            <div class="card-top">
+              ${img}
+              <div class="card-main">
+                <div class="card-name">${escapeHtml(c.name || c.id)}</div>
+                <div class="card-badges">${badges}</div>
+              </div>
+            </div>
+          </div>
+        `;
       }).join("");
-      return `<table class="kv"><tbody>${rows}</tbody></table>`;
     }
 
-    function looksLikeSkillObject(o){
-      if (!o || typeof o !== "object" || Array.isArray(o)) return false;
-      const keys = ["name","title","skillName","description","desc","text","cooldown","energyCost","cost","type","category"];
-      return keys.some(k => o[k] !== undefined && o[k] !== null);
+    // ===== Modal controls =====
+    const modal = document.getElementById("modal");
+    const modalBody = document.getElementById("modalBody");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalSub = document.getElementById("modalSub");
+
+    function openModal(){
+      modal.hidden = false;
+      document.body.style.overflow = "hidden";
+    }
+    function closeModal(){
+      modal.hidden = true;
+      document.body.style.overflow = "";
+      modalBody.innerHTML = "";
+    }
+    document.getElementById("modalBackdrop")?.addEventListener("click", closeModal);
+    document.getElementById("modalClose")?.addEventListener("click", closeModal);
+    window.addEventListener("keydown", (e) => {
+      if (!modal.hidden && e.key === "Escape") closeModal();
+    });
+
+    function setModalTitle(name, cn){
+      modalTitle.textContent = name || "";
+      modalSub.textContent = cn ? `(${cn})` : "";
     }
 
-    function normalizeSkillEntry(x, fallbackTitle) {
-      if (!x) return { title: fallbackTitle || "-", desc: "", extra: null };
+    // ===== Click list -> fetch detail =====
+    document.getElementById("list")?.addEventListener("click", (e) => {
+      const card = e.target.closest(".card");
+      if (!card) return;
+      const cid = card.dataset.id;
+      if (!cid) return;
+      openCharacterDetail(cid);
+    });
 
-      if (typeof x === "string") {
-        return { title: fallbackTitle || "-", desc: x, extra: null };
-      }
-
-      if (typeof x === "object") {
-        const title =
-          (typeof x.name === "string" && x.name) ||
-          (typeof x.title === "string" && x.title) ||
-          (typeof x.skillName === "string" && x.skillName) ||
-          fallbackTitle || "-";
-
-        const desc =
-          (typeof x.description === "string" && x.description) ||
-          (typeof x.desc === "string" && x.desc) ||
-          (typeof x.text === "string" && x.text) ||
-          "";
-
-        const extra = {};
-        for (const [k, v] of Object.entries(x)) {
-          if (["name","title","skillName","description","desc","text"].includes(k)) continue;
-          if (v === null || v === undefined) continue;
-          if (typeof v === "object") continue;
-          extra[k] = v;
+    async function openCharacterDetail(cid){
+      openModal();
+      modalBody.innerHTML = `<div class="modal-loading">Loading…</div>`;
+      try {
+        const r = await fetch(`/zones/zone-nova/characters/${encodeURIComponent(cid)}`, { cache: "no-store" });
+        const j = await r.json();
+        if (!j.ok) {
+          modalBody.innerHTML = `<div class="detail-empty">불러오기 실패: ${escapeHtml(j.error || "unknown")}</div>`;
+          return;
         }
-        return { title, desc, extra: Object.keys(extra).length ? extra : null };
-      }
 
-      return { title: fallbackTitle || "-", desc: String(x), extra: null };
+        const detail = j.detail || {};
+        const name = pick(detail, "name") || j.character?.name || j.id || "Character";
+        const cn = pick(detail, "chineseName", "chinesename", "chinessname", "cnName", "cn_name");
+
+        setModalTitle(name, cn);
+        const runeReco = j.rune_reco || null;
+        const charMeta = j.character || null;
+        modalBody.innerHTML = renderDetailTabs(detail, runeReco, charMeta);
+        bindTabEvents();
+      } catch (e) {
+        modalBody.innerHTML = `<div class="detail-empty">불러오기 실패: ${escapeHtml(String(e))}</div>`;
+      }
     }
 
-    function renderOneSkillCard(s) {
-      const desc = s.desc
-        ? `<div class="card-desc">${formatDescText(escapeHtml(s.desc))}</div>`
-        : `<div class="card-desc" style="opacity:.75;">(설명 없음)</div>`;
-      const extra = s.extra ? renderKV(s.extra) : "";
+    // ===== Detail renderers =====
+    function renderPanel(id, content, active){
+      return `<div class="tab-panel ${active ? "active" : ""}" data-panel="${escapeHtml(id)}">${content}</div>`;
+    }
+
+    function renderSkills(detail){
+      const skills = detail?.skills;
+      if (!skills) return `<div class="detail-empty">스킬 정보 없음</div>`;
+
+      const entries = Array.isArray(skills) ? skills : Object.values(skills);
+      return entries.map((s, idx) => {
+        const name = pick(s, "name") || `Skill ${idx+1}`;
+        const desc = pick(s, "description", "desc") || "";
+        return `
+          <div class="detail-card">
+            <h3>${escapeHtml(name)}</h3>
+            <div class="detail-text">${escapeHtml(desc)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderAwakenings(detail){
+      const aw = detail?.awakenings;
+      if (!aw) return `<div class="detail-empty">각성 정보 없음</div>`;
+
+      const arr = Array.isArray(aw) ? aw : Object.values(aw);
+      return arr.map((a, idx) => {
+        const name = pick(a, "name") || `Awakening ${idx+1}`;
+        const effects = pick(a, "effects") || pick(a, "effect") || "";
+        const txt = Array.isArray(effects) ? effects.join("\n") : String(effects);
+        return `
+          <div class="detail-card">
+            <h3>${escapeHtml(name)}</h3>
+            <pre class="detail-pre">${escapeHtml(txt)}</pre>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderMemoryCard(detail){
+      const mc = detail?.memoryCard || detail?.memory_card;
+      if (!mc) return `<div class="detail-empty">메모리카드 정보 없음</div>`;
+
+      const name = pick(mc, "name") || "Memory Card";
+      const effects = pick(mc, "effects") || pick(mc, "effect") || "";
+      const txt = Array.isArray(effects) ? effects.join("\n") : String(effects);
+
       return `
-        <div class="card">
-          <div class="card-title"><span>${escapeHtml(String(s.title || "-"))}</span></div>
-          ${desc}
-          ${extra ? `<div style="margin-top:8px;">${extra}</div>` : ""}
+        <div class="detail-card">
+          <h3>${escapeHtml(name)}</h3>
+          <pre class="detail-pre">${escapeHtml(txt)}</pre>
         </div>
       `;
     }
 
-    function renderSkillCards(skillsObjOrArr) {
-      if (isEmpty(skillsObjOrArr)) return `<div class="detail-empty">스킬 데이터 없음</div>`;
-
-      if (looksLikeSkillObject(skillsObjOrArr)) {
-        const s = normalizeSkillEntry(skillsObjOrArr, "Skill");
-        return `<div class="cards">${renderOneSkillCard(s)}</div>`;
+    // ===== Rune Recommendation (Auto/Override) =====
+    function renderRuneReco(runeReco, charMeta, detail){
+      if (!runeReco || !Array.isArray(runeReco.builds) || !runeReco.builds.length){
+        return `<div class="detail-empty">추천 룬 데이터가 없습니다.</div>`;
       }
 
-      if (Array.isArray(skillsObjOrArr)) {
-        const cards = skillsObjOrArr
-          .map((x, idx) => renderOneSkillCard(normalizeSkillEntry(x, `Skill ${idx + 1}`)))
-          .join("");
-        return `<div class="cards">${cards}</div>`;
-      }
+      const builds = runeReco.builds;
 
-      if (typeof skillsObjOrArr === "object") {
-        const cards = [];
-        for (const [k, v] of Object.entries(skillsObjOrArr)) {
-          if (isEmpty(v)) continue;
-
-          if (looksLikeSkillObject(v)) {
-            cards.push(renderOneSkillCard(normalizeSkillEntry(v, k)));
-            continue;
-          }
-
-          if (Array.isArray(v)) {
-            for (let i = 0; i < v.length; i++) {
-              cards.push(renderOneSkillCard(normalizeSkillEntry(v[i], `${k} ${i + 1}`)));
-            }
-          }
-        }
-
-        if (cards.length === 0) {
-          const s = normalizeSkillEntry(skillsObjOrArr, "Skill");
-          return `<div class="cards">${renderOneSkillCard(s)}</div>`;
-        }
-        return `<div class="cards">${cards.join("")}</div>`;
-      }
-
-      const s = normalizeSkillEntry(skillsObjOrArr, "Skill");
-      return `<div class="cards">${renderOneSkillCard(s)}</div>`;
-    }
-
-    function renderSkills(detail) {
-      const skills = pick(detail, "skills") || {};
-      const teamSkill = pick(detail, "teamSkill", "team_skill", "team");
-      const normalData = !isEmpty(skills?.normal) ? skills.normal : skills?.basic;
-
-      const sections = [
-        { label: "Auto",       data: skills?.auto,     css: "group-auto" },
-        { label: "Ultimate",   data: skills?.ultimate, css: "group-ultimate" },
-        { label: "Passive",    data: skills?.passive,  css: "group-passive" },
-        { label: "Normal",     data: normalData,       css: "group-normal" },
-        { label: "Team Skill", data: teamSkill,        css: "group-team" },
-      ];
-
-      return sections.map(s => `
-        <div class="group ${s.css}">
-          <div class="group-title">${escapeHtml(s.label)}</div>
-          ${isEmpty(s.data) ? `<div class="detail-empty">${escapeHtml(s.label)} 데이터 없음</div>` : renderSkillCards(s.data)}
-        </div>
-      `).join("");
-    }
-
-    function normalizeAwakenings(aw) {
-      if (!aw) return [];
-      if (Array.isArray(aw)) return aw;
-      if (typeof aw === "object" && Array.isArray(aw.levels)) return aw.levels;
-      return [];
-    }
-
-    function awakenRowEffect(x) {
-      if (x == null) return "";
-      if (typeof x === "string") return x;
-      if (typeof x === "number" || typeof x === "boolean") return String(x);
-      if (typeof x === "object") {
-        const eff = pick(x, "effect", "effects", "desc", "description", "text");
-        if (typeof eff === "string") return eff;
-        return JSON.stringify(x, null, 2);
-      }
-      return String(x);
-    }
-
-    function renderAwakenings(detail) {
-      const aw = pick(detail, "awakenings", "awakening");
-      const rows = normalizeAwakenings(aw);
-      if (!rows.length) return `<div class="detail-empty">각성 데이터 없음</div>`;
-
-      const tbody = rows.map((x, idx) => {
-        const lvl = pick(x, "level", "lv", "stage") ?? (idx + 1);
-        const eff = awakenRowEffect(x);
-        return `<tr><td style="width:110px;font-weight:950;">Lv.${escapeHtml(String(lvl))}</td><td>${escapeHtml(eff)}</td></tr>`;
+      const tabs = builds.map((b, i) => {
+        const label = b?.title || (i === 0 ? "추천" : `대체안 ${i}`);
+        return `<button type="button" class="rune-tab-btn ${i===0 ? "is-active":""}" data-rune-tab="${i}">${escapeHtml(label)}</button>`;
       }).join("");
 
-      return `
-        <table class="awak-table">
-          <thead><tr><th style="width:110px;">레벨</th><th>효과</th></tr></thead>
-          <tbody>${tbody}</tbody>
-        </table>
-      `;
-    }
+      const panels = builds.map((b, i) => {
+        return `
+          <div class="rune-tab-panel ${i===0 ? "is-active":""}" data-rune-panel="${i}">
+            ${renderRuneBuild(b, runeReco, charMeta, detail)}
+          </div>
+        `;
+      }).join("");
 
-    function renderMemoryCard(detail) {
-      const mem = pick(detail, "memoryCard", "memory_card");
-      if (isEmpty(mem)) return `<div class="detail-empty">메모리카드 데이터 없음</div>`;
-      if (typeof mem !== "object") return `<div class="detail-empty">${escapeHtml(String(mem))}</div>`;
+      const badge = runeReco.mode === "override"
+        ? `<span class="pill pill-neutral">override</span>`
+        : `<span class="pill pill-neutral">auto</span>`;
 
-      const name = pick(mem, "name", "title") || "Memory Card";
-      const desc = pick(mem, "description", "desc", "text") || "";
-      const effects = pick(mem, "effects", "effect");
-
-      let effectsHtml = "";
-      if (Array.isArray(effects)) {
-        const charName = pick(detail, "name") || "";
-        const imgUrl = `/images/games/zone-nova/card/${encodeURIComponent(String(charName))}card.jpg`;
-
-        const effRows = (effects || []).map(e => {
-          if (typeof e === "string") return e;
-          try { return JSON.stringify(e, null, 2); } catch { return String(e); }
-        });
-
-        if (effRows.length === 0) {
-          effectsHtml = `<div class="detail-empty">효과 데이터 없음</div>`;
-        } else {
-          const first = effRows[0];
-          const rest = effRows.slice(1);
-
-          const tbody = [
-            `<tr>
-               <td class="memcard-imgcell" rowspan="${effRows.length}">
-                 <img class="memcard-img" src="${imgUrl}" alt="Memory Card"
-                      onerror="this.classList.add('hidden');" />
-               </td>
-               <td>${escapeHtml(first)}</td>
-             </tr>`,
-            ...rest.map(x => `<tr><td>${escapeHtml(x)}</td></tr>`)
-          ].join("");
-
-          effectsHtml = `
-            <table class="awak-table">
-              <thead><tr><th style="width:180px;">카드</th><th>효과</th></tr></thead>
-              <tbody>${tbody}</tbody>
-            </table>
-          `;
-        }
-      } else if (effects && typeof effects === "object") {
-        effectsHtml = renderKV(effects);
-      } else if (typeof effects === "string") {
-        effectsHtml = `<div class="card-desc">${escapeHtml(effects)}</div>`;
-      } else {
-        effectsHtml = renderKV(mem);
-      }
+      const prof = runeReco.profile || {};
+      const profLine = (runeReco.mode === "auto" && prof.archetype)
+        ? `<div class="rune-prof">
+             ${badge}
+             <span class="pill pill-neutral">${escapeHtml(String(prof.archetype))}</span>
+             <span class="pill pill-neutral">${escapeHtml(String(prof.scaling || "MIX"))}</span>
+           </div>`
+        : `<div class="rune-prof">${badge}</div>`;
 
       return `
-        <div class="card">
-          <div class="card-title"><span>${escapeHtml(String(name))}</span></div>
-          ${desc ? `<div class="card-desc">${formatDescText(escapeHtml(String(desc)))}</div>` : ""}
-          <div style="margin-top:10px;">${effectsHtml}</div>
+        <div class="rune-wrap">
+          <div class="rune-head">
+            <div class="rune-title">추천 룬</div>
+            ${profLine}
+          </div>
+
+          <div class="rune-build-tabs">
+            ${tabs}
+          </div>
+
+          <div class="rune-build-body">
+            ${panels}
+          </div>
         </div>
       `;
     }
 
-    function renderPanel(id, html, active=false) {
-      return `<div class="tab-panel ${active ? "active" : ""}" data-panel="${escapeHtml(id)}">${html}</div>`;
+    function renderRuneBuild(build, runeReco, charMeta, detail){
+      const setPlan = Array.isArray(build?.setPlan) ? build.setPlan : [];
+      const slots = build?.slots || {};
+      const substats = Array.isArray(build?.substats) ? build.substats : [];
+      const notes = Array.isArray(build?.notes) ? build.notes : [];
+
+      const setHtml = setPlan.length
+        ? `<div class="rune-sets">
+            ${setPlan.map(sp => {
+              const icon = sp?.icon
+                ? `<img class="rune-set-icon" src="${escapeHtml(sp.icon)}" alt="">`
+                : `<div class="rune-set-icon rune-set-icon-empty"></div>`;
+              const pieces = sp?.pieces ? `<span class="rune-set-pieces">${escapeHtml(String(sp.pieces))}pc</span>` : "";
+              return `
+                <div class="rune-set-pill" title="${escapeHtml(String(sp.set || ""))}">
+                  ${icon}
+                  <div class="rune-set-meta">
+                    <div class="rune-set-name">${escapeHtml(String(sp.set || "-"))}</div>
+                    <div class="rune-set-sub">${pieces}</div>
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>`
+        : `<div class="detail-empty">세트 정보 없음</div>`;
+
+      const slotHtml = renderRuneSlots(slots);
+
+      const subHtml = substats.length
+        ? `<ul class="rune-list">${substats.map(s => `<li>${escapeHtml(String(s))}</li>`).join("")}</ul>`
+        : `<div class="muted">부옵 우선순위 정보 없음</div>`;
+
+      const noteHtml = notes.length
+        ? `<ul class="rune-notes">${notes.map(s => `<li>${escapeHtml(String(s))}</li>`).join("")}</ul>`
+        : "";
+
+      return `
+        <div class="rune-build-card">
+          ${setHtml}
+
+          <div class="rune-section">
+            <h3>슬롯별 메인 스탯</h3>
+            ${slotHtml}
+          </div>
+
+          <div class="rune-section">
+            <h3>부옵 우선순위</h3>
+            ${subHtml}
+          </div>
+
+          ${noteHtml ? `<div class="rune-section"><h3>주의/비고</h3>${noteHtml}</div>` : ""}
+        </div>
+      `;
     }
 
-    function renderDetailTabs(detail) {
+    function renderRuneSlots(slots){
+      const get = (k) => {
+        const v = slots?.[String(k)];
+        if (Array.isArray(v)) return v;
+        if (typeof v === "string") return [v];
+        return [];
+      };
+
+      const items = [1,2,3,4,5,6].map(pos => {
+        const lines = get(pos);
+        const body = lines.length
+          ? lines.map((x,i)=> `<div class="rune-slot-line ${i===0 ? "main":""}">${escapeHtml(String(x))}</div>`).join("")
+          : `<div class="muted">-</div>`;
+
+        return `
+          <div class="rune-slot">
+            <div class="rune-slot-h">Slot ${pos}</div>
+            <div class="rune-slot-b">${body}</div>
+          </div>
+        `;
+      }).join("");
+
+      return `<div class="rune-slots">${items}</div>`;
+    }
+
+    function renderDetailTabs(detail, runeReco, charMeta) {
       const tabs = [
         { id: "skills", label: "스킬", content: renderSkills(detail) },
         { id: "awakenings", label: "각성", content: renderAwakenings(detail) },
         { id: "memory", label: "메모리카드", content: renderMemoryCard(detail) },
+        { id: "runes", label: "추천 룬", content: renderRuneReco(runeReco, charMeta, detail) },
       ];
       const firstActive = "skills";
 
@@ -801,764 +492,52 @@ function pick(obj, ...keys) {
     function bindTabEvents() {
       const root = document.getElementById("modalBody");
       if (!root) return;
+
       root.onclick = (e) => {
+        // 상단 탭(스킬/각성/메모리/추천룬)
         const btn = e.target.closest(".tab-btn");
-        if (!btn) return;
-        const tab = btn.dataset.tab;
-        if (!tab) return;
+        if (btn){
+          const tab = btn.dataset.tab;
+          if (!tab) return;
 
-        root.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-        root.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === tab));
-      };
-    }
-
-    // ===== Modal open/close =====
-    const backdrop = document.getElementById("modalBackdrop");
-    const modalBody = document.getElementById("modalBody");
-    const modalTitle = document.getElementById("modalTitle");
-    const modalClose = document.getElementById("modalClose");
-
-    function openModal() {
-      backdrop.classList.add("show");
-      backdrop.setAttribute("aria-hidden", "false");
-    }
-    function closeModal() {
-      backdrop.classList.remove("show");
-      backdrop.setAttribute("aria-hidden", "true");
-      modalBody.innerHTML = `<div class="modal-loading">Loading…</div>`;
-    }
-    modalClose.addEventListener("click", closeModal);
-    backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeModal(); });
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && backdrop.classList.contains("show")) closeModal(); });
-
-    function setModalTitle(name, cn){
-      const safeName = escapeHtml(name || "Character");
-      const safeCn = cn ? escapeHtml(cn) : "";
-      modalTitle.innerHTML = safeCn ? `${safeName}<span class="cn">${safeCn}</span>` : safeName;
-    }
-
-    async function fetchAndOpen(cid) {
-      openModal();
-      modalBody.innerHTML = `<div class="modal-loading">Loading…</div>`;
-      try {
-        const r = await fetch(`/zones/zone-nova/characters/${encodeURIComponent(cid)}`, { cache: "no-store" });
-        const j = await r.json();
-        if (!j.ok) {
-          modalBody.innerHTML = `<div class="detail-empty">불러오기 실패: ${escapeHtml(j.error || "unknown")}</div>`;
+          root.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+          root.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === tab));
           return;
         }
 
-        const detail = j.detail || {};
-        const name = pick(detail, "name") || j.character?.name || j.id || "Character";
-        const cn = pick(detail, "chineseName", "chinesename", "chinessname", "cnName", "cn_name");
+        // 룬 빌드 탭(추천/대체안)
+        const rbtn = e.target.closest(".rune-tab-btn");
+        if (rbtn){
+          const idx = rbtn.dataset.runeTab;
+          if (idx === undefined) return;
 
-        setModalTitle(name, cn);
-        modalBody.innerHTML = renderDetailTabs(detail);
-        bindTabEvents();
-      } catch (e) {
-        modalBody.innerHTML = `<div class="detail-empty">불러오기 실패: ${escapeHtml(String(e))}</div>`;
-      }
-    }
-
-    // ===== JS error banner =====
-    (function(){
-      const banner = document.getElementById('jsErrorBanner');
-      const text = document.getElementById('jsErrorText');
-      if (!banner || !text) return;
-      function show(msg){
-        text.textContent = String(msg || 'unknown');
-        banner.style.display = 'block';
-      }
-      window.addEventListener('error', (e) => { show(e?.message || e); });
-      window.addEventListener('unhandledrejection', (e) => { show(e?.reason || e); });
-    })();
-
-    // ===== List render =====
-    function dedupeById(list){
-      const m = new Map();
-      for (const c of (list || [])){
-        if (!c) continue;
-        const id = (c.id || "").toString().trim();
-        if (!id) continue;
-        if (!m.has(id)) m.set(id, c);
-      }
-      return Array.from(m.values());
-    }
-
-    const chars = dedupeById(CHARS_RAW || []);
-
-    const $tbody = document.getElementById("tbody");
-    const $q = document.getElementById("q");
-    const $rarity = document.getElementById("rarityFilter");
-    const $elem = document.getElementById("elemFilter");
-    const $faction = document.getElementById("factionFilter");
-    const $class = document.getElementById("classFilter");
-    const $role = document.getElementById("roleFilter");
-function uniqSorted(values){
-      return Array.from(new Set(values.filter(v => v && v !== "-")))
-        .sort((a,b) => a.localeCompare(b));
-    }
-    function fillSelect(sel, values){
-      for (const v of values){
-        const opt = document.createElement("option");
-        opt.value = v;
-        opt.textContent = v;
-        sel.appendChild(opt);
-      }
-    }
-
-    fillSelect($elem, uniqSorted(chars.map(c => (c.element || "-"))));
-    fillSelect($faction, uniqSorted(chars.map(c => (c.faction || "-"))));
-    fillSelect($class, uniqSorted(chars.map(c => classLabel(c.class))));
-    fillSelect($role, uniqSorted(chars.map(c => roleLabel(c.role))));
-
-    function matchFilters(c){
-      const q = ($q.value || "").trim().toLowerCase();
-      const rarityV = ($rarity.value || "").trim().toUpperCase();
-      const elemV = ($elem.value || "").trim();
-      const factionV = ($faction.value || "").trim();
-      const classV = ($class.value || "").trim();
-      const roleV = ($role.value || "").trim();
-
-      const name = (c.name || "").toString().toLowerCase();
-      const id = (c.id || "").toString().toLowerCase();
-      const faction = (c.faction || "-").toString().toLowerCase();
-      const elem = (c.element || "-").toString();
-
-      if (q){
-        const ok = name.includes(q) || id.includes(q) || faction.includes(q) || elem.toLowerCase().includes(q);
-        if (!ok) return false;
-      }
-      if (rarityV && (c.rarity || "-").toString().toUpperCase() !== rarityV) return false;
-      if (elemV && (c.element || "-") !== elemV) return false;
-      if (factionV && (c.faction || "-") !== factionV) return false;
-      if (classV && classLabel(c.class) !== classV) return false;
-      if (roleV && roleLabel(c.role) !== roleV) return false;
-      return true;
-    }
-
-    function sortChars(list){
-      return list.slice().sort((a,b) => {
-        const ra = rarityVal(a.rarity);
-        const rb = rarityVal(b.rarity);
-        if (rb !== ra) return rb - ra;
-        const na = (a.name || a.id || "").toString();
-        const nb = (b.name || b.id || "").toString();
-        return na.localeCompare(nb);
-      });
-    }
-
-    
-    // ===== Stats (HP/ATK/DEF) loaded from /data/zone-nova/characters_ko/<id>.json =====
-    const STAT_CACHE = new Map(); // cid -> {hp, attack, defense}
-
-    async function fetchStats(cid){
-      if (!cid) return null;
-      if (STAT_CACHE.has(cid)) return STAT_CACHE.get(cid);
-
-      // Try common static paths
-      
-      const cidStr = String(cid);
-      const cidKey = slugKey(cidStr);
-      // filename overrides (test case)
-      const OV_FILE = (cidKey === "aphrodite") ? "afrodite" : null;
-
-const enc = encodeURIComponent(String(cid));
-      const encLower = encodeURIComponent(String(cid).toLowerCase());
-      const candidates = [
-        ...(OV_FILE ? [
-          `/data/zone-nova/characters_ko/${encodeURIComponent(OV_FILE)}.json`,
-          `/public/data/zone-nova/characters_ko/${encodeURIComponent(OV_FILE)}.json`,
-        ] : []),
-
-        `/data/zone-nova/characters_ko/${enc}.json`,
-        `/data/zone-nova/characters_ko/${encLower}.json`,
-        `/public/data/zone-nova/characters_ko/${enc}.json`,
-        `/public/data/zone-nova/characters_ko/${encLower}.json`,
-      ];
-
-      for (const url of candidates){
-        try{
-          const r = await fetch(url, { cache: "no-store" });
-          if (!r.ok) continue;
-          const j = await r.json();
-          
-          const s = (j && typeof j === "object" && j.stats && typeof j.stats === "object") ? j.stats : j;
-        const hp = pick(s, "hp", "HP");
-        const defense = pick(s, "defense", "def", "DEF");
-        const attack = pick(s, "attack", "atk", "ATK");
-        const critRate = pick(s, "critRate", "crit_rate", "criticalRate", "crit"); // 호환
-        
-        const stats = {
-          hp: hp ?? "-",
-          attack: attack ?? "-",
-          defense: defense ?? "-",
-          critRate: critRate ?? "-",
-        };
-          STAT_CACHE.set(cid, stats);
-          return stats;
-        }catch(e){}
-      }
-
-      // cache miss
-     const stats = { hp: "-", attack: "-", defense: "-", critRate: "-" };
-      STAT_CACHE.set(cid, stats);
-      return stats;
-    }
-
-    function fillStatsForVisibleRows(){
-      // fetch stats asynchronously for rendered rows
-      const cells = document.querySelectorAll('td[data-stat][data-cid]');
-      const need = new Set();
-      cells.forEach(td => {
-        const cid = td.dataset.cid;
-        if (cid && !STAT_CACHE.has(cid)) need.add(cid);
-      });
-      // fire and forget
-      need.forEach(async (cid) => {
-        const stats = await fetchStats(cid);
-        document.querySelectorAll(`td[data-stat][data-cid="${CSS.escape(cid)}"]`).forEach(td => {
-          const k = td.dataset.stat;
-          const v = stats?.[k] ?? "-";
-        td.textContent = formatStatDisplay(k, v);
-        });
-      });
-
-      // fill already cached
-      cells.forEach(td => {
-        const cid = td.dataset.cid;
-        const k = td.dataset.stat;
-        const st = STAT_CACHE.get(cid);
-        if (st && st[k] !== undefined) td.textContent = String(st[k]);
-      });
-    }
-    // ===== Stats sorting by header click =====
-    const SORT_STATE = { key: null, dir: "desc" }; // key: hp|attack|defense|null, dir: asc|desc
-
-    function formatStatDisplay(key, v){
-      if (v === null || v === undefined) return "-";
-      const s = String(v).trim();
-      if (s === "" || s === "-") return "-";
-    
-      if (key === "critRate"){
-        // 이미 %가 있으면 그대로, 숫자면 % 붙이기
-        if (s.includes("%")) return s;
-        const n = Number(s.replace(/,/g, ""));
-        return Number.isFinite(n) ? `${n}%` : s;
-      }
-      return s;
-    }
-    
-    function statNum(v){
-      if (v === null || v === undefined) return -1;
-      const n = Number(String(v).replace(/,/g, "").replace(/%/g, ""));
-      return Number.isFinite(n) ? n : -1;
-    }
-
-    function updateStatHeaderIndicators(){
-      document.querySelectorAll("th.th-sort").forEach(th => {
-        th.classList.remove("sort-asc", "sort-desc");
-        if (SORT_STATE.key && th.dataset.sort === SORT_STATE.key){
-          th.classList.add(SORT_STATE.dir === "asc" ? "sort-asc" : "sort-desc");
+          root.querySelectorAll(".rune-tab-btn").forEach(b => b.classList.toggle("is-active", b.dataset.runeTab === idx));
+          root.querySelectorAll(".rune-tab-panel").forEach(p => p.classList.toggle("is-active", p.dataset.runePanel === idx));
+          return;
         }
-      });
+      };
     }
 
-
-
-async function render(){
-      
-      const base = chars.filter(matchFilters);
-
-      // Sort: default (rarity/name) or stats(header)
-      let filtered = [];
-      if (SORT_STATE.key === "hp" || SORT_STATE.key === "defense" || SORT_STATE.key === "attack" || SORT_STATE.key === "critRate") {
-        const ids = base.map(c => c.id).filter(Boolean);
-        await Promise.all(ids.map(cid => fetchStats(cid)));
-        filtered = base.slice().sort((a,b) => {
-          const sa = STAT_CACHE.get(a.id);
-          const sb = STAT_CACHE.get(b.id);
-          const va = statNum(sa?.[SORT_STATE.key]);
-          const vb = statNum(sb?.[SORT_STATE.key]);
-          if (va !== vb) {
-            return (SORT_STATE.dir === "asc") ? (va - vb) : (vb - va);
-          }
-          // tie-breakers: rarity then name
-          const ra = rarityVal(a.rarity);
-          const rb = rarityVal(b.rarity);
-          if (rb !== ra) return rb - ra;
-          const na = (a.name || a.id || "").toString();
-          const nb = (b.name || b.id || "").toString();
-          return na.localeCompare(nb);
-        });
-      } else {
-        filtered = sortChars(base);
-      }
-
-      updateStatHeaderIndicators();
-
-const rows = filtered.map(c => {
-        const cid = c.id;
-        const nm = c.name || cid;
-
-        const elem = (c.element || "-");
-        const faction = (c.faction || "-");
-        const cls = classLabel(c.class);
-        const role = roleLabel(c.role);
-        const rar = (c.rarity || "-").toString().toUpperCase();
-
-        const img = c.image
-          ? `<img class="char-img" src="${escapeHtml(c.image)}" alt="">`
-          : `<div class="char-img"></div>`;
-
-        const elemIcon = c.element_icon ? `<img class="mini-icon" src="${escapeHtml(c.element_icon)}" alt="">` : "";
-        const classIcon = c.class_icon ? `<img class="mini-icon" src="${escapeHtml(c.class_icon)}" alt="">` : "";
-
-        return `
-          <tr>
-            <td class="col-check"><input class="chk-owned" type="checkbox" data-cid="${escapeHtml(cid)}"></td>
-            <td>
-              <div class="char-cell clickable" data-cid="${escapeHtml(cid)}">
-                ${img}
-                <div class="char-name">${escapeHtml(nm)}</div>
-              </div>
-            </td>
-           <td class="col-hp" data-stat="hp" data-cid="${escapeHtml(cid)}">-</td>\
-           <td class="col-def" data-stat="defense" data-cid="${escapeHtml(cid)}">-</td>
-           <td class="col-atk" data-stat="attack" data-cid="${escapeHtml(cid)}">-</td>
-           <td class="col-crit" data-stat="critRate" data-cid="${escapeHtml(cid)}">-</td>
-
-            <td class="col-elem">
-              <span class="pill pill-neutral pill-with-icon">
-                ${elemIcon}
-                <span class="pill-text">${escapeHtml(elem)}</span>
-              </span>
-            </td>
-            <td class="col-faction"><span class="pill pill-neutral">${escapeHtml(faction)}</span></td>
-            <td class="col-class">
-              <span class="pill pill-neutral pill-with-icon">
-                ${classIcon}
-                <span class="pill-text">${escapeHtml(cls)}</span>
-              </span>
-            </td>
-            <td class="col-role"><span class="pill pill-neutral">${escapeHtml(role)}</span></td>
-            <td class="col-rarity"><span class="pill ${rarityPillClass(rar)}">${escapeHtml(rar)}</span></td>
-          </tr>
-        `;
+    function renderRuneMini(c){
+      const sets = c?.runes?.sets;
+      if (!Array.isArray(sets) || !sets.length) return "";
+      const title = sets.map(s => `${s?.set || ""} ${s?.pieces || ""}pc`).join(" + ");
+      const icons = sets.slice(0, 2).map(s => {
+        const icon = s?.icon;
+        const pieces = s?.pieces ? `<span class="rune-mini-pc">${escapeHtml(String(s.pieces))}</span>` : "";
+        if (icon){
+          return `<div class="rune-mini">
+                    <img class="rune-mini-icon" src="${escapeHtml(icon)}" alt="">
+                    ${pieces}
+                  </div>`;
+        }
+        return `<div class="rune-mini">
+                  <div class="rune-mini-icon rune-mini-icon-empty"></div>
+                  ${pieces}
+                </div>`;
       }).join("");
 
-      $tbody.innerHTML = rows || `<tr><td colspan="11" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
-    
-      fillStatsForVisibleRows();
-}
-
-    [$q, $rarity, $elem, $faction, $class, $role].forEach(el => {
-      el.addEventListener("input", render);
-      el.addEventListener("change", render);
-    });
-
-    document.getElementById("btnAll").addEventListener("click", () => {
-      document.querySelectorAll(".chk-owned").forEach(x => x.checked = true);
-    });
-    document.getElementById("btnNone").addEventListener("click", () => {
-      document.querySelectorAll(".chk-owned").forEach(x => x.checked = false);
-    });
-
-    document.addEventListener("click", (e) => {
-      const chk = e.target.closest(".chk-owned");
-      if (chk) return;
-      const cell = e.target.closest(".char-cell.clickable");
-      if (!cell) return;
-      const cid = cell.dataset.cid;
-      if (cid) fetchAndOpen(cid);
-    });
-
-    render();
-
-
-    // Click stat headers to sort (toggle asc/desc)
-    (function bindStatHeaderSort(){
-      const table = document.querySelector(".table");
-      if (!table) return;
-      const thead = table.querySelector("thead");
-      if (!thead) return;
-      thead.addEventListener("click", (e) => {
-        const th = e.target.closest("th.th-sort");
-        if (!th) return;
-        const key = th.dataset.sort;
-        if (!key) return;
-        if (SORT_STATE.key === key) SORT_STATE.dir = (SORT_STATE.dir === "asc") ? "desc" : "asc";
-        else { SORT_STATE.key = key; SORT_STATE.dir = "desc"; }
-        render();
-      });
-    })();
-
-    // ===== Filters collapse (mobile) =====
-    // - 모바일에서는 기본 접힘
-    // - 사용자가 한 번 열고/닫으면 localStorage로 기억
-    (function initFiltersCollapse(){
-      const d = document.getElementById("filtersPanel");
-      if (!d) return;
-
-      const KEY = "nova_filters_open";
-      const mq = window.matchMedia("(max-width: 520px)");
-
-      const applyDefault = () => {
-        if (mq.matches) d.removeAttribute("open");
-        else d.setAttribute("open", "");
-      };
-
-      const saved = localStorage.getItem(KEY);
-      if (saved === "1") d.setAttribute("open", "");
-      else if (saved === "0") d.removeAttribute("open");
-      else applyDefault();
-
-      d.addEventListener("toggle", () => {
-        localStorage.setItem(KEY, d.open ? "1" : "0");
-      });
-
-      mq.addEventListener?.("change", () => {
-        // 저장값이 없을 때만 자동 적용(사용자 선택을 덮어쓰지 않음)
-        if (localStorage.getItem(KEY) == null) applyDefault();
-      });
-    })();
-
-    // ===== Tier Party Builder =====
-    let ALL_TIER_LISTS = null;
-    const TIER_SCORE = { SSS: 4, SS: 3, S: 2, A: 1 };
-
-    function keyify(s){
-      return slugKey(s);
-    }
-
-    // key -> [id...] (동명이인/오버라이드 충돌 대비)
-    function buildCharIndex(chars){
-      const byKey = new Map();
-      const byId = new Map((chars || []).map(c => [String(c.id), c]));
-
-      function addKey(key, id){
-        if (!key || !id) return;
-        const arr = byKey.get(key) || [];
-        if (!arr.includes(id)) arr.push(id);
-        // SSR 우선 정렬(있어도 되고 없어도 되지만, 일관성 위해 유지)
-        arr.sort((a,b) => rarityVal(byId.get(b)?.rarity) - rarityVal(byId.get(a)?.rarity));
-        byKey.set(key, arr);
-      }
-
-      for (const c of (chars || [])){
-        if (!c?.id) continue;
-        const id = String(c.id);
-        if (c.name) addKey(keyify(c.name), id);
-        if (c.raw_name) addKey(keyify(c.raw_name), id);
-        addKey(keyify(id), id);
-      }
-      return { byKey };
-    }
-
-    // ✅ 동일 name이 여러 id로 매핑되면 "전부" rankMap에 반영
-    function buildRankMapFromTierList(tierList, chars){
-      const { byKey } = buildCharIndex(chars);
-      const rank = new Map();
-      const tiers = tierList?.tiers || {};
-
-      for (const [tier, arr] of Object.entries(tiers)){
-        const T = String(tier).toUpperCase();
-        if (!TIER_SCORE[T]) continue;
-
-        const list = Array.isArray(arr) ? arr : [];
-        for (const it of list){
-          const nm = (it && typeof it === "object") ? it.name : null;
-          const ids = byKey.get(keyify(nm));
-          if (!ids || !ids.length) continue;
-
-          for (const cid of ids){
-            const prev = rank.get(cid) || 0;
-            rank.set(cid, Math.max(prev, TIER_SCORE[T]));
-          }
-        }
-      }
-      return rank;
-    }
-
-    function getOwnedSelectedIds(){
-      const out = [];
-      document.querySelectorAll(".chk-owned").forEach(chk => {
-        if (chk.checked && chk.dataset.cid) out.push(chk.dataset.cid);
-      });
-      return out;
-    }
-
-    function initTierClassCheckboxes(){
-      const box = document.getElementById("tierClassBox");
-      const use = document.getElementById("useClassFilter");
-      if (!box || !use) return;
-
-      const classes = Array.from(new Set((chars || []).map(c => String(c.class || "-")).filter(v => v && v !== "-")))
-        .sort((a,b) => a.localeCompare(b));
-
-      box.innerHTML = classes.map(cls => `
-        <label class="tier-class-item">
-          <input type="checkbox" value="${escapeHtml(cls)}" disabled>
-          <span>${escapeHtml(cls)}</span>
-        </label>
-      `).join("");
-
-      const toggle = () => {
-        const on = !!use.checked;
-        box.setAttribute("aria-disabled", String(!on));
-        box.querySelectorAll("input[type=checkbox]").forEach(x => x.disabled = !on);
-      };
-      use.addEventListener("change", toggle);
-      toggle();
-    }
-
-    function getEnabledClassSet(){
-      const use = document.getElementById("useClassFilter")?.checked;
-      if (!use) return null;
-
-      const picked = new Set();
-      document.querySelectorAll(".tier-class-item input[type=checkbox]").forEach(x => {
-        if (x.checked) picked.add(x.value);
-      });
-      return picked.size ? picked : null;
-    }
-
-    function hasComboSkill(party, charsById){
-      const elem = new Map();
-      const fac = new Map();
-      for (const cid of party){
-        const c = charsById.get(cid);
-        if (!c) continue;
-        const e = c.element || "-";
-        const f = c.faction || "-";
-        elem.set(e, (elem.get(e) || 0) + 1);
-        fac.set(f, (fac.get(f) || 0) + 1);
-      }
-      const maxElem = Math.max(0, ...elem.values());
-      const maxFac = Math.max(0, ...fac.values());
-      return (maxElem >= 2) || (maxFac >= 2);
-    }
-
-    // ✅ 모든 파티원이 콤보(속성2+ 또는 특성2+)에 “참여”해야 함
-    function allMembersContributeToCombo(party, charsById){
-      const elemCount = new Map();
-      const facCount = new Map();
-
-      for (const cid of party){
-        const c = charsById.get(cid);
-        if (!c) continue;
-        const e = c.element || "-";
-        const f = c.faction || "-";
-        elemCount.set(e, (elemCount.get(e) || 0) + 1);
-        facCount.set(f, (facCount.get(f) || 0) + 1);
-      }
-
-      for (const cid of party){
-        const c = charsById.get(cid);
-        if (!c) return false;
-
-        const e = c.element || "-";
-        const f = c.faction || "-";
-
-        const eOk = e !== "-" && (elemCount.get(e) || 0) >= 2;
-        const fOk = f !== "-" && (facCount.get(f) || 0) >= 2;
-
-        if (!eOk && !fOk) return false;
-      }
-      return true;
-    }
-
-    function isTank(c){
-      const cls = String(c?.class || "").toLowerCase();
-      const role = String(c?.role || "").toLowerCase();
-      return cls === "guardian" || role === "tank";
-    }
-
-    function isHealer(c){
-      const cls = String(c?.class || "").toLowerCase();
-      const role = String(c?.role || "").toLowerCase();
-      return cls === "healer" || role === "healer";
-    }
-
-    function passesTankHealerCap(party, charsById){
-      let tank = 0, healer = 0;
-      for (const cid of party){
-        const c = charsById.get(cid);
-        if (!c) continue;
-        if (isTank(c)) tank++;
-        if (isHealer(c)) healer++;
-        if (tank > 1 || healer > 1) return false;
-      }
-      return true;
-    }
-
-    function passesRequiredClasses(party, charsById, requiredClassSet){
-      if (!requiredClassSet || requiredClassSet.size === 0) return true;
-
-      const seen = new Set();
-      for (const cid of party){
-        const c = charsById.get(cid);
-        if (!c) continue;
-        seen.add(String(c.class || "-"));
-      }
-
-      for (const req of requiredClassSet){
-        if (!seen.has(req)) return false;
-      }
-      return true;
-    }
-
-    function partyScore(party, rankMap, charsById){
-      let sum = 0;
-      const elem = new Map();
-      const fac = new Map();
-
-      for (const cid of party){
-        const c = charsById.get(cid);
-
-        // tier 점수
-        sum += (rankMap.get(cid) || 0) * 100;
-
-        // rarity 보너스(동명이인 충돌 상황에서 SSR 우선 선택 유도)
-        sum += rarityVal(c?.rarity) * 5;
-
-        if (!c) continue;
-        const e = c.element || "-";
-        const f = c.faction || "-";
-        elem.set(e, (elem.get(e) || 0) + 1);
-        fac.set(f, (fac.get(f) || 0) + 1);
-      }
-
-      const maxElem = Math.max(0, ...elem.values());
-      const maxFac = Math.max(0, ...fac.values());
-
-      if (maxElem >= 2) sum += 20;
-      if (maxFac >= 2) sum += 20;
-      if (maxElem >= 3) sum += 10;
-      if (maxFac >= 3) sum += 10;
-
-      return sum;
-    }
-
-    function tierLabelFromScore(s){
-      if (s === 4) return "SSS";
-      if (s === 3) return "SS";
-      if (s === 2) return "S";
-      if (s === 1) return "A";
-      return "-";
-    }
-
-    /**
-     * ✅ 한 번에 "최고 1개 파티"를 뽑는다(현재 남아있는 후보 중)
-     * - usedSet(카테고리 내부 중복 금지)을 반영해 후보에서 제외
-     * - 조건 만족하는 4인 조합 중 점수 최고 선택
-     */
-    function buildBestPartyOnce(rankMap, usedSet){
-      const owned = getOwnedSelectedIds();
-      if (owned.length < 4) return { ok:false, msg:"보유 체크가 4명 이상이어야 합니다." };
-
-      const charsById = new Map(chars.map(c => [c.id, c]));
-
-      // usedSet에 포함된 캐릭터는 제외(= 같은 카테고리 안에서 중복 금지)
-      const candidatesAll = owned
-        .filter(cid => charsById.has(cid))
-        .filter(cid => !usedSet.has(cid));
-
-      if (candidatesAll.length < 4){
-        return { ok:false, msg:"(중복 제외 후) 후보가 부족하여 파티를 구성할 수 없습니다." };
-      }
-
-      const classSet = getEnabledClassSet();
-      if (classSet && classSet.size > 4){
-        return { ok:false, msg:"선택 클래스는 최대 4개까지만 지정할 수 있습니다(4인 파티)." };
-      }
-
-      // tier 우선 정렬(없으면 0)
-      const candidates = candidatesAll.slice().sort((a,b) => (rankMap.get(b) || 0) - (rankMap.get(a) || 0));
-
-      // 탐색 풀 제한(브라우저 성능 보호)
-      const N = Math.min(28, candidates.length);
-      const pool = candidates.slice(0, N);
-
-      let best = null;
-      for (let i=0; i<pool.length-3; i++){
-        for (let j=i+1; j<pool.length-2; j++){
-          for (let k=j+1; k<pool.length-1; k++){
-            for (let l=k+1; l<pool.length; l++){
-              const party = [pool[i], pool[j], pool[k], pool[l]];
-
-              if (!passesTankHealerCap(party, charsById)) continue;
-              if (!passesRequiredClasses(party, charsById, classSet)) continue;
-
-              if (!hasComboSkill(party, charsById)) continue;
-              if (!allMembersContributeToCombo(party, charsById)) continue;
-
-              const sc = partyScore(party, rankMap, charsById);
-              if (!best || sc > best.score) best = { party, score: sc };
-            }
-          }
-        }
-      }
-
-      if (!best) return { ok:false, msg:"조건을 만족하는 4인 조합을 찾지 못했습니다." };
-      return { ok:true, party: best.party };
-    }
-
-    /**
-     * ✅ 카테고리별로 n개 파티 만들기(카테고리 내부 중복 금지)
-     */
-    function buildPartiesForCategory(rankMap, n){
-      const used = new Set();
-      const parties = [];
-
-      for (let i=0; i<n; i++){
-        const res = buildBestPartyOnce(rankMap, used);
-        if (!res.ok) break;
-
-        parties.push(res.party);
-        // 같은 카테고리 내 중복 금지: 선택된 4명은 used에 추가
-        for (const cid of res.party) used.add(cid);
-      }
-
-      return parties;
-    }
-
-    /**
-     * ✅ 최종 요구사항:
-     * - Guild 3 (중복 없이)
-     * - PVE 1
-     * - PVP 2 (중복 없이)
-     * - Rift 2 (중복 없이)
-     */
-    function buildAllCategoryParties(rankMap){
-      return {
-        Guild: buildPartiesForCategory(rankMap, 3),
-        PVE:   buildPartiesForCategory(rankMap, 1),
-        PVP:   buildPartiesForCategory(rankMap, 2),
-        Rift:  buildPartiesForCategory(rankMap, 2),
-      };
-    }
-
-    // ✅ 선택한 등급표(pve/pvp/rift/guild-raid/...)에 맞춰 결과 카테고리를 제한
-    function buildPartiesByPresetKey(rankMap, presetKey){
-      const k = String(presetKey || "").toLowerCase();
-
-      // 기본값: 기존과 동일(전체 카테고리)
-      const def = { order: ["Guild", "PVE", "PVP", "Rift"], data: buildAllCategoryParties(rankMap) };
-
-      if (k === "pvp") {
-        return { order: ["PVP"], data: { PVP: buildPartiesForCategory(rankMap, 2) } };
-      }
-      if (k === "pve" || k === "new-player") {
-        return { order: ["PVE"], data: { PVE: buildPartiesForCategory(rankMap, 1) } };
-      }
-      if (k === "rift") {
-        return { order: ["Rift"], data: { Rift: buildPartiesForCategory(rankMap, 2) } };
-      }
-      if (k === "guild-raid") {
-        return { order: ["Guild"], data: { Guild: buildPartiesForCategory(rankMap, 3) } };
-      }
-      return def;
+      return `<div class="tier-runes" title="${escapeHtml(title)}">${icons}</div>`;
     }
 
     function renderTierPartyResult(rankMap, res){
@@ -1590,6 +569,7 @@ const rows = filtered.map(c => {
                 <span class="pill pill-neutral">${escapeHtml(c?.element || "-")}</span>
                 <span class="pill pill-neutral">${escapeHtml(c?.faction || "-")}</span>
                 <span class="pill pill-neutral">${escapeHtml(c?.class || "-")}</span>
+                ${renderRuneMini(c)}
               </div>
             </div>
           `;
@@ -1607,27 +587,17 @@ const rows = filtered.map(c => {
         const parties = sections[cat] || [];
         if (!parties.length){
           return `
-            <div class="tier-section">
-              <div class="tier-section-head">
-                <div class="tier-section-title">${escapeHtml(cat)}</div>
-              </div>
-              <div class="tier-error" style="margin-top:8px;">${escapeHtml(cat)}: 조건을 만족하는 파티를 구성하지 못했습니다(후보 부족/조건 과다).</div>
+            <div class="tier-block">
+              <h3>${escapeHtml(cat)}</h3>
+              <div class="empty">결과 없음</div>
             </div>
           `;
         }
 
         return `
-          <div class="tier-section">
-            <div class="tier-section-head">
-              <div class="tier-section-title">${escapeHtml(cat)}</div>
-              <div class="tier-section-sub">총 ${parties.length}개</div>
-            </div>
-            ${parties.map((p, idx) => `
-              <div class="tier-party-block">
-                <div class="tier-party-title">${escapeHtml(cat)} ${idx + 1}</div>
-                ${renderOneParty(p)}
-              </div>
-            `).join("")}
+          <div class="tier-block">
+            <h3>${escapeHtml(cat)}</h3>
+            ${parties.map(p => renderOneParty(p)).join("")}
           </div>
         `;
       }).join("");
@@ -1635,123 +605,27 @@ const rows = filtered.map(c => {
       box.innerHTML = html;
     }
 
-    function initTierUI(){
-      const sel = document.getElementById("tierPreset");
-      const btn = document.getElementById("btnBuildTierParty");
-      // ✅ 요청사항: 구성조건/lastUpdated 안내 영역 제거(없어도 동작)
-      const info = document.getElementById("tierInfo"); // (없을 수 있음)
-      const help = document.getElementById("tierHelp"); // (없을 수 있음)
-      if (!sel || !btn) return;
-      if (!ALL_TIER_LISTS) return;
+    // ===== Init =====
+    buildOptions();
+    renderList();
 
-      const keys = Object.keys(ALL_TIER_LISTS).sort((a,b) => a.localeCompare(b));
+    document.getElementById("q")?.addEventListener("input", renderList);
+    document.getElementById("rarity")?.addEventListener("change", renderList);
+    document.getElementById("element")?.addEventListener("change", renderList);
+    document.getElementById("faction")?.addEventListener("change", renderList);
+    document.getElementById("cls")?.addEventListener("change", renderList);
 
-      sel.innerHTML = `<option value="">등급표 선택</option>` + keys.map(k => {
-        const t = ALL_TIER_LISTS[k];
-        const nm = String(t?.name || k).trim();
-        return `<option value="${escapeHtml(k)}">${escapeHtml(nm)}</option>`;
-      }).join("");
-
-      sel.disabled = false;
-      btn.disabled = false;
-
-      initTierClassCheckboxes();
-
-      function renderInfo(k){
-        // ✅ 요청사항: 구성조건/lastUpdated 등의 안내 문구는 표시하지 않음
-        if (info) info.textContent = "";
-        if (help) help.innerHTML = "";
-      }
-
-      sel.addEventListener("change", () => {
-        renderInfo(sel.value);
-        document.getElementById("tierPartyResult").innerHTML = "";
-      });
-
-      btn.addEventListener("click", () => {
-        const k = sel.value;
-        if (!k) {
-          renderTierPartyResult(new Map(), { ok:false, msg:"등급표를 먼저 선택하세요." });
-          return;
-        }
-        const tierList = ALL_TIER_LISTS[k];
-        const rankMap = buildRankMapFromTierList(tierList, chars);
-
-        const built = buildPartiesByPresetKey(rankMap, k);
-        renderTierPartyResult(rankMap, { ok:true, ...built });
-      });
-
-      renderInfo(sel.value);
-    }
-
-    // ===== Tier (details) collapse: 검색/필터와 동일한 (열기/닫기) UX =====
-    // - 모바일에서는 기본 접힘
-    // - 사용자가 한 번 열고/닫으면 localStorage로 기억
-    (function initTierDetailsCollapse(){
-      const d = document.getElementById("tierPanel");
-      if (!d) return;
-
-      const KEY = "tierPanelOpen";
-      const mq = window.matchMedia("(max-width: 520px)");
-
-      const applyDefault = () => {
-        if (mq.matches) d.removeAttribute("open");
-        else d.setAttribute("open", "");
-      };
-
-      const saved = localStorage.getItem(KEY);
-      if (saved === "1") d.setAttribute("open", "");
-      else if (saved === "0") d.removeAttribute("open");
-      else applyDefault();
-
-      d.addEventListener("toggle", () => {
-        localStorage.setItem(KEY, d.open ? "1" : "0");
-      });
-
-      mq.addEventListener?.("change", () => {
-        if (localStorage.getItem(KEY) == null) applyDefault();
-      });
-    })();
-
-    window.addEventListener("tierlists:loaded", () => {
-      ALL_TIER_LISTS = window.__tierLists?.ALL_TIER_LISTS || null;
-
-      if (!ALL_TIER_LISTS) {
-        const sel = document.getElementById("tierPreset");
-        const info = document.getElementById("tierInfo");
-        if (sel) {
-          sel.innerHTML = `<option value="">등급표 로딩 실패</option>`;
-          sel.disabled = true;
-        }
-        if (info) {
-          info.textContent = "tier-lists.js(tier-list.js) 모듈을 불러오지 못했습니다. 경로/파일명을 확인하세요.";
-        }
-        return;
-      }
-
-      initTierUI();
+    document.getElementById("btnClear")?.addEventListener("click", () => {
+      document.getElementById("q").value = "";
+      document.getElementById("rarity").value = "";
+      document.getElementById("element").value = "";
+      document.getElementById("faction").value = "";
+      document.getElementById("cls").value = "";
+      renderList();
     });
+
+    // (티어 추천 결과는 기존 로직이 어디선가 res를 생성해 호출한다고 가정)
+    // renderTierPartyResult(rankMap, res);
   </script>
-
-  <!-- ✅ tier-lists 모듈 import (파일명 혼동 대비 fallback) -->
-  <script type="module">
-    const candidates = [
-      "/data/zone-nova/tier-lists.js",
-      "/data/zone-nova/tier-list.js"
-    ];
-
-    let mod = null;
-    for (const p of candidates) {
-      try {
-        mod = await import(p);
-        window.__tierLists = mod;
-        window.__tierListsPath = p;
-        break;
-      } catch (e) {}
-    }
-
-    window.dispatchEvent(new Event("tierlists:loaded"));
-  </script>
-
 </body>
 </html>
