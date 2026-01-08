@@ -82,19 +82,20 @@
       const badges = [];
       if (isGuildOnly(r)) badges.push(`<span class="badge">길드 레이드</span>`);
       if (r.classRestriction) badges.push(`<span class="badge">클래스 제한</span>`);
-
+    
       const two = r.twoPiece
         ? `<div class="line"><span class="tag">2세트</span><span>${escapeHtml(r.twoPiece)}</span></div>`
         : "";
       const four = r.fourPiece
         ? `<div class="line"><span class="tag">4세트</span><span>${escapeHtml(r.fourPiece)}</span></div>`
         : "";
-
+    
       const restriction = r.classRestriction
         ? `<div class="note">적용 제한: ${escapeHtml(r.classRestriction)}</div>`
         : "";
       const note = r.note ? `<div class="note">※ ${escapeHtml(r.note)}</div>` : "";
-
+      const badgesRow = badges.length ? `<div class="badges badges-bottom">${badges.join("")}</div>` : "";
+    
       return `
         <article class="rune-card" data-key="${escapeHtml(key)}">
           <div class="thumb">
@@ -102,22 +103,29 @@
               src="/images/games/zone-nova/runes/${encodeURIComponent(r.image)}"
               alt="${escapeHtml(r.name)}" />
           </div>
+    
           <div class="body">
             <div class="top">
               <h3 class="name">${escapeHtml(r.name)}</h3>
-              <div class="badges">${badges.join("")}</div>
             </div>
+    
             <div class="effects">
               ${two}
               ${four}
             </div>
-            ${restriction}
-            ${note}
+    
+            <div class="foot">
+              ${restriction}
+              ${note}
+              ${badgesRow}
+            </div>
           </div>
         </article>
       `;
     }
 
+
+    
     function renderRunes() {
       const entries = Object.entries(RUNE_SETS);
 
