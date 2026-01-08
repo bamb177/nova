@@ -901,32 +901,9 @@ body{
     border-radius: 14px;
   }
 }
-
 /* =========================
    Rune Recommendation UI
 ========================= */
-
-.navbtn{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding:8px 10px;
-  border:1px solid var(--line);
-  border-radius: 12px;
-  text-decoration:none;
-  color: var(--txt);
-  background: rgba(255,255,255,.04);
-  box-shadow: 0 6px 14px rgba(0,0,0,.18);
-  transition: transform .12s ease, background .12s ease, border-color .12s ease;
-  font-size: 13px;
-  line-height: 1;
-  white-space: nowrap;
-}
-.navbtn:hover{
-  transform: translateY(-1px);
-  background: rgba(255,255,255,.06);
-  border-color: var(--line2);
-}
 
 .rune-wrap{
   margin-top: 6px;
@@ -1088,6 +1065,7 @@ body{
   font-size: 12.5px;
 }
 
+/* Tier 카드 룬 미니 */
 .tier-runes{
   display:flex;
   align-items:center;
