@@ -1,0 +1,2401 @@
+{
+  "generated_from": {
+    "characters_dir": "public/data/zone-nova/characters_ko",
+    "runes_export": "public/data/zone-nova/runes_export.json",
+    "overrides": "public/data/zone-nova/rune_overrides.json"
+  },
+  "items": {
+    "afrodite": {
+      "key": "afrodite",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 48.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "anubis": {
+      "key": "anubis",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "apep": {
+      "key": "apep",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 170.0,
+          "def": 0.0
+        },
+        "dominant": "hp"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "apollo": {
+      "key": "apollo",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "artemis": {
+      "key": "artemis",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 255.0,
+          "def": 0.0
+        },
+        "dominant": "hp"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "arthur": {
+      "key": "arthur",
+      "archetype": "basic_dps",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Critical Rate %",
+            "5": "Holy Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Critical Rate %",
+            "Critical Damage %",
+            "Attack %",
+            "Attack Penetration"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "athena": {
+      "key": "athena",
+      "archetype": "basic_dps",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Critical Rate %",
+            "5": "Wind Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Critical Rate %",
+            "Critical Damage %",
+            "Attack %",
+            "Attack Penetration"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "bastet": {
+      "key": "bastet",
+      "archetype": "basic_dps",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Critical Rate %",
+            "5": "Wind Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Critical Rate %",
+            "Critical Damage %",
+            "Attack %",
+            "Attack Penetration"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "belphegar": {
+      "key": "belphegar",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "chiya": {
+      "key": "chiya",
+      "archetype": "basic_dps",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Critical Rate %",
+            "5": "Ice Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Critical Rate %",
+            "Critical Damage %",
+            "Attack %",
+            "Attack Penetration"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "cleopatra": {
+      "key": "cleopatra",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "freya": {
+      "key": "freya",
+      "archetype": "extra",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Attack %",
+            "5": "Ice Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Attack %",
+            "Critical Rate %",
+            "Critical Damage %",
+            "Attack Penetration"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "freye": {
+      "key": "freye",
+      "archetype": "dot",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Attack %",
+            "5": "Chaos Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Attack %",
+            "Attack Penetration",
+            "Critical Rate % (optional)",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "gaia": {
+      "key": "gaia",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 276.0,
+          "def": 0.0
+        },
+        "dominant": "hp"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "greed-mammon": {
+      "key": "greed-mammon",
+      "archetype": "basic_dps",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Critical Rate %",
+            "5": "Chaos Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Critical Rate %",
+            "Critical Damage %",
+            "Attack %",
+            "Attack Penetration"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "guinevere": {
+      "key": "guinevere",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 40.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "hela": {
+      "key": "hela",
+      "archetype": "basic_dps",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Critical Rate %",
+            "5": "Chaos Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Critical Rate %",
+            "Critical Damage %",
+            "Attack %",
+            "Attack Penetration"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "hera": {
+      "key": "hera",
+      "archetype": "dot",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Attack %",
+            "5": "Chaos Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Attack %",
+            "Attack Penetration",
+            "Critical Rate % (optional)",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "horus": {
+      "key": "horus",
+      "archetype": "dot",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Attack %",
+            "5": "Holy Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Attack %",
+            "Attack Penetration",
+            "Critical Rate % (optional)",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "ibaraki-doji": {
+      "key": "ibaraki-doji",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "jeanne-darc": {
+      "key": "jeanne-darc",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 285.8,
+          "def": 0.0
+        },
+        "dominant": "hp"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "jorogumo": {
+      "key": "jorogumo",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 55.0,
+          "def": 0.0
+        },
+        "dominant": "hp"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "kela": {
+      "key": "kela",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 977.0,
+          "def": 0.0
+        },
+        "dominant": "hp"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "lancelot": {
+      "key": "lancelot",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 55.1,
+          "def": 0.0
+        },
+        "dominant": "hp"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "lavinia": {
+      "key": "lavinia",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 1752.5,
+          "def": 0.0
+        },
+        "dominant": "hp"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "leviathan": {
+      "key": "leviathan",
+      "archetype": "extra",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Attack %",
+            "5": "Wind Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Attack %",
+            "Critical Rate %",
+            "Critical Damage %",
+            "Attack Penetration"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "lily": {
+      "key": "lily",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "loki": {
+      "key": "loki",
+      "archetype": "dot",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Attack %",
+            "5": "Chaos Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Attack %",
+            "Attack Penetration",
+            "Critical Rate % (optional)",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "lyra": {
+      "key": "lyra",
+      "archetype": "basic_dps",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Critical Rate %",
+            "5": "Fire Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Critical Rate %",
+            "Critical Damage %",
+            "Attack %",
+            "Attack Penetration"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "merlin": {
+      "key": "merlin",
+      "archetype": "debuffer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Attack Penetration %",
+            "5": "Attack %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Attack %",
+            "Attack Penetration",
+            "Critical Rate %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "mordred": {
+      "key": "mordred",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 41.8,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "morgan-le-fay": {
+      "key": "morgan-le-fay",
+      "archetype": "basic_dps",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 29.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Critical Rate %",
+            "5": "Holy Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Critical Rate %",
+            "Critical Damage %",
+            "Attack %",
+            "Attack Penetration"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "naiya": {
+      "key": "naiya",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "nina": {
+      "key": "nina",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 665.0,
+          "def": 0.0
+        },
+        "dominant": "hp"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "nini": {
+      "key": "nini",
+      "archetype": "debuffer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Attack Penetration %",
+            "5": "Attack %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Attack %",
+            "Attack Penetration",
+            "Critical Rate %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "odin": {
+      "key": "odin",
+      "archetype": "dot",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Attack %",
+            "5": "Fire Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Attack %",
+            "Attack Penetration",
+            "Critical Rate % (optional)",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "penny": {
+      "key": "penny",
+      "archetype": "tank",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Shattered Foundation",
+              "pieces": 4,
+              "icon": "Shattered-Foundation.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "HP %",
+            "5": "Defense %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "HP %",
+            "Defense %",
+            "Damage Reduction (if exists)",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "rose": {
+      "key": "rose",
+      "archetype": "basic_dps",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Critical Rate %",
+            "5": "Ice Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Critical Rate %",
+            "Critical Damage %",
+            "Attack %",
+            "Attack Penetration"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "shanna": {
+      "key": "shanna",
+      "archetype": "basic_dps",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Critical Rate %",
+            "5": "Fire Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Critical Rate %",
+            "Critical Damage %",
+            "Attack %",
+            "Attack Penetration"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "shu": {
+      "key": "shu",
+      "archetype": "dot",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Attack %",
+            "5": "Wind Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Attack %",
+            "Attack Penetration",
+            "Critical Rate % (optional)",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "sigurd": {
+      "key": "sigurd",
+      "archetype": "dot",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Attack %",
+            "5": "Fire Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Attack %",
+            "Attack Penetration",
+            "Critical Rate % (optional)",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "snow-girl": {
+      "key": "snow-girl",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 155.8,
+          "def": 0.0
+        },
+        "dominant": "hp"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "tefnut": {
+      "key": "tefnut",
+      "archetype": "dot",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Attack %",
+            "5": "Holy Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Attack %",
+            "Attack Penetration",
+            "Critical Rate % (optional)",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "thor": {
+      "key": "thor",
+      "archetype": "tank",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 19.2,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Shattered Foundation",
+              "pieces": 4,
+              "icon": "Shattered-Foundation.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "HP %",
+            "5": "Defense %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "HP %",
+            "Defense %",
+            "Damage Reduction (if exists)",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "yuis": {
+      "key": "yuis",
+      "archetype": "extra",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Attack %",
+            "5": "Holy Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Attack %",
+            "Critical Rate %",
+            "Critical Damage %",
+            "Attack Penetration"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
+    "zashiki-warashi": {
+      "key": "zashiki-warashi",
+      "archetype": "basic_dps",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Alpha",
+              "pieces": 4,
+              "icon": "Alpha.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Beth",
+              "pieces": 2,
+              "icon": "Beth.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Critical Rate %",
+            "5": "Fire Attribute Damage %",
+            "6": "Attack %"
+          },
+          "substats_priority": [
+            "Critical Rate %",
+            "Critical Damage %",
+            "Attack %",
+            "Attack Penetration"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    }
+  }
+}
