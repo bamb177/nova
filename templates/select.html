@@ -86,15 +86,13 @@
     }
 
 
-  
-    /* Stats columns (HP/ATK/DEF) */
-    .col-hp, .col-atk, .col-def { width: 90px; text-align: right; }
-    td.col-hp, td.col-atk, td.col-def { font-weight: 800; color: rgba(255,255,255,.86); }
+    /* Stats columns (HP/ATK/DEF/CRIT) */
+    .col-hp, .col-atk, .col-def, .col-crit { width: 90px; text-align: right; }
+    td.col-hp, td.col-atk, td.col-def, td.col-crit { font-weight: 800; color: rgba(255,255,255,.86); }
+    
     @media (max-width: 520px){
-      /* On very small screens, allow horizontal scroll rather than wrap */
-      .col-hp, .col-atk, .col-def { width: 78px; }
+      .col-hp, .col-atk, .col-def, .col-crit { width: 78px; }
     }
-
   
     /* Tier panel: move class condition row into top line (better readability) */
     .tier-topline{
@@ -449,7 +447,10 @@ html, body{
             <tr>
               <th class="col-check">선택</th>
               <th>캐릭터</th>
-              <th class="col-hp th-sort" data-sort="hp">체력</th><th class="col-atk th-sort" data-sort="attack">공격력</th><th class="col-def th-sort" data-sort="defense">방어력</th>
+              <th class="col-hp th-sort" data-sort="hp">체력</th>
+              <th class="col-def th-sort" data-sort="defense">방어력</th>
+              <th class="col-atk th-sort" data-sort="attack">공격력</th>
+              <th class="col-crit th-sort" data-sort="critRate">크리%</th>
               <th class="col-elem">속성</th>
               <th class="col-faction">특성</th>
               <th class="col-class">클래스</th>
@@ -983,21 +984,24 @@ const enc = encodeURIComponent(String(cid));
           const j = await r.json();
           
           const s = (j && typeof j === "object" && j.stats && typeof j.stats === "object") ? j.stats : j;
-          const hp = pick(s, "hp", "HP");
-          const attack = pick(s, "attack", "atk", "ATK");
-          const defense = pick(s, "defense", "def", "DEF");
-const stats = {
-            hp: hp ?? "-",
-            attack: attack ?? "-",
-            defense: defense ?? "-",
-          };
+        const hp = pick(s, "hp", "HP");
+        const defense = pick(s, "defense", "def", "DEF");
+        const attack = pick(s, "attack", "atk", "ATK");
+        const critRate = pick(s, "critRate", "crit_rate", "criticalRate", "crit"); // 호환
+        
+        const stats = {
+          hp: hp ?? "-",
+          attack: attack ?? "-",
+          defense: defense ?? "-",
+          critRate: critRate ?? "-",
+        };
           STAT_CACHE.set(cid, stats);
           return stats;
         }catch(e){}
       }
 
       // cache miss
-      const stats = { hp: "-", attack: "-", defense: "-" };
+     const stats = { hp: "-", attack: "-", defense: "-", critRate: "-" };
       STAT_CACHE.set(cid, stats);
       return stats;
     }
@@ -1016,7 +1020,7 @@ const stats = {
         document.querySelectorAll(`td[data-stat][data-cid="${CSS.escape(cid)}"]`).forEach(td => {
           const k = td.dataset.stat;
           const v = stats?.[k] ?? "-";
-          td.textContent = String(v);
+        td.textContent = formatStatDisplay(k, v);
         });
       });
 
@@ -1031,9 +1035,23 @@ const stats = {
     // ===== Stats sorting by header click =====
     const SORT_STATE = { key: null, dir: "desc" }; // key: hp|attack|defense|null, dir: asc|desc
 
+    function formatStatDisplay(key, v){
+      if (v === null || v === undefined) return "-";
+      const s = String(v).trim();
+      if (s === "" || s === "-") return "-";
+    
+      if (key === "critRate"){
+        // 이미 %가 있으면 그대로, 숫자면 % 붙이기
+        if (s.includes("%")) return s;
+        const n = Number(s.replace(/,/g, ""));
+        return Number.isFinite(n) ? `${n}%` : s;
+      }
+      return s;
+    }
+    
     function statNum(v){
       if (v === null || v === undefined) return -1;
-      const n = Number(String(v).replace(/,/g, ""));
+      const n = Number(String(v).replace(/,/g, "").replace(/%/g, ""));
       return Number.isFinite(n) ? n : -1;
     }
 
@@ -1054,7 +1072,7 @@ async function render(){
 
       // Sort: default (rarity/name) or stats(header)
       let filtered = [];
-      if (SORT_STATE.key === "hp" || SORT_STATE.key === "attack" || SORT_STATE.key === "defense") {
+      if (SORT_STATE.key === "hp" || SORT_STATE.key === "defense" || SORT_STATE.key === "attack" || SORT_STATE.key === "critRate") {
         const ids = base.map(c => c.id).filter(Boolean);
         await Promise.all(ids.map(cid => fetchStats(cid)));
         filtered = base.slice().sort((a,b) => {
@@ -1105,9 +1123,11 @@ const rows = filtered.map(c => {
                 <div class="char-name">${escapeHtml(nm)}</div>
               </div>
             </td>
-            <td class="col-hp" data-stat="hp" data-cid="${escapeHtml(cid)}">-</td>
-            <td class="col-atk" data-stat="attack" data-cid="${escapeHtml(cid)}">-</td>
-            <td class="col-def" data-stat="defense" data-cid="${escapeHtml(cid)}">-</td>
+           <td class="col-hp" data-stat="hp" data-cid="${escapeHtml(cid)}">-</td>\
+           <td class="col-def" data-stat="defense" data-cid="${escapeHtml(cid)}">-</td>
+           <td class="col-atk" data-stat="attack" data-cid="${escapeHtml(cid)}">-</td>
+           <td class="col-crit" data-stat="critRate" data-cid="${escapeHtml(cid)}">-</td>
+
             <td class="col-elem">
               <span class="pill pill-neutral pill-with-icon">
                 ${elemIcon}
@@ -1127,7 +1147,7 @@ const rows = filtered.map(c => {
         `;
       }).join("");
 
-      $tbody.innerHTML = rows || `<tr><td colspan="10" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
+      $tbody.innerHTML = rows || `<tr><td colspan="11" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
     
       fillStatsForVisibleRows();
 }
