@@ -777,135 +777,111 @@ function pick(obj, ...keys) {
 
     
     // ===== Rune Recommendation =====
-    function renderRuneReco(runeReco, charMeta, detail){
-      if (!runeReco || !Array.isArray(runeReco.builds) || !runeReco.builds.length){
-        return `<div class="detail-empty">추천 룬 데이터가 없습니다.</div>`;
-      }
-
-      const builds = runeReco.builds;
-
-      const tabs = builds.map((b, i) => {
-        const label = (b && b.title) ? b.title : (i === 0 ? "추천" : `대체안 ${i}`);
-        return `<button type="button" class="rune-tab-btn ${i===0 ? "is-active":""}" data-rune-tab="${i}">${escapeHtml(label)}</button>`;
+    function renderRuneMini(runes){
+      if (!runes || !Array.isArray(runes.sets) || !runes.sets.length) return "";
+      const sets = runes.sets.slice(0,2);
+      const imgs = sets.map(s => {
+        const icon = s?.icon;
+        const title = `${s?.set || ""} ${s?.pieces || ""}p`;
+        if (icon){
+          return `<img class="rune-mini-img" src="${escapeHtml(icon)}" alt="${escapeHtml(title)}" title="${escapeHtml(title)}" loading="lazy" />`;
+        }
+        return `<span class="rune-mini-ph" title="${escapeHtml(title)}"></span>`;
       }).join("");
-
-      const panels = builds.map((b, i) => {
-        return `
-          <div class="rune-tab-panel ${i===0 ? "is-active":""}" data-rune-panel="${i}">
-            ${renderRuneBuild(b)}
-          </div>
-        `;
-      }).join("");
-
-      const badge = (runeReco.mode === "override")
-        ? `<span class="pill pill-neutral">override</span>`
-        : `<span class="pill pill-neutral">auto</span>`;
-
-      const prof = runeReco.profile || {};
-      const profLine = (runeReco.mode === "auto" && prof && prof.archetype)
-        ? `<div class="rune-prof">
-             ${badge}
-             <span class="pill pill-neutral">${escapeHtml(String(prof.archetype))}</span>
-             <span class="pill pill-neutral">${escapeHtml(String(prof.scaling || "MIX"))}</span>
-           </div>`
-        : `<div class="rune-prof">${badge}</div>`;
-
-      return `
-        <div class="rune-wrap">
-          <div class="rune-head">
-            <div class="rune-title">추천 룬</div>
-            ${profLine}
-          </div>
-
-          <div class="rune-build-tabs">${tabs}</div>
-          <div class="rune-build-body">${panels}</div>
-        </div>
-      `;
+      return `<div class="rune-mini">${imgs}</div>`;
     }
 
-    function renderRuneBuild(build){
-      const setPlan = Array.isArray(build && build.setPlan) ? build.setPlan : [];
-      const slots = (build && build.slots) ? build.slots : {};
-      const substats = Array.isArray(build && build.substats) ? build.substats : [];
-      const notes = Array.isArray(build && build.notes) ? build.notes : [];
-
-      const setHtml = setPlan.length
-        ? `<div class="rune-sets">
-            ${setPlan.map(sp => {
-              const icon = sp && sp.icon
-                ? `<img class="rune-set-icon" src="${escapeHtml(sp.icon)}" alt="">`
-                : `<div class="rune-set-icon rune-set-icon-empty"></div>`;
-              const pieces = sp && sp.pieces ? `<span class="rune-set-pieces">${escapeHtml(String(sp.pieces))}pc</span>` : "";
-              const setName = sp && sp.set ? sp.set : "-";
-              return `
-                <div class="rune-set-pill" title="${escapeHtml(String(setName))}">
-                  ${icon}
-                  <div class="rune-set-meta">
-                    <div class="rune-set-name">${escapeHtml(String(setName))}</div>
-                    <div class="rune-set-sub">${pieces}</div>
-                  </div>
-                </div>
-              `;
-            }).join("")}
-          </div>`
-        : `<div class="detail-empty">세트 정보 없음</div>`;
-
-      const slotHtml = renderRuneSlots(slots);
-
-      const subHtml = substats.length
-        ? `<ul class="rune-list">${substats.map(s => `<li>${escapeHtml(String(s))}</li>`).join("")}</ul>`
-        : `<div class="muted">부옵 우선순위 정보 없음</div>`;
-
-      const noteHtml = notes.length
-        ? `<ul class="rune-notes">${notes.map(s => `<li>${escapeHtml(String(s))}</li>`).join("")}</ul>`
-        : "";
-
-      return `
-        <div class="rune-build-card">
-          ${setHtml}
-
-          <div class="rune-section">
-            <h3>슬롯별 메인 스탯</h3>
-            ${slotHtml}
-          </div>
-
-          <div class="rune-section">
-            <h3>부옵 우선순위</h3>
-            ${subHtml}
-          </div>
-
-          ${noteHtml ? `<div class="rune-section"><h3>주의/비고</h3>${noteHtml}</div>` : ""}
-        </div>
-      `;
+    function renderRuneSetLine(sp){
+      if (!Array.isArray(sp) || !sp.length) return `<div class="rune-sets-empty">세트 정보 없음</div>`;
+      return `<div class="rune-sets">` + sp.map(s => {
+        const icon = s?.icon;
+        const nm = s?.set || "-";
+        const pc = s?.pieces || "";
+        const label = `${nm} ${pc}P`;
+        const img = icon ? `<img class="rune-set-ico" src="${escapeHtml(icon)}" alt="${escapeHtml(label)}" loading="lazy" />` : `<span class="rune-set-ico ph"></span>`;
+        return `<div class="rune-set-pill">${img}<div class="rune-set-txt"><div class="rune-set-name">${escapeHtml(nm)}</div><div class="rune-set-piece">${escapeHtml(String(pc))}P</div></div></div>`;
+      }).join("") + `</div>`;
     }
 
     function renderRuneSlots(slots){
-      const get = (k) => {
-        const v = slots ? slots[String(k)] : null;
-        if (Array.isArray(v)) return v;
-        if (typeof v === "string") return [v];
-        return [];
-      };
-
-      const items = [1,2,3,4,5,6].map(pos => {
-        const lines = get(pos);
-        const body = lines.length
-          ? lines.map((x,i)=> `<div class="rune-slot-line ${i===0 ? "main":""}">${escapeHtml(String(x))}</div>`).join("")
-          : `<div class="muted">-</div>`;
-
-        return `
-          <div class="rune-slot">
-            <div class="rune-slot-h">Slot ${pos}</div>
-            <div class="rune-slot-b">${body}</div>
-          </div>
-        `;
+      const keys = ["1","2","3","4","5","6"];
+      const rows = keys.map(k => {
+        const arr = slots?.[k] || [];
+        const pri = Array.isArray(arr) ? arr : [];
+        const text = pri.length ? pri.map(x => `<span class="rune-stat">${escapeHtml(String(x))}</span>`).join("") : `<span class="muted">-</span>`;
+        return `<div class="rune-slot-row"><div class="rune-slot-k">${escapeHtml(k)}</div><div class="rune-slot-v">${text}</div></div>`;
       }).join("");
-
-      return `<div class="rune-slots">${items}</div>`;
+      return `<div class="rune-slots">${rows}</div>`;
     }
 
+    function renderRuneList(title, items){
+      if (!Array.isArray(items) || !items.length) return "";
+      const li = items.map(x => `<li>${escapeHtml(String(x))}</li>`).join("");
+      return `<div class="rune-list"><div class="rune-list-title">${escapeHtml(title)}</div><ul>${li}</ul></div>`;
+    }
 
-    function renderDetailTabs(detail, runeReco, charMeta) {
+    function renderRuneBuild(build){
+      if (!build) return "";
+      const title = build.title || "추천";
+      const sets = renderRuneSetLine(build.setPlan || []);
+      const slots = renderRuneSlots(build.slots || {});
+      const sub = renderRuneList("부옵 우선순위", build.substats || []);
+      const notes = renderRuneList("주의/제한", build.notes || []);
+      const rationale = renderRuneList("추천 근거", build.rationale || []);
+      return `
+        <div class="rune-build">
+          <div class="rune-build-head">
+            <div class="rune-build-title">${escapeHtml(title)}</div>
+          </div>
+          ${sets}
+          <div class="rune-cols">
+            <div class="rune-col">
+              <div class="rune-col-title">슬롯별 메인스탯 우선순위</div>
+              ${slots}
+            </div>
+            <div class="rune-col">
+              ${sub}
+              ${notes}
+              ${rationale}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderRuneReco(reco, charMeta, detail){
+      if (!reco || !Array.isArray(reco.builds) || !reco.builds.length){
+        return `<div class="detail-empty">추천 룬 정보가 없습니다.</div>`;
+      }
+
+      const mode = reco.mode || "-";
+      const profile = reco.profile || {};
+      const hint = [];
+      if (mode === "override") hint.push("수동 오버라이드 적용");
+      if (profile?.archetype) hint.push(`분류: ${profile.archetype}`);
+      if (profile?.scaling) hint.push(`스케일링: ${profile.scaling}`);
+      if (profile?.heal_cnt != null) hint.push(`힐 키워드: ${profile.heal_cnt}`);
+      if (profile?.dot_cnt != null) hint.push(`DoT 키워드: ${profile.dot_cnt}`);
+      if (profile?.extra_cnt != null) hint.push(`추가공격 키워드: ${profile.extra_cnt}`);
+
+      const head = hint.length ? `<div class="rune-profile">${hint.map(x=>`<span class="pill">${escapeHtml(String(x))}</span>`).join("")}</div>` : "";
+
+      // build tab buttons
+      const builds = reco.builds;
+      const first = 0;
+      const btns = builds.map((b, i) => `<button type="button" class="rune-tab-btn ${i===first?'active':''}" data-rune-tab="${i}">${escapeHtml(b?.title || ('빌드 '+(i+1)))}</button>`).join("");
+      const panels = builds.map((b, i) => `<div class="rune-tab-panel ${i===first?'active':''}" data-rune-panel="${i}">${renderRuneBuild(b)}</div>`).join("");
+
+      return `
+        <div class="rune-wrap">
+          ${head}
+          <div class="rune-tabs">${btns}</div>
+          <div class="rune-panels">${panels}</div>
+        </div>
+      `;
+    }
+
+function renderDetailTabs(detail, runeReco, charMeta) {
       const tabs = [
         { id: "skills", label: "스킬", content: renderSkills(detail) },
         { id: "awakenings", label: "각성", content: renderAwakenings(detail) },
@@ -929,35 +905,34 @@ function pick(obj, ...keys) {
       `;
     }
 
-    function bindTabEvents() {
+function bindTabEvents() {
       const root = document.getElementById("modalBody");
       if (!root) return;
 
       root.onclick = (e) => {
-        // (A) 룬 빌드 탭 (추천/대체안)
-        const rbtn = e.target.closest(".rune-tab-btn");
-        if (rbtn){
-          const idx = rbtn.dataset.runeTab;
-          if (idx === undefined) return;
-
-          root.querySelectorAll(".rune-tab-btn").forEach(b => b.classList.toggle("is-active", b.dataset.runeTab === idx));
-          root.querySelectorAll(".rune-tab-panel").forEach(p => p.classList.toggle("is-active", p.dataset.runePanel === idx));
+        // (A) Detail tabs
+        const btn = e.target.closest(".tab-btn");
+        if (btn) {
+          const tab = btn.dataset.tab;
+          if (!tab) return;
+          root.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+          root.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === tab));
           return;
         }
 
-        // (B) 상단 탭 (스킬/각성/메모리/추천룬)
-        const btn = e.target.closest(".tab-btn");
-        if (!btn) return;
-        const tab = btn.dataset.tab;
-        if (!tab) return;
-
-        root.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-        root.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === tab));
+        // (B) Rune build tabs inside "추천 룬"
+        const rbtn = e.target.closest(".rune-tab-btn");
+        if (rbtn) {
+          const tab = rbtn.dataset.runeTab;
+          if (tab == null) return;
+          root.querySelectorAll(".rune-tab-btn").forEach(b => b.classList.toggle("active", b.dataset.runeTab === tab));
+          root.querySelectorAll(".rune-tab-panel").forEach(p => p.classList.toggle("active", p.dataset.runePanel === tab));
+          return;
+        }
       };
     }
 
-
-    // ===== Modal open/close =====
+// ===== Modal open/close =====
     const backdrop = document.getElementById("modalBackdrop");
     const modalBody = document.getElementById("modalBody");
     const modalTitle = document.getElementById("modalTitle");
@@ -998,7 +973,9 @@ function pick(obj, ...keys) {
         const cn = pick(detail, "chineseName", "chinesename", "chinessname", "cnName", "cn_name");
 
         setModalTitle(name, cn);
-        modalBody.innerHTML = renderDetailTabs(detail, j.rune_reco || null, j.character || null);
+                const runeReco = j.rune_reco || null;
+        const charMeta = j.character || null;
+        modalBody.innerHTML = renderDetailTabs(detail, runeReco, charMeta);
         bindTabEvents();
       } catch (e) {
         modalBody.innerHTML = `<div class="detail-empty">불러오기 실패: ${escapeHtml(String(e))}</div>`;
@@ -1706,30 +1683,7 @@ const rows = filtered.map(c => {
       return def;
     }
 
-    
-    function renderRuneMini(c){
-      const sets = c && c.runes && Array.isArray(c.runes.sets) ? c.runes.sets : null;
-      if (!sets || !sets.length) return "";
-      const title = sets.map(s => `${(s && s.set) ? s.set : ""} ${(s && s.pieces) ? s.pieces : ""}pc`).join(" + ");
-      const icons = sets.slice(0, 2).map(s => {
-        const icon = s && s.icon ? s.icon : null;
-        const pieces = (s && s.pieces) ? `<span class="rune-mini-pc">${escapeHtml(String(s.pieces))}</span>` : "";
-        if (icon){
-          return `<div class="rune-mini">
-                    <img class="rune-mini-icon" src="${escapeHtml(icon)}" alt="">
-                    ${pieces}
-                  </div>`;
-        }
-        return `<div class="rune-mini">
-                  <div class="rune-mini-icon rune-mini-icon-empty"></div>
-                  ${pieces}
-                </div>`;
-      }).join("");
-
-      return `<div class="tier-runes" title="${escapeHtml(title)}">${icons}</div>`;
-    }
-
-function renderTierPartyResult(rankMap, res){
+    function renderTierPartyResult(rankMap, res){
       const box = document.getElementById("tierPartyResult");
       if (!box) return;
 
@@ -1758,7 +1712,7 @@ function renderTierPartyResult(rankMap, res){
                 <span class="pill pill-neutral">${escapeHtml(c?.element || "-")}</span>
                 <span class="pill pill-neutral">${escapeHtml(c?.faction || "-")}</span>
                 <span class="pill pill-neutral">${escapeHtml(c?.class || "-")}</span>
-                ${renderRuneMini(c)}
+                ${renderRuneMini(c?.runes)}
               </div>
             </div>
           `;

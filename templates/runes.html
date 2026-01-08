@@ -6,162 +6,99 @@
   <title>{{ title }}</title>
 
   <link rel="stylesheet" href="/css/select.css?v={{ last_refresh }}" />
-  <link rel="stylesheet" href="/css/runes.css?v={{ last_refresh }}" />
+
+  <style>
+    .wrap{ max-width: 1240px; margin: 0 auto; padding: 12px; }
+    .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin: 10px 0 14px; }
+    .topbar h1{ margin:0; font-size: 20px; }
+    .sub{ opacity:.75; font-size: 13px; }
+    .grid{ display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 920px){ .grid{ grid-template-columns: 1fr; } }
+    .card{
+      border: 1px solid var(--line, rgba(255,255,255,.14));
+      background: rgba(255,255,255,.03);
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .head{ display:flex; gap:10px; align-items:center; }
+    .ico{
+      width: 52px; height: 52px; border-radius: 14px; object-fit: cover;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 10px 20px rgba(0,0,0,.25);
+      flex: 0 0 auto;
+    }
+    .nm{ font-weight: 800; font-size: 16px; margin:0; }
+    .body{ margin-top: 10px; display:grid; gap: 8px; line-height: 1.45; }
+    .row{ border: 1px solid rgba(255,255,255,.10); border-radius: 14px; padding: 10px; background: rgba(0,0,0,.06); }
+    .k{ font-weight: 800; font-size: 13px; opacity: .9; margin-bottom: 4px; }
+    .v{ opacity: .92; font-size: 13px; white-space: pre-wrap; }
+  </style>
 </head>
 
 <body>
-  <div class="topbar">
-    <div class="title">
-      <div class="title-row">
-        <h1>{{ title }}</h1>
-          <div class="refresh">갱신 {{ last_refresh }}</div>
-          </div>
-        <div class="meta">Rune Sets / Main Stats / Sub Stats</div>
-      </div>
-    </div>
-     
-
   <div class="wrap">
-    <div class="panel">
-      <div class="runes-head">
-        <div class="runes-title">
-          <h2>룬 세트</h2>
-          <div class="runes-sub">2세트·4세트 효과를 한눈에 확인하세요.</div>
-        </div>
+    <div class="topbar">
+      <div>
+        <h1>{{ title }}</h1>
+        <div class="sub">갱신 {{ last_refresh }}</div>
       </div>
-
-      <div id="runeGrid" class="rune-grid"></div>
-    </div>
-
-    <div class="panel">
-      <h2>위치별 메인 스탯</h2>
-      <div id="mainStats" class="mainstats"></div>
-    </div>
-
-    <div class="panel">
-      <h2>서브 스탯 가능 목록</h2>
-      <div class="substats-note">
-        모든 룬은 아래 서브 스탯 중 조합으로 등장할 수 있습니다. (희귀도/강화에 따라 개수·수치 상이)
-      </div>
-
-      <div class="substats-table">
-        <div class="row head">
-          <div>스탯 타입</div>
-          <div>가능 형태</div>
-        </div>
-        <div class="row"><div>공격력</div><div>고정 수치, %</div></div>
-        <div class="row"><div>HP</div><div>고정 수치, %</div></div>
-        <div class="row"><div>방어력</div><div>고정 수치, %</div></div>
-        <div class="row"><div>치명타 확률</div><div>%만</div></div>
-        <div class="row"><div>치명타 피해</div><div>%만</div></div>
-        <div class="row"><div>관통</div><div>고정 수치만</div></div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <a class="navbtn" href="/ui/select">메인으로</a>
+        <a class="navbtn" href="/refresh">새로고침</a>
       </div>
     </div>
+
+    <div id="list" class="grid"></div>
   </div>
 
-  <script type="module">
-    import { RUNE_SETS, MAIN_STATS_BY_POSITION } from "/data/zone-nova/runes.js";
+  <script>
+    const esc = (s) => (s ?? "").toString()
+      .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 
-    const runeGrid = document.getElementById("runeGrid");
-    const mainStats = document.getElementById("mainStats");
+    async function loadRunes(){
+      const box = document.getElementById("list");
+      box.innerHTML = '<div class="card">Loading…</div>';
+      try{
+        const r = await fetch("/zones/zone-nova/runes", { cache: "no-store" });
+        const j = await r.json();
+        const runes = Array.isArray(j.runes) ? j.runes : [];
+        if (!runes.length){
+          box.innerHTML = '<div class="card">룬 데이터가 없습니다.</div>';
+          return;
+        }
 
-    function escapeHtml(str) {
-      return String(str)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    function isGuildOnly(r) {
-      const note = (r.note || "").toLowerCase();
-      return note.includes("길드") || note.includes("guild");
-    }
-
-    function runeCard(key, r) {
-      const badges = [];
-      if (isGuildOnly(r)) badges.push(`<span class="badge">길드 레이드</span>`);
-      if (r.classRestriction) badges.push(`<span class="badge">클래스 제한</span>`);
-    
-      const two = r.twoPiece
-        ? `<div class="line"><span class="tag">2세트</span><span>${escapeHtml(r.twoPiece)}</span></div>`
-        : "";
-      const four = r.fourPiece
-        ? `<div class="line"><span class="tag">4세트</span><span>${escapeHtml(r.fourPiece)}</span></div>`
-        : "";
-    
-      const restriction = r.classRestriction
-        ? `<div class="note">적용 제한: ${escapeHtml(r.classRestriction)}</div>`
-        : "";
-      const note = r.note ? `<div class="note">※ ${escapeHtml(r.note)}</div>` : "";
-      const badgesRow = badges.length ? `<div class="badges badges-bottom">${badges.join("")}</div>` : "";
-    
-      return `
-        <article class="rune-card" data-key="${escapeHtml(key)}">
-          <div class="thumb">
-            <img loading="lazy"
-              src="/images/games/zone-nova/runes/${encodeURIComponent(r.image)}"
-              alt="${escapeHtml(r.name)}" />
-          </div>
-    
-          <div class="body">
-            <div class="top">
-              <h3 class="name">${escapeHtml(r.name)}</h3>
-            </div>
-    
-            <div class="effects">
-              ${two}
-              ${four}
-            </div>
-    
-            <div class="foot">
-              ${restriction}
-              ${note}
-              ${badgesRow}
-            </div>
-          </div>
-        </article>
-      `;
-    }
-
-
-    
-    function renderRunes() {
-    const entries = Object.entries(RUNE_SETS);
-  
-    runeGrid.innerHTML = entries.map(([key, r]) => runeCard(key, r)).join("");
-  
-    if (!entries.length) {
-      runeGrid.innerHTML = `<div class="empty">표시할 룬이 없습니다.</div>`;
-    }
-  }
-
-
-    function renderMainStats() {
-      const items = Object.entries(MAIN_STATS_BY_POSITION)
-        .sort((a, b) => Number(a[0]) - Number(b[0]))
-        .map(([pos, v]) => {
-          const list = v.availableStats
-            ? `<ul>${v.availableStats.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ul>`
-            : "";
-
+        box.innerHTML = runes.map(x => {
+          const icon = x.icon ? `<img class="ico" src="${esc(x.icon)}" alt="">` : `<div class="ico"></div>`;
           return `
-            <div class="ms-card">
-              <div class="ms-title">${escapeHtml(v.name || `Position ${pos}`)}</div>
-              ${v.stat ? `<div class="ms-stat">${escapeHtml(v.stat)}</div>` : ""}
-              ${v.description ? `<div class="ms-desc">${escapeHtml(v.description)}</div>` : ""}
-              ${list}
+            <div class="card">
+              <div class="head">
+                ${icon}
+                <div>
+                  <div class="nm">${esc(x.name || "-")}</div>
+                  ${x.note ? `<div class="sub">${esc(x.note)}</div>` : ``}
+                </div>
+              </div>
+              <div class="body">
+                <div class="row">
+                  <div class="k">2 세트</div>
+                  <div class="v">${esc(x.twoPiece || "-")}</div>
+                </div>
+                <div class="row">
+                  <div class="k">4 세트</div>
+                  <div class="v">${esc(x.fourPiece || "-")}</div>
+                </div>
+              </div>
             </div>
           `;
-        })
-        .join("");
-
-      mainStats.innerHTML = `<div class="ms-grid">${items}</div>`;
+        }).join("");
+      }catch(e){
+        box.innerHTML = `<div class="card">불러오기 실패: ${esc(e?.message || String(e))}</div>`;
+      }
     }
 
-    renderRunes();
-    renderMainStats();
+    loadRunes();
   </script>
 </body>
 </html>
