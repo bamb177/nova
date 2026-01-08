@@ -1,20 +1,4 @@
 {
   "version": 1,
-  "overrides": {
-    "arthur": {
-      "builds": [
-        {
-          "id": "dps",
-          "title": "수동: 치명 딜러",
-          "sets": {
-            "primary": { "name": "Beth", "pieces": 4 },
-            "secondary": { "name": "Alpha", "pieces": 2 }
-          },
-          "main_stats": { "4": "Critical Rate %", "5": "Holy Attribute Damage %", "6": "Attack %" },
-          "substats_priority": ["Critical Rate %", "Critical Damage %", "Attack %", "Attack Penetration"],
-          "notes": ["오버라이드 예시"]
-        }
-      ]
-    }
-  }
+  "overrides": {}
 }
