@@ -128,17 +128,15 @@
 
     
     function renderRunes() {
-      const entries = Object.entries(RUNE_SETS);
-
-      // 보기 좋게 name 기준 정렬(원하면 제거 가능)
-      entries.sort((a, b) => String(a[1]?.name || "").localeCompare(String(b[1]?.name || "")));
-
-      runeGrid.innerHTML = entries.map(([key, r]) => runeCard(key, r)).join("");
-
-      if (!entries.length) {
-        runeGrid.innerHTML = `<div class="empty">표시할 룬이 없습니다.</div>`;
-      }
+    const entries = Object.entries(RUNE_SETS);
+  
+    runeGrid.innerHTML = entries.map(([key, r]) => runeCard(key, r)).join("");
+  
+    if (!entries.length) {
+      runeGrid.innerHTML = `<div class="empty">표시할 룬이 없습니다.</div>`;
     }
+  }
+
 
     function renderMainStats() {
       const items = Object.entries(MAIN_STATS_BY_POSITION)
