@@ -1777,6 +1777,23 @@ def recommend_best_party(
             continue
         if (cnt.get("tank") or 0) > 1:
             continue
+        # ✅ 클래스 기반 딜러(Warrior/Rogue/Mage) 최소 1, Buffer 과투입(2+) 방지
+        class_list = [str(((x.get("base") or {}).get("class")) or "").strip() for x in members]
+        role_list = [str(((x.get("base") or {}).get("role")) or "").strip() for x in members]
+        class_cnt = Counter([c.lower() for c in class_list if c])
+        dps_class_cnt = sum(1 for c in class_list if str(c).strip().lower() in ("warrior","rogue","mage"))
+        buffer_class_cnt = class_cnt.get("buffer", 0)
+
+        # meta에 기록(프론트 표시/디버그용)
+        meta["class_counts"] = dict(class_cnt)
+        meta["dps_class_count"] = dps_class_cnt
+        meta["buffer_class_count"] = buffer_class_cnt
+
+        # 기본 룰: 버퍼 2명 이상은 제외, 딜러 클래스를 최소 1명 포함
+        if buffer_class_cnt > 1:
+            continue
+        if dps_class_cnt < 1:
+            continue
 
         # 필수 조건 체크
         if not meta.get("ok_classes"):
@@ -1799,6 +1816,21 @@ def recommend_best_party(
             if (cnt.get("healer") or 0) > 1:
                 continue
             if (cnt.get("tank") or 0) > 1:
+                continue
+            # ✅ 클래스 기반 딜러 최소 1 + Buffer 과투입 방지 (fallback에서도 유지)
+            class_list = [str(((x.get("base") or {}).get("class")) or "").strip() for x in members]
+            role_list = [str(((x.get("base") or {}).get("role")) or "").strip() for x in members]
+            class_cnt = Counter([c.lower() for c in class_list if c])
+            dps_class_cnt = sum(1 for c in class_list if str(c).strip().lower() in ("warrior","rogue","mage"))
+            buffer_class_cnt = class_cnt.get("buffer", 0)
+
+            meta["class_counts"] = dict(class_cnt)
+            meta["dps_class_count"] = dps_class_cnt
+            meta["buffer_class_count"] = buffer_class_cnt
+
+            if buffer_class_cnt > 1:
+                continue
+            if dps_class_cnt < 1:
                 continue
             if not meta.get("ok_classes"):
                 continue
