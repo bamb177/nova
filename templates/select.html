@@ -348,7 +348,78 @@ html, body{
       }
     }
 
-  </style>
+  
+    /* ===== AI 추천/등급표 결과 카드 레이아웃 개선 ===== */
+    .tier-cat{
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 18px;
+      background: rgba(255,255,255,.03);
+    }
+    .tier-cat-title{
+      font-weight: 900;
+      letter-spacing: .2px;
+      margin-bottom: 8px;
+    }
+    .tier-cat-meta{
+      margin: 0 0 12px 0;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      color: rgba(255,255,255,.80);
+      line-height: 1.35;
+    }
+    .tier-grid{
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 1100px){
+      .tier-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 520px){
+      .tier-grid{ grid-template-columns: 1fr; }
+    }
+
+    .tier-card{
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 18px;
+      background: rgba(255,255,255,.04);
+      box-shadow: 0 10px 26px rgba(0,0,0,.20);
+      transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+    }
+    @media (hover:hover){
+      .tier-card:hover{
+        transform: translateY(-1px);
+        background: rgba(255,255,255,.06);
+        box-shadow: 0 14px 32px rgba(0,0,0,.26);
+      }
+    }
+    .tier-name{
+      font-weight: 900;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+    .tier-card-sub{
+      margin-top: 8px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* archetype pill */
+    .pill-accent{
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.92);
+      font-weight: 900;
+      letter-spacing: .2px;
+    }
+</style>
 </head>
 
 <body>
@@ -1488,14 +1559,19 @@ function renderAiPartyResult(res){
       ? `<img class="tier-portrait" src="${escapeHtml(m.image)}" alt="">`
       : `<div class="tier-portrait tier-portrait-empty"></div>`;
 
+    const arch = String(m.archetype || "dps").toLowerCase();
+    const archLabel = (arch === "tank") ? "Tank" : (arch === "healer") ? "Healer" : (arch === "debuffer") ? "Debuffer" : "DPS";
+    const archPill = `<span class="pill pill-accent pill-arch-${arch}">${archLabel}</span>`;
+
     const pills = [
       m.element ? `<span class="pill pill-neutral">${escapeHtml(String(m.element))}</span>` : "",
       m.faction ? `<span class="pill pill-neutral">${escapeHtml(String(m.faction))}</span>` : "",
-      m.class ? `<span class="pill pill-neutral">${escapeHtml(String(m.class))}</span>` : "",
+      archPill,
     ].filter(Boolean).join("");
 
     const small = [
-      (m.archetype ? `archetype: ${escapeHtml(String(m.archetype))}` : ""),
+      (m.class ? `class: ${escapeHtml(String(m.class))}` : ""),
+      (m.role ? `role: ${escapeHtml(String(m.role))}` : ""),
       (m.scaling ? `scaling: ${escapeHtml(String(m.scaling))}` : ""),
       (typeof m.tier === "number" ? `tier: ${m.tier}` : ""),
       (typeof m.score === "number" ? `score: ${m.score.toFixed(1)}` : ""),
@@ -1518,8 +1594,12 @@ function renderAiPartyResult(res){
   const elemHits = Array.isArray(combo.element_hits) ? combo.element_hits : [];
   const facHits = Array.isArray(combo.faction_hits) ? combo.faction_hits : [];
 
+  const counts = meta.counts || {};
+  const compLine = `구성: Tank ${counts.tank || 0} / Healer ${counts.healer || 0} / DPS ${counts.dps || 0} / Debuffer ${counts.debuffer || 0}`;
+
   const metaLines = [
     (typeof party.total_score === "number") ? `총점: ${party.total_score.toFixed(1)}` : "",
+    compLine,
     (typeof res.evaluated === "number") ? `탐색: ${res.evaluated}조합` : "",
     (elemHits.length ? `속성 콤보: ${escapeHtml(elemHits.join(", "))}` : ""),
     (facHits.length ? `특성 콤보: ${escapeHtml(facHits.join(", "))}` : ""),
