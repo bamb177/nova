@@ -2085,6 +2085,58 @@
         }
       ]
     },
+    "shuten-doji": {
+      "key": "shuten-doji",
+      "archetype": "tank",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Shattered Foundation",
+              "pieces": 4,
+              "icon": "Shattered-Foundation.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "HP %",
+            "5": "Defense %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "HP %",
+            "Defense %",
+            "Damage Reduction (if exists)",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
     "sigurd": {
       "key": "sigurd",
       "archetype": "dot",
