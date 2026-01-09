@@ -1656,8 +1656,14 @@ async function requestAiParty(){
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const j = await r.json();
-    renderAiPartyResult(j);
+    const ct = (r.headers.get("content-type") || "").toLowerCase();
+    if (ct.includes("application/json")) {
+      const j = await r.json();
+      renderAiPartyResult(j);
+    } else {
+      const t = await r.text();
+      renderAiPartyResult({ ok:false, error: "서버가 JSON이 아닌 응답을 반환했습니다. (라우트/서버 에러 가능)\n" + t.slice(0, 400) });
+    }
   } catch (e){
     renderAiPartyResult({ ok:false, error: String(e?.message || e) });
   }
