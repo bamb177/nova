@@ -48,11 +48,24 @@ body{
    Topbar
 ========================= */
 .topbar{
+  position: sticky;
+  top: 0;
+  z-index: 80;
+
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap: 12px;
+
   margin-bottom: 12px;
+
+  /* 가독성/완성도: 스크롤 시에도 상단 정보가 유지되도록 */
+  background: rgba(7,11,20,.62);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 10px 12px;
 }
 
 /* ✅ h1 + 캐릭터수 + 갱신시간 한 줄 */
@@ -216,8 +229,8 @@ body{
   overflow-x: auto;
   overflow-y: visible;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x pan-y;
-  overscroll-behavior: contain;
+overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
   border-radius: 16px;
 }
 
