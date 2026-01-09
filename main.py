@@ -525,28 +525,150 @@ def _collect_texts(x) -> list[str]:
             uniq.append(s)
     return uniq
 
+# --- v2: robust stat multiplier parser (ATK/HP/DEF/CRIT) ---
 
-def _pct_hits(text: str, keys: list[str]) -> list[float]:
+_STAT_ALIASES = {
+    # 공격 계열
+    "ATK": [
+        "attack power", "attack", "atk", "atkp", "attack stat",
+        "공격력", "공격", "공격 수치",
+    ],
+    # 방어 계열
+    "DEF": [
+        "defense", "def", "defence",
+        "방어력", "방어", "방어 수치",
+    ],
+    # 체력 계열
+    "HP": [
+        "max hp", "maximum hp", "hp", "health", "life",
+        "최대 체력", "최대체력", "체력", "생명", "생명력",
+    ],
+    # 치확/치피 (스케일링이 아니라 “키워드 탐지/카운트” 목적도 포함)
+    "CRIT_RATE": [
+        "critical hit rate", "critical rate", "crit rate", "critical chance", "crit chance",
+        "치명타 확률", "치명 확률", "치명률", "치확",
+        "크리 확률", "크리티컬 확률", "크리율",
+    ],
+    "CRIT_DMG": [
+        "critical hit damage", "critical damage", "crit damage", "crit dmg",
+        "치명타 피해", "치명 피해", "치명피해", "치피",
+        "크리 피해", "크리티컬 피해",
+    ],
+}
+
+def _term_to_pat(term: str) -> str:
+    """
+    용어를 regex-friendly 패턴으로 변환:
+    - 공백은 \s* 로 흡수
+    - 나머지는 escape
+    """
+    t = (term or "").strip()
+    if not t:
+        return ""
+    t = re.escape(t)
+    t = t.replace(r"\ ", r"\s*")
+    return t
+
+def _alt_pat(stat_code: str) -> str:
+    terms = _STAT_ALIASES.get(stat_code, [])
+    pats = [_term_to_pat(x) for x in terms if x]
+    pats = [p for p in pats if p]
+    if not pats:
+        return r"(?:\b__NO_MATCH__\b)"
+    return r"(?:%s)" % "|".join(pats)
+
+# 캐시(컴파일 비용 절감)
+_STAT_REGEX_CACHE: dict[str, list[re.Pattern]] = {}
+
+def _compile_stat_regexes(stat_code: str) -> list[re.Pattern]:
+    if stat_code in _STAT_REGEX_CACHE:
+        return _STAT_REGEX_CACHE[stat_code]
+
+    alt = _alt_pat(stat_code)
+
+    # 숫자 퍼센트: 120% / 120.5%
+    num_pct = r"(?P<pct>\d+(?:\.\d+)?)\s*%"
+
+    # 숫자 배수: 1.2x / 1.2× / 1.2 *  (ATK/DEF/HP)
+    num_mul = r"(?P<mul>\d+(?:\.\d+)?)\s*(?:x|×|\*)"
+
+    # “자신/시전자/사용자” 수식어(영/한 혼합)
+    owner = r"(?:the\s+)?(?:caster's|user's|own|self|자신의|사용자의|시전자의)?\s*"
+
+    regs: list[re.Pattern] = []
+
+    # 1) "Deals damage equal to 120% attack power" / "120% of ATK"
+    regs.append(re.compile(
+        rf"{num_pct}\s*(?:of\s*)?{owner}\s*{alt}\b",
+        flags=re.I
+    ))
+
+    # 2) "attack power 120%" (퍼센트가 뒤에 붙는 영어/혼합 표기)
+    regs.append(re.compile(
+        rf"{owner}\s*{alt}\s*[:\-]?\s*{num_pct}",
+        flags=re.I
+    ))
+
+    # 3) 한국어: "공격력의 120%" / "방어력의 80%"
+    regs.append(re.compile(
+        rf"{alt}\s*(?:의|기준)\s*(?P<pct>\d+(?:\.\d+)?)\s*%",
+        flags=re.I
+    ))
+
+    # 4) "1.2x ATK" / "1.2× DEF"
+    regs.append(re.compile(
+        rf"{num_mul}\s*{alt}\b",
+        flags=re.I
+    ))
+
+    # 5) "ATK x1.2" / "DEF×1.2"
+    regs.append(re.compile(
+        rf"{alt}\s*(?:x|×|\*)\s*(?P<mul>\d+(?:\.\d+)?)\b",
+        flags=re.I
+    ))
+
+    # 6) 한국어 배수: "공격력 1.2배" / "방어력의 1.2배"
+    regs.append(re.compile(
+        rf"{alt}\s*(?:의\s*)?(?P<mul>\d+(?:\.\d+)?)\s*배",
+        flags=re.I
+    ))
+    regs.append(re.compile(
+        rf"(?P<mul>\d+(?:\.\d+)?)\s*배\s*{alt}\b",
+        flags=re.I
+    ))
+
+    _STAT_REGEX_CACHE[stat_code] = regs
+    return regs
+
+def _stat_hits(text: str, stat_code: str) -> list[float]:
+    """
+    텍스트에서 stat_code(ATK/HP/DEF/CRIT_RATE/CRIT_DMG)와 결합된
+    스케일(%) 혹은 배수(x/배)를 찾아서 '퍼센트' 기준으로 반환.
+
+    - 120% -> 120.0
+    - 1.2x / 1.2배 -> 120.0 로 환산
+    """
+    if not text:
+        return []
+    t = text.strip()
+    if not t:
+        return []
+
+    regs = _compile_stat_regexes(stat_code)
     hits: list[float] = []
-    t = text.lower()
 
-    # "120% attack power"
-    for k in keys:
-        for m in re.finditer(r"(\d+(?:\.\d+)?)\s*%\s*[^%\n]{0,24}\b" + re.escape(k) + r"\b", t):
+    for rgx in regs:
+        for m in rgx.finditer(t):
             try:
-                hits.append(float(m.group(1)))
-            except Exception:
-                pass
-
-    # "공격력의 120%"
-    for k in keys:
-        for m in re.finditer(re.escape(k) + r"\s*의\s*(\d+(?:\.\d+)?)\s*%", text):
-            try:
-                hits.append(float(m.group(1)))
+                if m.groupdict().get("pct") is not None:
+                    hits.append(float(m.group("pct")))
+                elif m.groupdict().get("mul") is not None:
+                    hits.append(float(m.group("mul")) * 100.0)
             except Exception:
                 pass
 
     return hits
+
 
 
 def detect_no_crit(detail: dict) -> bool:
