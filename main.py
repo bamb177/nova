@@ -973,100 +973,115 @@ def _pick_sets(profile: dict, base: dict, no_crit: bool = False) -> tuple[list[d
     return primary, rationale
 
 def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
-    overrides = load_rune_overrides()
-    icon_map = rune_icon_map()
-    db = load_runes_db()
-    db_by_name = {str(x.get("name") or "").strip(): x for x in db if isinstance(x, dict)}
-
-    # 1) manual override
-    ov = overrides.get(cid)
-    if isinstance(ov, dict) and ov.get("builds"):
-        # ✅ 운영 편의: override도 1개만 사용 (첫번째만)
-        b = (ov.get("builds") or [None])[0]
-        if not isinstance(b, dict):
-            return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": []}
-
-        sp = []
-        for it in b.get("setPlan") or []:
-            if not isinstance(it, dict):
-                continue
-            sname = str(it.get("set") or "").strip()
+    try:
+        overrides = load_rune_overrides()
+        icon_map = rune_icon_map()
+        db = load_runes_db()
+        db_by_name = {str(x.get("name") or "").strip(): x for x in db if isinstance(x, dict)}
+    
+        # 1) manual override
+        ov = overrides.get(cid)
+        if isinstance(ov, dict) and ov.get("builds"):
+            # ✅ 운영 편의: override도 1개만 사용 (첫번째만)
+            b = (ov.get("builds") or [None])[0]
+            if not isinstance(b, dict):
+                return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": []}
+    
+            sp = []
+            for it in b.get("setPlan") or []:
+                if not isinstance(it, dict):
+                    continue
+                sname = str(it.get("set") or "").strip()
+                rdb = db_by_name.get(sname) or {}
+                sp.append({
+                    "set": sname,
+                    "pieces": int(it.get("pieces") or 0),
+                    "icon": icon_map.get(sname),
+                    "twoPiece": rdb.get("twoPiece") or "",
+                    "fourPiece": rdb.get("fourPiece") or "",
+                    "note": rdb.get("note") or "",
+                })
+    
+            build = {
+                "title": str(b.get("title") or "추천(수동)"),
+                "setPlan": sp,
+                "slots": b.get("slots") or {},
+                "substats": b.get("substats") or [],
+                "notes": b.get("notes") or [],
+                "rationale": b.get("rationale") or ["rune_overrides.json 수동 오버라이드 적용"],
+            }
+            return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": [build]}
+    
+        # 2) auto
+        profile = _detect_profile(detail or {}, base or {})
+        no_crit = _is_no_crit(detail or {})
+    
+        primary, rationale = _pick_sets(profile, base or {}, no_crit=no_crit)
+    
+        sample_text = profile.get("sample_text")
+        if sample_text:
+            rationale = rationale + [f"스케일링 판정({profile.get('scaling')}): '{sample_text[:120]}'"]
+        if no_crit:
+            rationale = rationale + ["크리티컬 미지원(또는 크리 스탯 0) 감지 → 치확/치피 기반 추천 제외."]
+    
+        def mk_set_item(x: dict) -> dict:
+            sname = x.get("set")
             rdb = db_by_name.get(sname) or {}
-            sp.append({
+            return {
                 "set": sname,
-                "pieces": int(it.get("pieces") or 0),
+                "pieces": x.get("pieces"),
                 "icon": icon_map.get(sname),
                 "twoPiece": rdb.get("twoPiece") or "",
                 "fourPiece": rdb.get("fourPiece") or "",
                 "note": rdb.get("note") or "",
-            })
-
+                "classRestriction": rdb.get("classRestriction") or [],
+                "teamConflict": rdb.get("teamConflict") or [],
+            }
+    
         build = {
-            "title": str(b.get("title") or "추천(수동)"),
-            "setPlan": sp,
-            "slots": b.get("slots") or {},
-            "substats": b.get("substats") or [],
-            "notes": b.get("notes") or [],
-            "rationale": b.get("rationale") or ["rune_overrides.json 수동 오버라이드 적용"],
+            "title": "추천(자동)",
+            "setPlan": [mk_set_item(x) for x in primary],
+            "slots": _slot_plan_for(profile["archetype"], profile["scaling"], base.get("element"), no_crit=no_crit),
+            "substats": _substats_for(profile["archetype"], profile["scaling"], no_crit=no_crit),
+            "notes": [],
+            "rationale": rationale,
         }
-        return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": [build]}
-
-    # 2) auto
-    profile = _detect_profile(detail or {}, base or {})
-    no_crit = _is_no_crit(detail or {})
-
-    primary, rationale = _pick_sets(profile, base or {}, no_crit=no_crit)
-
-    sample_text = profile.get("sample_text")
-    if sample_text:
-        rationale = rationale + [f"스케일링 판정({profile.get('scaling')}): '{sample_text[:120]}'"]
-    if no_crit:
-        rationale = rationale + ["크리티컬 미지원(또는 크리 스탯 0) 감지 → 치확/치피 기반 추천 제외."]
-
-    def mk_set_item(x: dict) -> dict:
-        sname = x.get("set")
-        rdb = db_by_name.get(sname) or {}
+    
+        # rune db notes (restrictions/conflicts)
+        notes = []
+        for s in build["setPlan"]:
+            nm = s.get("set")
+            cr = s.get("classRestriction") or []
+            if cr:
+                notes.append(f"{nm} 4세트는 클래스 제한이 있습니다: {', '.join(map(str, cr))}")
+            if s.get("note"):
+                notes.append(f"{nm}: {s.get('note')}")
+            tc = s.get("teamConflict") or []
+            if tc:
+                notes.append(f"{nm}: 팀 세트 상충 주의 ({', '.join(map(str, tc))})")
+    
+        seen, uniq_notes = set(), []
+        for n in notes:
+            if n not in seen:
+                seen.add(n)
+                uniq_notes.append(n)
+        build["notes"] = uniq_notes
+    
+        return {"mode": "auto", "profile": {**profile, "no_crit": no_crit}, "builds": [build]}
+    except Exception as e:
+        msg = str(e)
         return {
-            "set": sname,
-            "pieces": x.get("pieces"),
-            "icon": icon_map.get(sname),
-            "twoPiece": rdb.get("twoPiece") or "",
-            "fourPiece": rdb.get("fourPiece") or "",
-            "note": rdb.get("note") or "",
-            "classRestriction": rdb.get("classRestriction") or [],
-            "teamConflict": rdb.get("teamConflict") or [],
+            "mode": "error",
+            "error": msg,
+            "builds": [{
+                "title": "추천 실패",
+                "setPlan": [],
+                "slots": {},
+                "substats": [],
+                "notes": [],
+                "rationale": [f"추천 엔진 오류: {msg}"],
+            }],
         }
-
-    build = {
-        "title": "추천(자동)",
-        "setPlan": [mk_set_item(x) for x in primary],
-        "slots": _slot_plan_for(profile["archetype"], profile["scaling"], base.get("element"), no_crit=no_crit),
-        "substats": _substats_for(profile["archetype"], profile["scaling"], no_crit=no_crit),
-        "notes": [],
-        "rationale": rationale,
-    }
-
-    # rune db notes (restrictions/conflicts)
-    notes = []
-    for s in build["setPlan"]:
-        nm = s.get("set")
-        cr = s.get("classRestriction") or []
-        if cr:
-            notes.append(f"{nm} 4세트는 클래스 제한이 있습니다: {', '.join(map(str, cr))}")
-        if s.get("note"):
-            notes.append(f"{nm}: {s.get('note')}")
-        tc = s.get("teamConflict") or []
-        if tc:
-            notes.append(f"{nm}: 팀 세트 상충 주의 ({', '.join(map(str, tc))})")
-
-    seen, uniq_notes = set(), []
-    for n in notes:
-        if n not in seen:
-            seen.add(n)
-            uniq_notes.append(n)
-    build["notes"] = uniq_notes
-
-    return {"mode": "auto", "profile": {**profile, "no_crit": no_crit}, "builds": [build]}
 
 def rune_summary_for_list(cid: str, base: dict, detail: dict) -> Optional[dict]:
     reco = recommend_runes(cid, base, detail)
@@ -1262,7 +1277,19 @@ def api_char_detail(cid: str):
     try:
         rune_reco = recommend_runes(cid2, base, detail)
     except Exception as e:
-        rune_reco = {"mode": "error", "error": str(e), "builds": []}
+        msg = str(e)
+        rune_reco = {
+            "mode": "error",
+            "error": msg,
+            "builds": [{
+                "title": "추천 실패",
+                "setPlan": [],
+                "slots": {},
+                "substats": [],
+                "notes": [],
+                "rationale": [f"추천 엔진 오류: {msg}"],
+            }],
+        }
 
     return jsonify({
         "ok": True,
