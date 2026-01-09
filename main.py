@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Optional, Any
 
 from flask import Flask, jsonify, redirect, render_template, request
+from collections import Counter
 
 APP_TITLE = os.getenv("APP_TITLE", "Nova")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -2078,33 +2079,43 @@ def api_recommend_party():
     - top_k: 상위 k개 결과(기본 1)
     - require_combo: 콤보(같은 속성 2+ 또는 같은 특성 2+) 강제 여부(기본 True)
     """
-    payload = request.get_json(silent=True) or {}
+    try:
+        payload = request.get_json(silent=True) or {}
 
-    owned = payload.get("owned") or []
-    required = payload.get("required") or []
-    required_classes = payload.get("required_classes") or []
-    rank_map = payload.get("rank_map") or {}
-    party_size = payload.get("party_size") or 4
-    top_k = payload.get("top_k") or 1
-    require_combo = payload.get("require_combo")
-    if not isinstance(require_combo, bool):
-        require_combo = True
+        owned = payload.get("owned") or []
+        required = payload.get("required") or []
+        required_classes = payload.get("required_classes") or []
+        rank_map = payload.get("rank_map") or {}
+        party_size = payload.get("party_size") or 4
+        top_k = payload.get("top_k") or 1
+        require_combo = payload.get("require_combo")
+        if not isinstance(require_combo, bool):
+            require_combo = True
 
-    if not isinstance(rank_map, dict):
-        rank_map = {}
+        if not isinstance(rank_map, dict):
+            rank_map = {}
 
-    res = recommend_best_party(
-        owned_ids=owned if isinstance(owned, list) else [],
-        required_ids=required if isinstance(required, list) else [],
-        required_classes=required_classes if isinstance(required_classes, list) else [],
-        rank_map=rank_map,
-        party_size=int(party_size) if str(party_size).isdigit() else 4,
-        top_k=int(top_k) if str(top_k).isdigit() else 1,
-        require_combo=bool(require_combo),
-    )
+        res = recommend_best_party(
+            owned_ids=owned if isinstance(owned, list) else [],
+            required_ids=required if isinstance(required, list) else [],
+            required_classes=required_classes if isinstance(required_classes, list) else [],
+            rank_map=rank_map,
+            party_size=int(party_size) if str(party_size).isdigit() else 4,
+            top_k=int(top_k) if str(top_k).isdigit() else 1,
+            require_combo=bool(require_combo),
+        )
 
-    code = 200 if res.get("ok") else 400
-    return jsonify(res), code
+        code = 200 if res.get("ok") else 400
+        return jsonify(res), code
+
+    except Exception as e:
+        # 프론트는 JSON을 기대하므로, 어떤 내부 에러도 JSON으로 반환
+        debug = os.getenv("FLASK_DEBUG") == "1"
+        err = f"server_error: {type(e).__name__}: {e}"
+        if debug:
+            import traceback
+            err = err + "\n" + traceback.format_exc()
+        return jsonify({"ok": False, "error": err}), 500
 
 
 @app.get("/ui/select")
