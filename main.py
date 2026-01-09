@@ -494,6 +494,380 @@ _KW_NO_CRIT = [
     "치명타 불가", "치명타가 발생하지", "크리티컬 불가", "크리티컬이 발생하지",
 ]
 
+# =========================
+# Skill/Stat parsing 강화
+# =========================
+
+_SKILL_TYPE_ALIASES = {
+    "normal": [
+        "normal", "basic", "basic attack", "normal attack", "auto attack",
+        "일반", "기본", "평타", "통상", "일반공격", "기본공격",
+    ],
+    "auto": [
+        "auto", "active", "skill", "special", "combat skill",
+        "자동", "액티브", "스킬", "특수", "전투스킬",
+    ],
+    "ultimate": [
+        "ultimate", "ult", "burst", "finisher",
+        "궁극", "필살", "궁극기", "필살기", "버스트",
+    ],
+    "passive": [
+        "passive", "talent", "trait", "aura",
+        "패시브", "특성", "재능", "오라",
+    ],
+    "team": [
+        "team", "teamskill", "team skill",
+        "팀", "팀스킬", "파티", "연계",
+    ],
+}
+
+# 스킬 타입별 가중치(스케일링 판정에 반영)
+_SKILL_TYPE_WEIGHT = {
+    "ultimate": 1.45,
+    "auto": 1.20,
+    "normal": 1.00,
+    "passive": 0.85,
+    "team": 1.05,
+    "unknown": 1.00,
+}
+
+# stats 키 후보(영/한/약어/번역 흔들림 대비)
+_STAT_KEY_CANDIDATES = {
+    "HP": [
+        "hp", "maxhp", "max_hp", "health", "maxhealth", "life", "vitality",
+        "체력", "최대체력", "생명력", "최대생명력",
+    ],
+    "ATK": [
+        "atk", "attack", "attackpower", "attack_power", "power",
+        "공격", "공격력", "공격력증가",
+    ],
+    "DEF": [
+        "def", "defense", "defence", "armor", "armour",
+        "방어", "방어력", "방어도",
+    ],
+    "CRIT_RATE": [
+        "critrate", "crit_rate", "criticalrate", "critical_rate",
+        "criticalhitrate", "critical_hit_rate", "crit", "cr",
+        "치명", "치명률", "치명타", "치명타확률", "치명타확률증가",
+        "크리", "크리확률", "크리티컬확률",
+    ],
+    "CRIT_DMG": [
+        "critdmg", "crit_dmg", "criticaldmg", "critical_dmg", "criticaldamage", "critical_damage",
+        "criticalhitdamage", "critical_hit_damage", "cd",
+        "치명타피해", "치피", "크리피해", "크리티컬피해",
+    ],
+    "CAN_CRIT": [
+        "cancrit", "can_crit", "criticalenabled", "critical_enabled",
+        "cannotcrit", "cannot_crit", "critdisabled", "crit_disabled",
+        "치명타가능", "치명타불가", "크리불가",
+    ],
+}
+
+# 스케일링 탐지용 키워드(문장 내 표기)
+_SCALE_KEYS = {
+    "ATK": ["attack power", "attack", "atk", "공격력", "공격"],
+    "HP": ["max hp", "hp", "health", "life", "체력", "생명력", "최대체력", "최대 생명력"],
+    "DEF": ["defense", "defence", "def", "armor", "방어력", "방어"],
+}
+
+def _norm_k(s: str) -> str:
+    s = (s or "").strip().lower()
+    s = s.replace("’", "'")
+    s = re.sub(r"[\s\-_]+", "", s)
+    s = re.sub(r"[^a-z0-9가-힣]", "", s)
+    return s
+
+def _guess_skill_type_from_text(text: str) -> str:
+    tl = (text or "").strip().lower()
+    for typ, kws in _SKILL_TYPE_ALIASES.items():
+        for k in kws:
+            if k in tl:
+                return typ
+    return "unknown"
+
+def _guess_skill_type(skill_obj: dict, fallback_text: str = "") -> str:
+    """
+    skill dict 내부 키/값을 보고 normal/auto/ultimate/passive/team 추정.
+    """
+    if not isinstance(skill_obj, dict):
+        return _guess_skill_type_from_text(fallback_text)
+
+    # 우선적으로 type/kind/category 같은 키를 확인
+    for key in ["type", "kind", "category", "slot", "skillType", "skill_type", "tag", "group"]:
+        v = skill_obj.get(key)
+        if isinstance(v, str) and v.strip():
+            t = _guess_skill_type_from_text(v)
+            if t != "unknown":
+                return t
+
+    # 이름/제목도 힌트가 됨
+    for key in ["name", "title", "label"]:
+        v = skill_obj.get(key)
+        if isinstance(v, str) and v.strip():
+            t = _guess_skill_type_from_text(v)
+            if t != "unknown":
+                return t
+
+    # 그래도 없으면 fallback_text
+    return _guess_skill_type_from_text(fallback_text)
+
+def _collect_texts(x) -> list[str]:
+    """
+    (기존 함수 대체) 문자열을 깊게 수집.
+    """
+    out: list[str] = []
+
+    def walk(v):
+        if v is None:
+            return
+        if isinstance(v, str):
+            t = v.strip()
+            if t:
+                out.append(t)
+            return
+        if isinstance(v, (int, float, bool)):
+            return
+        if isinstance(v, list):
+            for it in v:
+                walk(it)
+            return
+        if isinstance(v, dict):
+            for _, vv in v.items():
+                walk(vv)
+            return
+
+    walk(x)
+    seen, uniq = set(), []
+    for s in out:
+        if s not in seen:
+            seen.add(s)
+            uniq.append(s)
+    return uniq
+
+def _collect_skill_texts(detail: dict) -> list[tuple[str, str]]:
+    """
+    skills / teamSkill 구조가 리스트/딕셔너리/중첩이든 간에
+    가능한 한 (skill_type, text) 형태로 수집한다.
+    """
+    pairs: list[tuple[str, str]] = []
+
+    if not isinstance(detail, dict):
+        return pairs
+
+    def push(typ: str, txt: str):
+        t = (txt or "").strip()
+        if t:
+            pairs.append((typ, t))
+
+    # 1) skills
+    skills = detail.get("skills")
+    if skills is None:
+        # 흔한 변형 키
+        for k in ["skill", "Skill", "abilities", "ability", "combatSkills", "combat_skills"]:
+            if k in detail:
+                skills = detail.get(k)
+                break
+
+    def walk_skill_obj(obj, forced_type: Optional[str] = None):
+        if obj is None:
+            return
+        if isinstance(obj, str):
+            push(forced_type or "unknown", obj)
+            return
+        if isinstance(obj, list):
+            for it in obj:
+                walk_skill_obj(it, forced_type)
+            return
+        if isinstance(obj, dict):
+            # 스킬 객체: description 계열 우선
+            typ = forced_type or _guess_skill_type(obj)
+            for k in ["description", "desc", "effect", "text", "detail", "tooltip", "summary"]:
+                v = obj.get(k)
+                if isinstance(v, str):
+                    push(typ, v)
+                elif isinstance(v, (dict, list)):
+                    for s in _collect_texts(v):
+                        push(typ, s)
+
+            # 각 레벨/단계 효과도 포함
+            for k in ["levels", "level", "rank", "ranks", "effects"]:
+                v = obj.get(k)
+                if isinstance(v, (list, dict)):
+                    for s in _collect_texts(v):
+                        push(typ, s)
+
+            # 남은 필드도 한번 훑되, 과도한 노이즈 방지 위해 문자열만
+            for kk, vv in obj.items():
+                if kk in ("description","desc","effect","text","detail","tooltip","summary","levels","level","rank","ranks","effects"):
+                    continue
+                if isinstance(vv, str) and len(vv.strip()) >= 8:
+                    # 짧은 라벨은 노이즈가 많아 길이 제한
+                    push(typ, vv)
+
+            return
+
+    # skills 구조 처리
+    if isinstance(skills, list):
+        for it in skills:
+            walk_skill_obj(it, None)
+    elif isinstance(skills, dict):
+        # {"normal": {...}, "ultimate": {...}} 같은 케이스
+        for k, v in skills.items():
+            forced = _guess_skill_type_from_text(str(k))
+            walk_skill_obj(v, forced if forced != "unknown" else None)
+
+    # 2) teamSkill
+    team = detail.get("teamSkill") or detail.get("team_skill") or detail.get("team")
+    if team is not None:
+        # teamSkill은 타입을 team으로 강제
+        for s in _collect_texts(team):
+            push("team", s)
+
+    # 중복 제거(타입+텍스트)
+    seen = set()
+    uniq: list[tuple[str, str]] = []
+    for typ, txt in pairs:
+        key = (typ, txt)
+        if key not in seen:
+            seen.add(key)
+            uniq.append(key)
+    return uniq
+
+def _try_parse_percent(x: str) -> Optional[float]:
+    try:
+        return float(x)
+    except Exception:
+        return None
+
+def _pct_hits(text: str, keys: list[str]) -> list[float]:
+    """
+    (기존 함수 교체) 스케일링 %를 더 촘촘하게 탐지.
+    반환값은 '퍼센트 수치'로 통일(예: 1.2배는 120으로 변환).
+    """
+    hits: list[float] = []
+    if not text:
+        return hits
+
+    t = text.lower()
+
+    # 0) ATK×1.2 / ATK*1.2 / 1.2*ATK / ATK x 1.2
+    #    -> 120%로 환산
+    for k in keys:
+        kk = re.escape(k.lower())
+        for m in re.finditer(rf"\b{kk}\b\s*[\*x×]\s*(\d+(?:\.\d+)?)", t):
+            v = _try_parse_percent(m.group(1))
+            if v is not None:
+                hits.append(v * 100.0)
+        for m in re.finditer(rf"(\d+(?:\.\d+)?)\s*[\*x×]\s*\b{kk}\b", t):
+            v = _try_parse_percent(m.group(1))
+            if v is not None:
+                hits.append(v * 100.0)
+
+    # 1) "120% attack power" / "120% of ATK" / "120% ATK"
+    for k in keys:
+        kk = re.escape(k.lower())
+        # "120% ... atk"
+        for m in re.finditer(rf"(\d+(?:\.\d+)?)\s*%\s*[^%\n]{{0,40}}\b{kk}\b", t):
+            v = _try_parse_percent(m.group(1))
+            if v is not None:
+                hits.append(v)
+
+        # "120% of atk"
+        for m in re.finditer(rf"(\d+(?:\.\d+)?)\s*%\s*(?:of|based\s+on|equal\s+to)\s*[^%\n]{{0,20}}\b{kk}\b", t):
+            v = _try_parse_percent(m.group(1))
+            if v is not None:
+                hits.append(v)
+
+        # "atk 120%"
+        for m in re.finditer(rf"\b{kk}\b\s*[:=]?\s*(\d+(?:\.\d+)?)\s*%", t):
+            v = _try_parse_percent(m.group(1))
+            if v is not None:
+                hits.append(v)
+
+    # 2) 한국어: "공격력의 120%" / "공격력 120%의 피해" / "최대 체력의 10%"
+    for k in keys:
+        # k는 이미 한글 포함 가능, 원문(text)로도 체크
+        for m in re.finditer(re.escape(k) + r"\s*의\s*(\d+(?:\.\d+)?)\s*%", text):
+            v = _try_parse_percent(m.group(1))
+            if v is not None:
+                hits.append(v)
+        for m in re.finditer(re.escape(k) + r"\s*(\d+(?:\.\d+)?)\s*%\s*의", text):
+            v = _try_parse_percent(m.group(1))
+            if v is not None:
+                hits.append(v)
+
+    # 3) "Deals damage equal to 120% of Max HP" 같은 장문 패턴
+    for k in keys:
+        kk = re.escape(k.lower())
+        for m in re.finditer(rf"(?:equal\s+to|deals|deal|damage)\s*[^%\n]{{0,60}}(\d+(?:\.\d+)?)\s*%\s*[^%\n]{{0,30}}\b{kk}\b", t):
+            v = _try_parse_percent(m.group(1))
+            if v is not None:
+                hits.append(v)
+
+    return hits
+
+def _extract_canonical_stats(detail: dict) -> dict[str, Any]:
+    """
+    detail 내부 stats/attributes 등에서 hp/atk/def/critRate/critDmg/canCrit을 최대한 회수.
+    값 형식은 원 데이터가 섞여있으니 여기서는 원값을 유지하고, 숫자 변환은 필요 시만.
+    """
+    out = {
+        "HP": None,
+        "ATK": None,
+        "DEF": None,
+        "CRIT_RATE": None,
+        "CRIT_DMG": None,
+        "CAN_CRIT": None,
+        "_found_keys": [],
+    }
+
+    if not isinstance(detail, dict):
+        return out
+
+    containers = []
+    for k in ["stats", "stat", "attributes", "attribute", "baseStats", "base_stats", "params", "param"]:
+        v = detail.get(k)
+        if v is not None:
+            containers.append(v)
+
+    def try_set(canon: str, key: str, val: Any):
+        if out.get(canon) is None and val is not None:
+            out[canon] = val
+            out["_found_keys"].append(key)
+
+    def scan_obj(obj):
+        if obj is None:
+            return
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                nk = _norm_k(str(k))
+                # CAN_CRIT은 false/true가 많아 우선 처리
+                if nk in [_norm_k(x) for x in _STAT_KEY_CANDIDATES["CAN_CRIT"]]:
+                    try_set("CAN_CRIT", str(k), v)
+                    continue
+                for canon, cands in _STAT_KEY_CANDIDATES.items():
+                    if canon == "CAN_CRIT":
+                        continue
+                    if nk in [_norm_k(x) for x in cands]:
+                        try_set(canon, str(k), v)
+                        break
+                # deeper
+                if isinstance(v, (dict, list)):
+                    scan_obj(v)
+        elif isinstance(obj, list):
+            for it in obj:
+                scan_obj(it)
+
+    # 1) 후보 컨테이너 먼저 스캔
+    for c in containers:
+        scan_obj(c)
+
+    # 2) 그래도 부족하면 전체를 얕게 한 번 더(과탐 방지: 키 매칭만)
+    scan_obj(detail)
+
+    return out
+
+
 
 def _collect_texts(x) -> list[str]:
     out: list[str] = []
@@ -673,17 +1047,17 @@ def _stat_hits(text: str, stat_code: str) -> list[float]:
 
 def detect_no_crit(detail: dict) -> bool:
     """
-    '크리티컬 비활성/불가' 탐지.
+    '크리티컬 비활성/불가' 탐지 강화.
 
-    원칙:
-    - 명시적 플래그/키(예: cannotCrit, canCrit=false)를 최우선 신뢰
-    - critRate & critDmg가 "둘 다 0"으로 명시된 경우에만 no-crit으로 처리(과탐 방지)
-    - 스킬 텍스트에 cannot crit/치명타 불가 등 문구가 있으면 no-crit으로 처리(누락 보완)
+    우선순위:
+    1) 명시적 플래그( noCrit / cannotCrit / canCrit=false )
+    2) stats에서 critRate & critDmg가 둘 다 0으로 명시된 경우(과탐 방지)
+    3) 스킬 텍스트에 "cannot crit/치명타 불가" 문구가 있는 경우
     """
     if not isinstance(detail, dict):
         return False
 
-    # 1) explicit flags at top-level
+    # 1) 명시적 플래그(상위 키)
     for k in ["noCrit", "no_crit", "cannotCrit", "cannot_crit", "critDisabled", "crit_disabled"]:
         v = detail.get(k)
         if v is True:
@@ -694,41 +1068,9 @@ def detect_no_crit(detail: dict) -> bool:
         if isinstance(v, bool) and v is False:
             return True
 
-    # 2) stats-like container
-    stats = detail.get("stats") or detail.get("stat") or detail.get("attributes") or detail.get("attribute")
-    crit_rate = None
-    crit_dmg = None
-    can_crit = None
-
-    def read_stat_dict(d: dict):
-        nonlocal crit_rate, crit_dmg, can_crit
-        for k, v in d.items():
-            kk = str(k).lower()
-            if kk in ("cancrit", "can_crit", "criticalenabled", "critical_enabled"):
-                if isinstance(v, bool):
-                    can_crit = v
-            if kk in ("critrate", "crit_rate", "criticalrate", "critical_rate"):
-                crit_rate = v
-            if kk in ("critdmg", "crit_dmg", "criticaldmg", "critical_damage", "criticaldamage"):
-                crit_dmg = v
-
-    if isinstance(stats, dict):
-        read_stat_dict(stats)
-    elif isinstance(stats, list):
-        for row in stats:
-            if not isinstance(row, dict):
-                continue
-            name = str(row.get("name") or row.get("stat") or "").lower()
-            v = row.get("value")
-            if name in ("critrate", "crit_rate", "criticalrate", "critical_rate"):
-                crit_rate = v
-            if name in ("critdmg", "crit_dmg", "criticaldmg", "critical_damage", "criticaldamage"):
-                crit_dmg = v
-            if name in ("cancrit", "can_crit", "criticalenabled", "critical_enabled"):
-                if isinstance(v, bool):
-                    can_crit = v
-
-    if can_crit is False:
+    st = _extract_canonical_stats(detail)
+    can_crit = st.get("CAN_CRIT")
+    if isinstance(can_crit, bool) and can_crit is False:
         return True
 
     def to_num(x):
@@ -741,49 +1083,59 @@ def detect_no_crit(detail: dict) -> bool:
                 return None
         return None
 
-    # 3) only treat as no-crit when BOTH are explicitly 0 (and keys exist)
-    cr = to_num(crit_rate)
-    cd = to_num(crit_dmg)
-    if (crit_rate is not None or crit_dmg is not None) and (cr is not None and cd is not None):
+    cr = to_num(st.get("CRIT_RATE"))
+    cd = to_num(st.get("CRIT_DMG"))
+
+    # 2) crit 관련 키가 실제로 존재했고, 둘 다 0이면 no-crit로 판정
+    if (st.get("CRIT_RATE") is not None or st.get("CRIT_DMG") is not None) and (cr is not None and cd is not None):
         if cr <= 0 and cd <= 0:
             return True
 
-    # 4) text hint (skills/teamSkill)
-    texts = []
-    texts.extend(_collect_texts(detail.get("skills")))
-    texts.extend(_collect_texts(detail.get("teamSkill") or detail.get("team_skill") or detail.get("team")))
-    blob = "\n".join([t.lower() for t in texts if isinstance(t, str)])
-
+    # 3) 스킬 문구 기반
+    pairs = _collect_skill_texts(detail)
+    blob = "\n".join([txt.lower() for _, txt in pairs])
     if any(k in blob for k in _KW_NO_CRIT):
         return True
 
     return False
 
 
+
 def _detect_profile(detail: dict, base: dict) -> dict:
-    texts = []
-    if isinstance(detail, dict):
-        texts.extend(_collect_texts(detail.get("skills")))
-        texts.extend(_collect_texts(detail.get("teamSkill") or detail.get("team_skill") or detail.get("team")))
+    # skill_type까지 포함해서 수집
+    pairs = _collect_skill_texts(detail or {})
+    texts_only = [t for _, t in pairs]
 
     atk_hits, hp_hits, def_hits = [], [], []
     heal_cnt = shield_cnt = dot_cnt = extra_cnt = ult_cnt = 0
 
     sample = {"ATK": None, "HP": None, "DEF": None}
 
-    for t in texts:
-        a = _pct_hits(t, ["attack power", "atk", "공격력"])
-        h = _pct_hits(t, ["max hp", "hp", "체력", "생명"])
-        d = _pct_hits(t, ["defense", "def", "방어력"])
+    def weighted_extend(target: list[float], values: list[float], w: float):
+        if not values:
+            return
+        # 가중치는 score()에서 반영할 수도 있지만, 여기서는 단순히 "개수"를 늘리는 방식 대신
+        # 값을 곱해서 직접 반영(직관적)
+        for v in values:
+            target.append(v * w)
+
+    for typ, t in pairs:
+        w = _SKILL_TYPE_WEIGHT.get(typ, 1.0)
+
+        a = _pct_hits(t, _SCALE_KEYS["ATK"])
+        h = _pct_hits(t, _SCALE_KEYS["HP"])
+        d = _pct_hits(t, _SCALE_KEYS["DEF"])
+
         if a and sample["ATK"] is None:
             sample["ATK"] = t
         if h and sample["HP"] is None:
             sample["HP"] = t
         if d and sample["DEF"] is None:
             sample["DEF"] = t
-        atk_hits += a
-        hp_hits += h
-        def_hits += d
+
+        weighted_extend(atk_hits, a, w)
+        weighted_extend(hp_hits, h, w)
+        weighted_extend(def_hits, d, w)
 
         tl = t.lower()
         if any(k in tl for k in _KW_HEAL):
@@ -794,8 +1146,75 @@ def _detect_profile(detail: dict, base: dict) -> dict:
             dot_cnt += 1
         if any(k in tl for k in _KW_EXTRA):
             extra_cnt += 1
-        if any(k in tl for k in _KW_ULT):
+        if typ == "ultimate" or any(k in tl for k in _KW_ULT):
             ult_cnt += 1
+
+    def score(hits: list[float]) -> float:
+        if not hits:
+            return 0.0
+        # hits 값 자체가 이미 가중치 반영이 들어가 있으므로, 평균+빈도 방식 유지
+        return len(hits) * 10.0 + (sum(hits) / len(hits))
+
+    atk_s = score(atk_hits)
+    hp_s = score(hp_hits)
+    def_s = score(def_hits)
+
+    best = max(atk_s, hp_s, def_s)
+    if best <= 0:
+        scaling = "MIX"
+    else:
+        scaling = "ATK" if best == atk_s else ("HP" if best == hp_s else "DEF")
+
+    cls = str(base.get("class") or "-").strip()
+    role = str(base.get("role") or "-").strip()
+    cls_l = cls.lower()
+    role_l = role.lower()
+
+    # class/role 한글/변형도 커버
+    def is_healer(s: str) -> bool:
+        return any(x in s for x in ["healer", "heal", "힐러", "치유", "회복"])
+
+    def is_tank(s: str) -> bool:
+        return any(x in s for x in ["guardian", "tank", "defender", "탱", "탱커", "수호", "가디언", "방어"])
+
+    def is_debuffer(s: str) -> bool:
+        return any(x in s for x in ["debuffer", "debuff", "서포트", "지원", "약화", "디버프"])
+
+    if is_healer(cls_l) or is_healer(role_l):
+        archetype = "healer"
+    elif is_tank(cls_l) or is_tank(role_l):
+        archetype = "tank"
+    elif is_debuffer(cls_l) or is_debuffer(role_l):
+        archetype = "debuffer"
+    else:
+        archetype = "dps"
+
+    # healer hybrid: healer지만 ATK 스케일이 강하게 잡히는 경우
+    healer_hybrid = bool(archetype == "healer" and atk_s >= 15.0 and (atk_s >= hp_s or atk_s >= def_s))
+
+    # ✅ 핵심 보정: DEF 스케일링이 확실히 우세하면 dps라도 tank로 승격(Apep류 방지)
+    if archetype == "dps":
+        if scaling == "DEF" and def_s > 0 and def_s >= max(atk_s, hp_s) + 5.0:
+            archetype = "tank"
+        elif scaling == "HP" and hp_s > 0 and hp_s >= atk_s + 5.0 and shield_cnt > 0:
+            archetype = "tank"
+
+    return {
+        "scaling": scaling,
+        "atk_score": atk_s,
+        "hp_score": hp_s,
+        "def_score": def_s,
+        "heal_cnt": heal_cnt,
+        "shield_cnt": shield_cnt,
+        "dot_cnt": dot_cnt,
+        "extra_cnt": extra_cnt,
+        "ult_cnt": ult_cnt,
+        "archetype": archetype,
+        "healer_hybrid": healer_hybrid,
+        "sample_text": sample.get(scaling) if scaling in sample else None,
+        # 디버깅/검증에 유용: 어떤 타입 문구들이 먹었는지 추후 UI에 표시 가능
+        "skill_text_count": len(texts_only),
+    }
 
     def score(hits: list[float]) -> float:
         if not hits:
