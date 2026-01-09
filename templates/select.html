@@ -10,6 +10,11 @@
 
   <!-- ✅ Tier 결과 카드 이미지 + PC 폭 확장 오버라이드 -->
   <style>
+
+    /* ✅ 필수 포함 컬럼 */
+    .col-req{ width: 64px; text-align: center; }
+    .table th.col-req{ text-align:center; }
+
     /* (2) 전체 페이지 폭 확장 (PC) */
     @media (min-width: 1100px){
       .wrap{ max-width: 1600px !important; }
@@ -421,6 +426,7 @@ html, body{
               <option value="">tier-lists.js 로딩중...</option>
             </select>
             <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
+            <button class="btn" id="btnAiParty" type="button" disabled>AI 추천 파티</button>
 
             
             <div class="tier-class-inline" id="tierClassInline">
@@ -437,6 +443,7 @@ html, body{
             </div>
           </div>
 <div id="tierPartyResult" class="tier-result"></div>
+          <div id="aiPartyResult" class="tier-result"></div>
         </div>
       </details>
 
@@ -446,6 +453,7 @@ html, body{
           <thead>
             <tr>
               <th class="col-check">선택</th>
+              <th class="col-req">필수</th>
               <th>캐릭터</th>
               <th class="col-hp th-sort" data-sort="hp">체력</th>
               <th class="col-def th-sort" data-sort="defense">방어력</th>
@@ -1234,6 +1242,7 @@ const rows = filtered.map(c => {
         return `
           <tr>
             <td class="col-check"><input class="chk-owned" type="checkbox" data-cid="${escapeHtml(cid)}"></td>
+            <td class="col-req"><input class="chk-required" type="checkbox" data-cid="${escapeHtml(cid)}" title="파티에 필수 포함"></td>
             <td>
               <div class="char-cell clickable" data-cid="${escapeHtml(cid)}">
                 ${img}
@@ -1264,7 +1273,7 @@ const rows = filtered.map(c => {
         `;
       }).join("");
 
-      $tbody.innerHTML = rows || `<tr><td colspan="11" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
+      $tbody.innerHTML = rows || `<tr><td colspan="12" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
     
       fillStatsForVisibleRows();
 }
@@ -1279,7 +1288,37 @@ const rows = filtered.map(c => {
     });
     document.getElementById("btnNone").addEventListener("click", () => {
       document.querySelectorAll(".chk-owned").forEach(x => x.checked = false);
+      document.querySelectorAll(".chk-required").forEach(x => x.checked = false);
     });
+
+
+// ✅ 필수 포함 체크 동기화
+document.addEventListener("change", (e) => {
+  const t = e.target;
+  if (!t) return;
+
+  if (t.classList && t.classList.contains("chk-required")){
+    const cid = t.dataset.cid;
+    if (!cid) return;
+    // 필수 체크하면 자동으로 보유도 체크
+    if (t.checked){
+      const owned = document.querySelector(`.chk-owned[data-cid="${CSS.escape(cid)}"]`);
+      if (owned) owned.checked = true;
+    }
+    return;
+  }
+
+  if (t.classList && t.classList.contains("chk-owned")){
+    const cid = t.dataset.cid;
+    if (!cid) return;
+    // 보유 해제하면 필수도 해제
+    if (!t.checked){
+      const req = document.querySelector(`.chk-required[data-cid="${CSS.escape(cid)}"]`);
+      if (req) req.checked = false;
+    }
+    return;
+  }
+});
 
     document.addEventListener("click", (e) => {
       const chk = e.target.closest(".chk-owned");
@@ -1404,6 +1443,141 @@ const rows = filtered.map(c => {
       });
       return out;
     }
+
+
+function getRequiredSelectedIds(){
+  const out = [];
+  document.querySelectorAll(".chk-required").forEach(chk => {
+    if (chk.checked && chk.dataset.cid) out.push(chk.dataset.cid);
+  });
+  return out;
+}
+
+function getRankMapObjectForCurrentPreset(){
+  const sel = document.getElementById("tierPreset");
+  if (!sel || !ALL_TIER_LISTS) return {};
+  const k = sel.value;
+  if (!k || !ALL_TIER_LISTS[k]) return {};
+  const rankMap = buildRankMapFromTierList(ALL_TIER_LISTS[k], chars);
+  const obj = {};
+  rankMap.forEach((v, key) => { obj[key] = v; });
+  return obj;
+}
+
+function renderAiPartyResult(res){
+  const box = document.getElementById("aiPartyResult");
+  if (!box) return;
+
+  if (!res || !res.ok){
+    const msg = escapeHtml(String(res?.error || res?.msg || "추천 결과를 불러오지 못했습니다."));
+    box.innerHTML = `<div class="tier-error">${msg}</div>`;
+    return;
+  }
+
+  const party = (res.parties && res.parties[0]) ? res.parties[0] : null;
+  if (!party){
+    box.innerHTML = `<div class="tier-error">추천 파티 데이터가 없습니다.</div>`;
+    return;
+  }
+
+  const mems = Array.isArray(party.members) ? party.members : [];
+  const meta = party.meta || {};
+
+  const cards = mems.map(m => {
+    const img = m.image
+      ? `<img class="tier-img" src="${escapeHtml(m.image)}" alt="">`
+      : `<div class="tier-img"></div>`;
+
+    const pills = [
+      m.element ? `<span class="pill pill-neutral">${escapeHtml(String(m.element))}</span>` : "",
+      m.faction ? `<span class="pill pill-neutral">${escapeHtml(String(m.faction))}</span>` : "",
+      m.class ? `<span class="pill pill-neutral">${escapeHtml(String(m.class))}</span>` : "",
+      m.role ? `<span class="pill pill-neutral">${escapeHtml(String(m.role))}</span>` : "",
+      m.rarity ? `<span class="pill pill-neutral">${escapeHtml(String(m.rarity))}</span>` : "",
+    ].filter(Boolean).join("");
+
+    const small = [
+      (m.archetype ? `archetype: ${escapeHtml(String(m.archetype))}` : ""),
+      (m.scaling ? `scaling: ${escapeHtml(String(m.scaling))}` : ""),
+      (typeof m.tier === "number" ? `tier: ${m.tier}` : ""),
+      (typeof m.score === "number" ? `score: ${m.score.toFixed(1)}` : ""),
+      (m.no_crit ? `크리불가` : ""),
+    ].filter(Boolean).join(" · ");
+
+    return `
+      <div class="tier-card">
+        <div class="tier-card-top">
+          ${img}
+          <span class="tier-name">${escapeHtml(String(m.name || m.id || "Unknown"))}</span>
+        </div>
+        <div class="tier-card-sub">${pills}</div>
+        <div class="tier-card-sub" style="opacity:.85;font-size:12px">${small}</div>
+      </div>
+    `;
+  }).join("");
+
+  const combo = meta.combo_detail || {};
+  const elemHits = Array.isArray(combo.element_hits) ? combo.element_hits : [];
+  const facHits = Array.isArray(combo.faction_hits) ? combo.faction_hits : [];
+
+  const metaLines = [
+    (typeof party.total_score === "number") ? `총점: ${party.total_score.toFixed(1)}` : "",
+    (typeof res.evaluated === "number") ? `탐색: ${res.evaluated}조합` : "",
+    (elemHits.length ? `속성 콤보: ${escapeHtml(elemHits.join(", "))}` : ""),
+    (facHits.length ? `특성 콤보: ${escapeHtml(facHits.join(", "))}` : ""),
+  ].filter(Boolean).join(" / ");
+
+  box.innerHTML = `
+    <div class="tier-cat">
+      <div class="tier-cat-title">AI 추천 파티</div>
+      <div class="tier-cat-meta">${metaLines || ""}</div>
+      <div class="tier-grid">${cards}</div>
+    </div>
+  `;
+}
+
+async function requestAiParty(){
+  const owned = getOwnedSelectedIds();
+  const required = getRequiredSelectedIds();
+
+  if (owned.length < 4){
+    renderAiPartyResult({ ok:false, error:"보유(선택) 캐릭터가 4명 이상이어야 합니다." });
+    return;
+  }
+  if (required.length > 4){
+    renderAiPartyResult({ ok:false, error:"필수 포함은 최대 4명까지 가능합니다." });
+    return;
+  }
+
+  const classSet = getEnabledClassSet();
+  const requiredClasses = classSet ? Array.from(classSet) : [];
+
+  const payload = {
+    owned,
+    required,
+    required_classes: requiredClasses,
+    rank_map: getRankMapObjectForCurrentPreset(),
+    party_size: 4,
+    top_k: 1,
+    require_combo: true,
+  };
+
+  const box = document.getElementById("aiPartyResult");
+  if (box) box.innerHTML = `<div class="tier-loading">AI 추천 계산중…</div>`;
+
+  try {
+    const r = await fetch("/zones/zone-nova/recommend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const j = await r.json();
+    renderAiPartyResult(j);
+  } catch (e){
+    renderAiPartyResult({ ok:false, error: String(e?.message || e) });
+  }
+}
+
 
     function initTierClassCheckboxes(){
       const box = document.getElementById("tierClassBox");
@@ -1755,10 +1929,11 @@ const rows = filtered.map(c => {
     function initTierUI(){
       const sel = document.getElementById("tierPreset");
       const btn = document.getElementById("btnBuildTierParty");
+      const btnAi = document.getElementById("btnAiParty");
       // ✅ 요청사항: 구성조건/lastUpdated 안내 영역 제거(없어도 동작)
       const info = document.getElementById("tierInfo"); // (없을 수 있음)
       const help = document.getElementById("tierHelp"); // (없을 수 있음)
-      if (!sel || !btn) return;
+      if (!sel || !btn || !btnAi) return;
       if (!ALL_TIER_LISTS) return;
 
       const keys = Object.keys(ALL_TIER_LISTS).sort((a,b) => a.localeCompare(b));
@@ -1771,6 +1946,7 @@ const rows = filtered.map(c => {
 
       sel.disabled = false;
       btn.disabled = false;
+      btnAi.disabled = false;
 
       initTierClassCheckboxes();
 
@@ -1783,6 +1959,7 @@ const rows = filtered.map(c => {
       sel.addEventListener("change", () => {
         renderInfo(sel.value);
         document.getElementById("tierPartyResult").innerHTML = "";
+        document.getElementById("aiPartyResult").innerHTML = "";
       });
 
       btn.addEventListener("click", () => {
@@ -1796,6 +1973,10 @@ const rows = filtered.map(c => {
 
         const built = buildPartiesByPresetKey(rankMap, k);
         renderTierPartyResult(rankMap, { ok:true, ...built });
+      });
+
+      btnAi.addEventListener("click", () => {
+        requestAiParty();
       });
 
       renderInfo(sel.value);
