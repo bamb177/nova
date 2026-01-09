@@ -829,7 +829,7 @@ function pick(obj, ...keys) {
         `;
       }
 
-      const cards = builds.map((b) => {
+      const cards = builds.slice(0,1).map((b) => {
         const title = escapeHtml(String(b.title || "추천"));
         const setPlan = Array.isArray(b.setPlan) ? b.setPlan : [];
         const rationale = Array.isArray(b.rationale) ? b.rationale : [];
