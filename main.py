@@ -247,41 +247,104 @@ def _extract_balanced(s: str, start: int) -> Optional[str]:
     return None
 
 
-def _extract_js_literal(raw: str) -> Optional[str]:
-    """
-    runes.js에서 export default <literal or identifier> 형태를 최대한 복원
-    """
-    if not raw:
+def _extract_js_literal(s: str) -> Optional[str]:
+    if not s:
         return None
 
-    s = _strip_js_comments(raw)
+    src = s
 
-    # export default <literal>
-    m = re.search(r"export\s+default\s+([A-Za-z_][A-Za-z0-9_]*|\[|\{)", s)
-    if not m:
+    def _extract_balanced_from(pos: int) -> Optional[str]:
+        # find first { or [ after pos
+        i = pos
+        n = len(src)
+        while i < n and src[i] not in "[{":
+            i += 1
+        if i >= n:
+            return None
+
+        open_ch = src[i]
+        close_ch = "]" if open_ch == "[" else "}"
+        depth = 0
+        j = i
+
+        in_str = None  # one of ', ", `
+        esc = False
+
+        while j < n:
+            ch = src[j]
+
+            # string state
+            if in_str:
+                if esc:
+                    esc = False
+                elif ch == "\\":  # escape
+                    esc = True
+                elif ch == in_str:
+                    in_str = None
+                j += 1
+                continue
+
+            # comment state (only when not in string)
+            if ch == "/" and j + 1 < n:
+                nxt = src[j + 1]
+                if nxt == "/":
+                    # line comment
+                    j += 2
+                    while j < n and src[j] not in "\r\n":
+                        j += 1
+                    continue
+                if nxt == "*":
+                    # block comment
+                    j += 2
+                    while j + 1 < n and not (src[j] == "*" and src[j + 1] == "/"):
+                        j += 1
+                    j += 2
+                    continue
+
+            if ch in ("'", '"', "`"):
+                in_str = ch
+                j += 1
+                continue
+
+            if ch == open_ch:
+                depth += 1
+            elif ch == close_ch:
+                depth -= 1
+                if depth == 0:
+                    return src[i:j + 1]
+
+            j += 1
+
         return None
 
-    token = m.group(1)
-    if token in ("[", "{"):
-        start = m.start(1)
-        return _extract_balanced(s, start)
+    # 1) export default [ ... ] or { ... }
+    m = re.search(r"export\s+default\b", src)
+    if m:
+        lit = _extract_balanced_from(m.end())
+        if lit:
+            return lit.strip()
 
-    # export default IDENT;
-    ident = token
-    # const IDENT = <literal>;
-    m2 = re.search(rf"\bconst\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
-    if m2:
-        start = m2.start(1)
-        return _extract_balanced(s, start)
+        # export default IDENT;
+        m2 = re.search(r"export\s+default\s+([A-Za-z_][A-Za-z0-9_]*)\s*;?", src[m.end():])
+        if m2:
+            ident = m2.group(1)
+            # find const/let/var IDENT = ...
+            m3 = re.search(rf"\b(?:const|let|var)\s+{re.escape(ident)}\s*=\s*", src)
+            if m3:
+                lit2 = _extract_balanced_from(m3.end())
+                if lit2:
+                    return lit2.strip()
 
-    # let/var IDENT = <literal>;
-    m2 = re.search(rf"\b(?:let|var)\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
-    if m2:
-        start = m2.start(1)
-        return _extract_balanced(s, start)
+    # 2) module.exports = ...
+    m = re.search(r"module\.exports\s*=\s*", src)
+    if m:
+        lit = _extract_balanced_from(m.end())
+        if lit:
+            return lit.strip()
 
-    return None
-
+    # 3) fallback: first top-level [ ... ] or { ... }
+    lit = _extract_balanced_from(0)
+    return lit.strip() if lit else None
 
 def _json_friendly(js: str) -> str:
     # JSON 파서 친화적으로 보정(마지막 시도용)
@@ -297,18 +360,24 @@ def _json_friendly(js: str) -> str:
 
 def _to_python_literal(js: str) -> str:
     """
-    ast.literal_eval을 위한 Python 리터럴 변환(핵심: JS 키/값을 Python이 읽을 수 있게)
+    json.loads 실패 시 마지막 fallback: ast.literal_eval을 위한 Python 리터럴 변환.
+    backtick(`...`) 문자열도 최대한 일반 문자열로 변환한다.
     """
     s = js.strip()
     s = re.sub(r",\s*([}\]])", r"\1", s)  # trailing comma
     s = re.sub(r"\bnull\b", "None", s)
     s = re.sub(r"\btrue\b", "True", s, flags=re.I)
     s = re.sub(r"\bfalse\b", "False", s, flags=re.I)
-    s = re.sub(r"\bundefined\b", "None", s)
-    # unquoted keys -> quoted keys
-    s = re.sub(r'([{\[,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*):', r'\1"\2"\3:', s)
-    return s
+    s = re.sub(r'([{{\[,]]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*):', r'\1"\2"\3:', s)
 
+    # backtick 템플릿 문자열 -> 큰따옴표 문자열 (단순 치환, escape 보정)
+    def _bt(m):
+        body = m.group(1)
+        body = body.replace('\\', '\\\\').replace('"', '\\"')
+        return f'"{body}"'
+
+    s = re.sub(r"`((?:\\.|[^`])*)`", _bt, s)
+    return s
 
 def _norm_key(s: str) -> str:
     s = (s or "").strip().lower()
@@ -371,6 +440,10 @@ def resolve_rune_icon(set_name: str, rune_map: dict[str, str]) -> Optional[str]:
         f"rune {set_name}",
         _norm_key(f"{set_name} rune"),
         _norm_key(f"rune {set_name}"),
+        f"{set_name} icon",
+        f"icon {set_name}",
+        _norm_key(f"{set_name} icon"),
+        _norm_key(f"icon {set_name}"),
     ]
 
     for c in candidates:
@@ -380,8 +453,15 @@ def resolve_rune_icon(set_name: str, rune_map: dict[str, str]) -> Optional[str]:
         k2 = _norm_key(c)
         if k2 in rune_map:
             return f"/images/games/zone-nova/runes/{rune_map[k2]}"
-    return None
 
+    # ✅ 마지막 안전장치: 포함(contains) 매칭
+    needle = _norm_key(set_name)
+    if needle:
+        for k, rel in rune_map.items():
+            if needle in k or k in needle:
+                return f"/images/games/zone-nova/runes/{rel}"
+
+    return None
 
 def load_rune_overrides(force: bool = False) -> dict:
     if CACHE["rune_overrides"] is not None and not force:
@@ -693,6 +773,56 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     }
 
 
+
+def _is_no_crit(detail: dict) -> bool:
+    """캐릭터가 크리티컬 자체를 사용하지 못하거나(또는 크리 스탯이 0으로 고정) 추정되는 경우 True."""
+    if not isinstance(detail, dict):
+        return False
+
+    # 명시 플래그 우선
+    flag_keys_true = ["noCrit", "no_crit", "cannotCrit", "cannot_crit", "critDisabled", "criticalDisabled"]
+    for k in flag_keys_true:
+        v = detail.get(k)
+        if isinstance(v, bool) and v is True:
+            return True
+
+    flag_keys_false = ["canCrit", "can_crit", "critEnabled", "criticalEnabled"]
+    for k in flag_keys_false:
+        v = detail.get(k)
+        if isinstance(v, bool) and v is False:
+            return True
+
+    max_crit = 0.0
+    seen_any = False
+
+    def walk(obj):
+        nonlocal max_crit, seen_any
+        if obj is None:
+            return
+        if isinstance(obj, dict):
+            for kk, vv in obj.items():
+                if isinstance(kk, str) and "crit" in kk.lower():
+                    if isinstance(vv, (int, float)):
+                        seen_any = True
+                        max_crit = max(max_crit, float(vv))
+                    elif isinstance(vv, str):
+                        mm = re.search(r"[-+]?\d+(?:\.\d+)?", vv)
+                        if mm:
+                            seen_any = True
+                            max_crit = max(max_crit, float(mm.group(0)))
+                walk(vv)
+        elif isinstance(obj, list):
+            for it in obj:
+                walk(it)
+
+    # stats/baseStats 우선, 없으면 전체 스캔
+    walk(detail.get("stats") or detail.get("baseStats") or detail.get("base_stats") or detail)
+
+    # 크리 관련 키가 존재하고 값이 0 이하로만 나오면 "크리 없음"으로 본다
+    if seen_any and max_crit <= 0:
+        return True
+    return False
+
 def _element_damage_label(element: str) -> str:
     e = normalize_element(element or "-")
     if e in ("Storm", "Blaze", "Frost", "Holy", "Chaos"):
@@ -700,7 +830,7 @@ def _element_damage_label(element: str) -> str:
     return "Element Attribute Damage (%)"
 
 
-def _slot_plan_for(archetype: str, scaling: str, element: str, no_crit: bool) -> dict:
+def _slot_plan_for(archetype: str, scaling: str, element: str, no_crit: bool = False) -> dict:
     plan = {
         "1": ["HP (Flat Value)"],
         "2": ["Attack (Flat Value)"],
@@ -727,20 +857,20 @@ def _slot_plan_for(archetype: str, scaling: str, element: str, no_crit: bool) ->
             plan["6"] = ["HP (%)", "Defense (%)"]
         return plan
 
-    # dps/debuffer
+    # DPS / Debuffer (damage)
     if no_crit:
-        plan["4"] = ["Attack Penetration (%)", "Attack (%)", "HP (%) (생존)"]
-        plan["5"] = [_element_damage_label(element), "Attack (%)", "HP (%) (생존)"]
-        plan["6"] = ["Attack (%)", "HP (%) (생존)", "Defense (%) (생존)"]
-    else:
-        plan["4"] = ["Critical Rate (%)", "Attack Penetration (%)", "Critical Damage (%)", "Attack (%)"]
-        plan["5"] = [_element_damage_label(element), "Attack (%)", "HP (%)", "Defense (%)"]
-        plan["6"] = ["Attack (%)", "HP (%)", "Defense (%)"]
+        # 크리 미지원 캐릭터: 치확/치피 제외
+        plan["4"] = ["Attack Penetration (%)", "Attack (%)", "Energy Regen (%) (필요 시)", "HP (%) (생존)"]
+        plan["5"] = [_element_damage_label(element), "Attack (%)", "Attack Penetration (%)", "HP (%) (생존)"]
+        plan["6"] = ["Attack (%)", "Attack Penetration (%)", "HP (%) (생존)", "Defense (%) (생존)"]
+        return plan
 
+    plan["4"] = ["Critical Rate (%)", "Attack Penetration (%)", "Critical Damage (%)", "Attack (%)"]
+    plan["5"] = [_element_damage_label(element), "Attack (%)", "HP (%)", "Defense (%)"]
+    plan["6"] = ["Attack (%)", "HP (%)", "Defense (%)"]
     return plan
 
-
-def _substats_for(archetype: str, scaling: str, no_crit: bool) -> list[str]:
+def _substats_for(archetype: str, scaling: str, no_crit: bool = False) -> list[str]:
     if archetype == "healer":
         return [
             "Healing Effectiveness (%)",
@@ -758,16 +888,13 @@ def _substats_for(archetype: str, scaling: str, no_crit: bool) -> list[str]:
         ]
 
     if no_crit:
-        out = [
+        return [
             "Attack (%)",
             "Attack Penetration (%)",
             "Element Attribute Damage (%)",
             "Flat Attack",
             "HP (%) / Defense (%) (생존)",
         ]
-        if scaling in ("HP", "DEF"):
-            out.insert(0, f"{scaling} (%) (스킬 스케일링 기반)")
-        return out
 
     out = [
         "Critical Rate (%)",
@@ -781,20 +908,20 @@ def _substats_for(archetype: str, scaling: str, no_crit: bool) -> list[str]:
         out.insert(2, f"{scaling} (%) (스킬 스케일링 기반)")
     return out
 
-
-def _pick_sets(profile: dict, base: dict, no_crit: bool) -> tuple[list[dict], list[list[dict]], list[str]]:
+def _pick_sets(profile: dict, base: dict, no_crit: bool = False) -> tuple[list[dict], list[str]]:
+    """
+    추천 메인 1개만 반환 (대체안 제거).
+    no_crit=True이면 치확/치피 기반 세트(Beth 등) 비선호.
+    """
     archetype = profile["archetype"]
     dot = profile["dot_cnt"] > 0
     extra = profile["extra_cnt"] > 0
     shield = profile["shield_cnt"] > 0
-    ult = profile["ult_cnt"] > 0
+
+    cls_l = str(base.get("class") or "").lower()
 
     primary: list[dict] = []
-    alternates: list[list[dict]] = []
     rationale: list[str] = []
-
-    # off-piece 2set 선택: critless면 Beth 제외
-    off2 = {"set": ("Epsilon" if no_crit else "Beth"), "pieces": 2}
 
     if archetype == "tank":
         if shield:
@@ -803,145 +930,143 @@ def _pick_sets(profile: dict, base: dict, no_crit: bool) -> tuple[list[dict], li
         else:
             primary = [{"set": "Zahn", "pieces": 4}, {"set": "Shattered Foundation", "pieces": 2}]
             rationale.append("탱커 분류 → HP/피해감소 중심 세트 우선.")
-        return primary, alternates, rationale
+        return primary, rationale
 
     if archetype == "healer":
         primary = [{"set": "Daleth", "pieces": 4}, {"set": "Zahn", "pieces": 2}]
         rationale.append("힐러 분류 → 치유 효율/초반 에너지/생존 세트 우선.")
-        if profile.get("healer_hybrid"):
-            # 하이브리드: critless면 Beth 대신 Epsilon 2
-            alternates.append([{"set": "Daleth", "pieces": 4}, {"set": ("Epsilon" if no_crit else "Beth"), "pieces": 2}])
-            alternates.append([{"set": "Epsilon", "pieces": 4}, {"set": "Daleth", "pieces": 2}])
-            rationale.append("힐러지만 공격 스케일링이 강함(하이브리드) → 딜 보조 대체안 제공.")
-        return primary, alternates, rationale
+        if profile.get("healer_hybrid") and not no_crit:
+            # 하이브리드(공격도 의미있고 크리 사용 가능할 때)인 경우만 치명 2세트 고려
+            primary = [{"set": "Daleth", "pieces": 4}, {"set": "Beth", "pieces": 2}]
+            rationale.append("힐러지만 ATK 스케일링이 강함(하이브리드) → 치명 2세트 병행.")
+        return primary, rationale
 
-    # debuffer: 팀버프/궁극기 기반이면 Epsilon 4 중심
-    if archetype == "debuffer":
-        primary = [{"set": "Epsilon", "pieces": 4}, {"set": "Zahn", "pieces": 2}]
-        rationale.append("디버퍼 분류 → 궁극기/파티 기여 중심(Epsilon) 세트 우선.")
-        if not no_crit:
-            alternates.append([{"set": "Epsilon", "pieces": 4}, {"set": "Beth", "pieces": 2}])
-        return primary, alternates, rationale
+    if archetype == "debuffer" and cls_l == "debuffer":
+        primary = [{"set": "Giants", "pieces": 4}, {"set": ("Epsilon" if no_crit else "Beth"), "pieces": 2}]
+        rationale.append("디버퍼 분류 → 파티 증뎀(디버퍼 전용) 세트 우선.")
+        if no_crit:
+            rationale.append("크리 미지원 → 치명 2세트 대신 공격 2세트(Epsilon) 적용.")
+        return primary, rationale
 
-    # dps
     if dot:
-        primary = [{"set": "Gimel", "pieces": 4}, off2]
-        alternates.append([{"set": "Alpha", "pieces": 4}, off2])
+        primary = [{"set": "Gimel", "pieces": 4}, {"set": ("Epsilon" if no_crit else "Beth"), "pieces": 2}]
         rationale.append("지속피해(DOT) 키워드 감지 → DOT 강화 세트 우선.")
-        return primary, alternates, rationale
+        if no_crit:
+            rationale.append("크리 미지원 → 치명 2세트 대신 공격 2세트(Epsilon) 적용.")
+        return primary, rationale
 
     if extra:
-        primary = [{"set": "Hert", "pieces": 4}, off2]
-        alternates.append([{"set": "Alpha", "pieces": 4}, off2])
+        primary = [{"set": "Hert", "pieces": 4}, {"set": ("Epsilon" if no_crit else "Beth"), "pieces": 2}]
         rationale.append("추가공격 키워드 감지 → 추가공격 강화 세트 우선.")
-        return primary, alternates, rationale
+        if no_crit:
+            rationale.append("크리 미지원 → 치명 2세트 대신 공격 2세트(Epsilon) 적용.")
+        return primary, rationale
 
-    primary = [{"set": "Alpha", "pieces": 4}, off2]
-    rationale.append("기본 딜러 분류 → 범용 딜 세트(Alpha) 우선.")
-    if ult:
-        alternates.append([{"set": "Epsilon", "pieces": 4}, off2])
-        rationale.append("궁극기/파티 기여 키워드 감지 → 팀 딜 보조(Epsilon) 대체안 제공.")
-    return primary, alternates, rationale
+    # 기본 딜러
+    if no_crit:
+        primary = [{"set": "Alpha", "pieces": 4}, {"set": "Epsilon", "pieces": 2}]
+        rationale.append("기본 딜러 분류 + 크리 미지원 → 공격/팀딜 중심 세트 우선.")
+        return primary, rationale
 
+    primary = [{"set": "Alpha", "pieces": 4}, {"set": "Beth", "pieces": 2}]
+    rationale.append("기본 딜러 분류 → 기본 공격/치명 세트 우선.")
+    return primary, rationale
 
 def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
     overrides = load_rune_overrides()
-    rune_db = rune_db_by_name()
+    icon_map = rune_icon_map()
+    db = load_runes_db()
+    db_by_name = {str(x.get("name") or "").strip(): x for x in db if isinstance(x, dict)}
 
-    # manual override 우선
+    # 1) manual override
     ov = overrides.get(cid)
     if isinstance(ov, dict) and ov.get("builds"):
-        builds = []
-        for b in ov.get("builds") or []:
-            if not isinstance(b, dict):
-                continue
-            sp = []
-            for it in b.get("setPlan") or []:
-                if not isinstance(it, dict):
-                    continue
-                sname = str(it.get("set") or "").strip()
-                r = rune_db.get(sname) or {}
-                sp.append({
-                    "set": sname,
-                    "pieces": int(it.get("pieces") or 0),
-                    "icon": r.get("icon"),
-                    "twoPiece": r.get("twoPiece", ""),
-                    "fourPiece": r.get("fourPiece", ""),
-                    "note": r.get("note", ""),
-                })
-            builds.append({
-                "title": str(b.get("title") or "Override"),
-                "setPlan": sp,
-                "slots": b.get("slots") or {},
-                "substats": b.get("substats") or [],
-                "notes": b.get("notes") or [],
-                "rationale": b.get("rationale") or ["rune_overrides.json 수동 오버라이드 적용"],
-            })
-        return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
+        # ✅ 운영 편의: override도 1개만 사용 (첫번째만)
+        b = (ov.get("builds") or [None])[0]
+        if not isinstance(b, dict):
+            return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": []}
 
-    # auto
+        sp = []
+        for it in b.get("setPlan") or []:
+            if not isinstance(it, dict):
+                continue
+            sname = str(it.get("set") or "").strip()
+            rdb = db_by_name.get(sname) or {}
+            sp.append({
+                "set": sname,
+                "pieces": int(it.get("pieces") or 0),
+                "icon": icon_map.get(sname),
+                "twoPiece": rdb.get("twoPiece") or "",
+                "fourPiece": rdb.get("fourPiece") or "",
+                "note": rdb.get("note") or "",
+            })
+
+        build = {
+            "title": str(b.get("title") or "추천(수동)"),
+            "setPlan": sp,
+            "slots": b.get("slots") or {},
+            "substats": b.get("substats") or [],
+            "notes": b.get("notes") or [],
+            "rationale": b.get("rationale") or ["rune_overrides.json 수동 오버라이드 적용"],
+        }
+        return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": [build]}
+
+    # 2) auto
     profile = _detect_profile(detail or {}, base or {})
-    no_crit = detect_no_crit(detail or {})
-    primary, alternates, rationale = _pick_sets(profile, base or {}, no_crit)
+    no_crit = _is_no_crit(detail or {})
+
+    primary, rationale = _pick_sets(profile, base or {}, no_crit=no_crit)
 
     sample_text = profile.get("sample_text")
     if sample_text:
         rationale = rationale + [f"스케일링 판정({profile.get('scaling')}): '{sample_text[:120]}'"]
-
     if no_crit:
-        rationale = rationale + ["크리티컬 비활성/0으로 탐지됨 → 크리티컬 관련(치확/치피) 추천을 제외."]
+        rationale = rationale + ["크리티컬 미지원(또는 크리 스탯 0) 감지 → 치확/치피 기반 추천 제외."]
 
-    def mk_build(title: str, setplan: list[dict]) -> dict:
-        sp = []
-        for x in setplan:
-            sname = x["set"]
-            r = rune_db.get(sname) or {}
-            sp.append({
-                "set": sname,
-                "pieces": x["pieces"],
-                "icon": r.get("icon"),
-                "twoPiece": r.get("twoPiece", ""),
-                "fourPiece": r.get("fourPiece", ""),
-                "note": r.get("note", ""),
-            })
+    def mk_set_item(x: dict) -> dict:
+        sname = x.get("set")
+        rdb = db_by_name.get(sname) or {}
         return {
-            "title": title,
-            "setPlan": sp,
-            "slots": _slot_plan_for(profile["archetype"], profile["scaling"], base.get("element"), no_crit),
-            "substats": _substats_for(profile["archetype"], profile["scaling"], no_crit),
-            "notes": [],
-            "rationale": rationale,
+            "set": sname,
+            "pieces": x.get("pieces"),
+            "icon": icon_map.get(sname),
+            "twoPiece": rdb.get("twoPiece") or "",
+            "fourPiece": rdb.get("fourPiece") or "",
+            "note": rdb.get("note") or "",
+            "classRestriction": rdb.get("classRestriction") or [],
+            "teamConflict": rdb.get("teamConflict") or [],
         }
 
-    builds = [mk_build("추천(자동)", primary)]
-    for idx, alt in enumerate(alternates[:3], start=1):
-        builds.append(mk_build(f"대체안 {idx}", alt))
+    build = {
+        "title": "추천(자동)",
+        "setPlan": [mk_set_item(x) for x in primary],
+        "slots": _slot_plan_for(profile["archetype"], profile["scaling"], base.get("element"), no_crit=no_crit),
+        "substats": _substats_for(profile["archetype"], profile["scaling"], no_crit=no_crit),
+        "notes": [],
+        "rationale": rationale,
+    }
 
-    # rune DB 기반 제약/노트 표기
+    # rune db notes (restrictions/conflicts)
     notes = []
-    for b in builds:
-        for s in b["setPlan"]:
-            nm = s["set"]
-            r = rune_db.get(nm) or {}
-            cr = r.get("classRestriction") or []
-            if cr:
-                notes.append(f"{nm} 4세트는 클래스 제한이 있습니다: {', '.join(map(str, cr))}")
-            if r.get("note"):
-                notes.append(f"{nm}: {r.get('note')}")
-            if r.get("teamConflict"):
-                notes.append(f"{nm}: 팀 세트 상충 주의 ({', '.join(map(str, r.get('teamConflict')))} )")
+    for s in build["setPlan"]:
+        nm = s.get("set")
+        cr = s.get("classRestriction") or []
+        if cr:
+            notes.append(f"{nm} 4세트는 클래스 제한이 있습니다: {', '.join(map(str, cr))}")
+        if s.get("note"):
+            notes.append(f"{nm}: {s.get('note')}")
+        tc = s.get("teamConflict") or []
+        if tc:
+            notes.append(f"{nm}: 팀 세트 상충 주의 ({', '.join(map(str, tc))})")
 
     seen, uniq_notes = set(), []
     for n in notes:
         if n not in seen:
             seen.add(n)
             uniq_notes.append(n)
-    if uniq_notes:
-        for b in builds:
-            b["notes"] = uniq_notes
+    build["notes"] = uniq_notes
 
-    return {"mode": "auto", "profile": {**profile, "no_crit": no_crit}, "builds": builds}
-
+    return {"mode": "auto", "profile": {**profile, "no_crit": no_crit}, "builds": [build]}
 
 def rune_summary_for_list(cid: str, base: dict, detail: dict) -> Optional[dict]:
     reco = recommend_runes(cid, base, detail)
