@@ -256,7 +256,7 @@ def _extract_js_literal(raw: str) -> Optional[str]:
 
     s = _strip_js_comments(raw)
 
-    # export default <literal>
+    # export default <literal or IDENT>
     m = re.search(r"export\s+default\s+([A-Za-z_][A-Za-z0-9_]*|\[|\{)", s)
     if not m:
         return None
@@ -290,7 +290,7 @@ def _json_friendly(js: str) -> str:
     s = re.sub(r"\bundefined\b", "null", s)
     # unquoted keys -> quoted keys
     s = re.sub(r'([{\[,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*):', r'\1"\2"\3:', s)
-    # single quote -> double quote (best-effort, may not cover all cases)
+    # single quote -> double quote (best-effort)
     s = re.sub(r"'", r'"', s)
     return s
 
@@ -487,6 +487,13 @@ _KW_DOT = ["continuous damage", "dot", "burn", "bleed", "poison", "지속", "지
 _KW_EXTRA = ["extra attack", "follow-up", "추가 공격", "추격", "연속 공격"]
 _KW_ULT = ["ultimate", "ult", "궁극기", "필살기"]
 
+# ✅ no-crit 텍스트 힌트(데이터에 스탯 키가 없을 때 보완)
+_KW_NO_CRIT = [
+    "cannot crit", "can't crit", "no critical", "non-critical",
+    "critical hit cannot", "critical cannot",
+    "치명타 불가", "치명타가 발생하지", "크리티컬 불가", "크리티컬이 발생하지",
+]
+
 
 def _collect_texts(x) -> list[str]:
     out: list[str] = []
@@ -544,68 +551,91 @@ def _pct_hits(text: str, keys: list[str]) -> list[float]:
 
 def detect_no_crit(detail: dict) -> bool:
     """
-    '캐릭터가 크리티컬이 없다' 케이스 탐지:
-    - stats/attributes 등에서 crit/critical 관련 키가 존재하고 값이 0 또는 false 인 경우를 우선 신뢰
+    '크리티컬 비활성/불가' 탐지.
+
+    원칙:
+    - 명시적 플래그/키(예: cannotCrit, canCrit=false)를 최우선 신뢰
+    - critRate & critDmg가 "둘 다 0"으로 명시된 경우에만 no-crit으로 처리(과탐 방지)
+    - 스킬 텍스트에 cannot crit/치명타 불가 등 문구가 있으면 no-crit으로 처리(누락 보완)
     """
     if not isinstance(detail, dict):
         return False
 
-    # 1) direct flags
+    # 1) explicit flags at top-level
     for k in ["noCrit", "no_crit", "cannotCrit", "cannot_crit", "critDisabled", "crit_disabled"]:
         v = detail.get(k)
         if v is True:
             return True
 
-    # 2) stats dict
+    for k in ["canCrit", "can_crit", "criticalEnabled", "critical_enabled"]:
+        v = detail.get(k)
+        if isinstance(v, bool) and v is False:
+            return True
+
+    # 2) stats-like container
     stats = detail.get("stats") or detail.get("stat") or detail.get("attributes") or detail.get("attribute")
-    if isinstance(stats, dict):
-        for k, v in stats.items():
+    crit_rate = None
+    crit_dmg = None
+    can_crit = None
+
+    def read_stat_dict(d: dict):
+        nonlocal crit_rate, crit_dmg, can_crit
+        for k, v in d.items():
             kk = str(k).lower()
-            if "crit" in kk or "critical" in kk:
-                if isinstance(v, (int, float)) and float(v) <= 0:
-                    return True
-                if isinstance(v, str) and v.strip() in ("0", "0.0"):
-                    return True
-                if v is False:
-                    return True
+            if kk in ("cancrit", "can_crit", "criticalenabled", "critical_enabled"):
+                if isinstance(v, bool):
+                    can_crit = v
+            if kk in ("critrate", "crit_rate", "criticalrate", "critical_rate"):
+                crit_rate = v
+            if kk in ("critdmg", "crit_dmg", "criticaldmg", "critical_damage", "criticaldamage"):
+                crit_dmg = v
 
-    # 3) stats list rows
-    if isinstance(stats, list):
+    if isinstance(stats, dict):
+        read_stat_dict(stats)
+    elif isinstance(stats, list):
         for row in stats:
-            if isinstance(row, dict):
-                name = str(row.get("name") or row.get("stat") or "").lower()
-                if "crit" in name or "critical" in name:
-                    v = row.get("value")
-                    if isinstance(v, (int, float)) and float(v) <= 0:
-                        return True
-                    if isinstance(v, str) and v.strip() in ("0", "0.0"):
-                        return True
-                    if v is False:
-                        return True
+            if not isinstance(row, dict):
+                continue
+            name = str(row.get("name") or row.get("stat") or "").lower()
+            v = row.get("value")
+            if name in ("critrate", "crit_rate", "criticalrate", "critical_rate"):
+                crit_rate = v
+            if name in ("critdmg", "crit_dmg", "criticaldmg", "critical_damage", "criticaldamage"):
+                crit_dmg = v
+            if name in ("cancrit", "can_crit", "criticalenabled", "critical_enabled"):
+                if isinstance(v, bool):
+                    can_crit = v
 
-    # 4) generic deep scan: if any key with crit exists and explicitly false/0
-    def deep_scan(obj) -> Optional[bool]:
-        if isinstance(obj, dict):
-            for k, v in obj.items():
-                kk = str(k).lower()
-                if "crit" in kk or "critical" in kk:
-                    if v is False:
-                        return True
-                    if isinstance(v, (int, float)) and float(v) <= 0:
-                        return True
-                    if isinstance(v, str) and v.strip() in ("0", "0.0"):
-                        return True
-                r = deep_scan(v)
-                if r:
-                    return True
-        elif isinstance(obj, list):
-            for it in obj:
-                r = deep_scan(it)
-                if r:
-                    return True
+    if can_crit is False:
+        return True
+
+    def to_num(x):
+        if isinstance(x, (int, float)):
+            return float(x)
+        if isinstance(x, str):
+            try:
+                return float(x.strip())
+            except Exception:
+                return None
         return None
 
-    return bool(deep_scan(detail))
+    # 3) only treat as no-crit when BOTH are explicitly 0 (and keys exist)
+    cr = to_num(crit_rate)
+    cd = to_num(crit_dmg)
+    if (crit_rate is not None or crit_dmg is not None) and (cr is not None and cd is not None):
+        if cr <= 0 and cd <= 0:
+            return True
+
+    # 4) text hint (skills/teamSkill)
+    texts = []
+    texts.extend(_collect_texts(detail.get("skills")))
+    texts.extend(_collect_texts(detail.get("teamSkill") or detail.get("team_skill") or detail.get("team")))
+    blob = "\n".join([t.lower() for t in texts if isinstance(t, str)])
+
+    if any(k in blob for k in _KW_NO_CRIT):
+        return True
+
+    return False
 
 
 def _detect_profile(detail: dict, base: dict) -> dict:
@@ -677,6 +707,16 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     # healer hybrid: healer지만 ATK 스케일이 강하게 잡히는 경우
     healer_hybrid = bool(archetype == "healer" and atk_s >= 15.0 and (atk_s >= hp_s or atk_s >= def_s))
 
+    # ✅ 핵심 보정: DEF 스케일링이 우세하면 탱커 성향으로 승격
+    # - healer/debuffer는 원 역할을 유지
+    # - dps로 떨어진 케이스(Apep 등)를 방지
+    if archetype == "dps":
+        if scaling == "DEF" and def_s > 0 and def_s >= max(atk_s, hp_s) + 5.0:
+            archetype = "tank"
+        # HP 스케일 + 보호막/생존 키워드가 강하면 탱커로 승격(필요 시)
+        elif scaling == "HP" and hp_s > 0 and hp_s >= atk_s + 5.0 and (shield_cnt > 0):
+            archetype = "tank"
+
     return {
         "scaling": scaling,
         "atk_score": atk_s,
@@ -733,6 +773,8 @@ def _slot_plan_for(archetype: str, scaling: str, element: str, no_crit: bool) ->
         plan["5"] = [_element_damage_label(element), "Attack (%)", "HP (%) (생존)"]
         plan["6"] = ["Attack (%)", "HP (%) (생존)", "Defense (%) (생존)"]
     else:
+        # DEF/HP 스케일링 딜러라도 '크리 가능'이면 치확이 의미 있을 수 있어 기본은 유지
+        # (다만 Apep 같은 DEF 탱커는 위 archetype 보정으로 여기로 내려오지 않게 한다)
         plan["4"] = ["Critical Rate (%)", "Attack Penetration (%)", "Critical Damage (%)", "Attack (%)"]
         plan["5"] = [_element_damage_label(element), "Attack (%)", "HP (%)", "Defense (%)"]
         plan["6"] = ["Attack (%)", "HP (%)", "Defense (%)"]
@@ -809,13 +851,11 @@ def _pick_sets(profile: dict, base: dict, no_crit: bool) -> tuple[list[dict], li
         primary = [{"set": "Daleth", "pieces": 4}, {"set": "Zahn", "pieces": 2}]
         rationale.append("힐러 분류 → 치유 효율/초반 에너지/생존 세트 우선.")
         if profile.get("healer_hybrid"):
-            # 하이브리드: critless면 Beth 대신 Epsilon 2
             alternates.append([{"set": "Daleth", "pieces": 4}, {"set": ("Epsilon" if no_crit else "Beth"), "pieces": 2}])
             alternates.append([{"set": "Epsilon", "pieces": 4}, {"set": "Daleth", "pieces": 2}])
             rationale.append("힐러지만 공격 스케일링이 강함(하이브리드) → 딜 보조 대체안 제공.")
         return primary, alternates, rationale
 
-    # debuffer: 팀버프/궁극기 기반이면 Epsilon 4 중심
     if archetype == "debuffer":
         primary = [{"set": "Epsilon", "pieces": 4}, {"set": "Zahn", "pieces": 2}]
         rationale.append("디버퍼 분류 → 궁극기/파티 기여 중심(Epsilon) 세트 우선.")
@@ -889,7 +929,7 @@ def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
         rationale = rationale + [f"스케일링 판정({profile.get('scaling')}): '{sample_text[:120]}'"]
 
     if no_crit:
-        rationale = rationale + ["크리티컬 비활성/0으로 탐지됨 → 크리티컬 관련(치확/치피) 추천을 제외."]
+        rationale = rationale + ["크리티컬 비활성/불가로 탐지됨 → 치확/치피 추천을 제외."]
 
     def mk_build(title: str, setplan: list[dict]) -> dict:
         sp = []
