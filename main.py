@@ -5,7 +5,7 @@ import ast
 from datetime import datetime, timezone
 from typing import Optional, Any
 
-from flask import Flask, jsonify, redirect, render_template
+from flask import Flask, jsonify, redirect, render_template, request
 
 APP_TITLE = os.getenv("APP_TITLE", "Nova")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -869,36 +869,6 @@ def _extract_canonical_stats(detail: dict) -> dict[str, Any]:
 
 
 
-def _collect_texts(x) -> list[str]:
-    out: list[str] = []
-
-    def walk(v):
-        if v is None:
-            return
-        if isinstance(v, str):
-            t = v.strip()
-            if t:
-                out.append(t)
-            return
-        if isinstance(v, (int, float, bool)):
-            return
-        if isinstance(v, list):
-            for it in v:
-                walk(it)
-            return
-        if isinstance(v, dict):
-            for _, vv in v.items():
-                walk(vv)
-            return
-
-    walk(x)
-    seen, uniq = set(), []
-    for s in out:
-        if s not in seen:
-            seen.add(s)
-            uniq.append(s)
-    return uniq
-
 # --- v2: robust stat multiplier parser (ATK/HP/DEF/CRIT) ---
 
 _STAT_ALIASES = {
@@ -1102,11 +1072,18 @@ def detect_no_crit(detail: dict) -> bool:
 
 
 def _detect_profile(detail: dict, base: dict) -> dict:
-    # skill_type까지 포함해서 수집
+    """
+    스킬/스탯 문구를 기반으로 스케일링(ATK/HP/DEF)과 전투 아키타입(dps/tank/healer/debuffer)을 추정한다.
+    - skills/teamSkill 구조가 흔들려도 최대한 텍스트를 수집
+    - 스킬 타입(ultimate/auto/normal/passive/team)에 따라 가중치 반영
+    """
     pairs = _collect_skill_texts(detail or {})
     texts_only = [t for _, t in pairs]
 
-    atk_hits, hp_hits, def_hits = [], [], []
+    atk_hits: list[float] = []
+    hp_hits: list[float] = []
+    def_hits: list[float] = []
+
     heal_cnt = shield_cnt = dot_cnt = extra_cnt = ult_cnt = 0
 
     sample = {"ATK": None, "HP": None, "DEF": None}
@@ -1114,9 +1091,8 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     def weighted_extend(target: list[float], values: list[float], w: float):
         if not values:
             return
-        # 가중치는 score()에서 반영할 수도 있지만, 여기서는 단순히 "개수"를 늘리는 방식 대신
-        # 값을 곱해서 직접 반영(직관적)
         for v in values:
+            # hits 자체에 가중치 반영(빈도 + 평균 방식이 자연스럽게 커짐)
             target.append(v * w)
 
     for typ, t in pairs:
@@ -1152,7 +1128,6 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     def score(hits: list[float]) -> float:
         if not hits:
             return 0.0
-        # hits 값 자체가 이미 가중치 반영이 들어가 있으므로, 평균+빈도 방식 유지
         return len(hits) * 10.0 + (sum(hits) / len(hits))
 
     atk_s = score(atk_hits)
@@ -1192,7 +1167,7 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     # healer hybrid: healer지만 ATK 스케일이 강하게 잡히는 경우
     healer_hybrid = bool(archetype == "healer" and atk_s >= 15.0 and (atk_s >= hp_s or atk_s >= def_s))
 
-    # ✅ 핵심 보정: DEF 스케일링이 확실히 우세하면 dps라도 tank로 승격(Apep류 방지)
+    # ✅ DEF/HP 스케일링이 확실하면 dps라도 tank로 승격(과소분류 방지: Apep 류)
     if archetype == "dps":
         if scaling == "DEF" and def_s > 0 and def_s >= max(atk_s, hp_s) + 5.0:
             archetype = "tank"
@@ -1212,67 +1187,8 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         "archetype": archetype,
         "healer_hybrid": healer_hybrid,
         "sample_text": sample.get(scaling) if scaling in sample else None,
-        # 디버깅/검증에 유용: 어떤 타입 문구들이 먹었는지 추후 UI에 표시 가능
         "skill_text_count": len(texts_only),
     }
-
-    def score(hits: list[float]) -> float:
-        if not hits:
-            return 0.0
-        return len(hits) * 10.0 + (sum(hits) / len(hits))
-
-    atk_s = score(atk_hits)
-    hp_s = score(hp_hits)
-    def_s = score(def_hits)
-
-    best = max(atk_s, hp_s, def_s)
-    if best <= 0:
-        scaling = "MIX"
-    else:
-        scaling = "ATK" if best == atk_s else ("HP" if best == hp_s else "DEF")
-
-    cls = str(base.get("class") or "-").strip()
-    role = str(base.get("role") or "-").strip()
-    cls_l = cls.lower()
-    role_l = role.lower()
-
-    if cls_l == "healer" or role_l == "healer":
-        archetype = "healer"
-    elif cls_l == "guardian" or role_l == "tank":
-        archetype = "tank"
-    elif cls_l == "debuffer" or role_l == "debuffer":
-        archetype = "debuffer"
-    else:
-        archetype = "dps"
-
-    # healer hybrid: healer지만 ATK 스케일이 강하게 잡히는 경우
-    healer_hybrid = bool(archetype == "healer" and atk_s >= 15.0 and (atk_s >= hp_s or atk_s >= def_s))
-
-    # ✅ 핵심 보정: DEF 스케일링이 우세하면 탱커 성향으로 승격
-    # - healer/debuffer는 원 역할을 유지
-    # - dps로 떨어진 케이스(Apep 등)를 방지
-    if archetype == "dps":
-        if scaling == "DEF" and def_s > 0 and def_s >= max(atk_s, hp_s) + 5.0:
-            archetype = "tank"
-        # HP 스케일 + 보호막/생존 키워드가 강하면 탱커로 승격(필요 시)
-        elif scaling == "HP" and hp_s > 0 and hp_s >= atk_s + 5.0 and (shield_cnt > 0):
-            archetype = "tank"
-
-    return {
-        "scaling": scaling,
-        "atk_score": atk_s,
-        "hp_score": hp_s,
-        "def_score": def_s,
-        "heal_cnt": heal_cnt,
-        "shield_cnt": shield_cnt,
-        "dot_cnt": dot_cnt,
-        "extra_cnt": extra_cnt,
-        "ult_cnt": ult_cnt,
-        "archetype": archetype,
-        "healer_hybrid": healer_hybrid,
-        "sample_text": sample.get(scaling) if scaling in sample else None,
-    }
-
 
 def _element_damage_label(element: str) -> str:
     e = normalize_element(element or "-")
@@ -1534,6 +1450,335 @@ def rune_summary_for_list(cid: str, base: dict, detail: dict) -> Optional[dict]:
     return {"mode": reco.get("mode"), "sets": [{"set": s.get("set"), "pieces": s.get("pieces"), "icon": s.get("icon")} for s in (b0.get("setPlan") or [])]}
 
 
+
+
+# -------------------------
+# Party recommendation (AI)
+# -------------------------
+
+def _to_float(x) -> Optional[float]:
+    if x is None:
+        return None
+    if isinstance(x, (int, float)):
+        return float(x)
+    if isinstance(x, str):
+        s = x.strip().replace(",", "")
+        if not s:
+            return None
+        # "12.3%" -> 12.3
+        if s.endswith("%"):
+            s = s[:-1].strip()
+        try:
+            return float(s)
+        except Exception:
+            return None
+    return None
+
+
+def _rarity_weight(r: str) -> float:
+    rr = (r or "-").strip().upper()
+    if rr == "SSR":
+        return 3.0
+    if rr == "SR":
+        return 1.5
+    if rr == "R":
+        return 0.5
+    return 0.0
+
+
+def _rank_weight(rank_map: dict, cid: str) -> float:
+    try:
+        v = rank_map.get(cid)
+        if isinstance(v, (int, float)):
+            return float(v)
+        if isinstance(v, str) and v.strip():
+            return float(v)
+    except Exception:
+        pass
+    return 0.0
+
+
+def _norm_class_name(s: str) -> str:
+    return (s or "-").strip().lower().replace(" ", "")
+
+
+def _party_combo_bonus(members: list[dict]) -> tuple[float, dict]:
+    """원소/특성 콤보 보너스 (같은 속성 2+ 또는 같은 특성 2+)."""
+    from collections import Counter
+
+    elems = [str(m.get("element") or "-") for m in members]
+    facs = [str(m.get("faction") or "-") for m in members]
+
+    ce = Counter([e for e in elems if e and e != "-"])
+    cf = Counter([f for f in facs if f and f != "-"])
+
+    bonus = 0.0
+    detail = {"element": dict(ce), "faction": dict(cf), "element_hits": [], "faction_hits": []}
+
+    for e, n in ce.items():
+        if n >= 2:
+            bonus += 12.0
+            detail["element_hits"].append(e)
+        if n >= 3:
+            bonus += 6.0
+    for f, n in cf.items():
+        if n >= 2:
+            bonus += 12.0
+            detail["faction_hits"].append(f)
+        if n >= 3:
+            bonus += 6.0
+
+    return bonus, detail
+
+
+def _score_member(base: dict, detail: dict, rank_map: dict) -> dict:
+    cid = str(base.get("id") or "")
+    profile = _detect_profile(detail or {}, base or {})
+    no_crit = detect_no_crit(detail or {})
+
+    st = _extract_canonical_stats(detail or {})
+    hp = _to_float(st.get("HP")) or 0.0
+    atk = _to_float(st.get("ATK")) or 0.0
+    df = _to_float(st.get("DEF")) or 0.0
+    cr = _to_float(st.get("CRIT_RATE")) or 0.0
+
+    # stats score: 규모 보정(대략적인 밸런스용)
+    stats_score = (atk / 55.0) + (hp / 650.0) + (df / 35.0) + (cr / 4.0)
+
+    # archetype bias
+    arch = profile.get("archetype") or "dps"
+    arch_bonus = 0.0
+    if arch == "healer":
+        arch_bonus += 18.0 + min(12.0, float(profile.get("heal_cnt") or 0) * 2.0)
+    elif arch == "tank":
+        arch_bonus += 14.0 + min(10.0, float(profile.get("shield_cnt") or 0) * 2.0)
+    elif arch == "debuffer":
+        arch_bonus += 10.0
+    else:
+        arch_bonus += 12.0
+
+    if no_crit:
+        # 크리 불가 캐릭터는 치확 위주 티어를 과대평가하지 않게 소폭 페널티
+        arch_bonus -= 3.0
+
+    tier = _rank_weight(rank_map, cid)
+
+    score = 0.0
+    score += tier * 110.0
+    score += _rarity_weight(str(base.get("rarity") or "-")) * 18.0
+    score += stats_score
+    score += arch_bonus
+
+    # 스킬 키워드 가점(대략)
+    score += min(8.0, float(profile.get("dot_cnt") or 0) * 2.0)
+    score += min(8.0, float(profile.get("extra_cnt") or 0) * 2.0)
+    score += min(6.0, float(profile.get("ult_cnt") or 0) * 1.5)
+
+    return {
+        "id": cid,
+        "base": base,
+        "profile": profile,
+        "no_crit": no_crit,
+        "stats": {"hp": hp, "attack": atk, "defense": df, "critRate": cr},
+        "tier": tier,
+        "score": score,
+    }
+
+
+def _score_party(members: list[dict], required_classes: set[str], require_combo: bool) -> tuple[float, dict]:
+    """파티 점수: 개별 점수 합 + 역할 밸런스 + 콤보(속성/특성)"""
+    total = sum(float(m.get("score") or 0.0) for m in members)
+
+    counts = {"tank": 0, "healer": 0, "debuffer": 0, "dps": 0}
+    for m in members:
+        arch = (m.get("profile") or {}).get("archetype") or "dps"
+        if arch in counts:
+            counts[arch] += 1
+        else:
+            counts["dps"] += 1
+
+    balance = 0.0
+    if counts["tank"] >= 1:
+        balance += 14.0
+    if counts["healer"] >= 1:
+        balance += 14.0
+    if counts["debuffer"] >= 1:
+        balance += 6.0
+    if counts["tank"] > 1:
+        balance -= 10.0 * (counts["tank"] - 1)
+    if counts["healer"] > 1:
+        balance -= 8.0 * (counts["healer"] - 1)
+
+    total += balance
+
+    combo_detail = {}
+    combo_bonus = 0.0
+    if require_combo or True:
+        combo_bonus, combo_detail = _party_combo_bonus([m["base"] for m in members])
+        total += combo_bonus
+
+    # 클래스 조건 충족 확인 (필수)
+    classes_present = set(_norm_class_name(str(m["base"].get("class") or "-")) for m in members)
+    missing_classes = sorted([c for c in required_classes if c and c not in classes_present])
+
+    ok_classes = len(missing_classes) == 0
+
+    # 콤보 요구(최소 1개라도 2+가 있어야 함)
+    has_combo = True
+    if require_combo:
+        has_combo = bool(combo_detail.get("element_hits") or combo_detail.get("faction_hits"))
+
+    meta = {
+        "counts": counts,
+        "balance_bonus": balance,
+        "combo_bonus": combo_bonus,
+        "combo_detail": combo_detail,
+        "classes_present": sorted(list(classes_present)),
+        "missing_classes": missing_classes,
+        "ok_classes": ok_classes,
+        "has_combo": has_combo,
+    }
+    return total, meta
+
+
+def recommend_best_party(
+    owned_ids: list[str],
+    required_ids: list[str],
+    required_classes: list[str],
+    rank_map: dict,
+    party_size: int = 4,
+    top_k: int = 1,
+    require_combo: bool = True,
+) -> dict:
+    load_all()
+
+    owned = [slug_id(x) for x in (owned_ids or []) if slug_id(x)]
+    required = [slug_id(x) for x in (required_ids or []) if slug_id(x)]
+    required = [x for x in required if x in owned]  # required는 owned 내부로 강제
+
+    if party_size < 1:
+        party_size = 4
+    party_size = min(6, max(1, int(party_size)))
+
+    if len(required) > party_size:
+        return {"ok": False, "error": f"필수 포함 캐릭터가 {len(required)}명입니다. 파티 인원({party_size})을 초과합니다."}
+
+    # required_classes 정규화
+    req_cls = set()
+    for c in (required_classes or []):
+        cc = _norm_class_name(str(c))
+        if cc and cc != "-":
+            req_cls.add(cc)
+    if len(req_cls) > party_size:
+        return {"ok": False, "error": f"클래스 조건이 {len(req_cls)}개입니다. 파티 인원({party_size})을 초과합니다."}
+
+    # base/detail 확보
+    by_id = {c.get("id"): c for c in (CACHE.get("chars") or []) if isinstance(c, dict) and c.get("id")}
+    details = CACHE.get("details") or {}
+
+    # 후보 구성
+    fixed_members = []
+    for cid in required:
+        b = by_id.get(cid)
+        d = details.get(cid)
+        if isinstance(b, dict) and isinstance(d, dict):
+            fixed_members.append(_score_member(b, d, rank_map))
+
+    fixed_ids = set(m["id"] for m in fixed_members)
+
+    cand_members = []
+    for cid in owned:
+        if cid in fixed_ids:
+            continue
+        b = by_id.get(cid)
+        d = details.get(cid)
+        if isinstance(b, dict) and isinstance(d, dict):
+            cand_members.append(_score_member(b, d, rank_map))
+
+    # 후보 정렬 및 제한(조합 폭발 방지)
+    cand_members.sort(key=lambda x: float(x.get("score") or 0.0), reverse=True)
+    cand_members = cand_members[:28]  # 충분히 넓게, 그래도 안전
+
+    need = party_size - len(fixed_members)
+    if need <= 0:
+        total, meta = _score_party(fixed_members, req_cls, require_combo)
+        ok = meta.get("ok_classes") and meta.get("has_combo")
+        return {
+            "ok": bool(ok),
+            "party_size": party_size,
+            "evaluated": 1,
+            "party": fixed_members,
+            "total_score": total,
+            "meta": meta,
+            "note": "필수 포함만으로 파티가 완성되었습니다.",
+        }
+
+    if len(cand_members) < need:
+        return {"ok": False, "error": f"후보가 부족합니다. (필수 제외 후 후보 {len(cand_members)}명, 필요 {need}명)"}
+
+    import itertools
+
+    best: list[tuple[float, list[dict], dict]] = []
+    evaluated = 0
+
+    for comb in itertools.combinations(cand_members, need):
+        evaluated += 1
+        members = fixed_members + list(comb)
+
+        total, meta = _score_party(members, req_cls, require_combo)
+
+        # 필수 조건 체크
+        if not meta.get("ok_classes"):
+            continue
+        if require_combo and not meta.get("has_combo"):
+            continue
+
+        best.append((total, members, meta))
+
+    if not best:
+        # 조건 때문에 공집합이면, 콤보 조건만 완화한 대체안 제공(클래스는 유지)
+        for comb in itertools.combinations(cand_members, need):
+            evaluated += 1
+            members = fixed_members + list(comb)
+            total, meta = _score_party(members, req_cls, require_combo=False)
+            if not meta.get("ok_classes"):
+                continue
+            best.append((total, members, meta))
+        if not best:
+            return {"ok": False, "error": "조건을 만족하는 파티를 찾지 못했습니다. (필수/클래스/후보를 확인해주세요)", "evaluated": evaluated}
+
+    best.sort(key=lambda x: x[0], reverse=True)
+    top = best[: max(1, int(top_k))]
+
+    def pack(members: list[dict], total: float, meta: dict) -> dict:
+        return {
+            "total_score": total,
+            "meta": meta,
+            "members": [
+                {
+                    **(mm.get("base") or {}),
+                    "score": float(mm.get("score") or 0.0),
+                    "tier": float(mm.get("tier") or 0.0),
+                    "archetype": (mm.get("profile") or {}).get("archetype"),
+                    "scaling": (mm.get("profile") or {}).get("scaling"),
+                    "no_crit": bool(mm.get("no_crit")),
+                }
+                for mm in sorted(members, key=lambda x: float(x.get("score") or 0.0), reverse=True)
+            ],
+        }
+
+    out_parties = [pack(mems, total, meta) for (total, mems, meta) in top]
+
+    return {
+        "ok": True,
+        "party_size": party_size,
+        "evaluated": evaluated,
+        "required": required,
+        "required_classes": sorted(list(req_cls)),
+        "require_combo": bool(require_combo),
+        "parties": out_parties,
+    }
+
 # -------------------------
 # Load characters
 # -------------------------
@@ -1728,6 +1973,47 @@ def api_char_detail(cid: str):
         "rune_reco": rune_reco,
         "detail_source": f"public/data/zone-nova/characters_ko/{cid2}.json",
     })
+
+
+@app.post("/zones/zone-nova/recommend")
+def api_recommend_party():
+    """
+    파티 추천 API
+    - owned: 보유 캐릭터 id 리스트
+    - required: 필수 포함 캐릭터 id 리스트
+    - required_classes: 포함되어야 하는 클래스 리스트(최대 4)
+    - rank_map: 등급표 기반 점수 맵 (cid -> 0~4 등)
+    - party_size: 기본 4
+    - top_k: 상위 k개 결과(기본 1)
+    - require_combo: 콤보(같은 속성 2+ 또는 같은 특성 2+) 강제 여부(기본 True)
+    """
+    payload = request.get_json(silent=True) or {}
+
+    owned = payload.get("owned") or []
+    required = payload.get("required") or []
+    required_classes = payload.get("required_classes") or []
+    rank_map = payload.get("rank_map") or {}
+    party_size = payload.get("party_size") or 4
+    top_k = payload.get("top_k") or 1
+    require_combo = payload.get("require_combo")
+    if not isinstance(require_combo, bool):
+        require_combo = True
+
+    if not isinstance(rank_map, dict):
+        rank_map = {}
+
+    res = recommend_best_party(
+        owned_ids=owned if isinstance(owned, list) else [],
+        required_ids=required if isinstance(required, list) else [],
+        required_classes=required_classes if isinstance(required_classes, list) else [],
+        rank_map=rank_map,
+        party_size=int(party_size) if str(party_size).isdigit() else 4,
+        top_k=int(top_k) if str(top_k).isdigit() else 1,
+        require_combo=bool(require_combo),
+    )
+
+    code = 200 if res.get("ok") else 400
+    return jsonify(res), code
 
 
 @app.get("/ui/select")
