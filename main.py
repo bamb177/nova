@@ -1,8 +1,10 @@
 import os
 import json
 import re
+import ast
 from datetime import datetime, timezone
 from flask import Flask, jsonify, redirect, render_template
+from typing import Optional
 
 APP_TITLE = os.getenv("APP_TITLE", "Nova")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -14,11 +16,11 @@ CHAR_KO_DIR = os.path.join(DATA_DIR, "characters_ko")
 OVERRIDE_NAMES = os.path.join(DATA_DIR, "overrides_names.json")
 OVERRIDE_FACTIONS = os.path.join(DATA_DIR, "overrides_factions.json")
 
-# ✅ 룬 데이터(추천용)
+# ✅ 룬 데이터/수동 오버라이드
 RUNES_JS = os.path.join(DATA_DIR, "runes.js")
 RUNE_OVERRIDES = os.path.join(DATA_DIR, "rune_overrides.json")
 
-# ✅ 이미지 경로(사용자 제공 경로/파일명)
+# ✅ 이미지 경로
 CHAR_IMG_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "characters")
 ELEM_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "element")
 CLASS_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "classes")
@@ -37,15 +39,7 @@ CACHE = {
     "error": None,
     "runes_db": None,
     "rune_overrides": None,
-    "rune_icon_map": None,
-    "source": {
-        "characters": "public/data/zone-nova/characters_ko/*.json",
-        "overrides_names": "public/data/zone-nova/overrides_names.json",
-        "overrides_factions": "public/data/zone-nova/overrides_factions.json",
-        "runes_js": "public/data/zone-nova/runes.js",
-        "rune_overrides": "public/data/zone-nova/rune_overrides.json",
-        "runes_icons": "public/images/games/zone-nova/runes/*",
-    },
+    "rune_img_map": None,
 }
 
 
@@ -70,7 +64,7 @@ def safe_load_json(path: str):
         return None
 
 
-def safe_read_text(path: str) -> str | None:
+def safe_read_text(path: str) -> Optional[str]:
     if not os.path.isfile(path):
         return None
     try:
@@ -100,6 +94,10 @@ def load_overrides() -> tuple[dict, dict]:
 
 
 def build_character_image_map(folder: str) -> dict:
+    """
+    characters 폴더의 모든 이미지 파일을 여러 키 형태 -> 파일명 매핑
+    overrides_names로 표시명이 바뀌어도 raw_name / image 힌트 / id로 찾게 함.
+    """
     m = {}
     if not os.path.isdir(folder):
         return m
@@ -133,7 +131,7 @@ def build_character_image_map(folder: str) -> dict:
     return m
 
 
-def candidate_image_keys(cid: str, raw_name: str, display_name: str, image_hint: str | None) -> list[str]:
+def candidate_image_keys(cid: str, raw_name: str, display_name: str, image_hint: Optional[str]) -> list[str]:
     out = []
 
     def add(x: str):
@@ -158,7 +156,7 @@ def candidate_image_keys(cid: str, raw_name: str, display_name: str, image_hint:
     return uniq
 
 
-def find_file_by_stem(folder: str, stem: str) -> str | None:
+def find_file_by_stem(folder: str, stem: str) -> Optional[str]:
     if not os.path.isdir(folder):
         return None
     target = (stem or "").strip().lower()
@@ -171,11 +169,35 @@ def find_file_by_stem(folder: str, stem: str) -> str | None:
             return fn
     return None
 
+
+def element_icon_url(element: str) -> Optional[str]:
+    if not element or element == "-":
+        return None
+    fn = find_file_by_stem(ELEM_ICON_DIR, element)
+    if fn:
+        return f"/images/games/zone-nova/element/{fn}"
+    return None
+
+
+def class_icon_url(cls: str) -> Optional[str]:
+    if not cls or cls == "-":
+        return None
+    cls_clean = str(cls).strip()
+    if not cls_clean:
+        return None
+    fn = find_file_by_stem(CLASS_ICON_DIR, cls_clean)
+    if fn:
+        return f"/images/games/zone-nova/classes/{fn}"
+    return None
+
+
+# =========================
+# Rune: icon resolver (folder scan)
+# =========================
+
 def _norm_key(s: str) -> str:
     s = (s or "").strip().lower()
-    # 공백/하이픈/언더스코어/점 제거
     s = re.sub(r"[\s\-_\.]+", "", s)
-    # 기타 특수문자 제거
     s = re.sub(r"[^a-z0-9가-힣]", "", s)
     return s
 
@@ -183,13 +205,12 @@ def _norm_key(s: str) -> str:
 def build_rune_image_map(folder: str) -> dict[str, str]:
     """
     public/images/games/zone-nova/runes 폴더를 스캔해서
-    세트명(Hert/Gimel 등) -> 실제 파일명으로 매핑(대소문자/공백 차이 흡수)
+    세트명(Hert/Gimel 등) -> 실제 파일명으로 매핑(대소문자/공백/언더스코어 차이 흡수)
     """
     m: dict[str, str] = {}
     if not os.path.isdir(folder):
         return m
 
-    # 하위 폴더가 있을 가능성까지 대비 (os.walk)
     for root, _, files in os.walk(folder):
         for fn in files:
             ext = os.path.splitext(fn)[1].lower()
@@ -199,31 +220,23 @@ def build_rune_image_map(folder: str) -> dict[str, str]:
             base = os.path.splitext(fn)[0]
             rel = os.path.relpath(os.path.join(root, fn), folder).replace("\\", "/")
 
-            keys = set()
-            keys.add(base.lower())
-            keys.add(_norm_key(base))
+            keys = {
+                base.lower(),
+                _norm_key(base),
+                re.sub(r"\d+", "", base.lower()),
+                _norm_key(re.sub(r"\d+", "", base)),
+                re.sub(r"\brune\b", "", base, flags=re.I).strip().lower(),
+                _norm_key(re.sub(r"\brune\b", "", base, flags=re.I).strip()),
+            }
 
-            # 숫자 제거 버전도(혹시 파일명이 Hert_01 같은 경우)
-            keys.add(re.sub(r"\d+", "", base.lower()))
-            keys.add(_norm_key(re.sub(r"\d+", "", base)))
-
-            # "rune" 같은 접미/접두가 붙은 케이스 흡수
-            b2 = re.sub(r"\brune\b", "", base, flags=re.I).strip()
-            keys.add(b2.lower())
-            keys.add(_norm_key(b2))
-
-            for k in list(keys):
+            for k in keys:
                 if k:
-                    # 최초 1회만 저장(중복 시 먼저 발견된 파일 우선)
                     m.setdefault(k, rel)
 
     return m
 
 
-def resolve_rune_icon(set_name: str, rune_map: dict[str, str]) -> str | None:
-    """
-    세트명으로 룬 아이콘 URL을 복원한다.
-    """
+def resolve_rune_icon(set_name: str, rune_map: dict[str, str]) -> Optional[str]:
     if not set_name:
         return None
 
@@ -240,53 +253,79 @@ def resolve_rune_icon(set_name: str, rune_map: dict[str, str]) -> str | None:
     ]
 
     for c in candidates:
-        key = c if c == c.lower() else c.lower()
-        if key in rune_map:
-            return f"/images/games/zone-nova/runes/{rune_map[key]}"
-        nk = _norm_key(c)
-        if nk in rune_map:
-            return f"/images/games/zone-nova/runes/{rune_map[nk]}"
+        k1 = (c or "").strip().lower()
+        if k1 in rune_map:
+            return f"/images/games/zone-nova/runes/{rune_map[k1]}"
+        k2 = _norm_key(c)
+        if k2 in rune_map:
+            return f"/images/games/zone-nova/runes/{rune_map[k2]}"
 
     return None
 
 
-
-def element_icon_url(element: str) -> str | None:
-    if not element or element == "-":
-        return None
-    fn = find_file_by_stem(ELEM_ICON_DIR, element)
-    if fn:
-        return f"/images/games/zone-nova/element/{fn}"
-    return None
-
-
-def class_icon_url(cls: str) -> str | None:
-    if not cls or cls == "-":
-        return None
-    cls_clean = str(cls).strip()
-    if not cls_clean:
-        return None
-    fn = find_file_by_stem(CLASS_ICON_DIR, cls_clean)
-    if fn:
-        return f"/images/games/zone-nova/classes/{fn}"
-    return None
+def get_rune_img_map(force: bool = False) -> dict[str, str]:
+    if CACHE.get("rune_img_map") is not None and not force:
+        return CACHE["rune_img_map"]
+    CACHE["rune_img_map"] = build_rune_image_map(RUNE_ICON_DIR)
+    return CACHE["rune_img_map"]
 
 
 # =========================
-# Rune DB + Icon resolver
+# Rune DB loader (runes.js)
 # =========================
 
 FALLBACK_RUNES = [
-    {"name": "Alpha", "twoPiece": "Attack Power +8%", "fourPiece": "Basic Attack Damage +30%"},
-    {"name": "Beth", "twoPiece": "Critical Hit Rate +6%", "fourPiece": "When HP >80%: Critical Hit Damage +24%"},
-    {"name": "Zahn", "twoPiece": "HP +8%", "fourPiece": "After Ultimate: Take 5% less damage (10s)"},
-    {"name": "Shattered Foundation", "twoPiece": "Defense +12%", "fourPiece": "Shield Effectiveness +20%"},
-    {"name": "Daleth", "twoPiece": "Healing Effectiveness +10%", "fourPiece": "Battle Start: Gain 1 Energy immediately"},
-    {"name": "Epsilon", "twoPiece": "Attack Power +8%", "fourPiece": "After ultimate, team damage +10% (10s)", "note": "Same passive effect cannot stack"},
-    {"name": "Hert", "twoPiece": "Extra Attack damage +20%", "fourPiece": "After dealing Extra Attack damage, Critical Hit Rate +15% (10s)", "note": "Guild raid only"},
-    {"name": "Gimel", "twoPiece": "Continuous damage +20%", "fourPiece": "After dealing continuous damage, own attack power +2% (stacks up to 10, 5s)", "note": "Guild raid only"},
-    {"name": "Giants", "twoPiece": "Attack power +8%", "fourPiece": "Debuffer only: after casting ultimate, targets take 10% increased damage (5s)", "note": "Guild raid only / Same passive effect cannot stack", "classRestriction": ["Debuffer"]},
-    {"name": "Tide", "twoPiece": "Defense +12%", "fourPiece": "Within 10s after combat starts, team's energy gain efficiency +30%", "note": "Guild raid only / Does not stack / Daleth 4-piece team effect disabled", "teamConflict": ["Daleth:4"]},
+    {
+        "name": "Alpha",
+        "twoPiece": "Attack Power +8%",
+        "fourPiece": "Basic Attack Damage +30%",
+        "icon": None,
+    },
+    {
+        "name": "Shattered Foundation",
+        "twoPiece": "Defense +12%",
+        "fourPiece": "Shield Effectiveness +20%",
+        "icon": None,
+    },
+    {
+        "name": "Beth",
+        "twoPiece": "Critical Hit Rate +6%",
+        "fourPiece": "When HP >80%: Critical Hit Damage +24%",
+        "icon": None,
+    },
+    {
+        "name": "Zahn",
+        "twoPiece": "HP +8%",
+        "fourPiece": "After Ultimate: Take 5% less damage (10s)",
+        "icon": None,
+    },
+    {
+        "name": "Daleth",
+        "twoPiece": "Healing Effectiveness +10%",
+        "fourPiece": "Battle Start: Gain 1 Energy immediately",
+        "icon": None,
+    },
+    {
+        "name": "Epsilon",
+        "twoPiece": "Attack Power +8%",
+        "fourPiece": "After ultimate, team damage +10% (10s)",
+        "icon": None,
+        "note": "Same passive effect cannot stack",
+    },
+    {
+        "name": "Hert",
+        "twoPiece": "Extra Attack damage +20%",
+        "fourPiece": "After dealing Extra Attack damage, Critical Hit Rate +15% (10s)",
+        "icon": None,
+        "note": "Guild raid only",
+    },
+    {
+        "name": "Gimel",
+        "twoPiece": "Continuous damage +20%",
+        "fourPiece": "After dealing continuous damage, own attack power +2% (stacks up to 10, 5s)",
+        "icon": None,
+        "note": "Guild raid only",
+    },
 ]
 
 
@@ -296,30 +335,40 @@ def _strip_js_comments(s: str) -> str:
     return s
 
 
-def _extract_js_literal(s: str) -> str | None:
+def _extract_js_literal(s: str) -> Optional[str]:
     if not s:
         return None
     s = _strip_js_comments(s).strip()
 
-    m = re.search(r"export\s+default\s+(\[.*\]|\{.*\})\s*;?\s*$", s, flags=re.S)
+    # export default literal
+    m = re.search(r"export\s+default\s+(\[.*?\]|\{.*?\})\s*;?\s*$", s, flags=re.S)
     if m:
         return m.group(1).strip()
 
-    m = re.search(r"module\.exports\s*=\s*(\[.*\]|\{.*\})\s*;?\s*$", s, flags=re.S)
+    # module.exports = literal
+    m = re.search(r"module\.exports\s*=\s*(\[.*?\]|\{.*?\})\s*;?\s*$", s, flags=re.S)
     if m:
         return m.group(1).strip()
 
-    m = re.search(r"\bconst\s+\w+\s*=\s*(\[.*\]|\{.*\})\s*;?\s*$", s, flags=re.S)
+    # const X = literal; export default X;
+    m = re.search(r"\bconst\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(\[.*?\]|\{.*?\})\s*;?", s, flags=re.S)
     if m:
-        return m.group(1).strip()
+        var = m.group(1)
+        lit = m.group(2)
+        # verify export default var exists
+        if re.search(rf"export\s+default\s+{re.escape(var)}\s*;?\s*$", s, flags=re.M):
+            return lit.strip()
 
-    i, j = s.find("["), s.rfind("]")
+    # fallback: first top-level [ ... ]
+    i = s.find("[")
+    j = s.rfind("]")
     if i != -1 and j != -1 and j > i:
-        return s[i:j+1].strip()
+        return s[i:j + 1].strip()
 
-    i, j = s.find("{"), s.rfind("}")
+    i = s.find("{")
+    j = s.rfind("}")
     if i != -1 and j != -1 and j > i:
-        return s[i:j+1].strip()
+        return s[i:j + 1].strip()
 
     return None
 
@@ -328,66 +377,24 @@ def _json_friendly(js: str) -> str:
     s = js.strip()
     s = re.sub(r",\s*([}\]])", r"\1", s)  # trailing comma
     s = re.sub(r"\bundefined\b", "null", s)
+    # quote keys
     s = re.sub(r'([{\[,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*):', r'\1"\2"\3:', s)
-    s = re.sub(r"'", '"', s)
+    # single quote -> double quote (best-effort)
+    s = re.sub(r"'", r'"', s)
     return s
 
 
-def _norm_key(s: str) -> str:
-    t = (s or "").strip().lower()
-    t = re.sub(r"[\s\-_]+", "", t)
-    return t
-
-
-def load_rune_icon_map(force: bool = False) -> dict:
-    if CACHE["rune_icon_map"] is not None and not force:
-        return CACHE["rune_icon_map"]
-
-    m = {}
-    if os.path.isdir(RUNE_ICON_DIR):
-        for fn in os.listdir(RUNE_ICON_DIR):
-            base, ext = os.path.splitext(fn)
-            if ext.lower() not in VALID_IMG_EXT:
-                continue
-            m[_norm_key(base)] = fn
-            m[_norm_key(fn)] = fn
-    CACHE["rune_icon_map"] = m
-    return m
-
-
-def _resolve_rune_icon_path(icon_hint: str | None, set_name: str) -> str | None:
-    # 1) runes.js가 준 파일명/경로(icon_hint)
-    # 2) 실제 폴더 스캔 결과(대소문자/하이픈/공백 차이 보정)
-    icon_map = load_rune_icon_map()
-
-    if isinstance(icon_hint, str) and icon_hint.strip():
-        hint = icon_hint.strip().lstrip("/")
-        hint_base = os.path.basename(hint)
-        stem, ext = os.path.splitext(hint_base)
-
-        hit = icon_map.get(_norm_key(hint_base))
-        if hit:
-            return f"/images/games/zone-nova/runes/{hit}"
-
-        hit = icon_map.get(_norm_key(stem))
-        if hit:
-            return f"/images/games/zone-nova/runes/{hit}"
-
-        if ext.lower() in VALID_IMG_EXT:
-            return f"/images/games/zone-nova/runes/{hint_base}"
-
-    cand = [
-        set_name,
-        set_name.replace(" ", "-"),
-        set_name.replace(" ", "_"),
-        _norm_key(set_name),
-    ]
-    for c in cand:
-        hit = icon_map.get(_norm_key(c))
-        if hit:
-            return f"/images/games/zone-nova/runes/{hit}"
-
-    return None
+def _to_python_literal(js: str) -> str:
+    """
+    json.loads 실패 시 마지막 fallback: ast.literal_eval을 위한 Python 리터럴 변환.
+    """
+    s = js.strip()
+    s = re.sub(r",\s*([}\]])", r"\1", s)  # trailing comma
+    s = re.sub(r"\bnull\b", "None", s)
+    s = re.sub(r"\btrue\b", "True", s, flags=re.I)
+    s = re.sub(r"\bfalse\b", "False", s, flags=re.I)
+    s = re.sub(r'([{\[,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*):', r'\1"\2"\3:', s)
+    return s
 
 
 def load_rune_overrides(force: bool = False) -> dict:
@@ -409,27 +416,46 @@ def load_runes_db(force: bool = False) -> list[dict]:
     if raw:
         lit = _extract_js_literal(raw)
         if lit:
+            # 1) json.loads (pure json)
             try:
                 runes = json.loads(lit)
             except Exception:
+                # 2) json-friendly
                 try:
                     runes = json.loads(_json_friendly(lit))
                 except Exception:
-                    runes = None
+                    # 3) python literal eval fallback
+                    try:
+                        runes = ast.literal_eval(_to_python_literal(lit))
+                    except Exception:
+                        runes = None
 
     if not isinstance(runes, list):
         runes = FALLBACK_RUNES
+
+    rune_img_map = get_rune_img_map()
 
     norm = []
     for r in runes:
         if not isinstance(r, dict):
             continue
+
         name = str(r.get("name") or r.get("title") or "").strip()
         if not name:
             continue
 
-        icon_hint = r.get("icon") or r.get("image") or r.get("img") or r.get("jpg") or r.get("file")
-        icon = _resolve_rune_icon_path(icon_hint if isinstance(icon_hint, str) else None, name)
+        icon = r.get("icon")
+        img = r.get("image") or r.get("img") or r.get("jpg") or r.get("file") or r.get("iconFile")
+
+        if not icon and isinstance(img, str) and img:
+            icon = f"/images/games/zone-nova/runes/{img.strip().lstrip('/')}"
+
+        if isinstance(icon, str) and icon and not icon.startswith("/"):
+            icon = f"/images/games/zone-nova/runes/{icon.strip().lstrip('/')}"
+
+        # ✅ runes.js에 icon/img가 없거나 파일명이 다르면 폴더 스캔으로 자동 매칭
+        if not icon:
+            icon = resolve_rune_icon(name, rune_img_map)
 
         norm.append({
             "name": name,
@@ -438,25 +464,31 @@ def load_runes_db(force: bool = False) -> list[dict]:
             "note": r.get("note") or "",
             "classRestriction": r.get("classRestriction") or r.get("class_restriction") or [],
             "teamConflict": r.get("teamConflict") or r.get("team_conflict") or [],
-            "icon": icon,
+            "icon": icon if isinstance(icon, str) and icon else None,
         })
 
     CACHE["runes_db"] = norm
     return norm
 
 
-def rune_icon_for(set_name: str) -> str | None:
-    if not set_name:
-        return None
+def rune_icon_map() -> dict[str, Optional[str]]:
     db = load_runes_db()
-    hit = next((x for x in db if x.get("name") == set_name), None)
-    if hit and hit.get("icon"):
-        return hit["icon"]
-    return _resolve_rune_icon_path(None, set_name)
+    rune_img_map = get_rune_img_map()
+    m: dict[str, Optional[str]] = {}
+
+    for r in db:
+        nm = str(r.get("name") or "").strip()
+        if not nm:
+            continue
+        icon = r.get("icon")
+        if not icon:
+            icon = resolve_rune_icon(nm, rune_img_map)
+        m[nm] = icon
+    return m
 
 
 # =========================
-# Rune Recommendation Engine
+# Rune recommendation engine
 # =========================
 
 _KW_HEAL = ["heal", "healing", "restore", "recovery", "회복", "치유", "힐"]
@@ -489,8 +521,7 @@ def _collect_texts(x) -> list[str]:
             return
 
     walk(x)
-    seen = set()
-    uniq = []
+    seen, uniq = set(), []
     for s in out:
         if s not in seen:
             seen.add(s)
@@ -498,23 +529,21 @@ def _collect_texts(x) -> list[str]:
     return uniq
 
 
-def _pct_hits_with_examples(text: str, keys: list[str]) -> list[tuple[float, str]]:
-    hits: list[tuple[float, str]] = []
+def _pct_hits(text: str, keys: list[str]) -> list[float]:
+    hits: list[float] = []
     t = text.lower()
 
     for k in keys:
         for m in re.finditer(r"(\d+(?:\.\d+)?)\s*%\s*[^%\n]{0,24}\b" + re.escape(k) + r"\b", t):
             try:
-                pct = float(m.group(1))
-                hits.append((pct, text.strip()[:140]))
+                hits.append(float(m.group(1)))
             except Exception:
                 pass
 
     for k in keys:
         for m in re.finditer(re.escape(k) + r"\s*의\s*(\d+(?:\.\d+)?)\s*%", text):
             try:
-                pct = float(m.group(1))
-                hits.append((pct, text.strip()[:140]))
+                hits.append(float(m.group(1)))
             except Exception:
                 pass
 
@@ -526,17 +555,25 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     if isinstance(detail, dict):
         texts.extend(_collect_texts(detail.get("skills")))
         texts.extend(_collect_texts(detail.get("teamSkill") or detail.get("team_skill") or detail.get("team")))
-        texts.extend(_collect_texts(detail.get("awakenings")))
-        texts.extend(_collect_texts(detail.get("memoryCard") or detail.get("memory_card")))
-    texts = [t for t in texts if isinstance(t, str)]
 
     atk_hits, hp_hits, def_hits = [], [], []
     heal_cnt = shield_cnt = dot_cnt = extra_cnt = ult_cnt = 0
 
+    sample = {"ATK": None, "HP": None, "DEF": None}
+
     for t in texts:
-        atk_hits += _pct_hits_with_examples(t, ["attack power", "atk", "공격력"])
-        hp_hits += _pct_hits_with_examples(t, ["max hp", "hp", "체력", "생명"])
-        def_hits += _pct_hits_with_examples(t, ["defense", "def", "방어력"])
+        a = _pct_hits(t, ["attack power", "atk", "공격력"])
+        h = _pct_hits(t, ["max hp", "hp", "체력", "생명"])
+        d = _pct_hits(t, ["defense", "def", "방어력"])
+        if a and sample["ATK"] is None:
+            sample["ATK"] = t
+        if h and sample["HP"] is None:
+            sample["HP"] = t
+        if d and sample["DEF"] is None:
+            sample["DEF"] = t
+        atk_hits += a
+        hp_hits += h
+        def_hits += d
 
         tl = t.lower()
         if any(k in tl for k in _KW_HEAL):
@@ -550,11 +587,10 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         if any(k in tl for k in _KW_ULT):
             ult_cnt += 1
 
-    def score(hits: list[tuple[float, str]]) -> float:
+    def score(hits: list[float]) -> float:
         if not hits:
             return 0.0
-        avg = sum(p for p, _ in hits) / len(hits)
-        return len(hits) * 10.0 + avg
+        return len(hits) * 10.0 + (sum(hits) / len(hits))
 
     atk_s = score(atk_hits)
     hp_s = score(hp_hits)
@@ -566,8 +602,8 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     else:
         scaling = "ATK" if best == atk_s else ("HP" if best == hp_s else "DEF")
 
-    cls = str(base.get("class") or "-")
-    role = str(base.get("role") or "-")
+    cls = str(base.get("class") or "-").strip()
+    role = str(base.get("role") or "-").strip()
 
     cls_l = cls.lower()
     role_l = role.lower()
@@ -581,22 +617,16 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     else:
         archetype = "dps"
 
-    if archetype == "tank" and heal_cnt > 0 and shield_cnt == 0:
+    if archetype == "tank" and shield_cnt <= 0 and heal_cnt > 0:
         archetype = "healer"
 
     healer_hybrid = bool(archetype == "healer" and atk_s >= 15.0 and (atk_s >= hp_s or atk_s >= def_s))
-
-    def top_examples(hits):
-        return [ex for _, ex in hits[:2]]
 
     return {
         "scaling": scaling,
         "atk_score": atk_s,
         "hp_score": hp_s,
         "def_score": def_s,
-        "atk_examples": top_examples(atk_hits),
-        "hp_examples": top_examples(hp_hits),
-        "def_examples": top_examples(def_hits),
         "heal_cnt": heal_cnt,
         "shield_cnt": shield_cnt,
         "dot_cnt": dot_cnt,
@@ -604,8 +634,7 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         "ult_cnt": ult_cnt,
         "archetype": archetype,
         "healer_hybrid": healer_hybrid,
-        "class": cls,
-        "role": role,
+        "sample_text": sample.get(scaling) if scaling in sample else None,
     }
 
 
@@ -649,15 +678,30 @@ def _slot_plan_for(archetype: str, scaling: str, element: str) -> dict:
     return plan
 
 
-def _substats_for(archetype: str, scaling: str, healer_hybrid: bool) -> list[str]:
+def _substats_for(archetype: str, scaling: str) -> list[str]:
     if archetype == "healer":
-        base = ["Healing Effectiveness (%)", "HP (%)", "Defense (%)", "Flat HP / Flat DEF"]
-        if healer_hybrid:
-            base.insert(3, "Attack (%) (하이브리드일 때)")
-        return base
+        return [
+            "Healing Effectiveness (%)",
+            "HP (%)",
+            "Defense (%)",
+            "Attack (%) (하이브리드일 때만)",
+            "Flat HP / Flat DEF",
+        ]
     if archetype == "tank":
-        return ["HP (%)", "Defense (%)", "Flat HP / Flat DEF", "Damage Reduction / RES (존재 시)"]
-    out = ["Critical Rate (%)", "Critical Damage (%)", "Attack (%)", "Attack Penetration (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
+        return [
+            "HP (%)",
+            "Defense (%)",
+            "Flat HP / Flat DEF",
+            "Damage Reduction / RES (존재 시)",
+        ]
+    out = [
+        "Critical Rate (%)",
+        "Critical Damage (%)",
+        "Attack (%)",
+        "Attack Penetration (%)",
+        "Flat Attack",
+        "HP (%) / Defense (%) (생존)",
+    ]
     if scaling in ("HP", "DEF"):
         out.insert(2, f"{scaling} (%) (스킬 스케일링 기반)")
     return out
@@ -670,173 +714,141 @@ def _pick_sets(profile: dict, base: dict) -> tuple[list[dict], list[list[dict]],
     shield = profile["shield_cnt"] > 0
     ult = profile["ult_cnt"] > 0
 
-    reasons = []
+    cls_l = str(base.get("class") or "").lower()
+
     primary: list[dict] = []
     alternates: list[list[dict]] = []
+    rationale: list[str] = []
 
     if archetype == "tank":
         if shield:
             primary = [{"set": "Shattered Foundation", "pieces": 4}, {"set": "Zahn", "pieces": 2}]
-            reasons.append("보호막/생존 키워드가 감지되어, 탱커 생존(방어/보호막) 중심 세트를 우선 추천했습니다.")
+            rationale.append("보호막/생존 키워드 감지 → 방어/보호막 세트 우선.")
         else:
             primary = [{"set": "Zahn", "pieces": 4}, {"set": "Shattered Foundation", "pieces": 2}]
-            reasons.append("탱커로 분류되어, 생존/피해 경감 중심 세트를 우선 추천했습니다.")
-        return primary, alternates, reasons
+            rationale.append("탱커 분류 → HP/피해감소 중심 세트 우선.")
+        return primary, alternates, rationale
 
     if archetype == "healer":
         primary = [{"set": "Daleth", "pieces": 4}, {"set": "Zahn", "pieces": 2}]
-        reasons.append("힐/회복 키워드 또는 힐러 클래스 기반으로, 힐 효율 및 안정성 중심 세트를 추천했습니다.")
+        rationale.append("힐러 분류 → 치유 효율/초반 에너지/생존 세트 우선.")
         if profile.get("healer_hybrid"):
             alternates.append([{"set": "Daleth", "pieces": 4}, {"set": "Beth", "pieces": 2}])
             alternates.append([{"set": "Epsilon", "pieces": 4}, {"set": "Daleth", "pieces": 2}])
-            reasons.append("ATK 계수(스케일링)가 강하게 감지되어, 하이브리드(힐+딜) 대체안도 함께 제공합니다.")
-        return primary, alternates, reasons
+            rationale.append("힐러지만 ATK 스케일링이 강함(하이브리드) → 치명/팀 딜 보조 대체안 제공.")
+        return primary, alternates, rationale
 
-    cls = str(base.get("class") or "")
-    if archetype == "debuffer" or cls.lower() == "debuffer":
+    if archetype == "debuffer" and cls_l == "debuffer":
         primary = [{"set": "Giants", "pieces": 4}, {"set": "Beth", "pieces": 2}]
         alternates.append([{"set": "Epsilon", "pieces": 4}, {"set": "Beth", "pieces": 2}])
-        reasons.append("디버퍼로 분류되어(클래스/키워드), 약화/팀 딜 증폭 계열 세트를 우선 추천했습니다.")
-        return primary, alternates, reasons
+        rationale.append("디버퍼 분류 → 파티 증뎀(디버퍼 전용) 세트 우선.")
+        return primary, alternates, rationale
 
     if dot:
         primary = [{"set": "Gimel", "pieces": 4}, {"set": "Beth", "pieces": 2}]
         alternates.append([{"set": "Alpha", "pieces": 4}, {"set": "Beth", "pieces": 2}])
-        reasons.append("지속 피해(DoT) 관련 키워드가 감지되어, 지속 피해 강화 세트를 우선 추천했습니다.")
-        return primary, alternates, reasons
+        rationale.append("지속피해(DOT) 키워드 감지 → DOT 강화 세트 우선.")
+        return primary, alternates, rationale
 
     if extra:
         primary = [{"set": "Hert", "pieces": 4}, {"set": "Beth", "pieces": 2}]
         alternates.append([{"set": "Alpha", "pieces": 4}, {"set": "Beth", "pieces": 2}])
-        reasons.append("추가 공격/추격(Extra Attack) 관련 키워드가 감지되어, 추가 공격 강화 세트를 우선 추천했습니다.")
-        return primary, alternates, reasons
+        rationale.append("추가공격 키워드 감지 → 추가공격 강화 세트 우선.")
+        return primary, alternates, rationale
 
     primary = [{"set": "Alpha", "pieces": 4}, {"set": "Beth", "pieces": 2}]
-    reasons.append("명확한 특화 키워드가 없어서, 범용 딜러(치명/공격) 세트를 기본 추천했습니다.")
+    rationale.append("기본 딜러 분류 → 기본 공격/치명 세트 우선.")
     if ult:
         alternates.append([{"set": "Epsilon", "pieces": 4}, {"set": "Beth", "pieces": 2}])
-        reasons.append("궁극기 관련 키워드가 감지되어, 궁극기/팀 시너지 대체안도 함께 제공합니다.")
-    return primary, alternates, reasons
-
-
-def _scaling_reason(profile: dict) -> list[str]:
-    scaling = profile.get("scaling") or "MIX"
-    ex = []
-    if scaling == "ATK":
-        ex.append("스킬 설명에서 '공격력(ATK) %' 계수가 반복적으로 감지되어 ATK 기반으로 판단했습니다.")
-        if profile.get("atk_examples"):
-            ex.append(f"예시: {profile['atk_examples'][0]}")
-    elif scaling == "HP":
-        ex.append("스킬 설명에서 'HP/최대 HP %' 계수가 감지되어 HP 스케일링 기반으로 판단했습니다.")
-        if profile.get("hp_examples"):
-            ex.append(f"예시: {profile['hp_examples'][0]}")
-    elif scaling == "DEF":
-        ex.append("스킬 설명에서 '방어력(DEF) %' 계수가 감지되어 DEF 스케일링 기반으로 판단했습니다.")
-        if profile.get("def_examples"):
-            ex.append(f"예시: {profile['def_examples'][0]}")
-    else:
-        ex.append("스킬 설명에서 특정 스탯(ATK/HP/DEF) 기반 계수가 명확히 감지되지 않아 MIX로 처리했습니다.")
-    return ex
+        rationale.append("궁극기/팀버프 키워드 감지 → 팀 딜 보조 대체안 제공.")
+    return primary, alternates, rationale
 
 
 def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
     overrides = load_rune_overrides()
-    ov = overrides.get(cid)
+    icon_map = rune_icon_map()
 
-    if isinstance(ov, dict) and isinstance(ov.get("builds"), list) and ov["builds"]:
+    # 1) manual override
+    ov = overrides.get(cid)
+    if isinstance(ov, dict) and ov.get("builds"):
         builds = []
-        for b in ov["builds"]:
+        for b in ov.get("builds") or []:
             if not isinstance(b, dict):
                 continue
             sp = []
-            for it in (b.get("setPlan") or []):
+            for it in b.get("setPlan") or []:
                 if not isinstance(it, dict):
                     continue
                 sname = str(it.get("set") or "").strip()
-                if not sname:
-                    continue
-                sp.append({
-                    "set": sname,
-                    "pieces": int(it.get("pieces") or 0),
-                    "icon": rune_icon_for(sname),
-                })
+                sp.append({"set": sname, "pieces": int(it.get("pieces") or 0), "icon": icon_map.get(sname)})
             builds.append({
-                "title": str(b.get("title") or "수동 지정"),
+                "title": str(b.get("title") or "Override"),
                 "setPlan": sp,
                 "slots": b.get("slots") or {},
                 "substats": b.get("substats") or [],
                 "notes": b.get("notes") or [],
-                "rationale": b.get("rationale") or ["rune_overrides.json 수동 오버라이드가 적용되었습니다."],
+                "rationale": b.get("rationale") or ["rune_overrides.json 수동 오버라이드 적용"],
             })
-        return {
-            "mode": "override",
-            "profile": {"note": "rune_overrides.json 적용"},
-            "builds": builds,
-        }
+        return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
 
+    # 2) auto
     profile = _detect_profile(detail or {}, base or {})
-    primary, alternates, set_reasons = _pick_sets(profile, base or {})
+    primary, alternates, rationale = _pick_sets(profile, base or {})
 
-    archetype = profile.get("archetype") or "dps"
-    scaling = profile.get("scaling") or "MIX"
-    element = base.get("element") or "-"
+    sample_text = profile.get("sample_text")
+    if sample_text:
+        rationale = rationale + [f"스케일링 판정({profile.get('scaling')}): '{sample_text[:120]}'"]
 
-    def mk_build(title: str, setplan: list[dict], extra_rationale: list[str]) -> dict:
-        slots = _slot_plan_for(archetype, scaling, element)
-        substats = _substats_for(archetype, scaling, profile.get("healer_hybrid", False))
-
-        rationale = []
-        rationale.append(f"분류: {archetype} (class={profile.get('class')}, role={profile.get('role')})")
-        rationale += _scaling_reason(profile)
-        rationale += set_reasons
-        rationale += extra_rationale
-        rationale.append("슬롯 메인스탯은 역할 및 스케일링(ATK/HP/DEF)에 맞춰 우선순위를 부여했습니다.")
-        rationale.append("부옵 우선순위는 치명/공격(딜러), HP/DEF(탱커/힐러) 중심으로 정렬했습니다.")
-
+    def mk_build(title: str, setplan: list[dict]) -> dict:
         return {
             "title": title,
-            "setPlan": [{"set": x["set"], "pieces": x["pieces"], "icon": rune_icon_for(x["set"])} for x in setplan],
-            "slots": slots,
-            "substats": substats,
+            "setPlan": [{"set": x["set"], "pieces": x["pieces"], "icon": icon_map.get(x["set"])} for x in setplan],
+            "slots": _slot_plan_for(profile["archetype"], profile["scaling"], base.get("element")),
+            "substats": _substats_for(profile["archetype"], profile["scaling"]),
             "notes": [],
             "rationale": rationale,
         }
 
-    builds = [mk_build("추천(자동)", primary, [])]
+    builds = [mk_build("추천(자동)", primary)]
     for idx, alt in enumerate(alternates[:3], start=1):
-        builds.append(mk_build(f"대체안 {idx}", alt, ["상황/콘텐츠에 따라 세트 대체가 가능하도록 보조 빌드를 제공합니다."]))
+        builds.append(mk_build(f"대체안 {idx}", alt))
 
+    # rune db notes (restrictions/conflicts)
     db = load_runes_db()
-
-    def set_notes_for_build(b):
-        notes = []
-        for s in b.get("setPlan") or []:
-            nm = s.get("set")
+    notes = []
+    for b in builds:
+        for s in b["setPlan"]:
+            nm = s["set"]
             rdb = next((x for x in db if x.get("name") == nm), None)
             if not rdb:
                 continue
             cr = rdb.get("classRestriction") or []
             if cr:
-                notes.append(f"{nm}: 클래스 제한({', '.join(map(str, cr))})")
+                notes.append(f"{nm} 4세트는 클래스 제한이 있습니다: {', '.join(map(str, cr))}")
             if rdb.get("note"):
                 notes.append(f"{nm}: {rdb.get('note')}")
             if rdb.get("teamConflict"):
-                notes.append(f"{nm}: 팀 세트 상충 주의({', '.join(map(str, rdb.get('teamConflict')))} )")
-        b["notes"] = notes
+                notes.append(f"{nm}: 팀 세트 상충 주의 ({', '.join(map(str, rdb.get('teamConflict')))} )")
 
-    for b in builds:
-        set_notes_for_build(b)
+    seen, uniq_notes = set(), []
+    for n in notes:
+        if n not in seen:
+            seen.add(n)
+            uniq_notes.append(n)
+    if uniq_notes:
+        for b in builds:
+            b["notes"] = uniq_notes
 
     return {"mode": "auto", "profile": profile, "builds": builds}
 
 
-def rune_summary_for_list(cid: str, base: dict, detail: dict) -> dict | None:
+def rune_summary_for_list(cid: str, base: dict, detail: dict) -> Optional[dict]:
     reco = recommend_runes(cid, base, detail)
     builds = reco.get("builds") or []
     if not builds:
         return None
     b0 = builds[0]
-    return {"mode": reco.get("mode"), "sets": b0.get("setPlan") or []}
+    return {"mode": reco.get("mode"), "sets": b0.get("setPlan") or [], "slots": b0.get("slots") or {}}
 
 
 # =========================
@@ -948,7 +960,7 @@ def refresh():
     load_all(force=True)
     CACHE["runes_db"] = None
     CACHE["rune_overrides"] = None
-    CACHE["rune_icon_map"] = None
+    CACHE["rune_img_map"] = None
     return redirect("/ui/select")
 
 
@@ -960,12 +972,10 @@ def meta():
         "characters_cached": len(CACHE["chars"]),
         "last_refresh": CACHE["last_refresh"],
         "error": CACHE["error"],
-        "source": CACHE["source"],
         "paths": {
-            "characters_ko_dir": CHAR_KO_DIR,
+            "characters_ko": CHAR_KO_DIR,
             "runes_js": RUNES_JS,
             "rune_overrides": RUNE_OVERRIDES,
-            "runes_icon_dir": RUNE_ICON_DIR,
         }
     })
 
@@ -973,11 +983,7 @@ def meta():
 @app.get("/zones/zone-nova/runes")
 def api_runes():
     db = load_runes_db()
-    return jsonify({
-        "count": len(db),
-        "source": CACHE["source"]["runes_js"],
-        "runes": db,
-    })
+    return jsonify({"count": len(db), "runes": db})
 
 
 @app.get("/zones/zone-nova/characters")
@@ -986,7 +992,6 @@ def api_chars():
     return jsonify({
         "count": len(CACHE["chars"]),
         "last_refresh": CACHE["last_refresh"],
-        "source": CACHE["source"]["characters"],
         "error": CACHE["error"],
         "characters": CACHE["chars"],
     })
@@ -1008,7 +1013,6 @@ def api_char_detail(cid: str):
     base = next((c for c in CACHE["chars"] if c.get("id") == cid2), None)
     if not base:
         overrides_names, overrides_factions = load_overrides()
-
         raw_name = normalize_char_name(detail.get("name") or cid2)
         display_name = overrides_names.get(raw_name, raw_name)
 
@@ -1034,17 +1038,16 @@ def api_char_detail(cid: str):
         }
 
     try:
-        rune_reco = recommend_runes(cid2, base, detail)
+        reco = recommend_runes(cid2, base, detail)
     except Exception as e:
-        rune_reco = {"mode": "error", "error": str(e), "builds": []}
+        reco = {"mode": "error", "error": str(e), "builds": []}
 
     return jsonify({
         "ok": True,
         "id": cid2,
         "character": base,
         "detail": detail,
-        "detail_source": f"public/data/zone-nova/characters_ko/{cid2}.json",
-        "rune_reco": rune_reco,
+        "rune_reco": reco,
     })
 
 
@@ -1061,13 +1064,13 @@ def ui_select():
     )
 
 
-@app.route("/runes")
+@app.get("/runes")
 def runes_page():
-    load_all()
+    # runes.html 내부에서 /zones/zone-nova/runes 를 fetch하는 구조를 전제로 한다.
     return render_template(
         "runes.html",
         title="룬 정보",
-        last_refresh=CACHE["last_refresh"] or "",
+        last_refresh=CACHE.get("last_refresh") or "",
     )
 
 
