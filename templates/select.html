@@ -276,6 +276,51 @@
       .tier-classes-inline{ grid-template-columns: 1fr; }
     }
 
+  
+    /* ===== Mobile vertical scroll fix (character list) ===== */
+
+    /* ===== Mobile: allow vertical + horizontal scrolling INSIDE character list ===== */
+    html, body{
+      height: auto !important;
+      min-height: 100% !important;
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+    }
+
+    /* Make the list area a true scroll container on mobile */
+    .table-wrap{
+      overflow: auto !important;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+      overscroll-behavior: contain;
+      /* Use small-viewport units for mobile address-bar changes */
+      max-height: calc(100svh - 310px);
+      border-radius: 18px;
+    }
+
+    /* Ensure the table can exceed viewport width so horizontal scroll is possible */
+    .table{
+      min-width: 980px;
+    }
+
+    /* On desktop, let the page scroll normally (no forced max-height) */
+    @media (min-width: 900px){
+      .table-wrap{ max-height: none; overflow: visible; }
+      .table{ min-width: 0; }
+    }
+
+    /* Allow gestures even on nested elements */
+    .table-wrap *{ touch-action: pan-x pan-y; }
+
+html, body{
+      height: auto !important;
+      min-height: 100% !important;
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
 /* ===== Background: remove multi-radial seams, use a single fixed gradient ===== */
     body{
       background: linear-gradient(180deg, #070b14 0%, #0b1222 100%) fixed !important;
@@ -286,21 +331,23 @@
     }
 
   
-        /* ===== FINAL OVERRIDE: allow horizontal scroll inside character list (mobile) ===== */
+    /* ===== FINAL OVERRIDE: allow horizontal scroll inside character list (mobile) ===== */
     @media (max-width: 900px){
-      /* 가로 스크롤은 table-wrap에서만 처리하고, 세로 스크롤은 페이지(body)가 처리하도록 한다.
-         (모바일에서 리스트 영역에서 세로 스크롤이 막히는 문제 예방) */
       .table-wrap{
         overflow-x: auto !important;
-        overflow-y: visible !important;
-        -webkit-overflow-scrolling: touch;
+        overflow-y: auto !important;
+        touch-action: pan-x pan-y !important;
       }
-      /* Ensure content can overflow horizontally */
+      .table, .table *{
+        touch-action: pan-x pan-y !important;
+      }
+      /* Ensure content actually overflows horizontally */
       .table{
-        min-width: 980px !important;
+        min-width: 1100px !important;
         table-layout: auto !important;
       }
     }
+
   </style>
 </head>
 
@@ -1438,15 +1485,13 @@ function renderAiPartyResult(res){
 
   const cards = mems.map(m => {
     const img = m.image
-      ? `<img class="tier-img" src="${escapeHtml(m.image)}" alt="">`
-      : `<div class="tier-img"></div>`;
+      ? `<img class="tier-portrait" src="${escapeHtml(m.image)}" alt="">`
+      : `<div class="tier-portrait tier-portrait-empty"></div>`;
 
     const pills = [
       m.element ? `<span class="pill pill-neutral">${escapeHtml(String(m.element))}</span>` : "",
       m.faction ? `<span class="pill pill-neutral">${escapeHtml(String(m.faction))}</span>` : "",
       m.class ? `<span class="pill pill-neutral">${escapeHtml(String(m.class))}</span>` : "",
-      m.role ? `<span class="pill pill-neutral">${escapeHtml(String(m.role))}</span>` : "",
-      m.rarity ? `<span class="pill pill-neutral">${escapeHtml(String(m.rarity))}</span>` : "",
     ].filter(Boolean).join("");
 
     const small = [
@@ -1499,6 +1544,13 @@ async function requestAiParty(){
   }
   if (required.length > 4){
     renderAiPartyResult({ ok:false, error:"필수 포함은 최대 4명까지 가능합니다." });
+    return;
+  }
+
+  // ✅ 등급표 기반 추천: 등급표 선택이 없으면 정확도가 크게 떨어지므로 차단
+  const preset = document.getElementById("tierPreset")?.value || "";
+  if (!preset){
+    renderAiPartyResult({ ok:false, error:"등급표를 먼저 선택하세요. (좌측 드롭다운)" });
     return;
   }
 
