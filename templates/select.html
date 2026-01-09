@@ -776,11 +776,14 @@ function pick(obj, ...keys) {
     }
 
     function renderRecommendedRunes(runeReco) {
-      if (!runeReco || !Array.isArray(runeReco.builds) || runeReco.builds.length === 0) {
+      if (!runeReco) {
         return `<div class="detail-empty">추천 룬 정보가 없습니다.</div>`;
       }
-
-      const builds = runeReco.builds;
+      const builds = Array.isArray(runeReco.builds) ? runeReco.builds : [];
+      if (builds.length === 0) {
+        const msg = runeReco.error ? `추천 룬 생성 실패: ${escapeHtml(String(runeReco.error))}` : "추천 룬 정보가 없습니다.";
+        return `<div class="detail-empty">${msg}</div>`;
+      }
 
       function renderSetItem(s) {
         const icon = (s && s.icon) ? `<img class="rune-ico" src="${escapeHtml(String(s.icon))}" alt="" loading="lazy" />` : `<div class="rune-ico rune-ico-empty"></div>`;
@@ -969,7 +972,7 @@ function pick(obj, ...keys) {
         const cn = pick(detail, "chineseName", "chinesename", "chinessname", "cnName", "cn_name");
 
         setModalTitle(name, cn);
-        const runeReco = j.rune_reco || null;
+        const runeReco = j.rune_reco || j.runeReco || j.runeRecoData || null;
         modalBody.innerHTML = renderDetailTabs(detail, runeReco);
         bindTabEvents();
       } catch (e) {
