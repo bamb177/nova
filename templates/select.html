@@ -276,51 +276,6 @@
       .tier-classes-inline{ grid-template-columns: 1fr; }
     }
 
-  
-    /* ===== Mobile vertical scroll fix (character list) ===== */
-
-    /* ===== Mobile: allow vertical + horizontal scrolling INSIDE character list ===== */
-    html, body{
-      height: auto !important;
-      min-height: 100% !important;
-      overflow-x: hidden !important;
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-x pan-y;
-    }
-
-    /* Make the list area a true scroll container on mobile */
-    .table-wrap{
-      overflow: auto !important;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-x pan-y;
-      overscroll-behavior: contain;
-      /* Use small-viewport units for mobile address-bar changes */
-      max-height: calc(100svh - 310px);
-      border-radius: 18px;
-    }
-
-    /* Ensure the table can exceed viewport width so horizontal scroll is possible */
-    .table{
-      min-width: 980px;
-    }
-
-    /* On desktop, let the page scroll normally (no forced max-height) */
-    @media (min-width: 900px){
-      .table-wrap{ max-height: none; overflow: visible; }
-      .table{ min-width: 0; }
-    }
-
-    /* Allow gestures even on nested elements */
-    .table-wrap *{ touch-action: pan-x pan-y; }
-
-html, body{
-      height: auto !important;
-      min-height: 100% !important;
-      overflow-x: hidden !important;
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch;
-    }
 /* ===== Background: remove multi-radial seams, use a single fixed gradient ===== */
     body{
       background: linear-gradient(180deg, #070b14 0%, #0b1222 100%) fixed !important;
@@ -331,23 +286,21 @@ html, body{
     }
 
   
-    /* ===== FINAL OVERRIDE: allow horizontal scroll inside character list (mobile) ===== */
+        /* ===== FINAL OVERRIDE: allow horizontal scroll inside character list (mobile) ===== */
     @media (max-width: 900px){
+      /* 가로 스크롤은 table-wrap에서만 처리하고, 세로 스크롤은 페이지(body)가 처리하도록 한다.
+         (모바일에서 리스트 영역에서 세로 스크롤이 막히는 문제 예방) */
       .table-wrap{
         overflow-x: auto !important;
-        overflow-y: auto !important;
-        touch-action: pan-x pan-y !important;
+        overflow-y: visible !important;
+        -webkit-overflow-scrolling: touch;
       }
-      .table, .table *{
-        touch-action: pan-x pan-y !important;
-      }
-      /* Ensure content actually overflows horizontally */
+      /* Ensure content can overflow horizontally */
       .table{
-        min-width: 1100px !important;
+        min-width: 980px !important;
         table-layout: auto !important;
       }
     }
-
   </style>
 </head>
 
