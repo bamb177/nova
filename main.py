@@ -1545,21 +1545,34 @@ def _score_member(base: dict, detail: dict, rank_map: dict) -> dict:
     # stats score: 규모 보정(대략적인 밸런스용)
     stats_score = (atk / 55.0) + (hp / 650.0) + (df / 35.0) + (cr / 4.0)
 
-    # archetype bias
+    # archetype bias (과도한 힐/탱 몰림 방지: 딜러 가중 강화)
     arch = profile.get("archetype") or "dps"
     arch_bonus = 0.0
+
+    heal_cnt = float(profile.get("heal_cnt") or 0)
+    shield_cnt = float(profile.get("shield_cnt") or 0)
+
     if arch == "healer":
-        arch_bonus += 18.0 + min(12.0, float(profile.get("heal_cnt") or 0) * 2.0)
+        arch_bonus += 10.0 + min(8.0, heal_cnt * 1.5)
     elif arch == "tank":
-        arch_bonus += 14.0 + min(10.0, float(profile.get("shield_cnt") or 0) * 2.0)
+        arch_bonus += 10.0 + min(8.0, shield_cnt * 1.5)
     elif arch == "debuffer":
-        arch_bonus += 10.0
+        arch_bonus += 8.0
     else:
-        arch_bonus += 12.0
+        arch_bonus += 14.0
+
+    # scaling 보정: ATK 스케일은 딜 기여로 우선
+    scaling = (profile.get("scaling") or "").upper()
+    if scaling == "ATK":
+        arch_bonus += 3.0
+    elif scaling == "DEF":
+        arch_bonus += 1.5
+    elif scaling == "HP":
+        arch_bonus += 1.0
 
     if no_crit:
         # 크리 불가 캐릭터는 치확 위주 티어를 과대평가하지 않게 소폭 페널티
-        arch_bonus -= 3.0
+        arch_bonus -= 4.0
 
     tier = _rank_weight(rank_map, cid)
 
@@ -1597,23 +1610,41 @@ def _score_party(members: list[dict], required_classes: set[str], require_combo:
         else:
             counts["dps"] += 1
 
+    # 밸런스 보정: 최소 1 딜러를 강제에 가깝게 유도
     balance = 0.0
-    if counts["tank"] >= 1:
-        balance += 14.0
-    if counts["healer"] >= 1:
-        balance += 14.0
+
+    has_dps = counts["dps"] >= 1
+    if has_dps:
+        balance += 18.0
+        if counts["dps"] >= 2:
+            balance += 10.0
+    else:
+        # 딜러가 없으면 사실상 파티로서 성립이 어려우므로 큰 페널티(필터링에도 사용)
+        balance -= 220.0
+
+    if counts["tank"] == 1:
+        balance += 8.0
+    elif counts["tank"] > 1:
+        balance -= 25.0 * (counts["tank"] - 1)
+
+    if counts["healer"] == 1:
+        balance += 10.0
+    elif counts["healer"] > 1:
+        balance -= 25.0 * (counts["healer"] - 1)
+    else:
+        # 힐러가 0이면 안정성 감소(완전 배제는 아님)
+        balance -= 6.0
+
     if counts["debuffer"] >= 1:
-        balance += 6.0
-    if counts["tank"] > 1:
-        balance -= 10.0 * (counts["tank"] - 1)
-    if counts["healer"] > 1:
-        balance -= 8.0 * (counts["healer"] - 1)
+        balance += 5.0
+    if counts["debuffer"] > 1:
+        balance -= 6.0 * (counts["debuffer"] - 1)
 
     total += balance
 
     combo_detail = {}
     combo_bonus = 0.0
-    if require_combo or True:
+    if True:
         combo_bonus, combo_detail = _party_combo_bonus([m["base"] for m in members])
         total += combo_bonus
 
@@ -1630,6 +1661,7 @@ def _score_party(members: list[dict], required_classes: set[str], require_combo:
 
     meta = {
         "counts": counts,
+        "has_dps": has_dps,
         "balance_bonus": balance,
         "combo_bonus": combo_bonus,
         "combo_detail": combo_detail,
@@ -1702,7 +1734,17 @@ def recommend_best_party(
     need = party_size - len(fixed_members)
     if need <= 0:
         total, meta = _score_party(fixed_members, req_cls, require_combo)
-        ok = meta.get("ok_classes") and meta.get("has_combo")
+
+        # ✅ 기본 최적 파티 룰 동일 적용 (필수만으로 완성된 경우도 예외 없음)
+        cnt = meta.get("counts") or {}
+        caps_ok = (cnt.get("dps") or 0) >= 1 and (cnt.get("healer") or 0) <= 1 and (cnt.get("tank") or 0) <= 1
+
+        ok = bool(meta.get("ok_classes") and meta.get("has_combo") and caps_ok)
+
+        note = "필수 포함만으로 파티가 완성되었습니다."
+        if not caps_ok:
+            note += " (역할 밸런스: 딜러 1+ / 힐러 1 / 탱커 1 규칙을 만족하지 못했습니다)"
+
         return {
             "ok": bool(ok),
             "party_size": party_size,
@@ -1710,7 +1752,7 @@ def recommend_best_party(
             "party": fixed_members,
             "total_score": total,
             "meta": meta,
-            "note": "필수 포함만으로 파티가 완성되었습니다.",
+            "note": note,
         }
 
     if len(cand_members) < need:
@@ -1727,6 +1769,15 @@ def recommend_best_party(
 
         total, meta = _score_party(members, req_cls, require_combo)
 
+        # ✅ 기본 최적 파티 룰(일반 PVE/PVP 공용): 딜러 최소 1, 탱커/힐러는 과투입 방지
+        cnt = meta.get("counts") or {}
+        if (cnt.get("dps") or 0) < 1:
+            continue
+        if (cnt.get("healer") or 0) > 1:
+            continue
+        if (cnt.get("tank") or 0) > 1:
+            continue
+
         # 필수 조건 체크
         if not meta.get("ok_classes"):
             continue
@@ -1741,6 +1792,14 @@ def recommend_best_party(
             evaluated += 1
             members = fixed_members + list(comb)
             total, meta = _score_party(members, req_cls, require_combo=False)
+            # ✅ 기본 최적 파티 룰 유지 (fallback에서도 과도한 힐/탱 방지)
+            cnt = meta.get("counts") or {}
+            if (cnt.get("dps") or 0) < 1:
+                continue
+            if (cnt.get("healer") or 0) > 1:
+                continue
+            if (cnt.get("tank") or 0) > 1:
+                continue
             if not meta.get("ok_classes"):
                 continue
             best.append((total, members, meta))
