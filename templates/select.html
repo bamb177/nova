@@ -14,9 +14,7 @@
     /* ✅ 선택/필수 컬럼: 한 줄 유지(선/택 방지) */
     .col-check{ width: 86px; min-width: 86px; text-align: center; }
     .col-req{ width: 86px; min-width: 86px; text-align: center; }
-    .table th.col-check,
-    .table th.col-req{ text-align:center; }
-    }
+    .table th.col-check, .table th.col-req{ text-align:center; }
 
     /* (2) 전체 페이지 폭 확장 (PC) */
     @media (min-width: 1100px){
@@ -94,14 +92,13 @@
     }
 
 
-      /* Stats columns (HP/ATK/DEF/CRIT) — 글씨 커짐 대응 폭 확장 */
+    /* Stats columns (HP/ATK/DEF/CRIT) */
     .col-hp, .col-atk, .col-def, .col-crit { width: 108px; min-width: 108px; text-align: right; }
     td.col-hp, td.col-atk, td.col-def, td.col-crit { font-weight: 800; color: rgba(255,255,255,.86); }
     
     @media (max-width: 520px){
       .col-hp, .col-atk, .col-def, .col-crit { width: 96px; min-width: 96px; }
     }
-
   
     /* Tier panel: move class condition row into top line (better readability) */
     .tier-topline{
@@ -309,18 +306,11 @@
       min-width: 980px;
     }
 
-        /* ✅ Desktop: 테이블 찌그러짐 방지(선/택 줄바꿈 원인 제거) */
+    /* On desktop, let the page scroll normally (no forced max-height) */
     @media (min-width: 900px){
-      .table-wrap{
-        max-height: none;
-        overflow-x: auto;     /* 데스크탑에서도 필요 시 가로 스크롤 */
-        overflow-y: visible;
-      }
-      .table{
-        min-width: 1380px;    /* 커진 폰트/필(pill) 대응 */
-      }
+      .table-wrap{ max-height: none; overflow-x: auto; overflow-y: visible; }
+      .table{ min-width: 1380px; }
     }
-
 
     /* Allow gestures even on nested elements */
     .table-wrap *{ touch-action: pan-x pan-y; }
@@ -811,7 +801,7 @@ function pick(obj, ...keys) {
       const effects = pick(mem, "effects", "effect");
 
       let effectsHtml = "";
-          if (Array.isArray(effects)) {
+      if (Array.isArray(effects)) {
         const charName = pick(detail, "name") || "";
         const imgUrl = `/images/games/zone-nova/card/${encodeURIComponent(String(charName))}card.jpg`;
 
@@ -823,20 +813,25 @@ function pick(obj, ...keys) {
         if (effRows.length === 0) {
           effectsHtml = `<div class="detail-empty">효과 데이터 없음</div>`;
         } else {
-          const items = effRows.map(txt => {
-            return `<div class="memcard-eff">${escapeHtml(txt)}</div>`;
-          }).join("");
+          const first = effRows[0];
+          const rest = effRows.slice(1);
+
+          const tbody = [
+            `<tr>
+               <td class="memcard-imgcell" rowspan="${effRows.length}">
+                 <img class="memcard-img" src="${imgUrl}" alt="Memory Card"
+                      onerror="this.classList.add('hidden');" />
+               </td>
+               <td>${escapeHtml(first)}</td>
+             </tr>`,
+            ...rest.map(x => `<tr><td>${escapeHtml(x)}</td></tr>`)
+          ].join("");
 
           effectsHtml = `
-            <div class="memcard-wrap memcard-wrap--grid">
-              <div class="memcard-left">
-                <img class="memcard-img memcard-img--big" src="${imgUrl}" alt="Memory Card"
-                     onerror="this.classList.add('hidden');" />
-              </div>
-              <div class="memcard-right">
-                ${items}
-              </div>
-            </div>
+            <table class="awak-table memcard-table">
+              <thead><tr><th class="memcard-th">카드</th><th>효과</th></tr></thead>
+              <tbody>${tbody}</tbody>
+            </table>
           `;
         }
       } else if (effects && typeof effects === "object") {
