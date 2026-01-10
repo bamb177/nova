@@ -1192,3 +1192,50 @@ td.col-hp, td.col-atk, td.col-def, td.col-crit{
   background: rgba(255,255,255,.03);
   display:inline-block;
 }
+
+/* =========================================================
+   FINAL TYPO SCALE (+3pt 체감) + PILL 업스케일 + TABLE 최적화
+   - PC 100%에서 더 크게(150%에 가까운 체감)
+   - 모바일도 과도한 깨짐 없이 같이 확대
+========================================================= */
+
+/* Base typography */
+body{
+  font-size: 18px;     /* +3pt 체감 핵심 */
+  line-height: 1.45;
+}
+
+/* Table: 줄바꿈/한글 음절 분리 방지 */
+.table thead th,
+.table tbody td{
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+/* Table header/body 글자 확대 */
+.table thead th{ font-size: 16px; }
+.table tbody td{ font-size: 16px; }
+
+/* 캐릭터명/핵심 정보 조금 더 강조 */
+.char-name{ font-size: 18px; }
+
+/* 속성/특성/클래스/역할/등급 pill 크기 업 */
+.pill{
+  font-size: 15.5px;
+  padding: 9px 14px;
+  gap: 10px;
+}
+.pill img,
+.pill-with-icon .mini-icon{
+  width: 18px;
+  height: 18px;
+}
+
+/* 모바일: 너무 과대해 보이지 않도록 살짝만 보정 */
+@media (max-width: 520px){
+  body{ font-size: 17px; }
+  .table thead th{ font-size: 15px; }
+  .table tbody td{ font-size: 15px; }
+  .pill{ font-size: 15px; }
+}
+
