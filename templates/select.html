@@ -11,9 +11,12 @@
   <!-- ✅ Tier 결과 카드 이미지 + PC 폭 확장 오버라이드 -->
   <style>
 
-    /* ✅ 필수 포함 컬럼 */
-    .col-req{ width: 64px; text-align: center; }
+    /* ✅ 선택/필수 컬럼: 한 줄 유지(선/택 방지) */
+    .col-check{ width: 86px; min-width: 86px; text-align: center; }
+    .col-req{ width: 86px; min-width: 86px; text-align: center; }
+    .table th.col-check,
     .table th.col-req{ text-align:center; }
+    }
 
     /* (2) 전체 페이지 폭 확장 (PC) */
     @media (min-width: 1100px){
@@ -91,13 +94,14 @@
     }
 
 
-    /* Stats columns (HP/ATK/DEF/CRIT) */
-    .col-hp, .col-atk, .col-def, .col-crit { width: 90px; text-align: right; }
+      /* Stats columns (HP/ATK/DEF/CRIT) — 글씨 커짐 대응 폭 확장 */
+    .col-hp, .col-atk, .col-def, .col-crit { width: 108px; min-width: 108px; text-align: right; }
     td.col-hp, td.col-atk, td.col-def, td.col-crit { font-weight: 800; color: rgba(255,255,255,.86); }
     
     @media (max-width: 520px){
-      .col-hp, .col-atk, .col-def, .col-crit { width: 78px; }
+      .col-hp, .col-atk, .col-def, .col-crit { width: 96px; min-width: 96px; }
     }
+
   
     /* Tier panel: move class condition row into top line (better readability) */
     .tier-topline{
@@ -305,11 +309,18 @@
       min-width: 980px;
     }
 
-    /* On desktop, let the page scroll normally (no forced max-height) */
+        /* ✅ Desktop: 테이블 찌그러짐 방지(선/택 줄바꿈 원인 제거) */
     @media (min-width: 900px){
-      .table-wrap{ max-height: none; overflow: visible; }
-      .table{ min-width: 0; }
+      .table-wrap{
+        max-height: none;
+        overflow-x: auto;     /* 데스크탑에서도 필요 시 가로 스크롤 */
+        overflow-y: visible;
+      }
+      .table{
+        min-width: 1380px;    /* 커진 폰트/필(pill) 대응 */
+      }
     }
+
 
     /* Allow gestures even on nested elements */
     .table-wrap *{ touch-action: pan-x pan-y; }
