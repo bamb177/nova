@@ -24,6 +24,10 @@ body{
   color:var(--txt);
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
 
+  /* ✅ 전역 폰트 스케일 업 (PC/모바일 공통 체감 상승) */
+  font-size: 17px;
+  line-height: 1.45;
+
   /* ✅ 전체 페이지 스크롤은 기본 허용(모바일 스크롤 이슈 방지) */
   overflow-y: auto;
   overflow-x: hidden;
@@ -78,19 +82,20 @@ body{
 
 .title-row h1{
   margin:0;
-  font-size: 20px;
+  font-size: 21px; /* 20 -> 21 */
   font-weight: 900;
   letter-spacing: .2px;
 }
 
 .meta-inline{
-  font-size: 13px;
+  font-size: 14px; /* 13 -> 14 */
   font-weight: 850;
   color: var(--muted2);
   white-space: nowrap;
 }
 
 .refresh{
+  font-size: 14px; /* 명시 + 상향 */
   font-weight: 800;
   color: var(--muted2);
   white-space: nowrap;
@@ -112,6 +117,10 @@ body{
   display:inline-flex;
   align-items:center;
   gap:8px;
+
+  /* ✅ 버튼도 전역 글자 크기 상향과 자연스럽게 맞춤 */
+  font-size: 15px;
+  line-height: 1.1;
 }
 .btn:hover{ background: rgba(255,255,255,.10); }
 
@@ -151,6 +160,7 @@ body{
   padding: 12px 14px;
   margin-top: 10px;
   font-weight: 800;
+  font-size: 15px;
 }
 
 /* =========================
@@ -182,7 +192,7 @@ body{
 
 .filters-summary-title{ font-weight: 950; }
 .filters-summary-hint{
-  font-size: 12px;
+  font-size: 13px; /* 12 -> 13 */
   font-weight: 850;
   color: rgba(255,255,255,.65);
   white-space: nowrap;
@@ -216,6 +226,10 @@ body{
   border-radius: 12px;
   font-weight: 800;
   outline: none;
+
+  /* ✅ 입력류도 명시적으로 확대 (브라우저 기본 16px 고정 회피) */
+  font-size: 15px;
+  line-height: 1.1;
 }
 
 .input{ min-width: 260px; }
@@ -229,7 +243,7 @@ body{
   overflow-x: auto;
   overflow-y: visible;
   -webkit-overflow-scrolling: touch;
-overscroll-behavior-x: contain;
+  overscroll-behavior-x: contain;
   overscroll-behavior-y: auto;
   border-radius: 16px;
 }
@@ -253,7 +267,7 @@ overscroll-behavior-x: contain;
 .table thead th{
   text-align:left;
   padding: 12px 12px;
-  font-size: 13px;
+  font-size: 14px; /* 13 -> 14 */
   color: rgba(255,255,255,.78);
   border-bottom: 1px solid var(--line);
 
@@ -269,7 +283,7 @@ overscroll-behavior-x: contain;
   padding: 12px 12px;
   border-bottom: 1px solid rgba(255,255,255,.07);
   vertical-align: middle;
-  font-size: 15px;
+  font-size: 16px; /* 15 -> 16 */
   color: rgba(255,255,255,.90);
 }
 .table tbody tr:hover{ background: rgba(255,255,255,.03); }
@@ -300,7 +314,7 @@ overscroll-behavior-x: contain;
 }
 
 .char-name{
-  font-size: 16px;
+  font-size: 17px; /* 16 -> 17 */
   font-weight: 900;
   letter-spacing: .2px;
 }
@@ -317,7 +331,7 @@ overscroll-behavior-x: contain;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.04);
   font-weight: 900;
-  font-size: 13px;
+  font-size: 14px; /* 13 -> 14 */
   line-height: 1;
   color: rgba(255,255,255,.90);
   white-space: nowrap;
@@ -412,12 +426,12 @@ overscroll-behavior-x: contain;
 }
 
 .modal-title{
-  font-size: 16px;
+  font-size: 17px; /* 16 -> 17 */
   font-weight: 950;
 }
 .modal-title .cn{
   margin-left: 10px;
-  font-size: 12px;
+  font-size: 13px; /* 12 -> 13 */
   font-weight: 850;
   color: rgba(255,255,255,.70);
   border: 1px solid rgba(255,255,255,.10);
@@ -444,6 +458,7 @@ overscroll-behavior-x: contain;
   padding: 18px;
   color: rgba(255,255,255,.70);
   font-weight: 800;
+  font-size: 15px;
 }
 
 .detail-empty{
@@ -453,6 +468,7 @@ overscroll-behavior-x: contain;
   background: rgba(255,255,255,.04);
   color: rgba(255,255,255,.72);
   font-weight: 800;
+  font-size: 15px;
 }
 
 /* =========================
@@ -482,6 +498,10 @@ overscroll-behavior-x: contain;
   color: rgba(255,255,255,.82);
   font-weight: 900;
   cursor: pointer;
+
+  /* ✅ 탭 버튼 가독성 */
+  font-size: 14px;
+  line-height: 1.1;
 }
 .tab-btn.active{
   background: rgba(255,255,255,.12);
@@ -511,7 +531,7 @@ overscroll-behavior-x: contain;
 }
 
 .card-title{
-  font-size: 15px;
+  font-size: 16px; /* 15 -> 16 */
   font-weight: 950;
   margin-bottom: 6px;
   color: rgba(255,255,255,.92);
@@ -522,9 +542,9 @@ overscroll-behavior-x: contain;
 }
 
 .card-desc{
-  font-size: 14px;
+  font-size: 15px; /* 14 -> 15 */
   color: rgba(255,255,255,.78);
-  line-height: 1.45;
+  line-height: 1.5;
   white-space: pre-wrap;
 }
 
@@ -536,7 +556,7 @@ overscroll-behavior-x: contain;
 .kv td{
   border-top: 1px solid rgba(255,255,255,.08);
   padding: 8px 6px;
-  font-size: 12px;
+  font-size: 13px; /* 12 -> 13 */
   color: rgba(255,255,255,.78);
   vertical-align: top;
   white-space: pre-wrap;
@@ -554,7 +574,7 @@ overscroll-behavior-x: contain;
 
 .group-title{
   margin: 0 0 8px 0;
-  font-size: 13px;
+  font-size: 14px; /* 13 -> 14 */
   font-weight: 950;
   color: rgba(255,255,255,.90);
   padding: 8px 10px;
@@ -590,6 +610,7 @@ overscroll-behavior-x: contain;
   color: rgba(255,255,255,.82);
   font-weight: 900;
   margin-top: 10px;
+  font-size: 14px;
 }
 .raw pre{
   margin: 8px 0 0 0;
@@ -598,7 +619,7 @@ overscroll-behavior-x: contain;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(0,0,0,.25);
   overflow:auto;
-  font-size: 12px;
+  font-size: 13px; /* 12 -> 13 */
   color: rgba(255,255,255,.78);
 }
 
@@ -618,7 +639,7 @@ overscroll-behavior-x: contain;
   border-bottom: 1px solid rgba(255,255,255,.08);
   text-align: left;
   vertical-align: top;
-  font-size: 13px;
+  font-size: 14px; /* 13 -> 14 */
   color: rgba(255,255,255,.82);
   white-space: pre-wrap;
 }
@@ -665,7 +686,7 @@ overscroll-behavior-x: contain;
 .tier-summary::-webkit-details-marker{ display:none; }
 .tier-summary-title{ font-weight: 950; }
 .tier-summary-hint{
-  font-size: 12px;
+  font-size: 13px; /* 12 -> 13 */
   font-weight: 850;
   color: rgba(255,255,255,.65);
   white-space: nowrap;
@@ -695,7 +716,7 @@ overscroll-behavior-x: contain;
 .tier-row.tier-sub{ margin-top: 6px; }
 
 .tier-info{
-  font-size: 12px;
+  font-size: 13px; /* 12 -> 13 */
   color: rgba(255,255,255,.68);
   font-weight: 850;
 }
@@ -706,6 +727,7 @@ overscroll-behavior-x: contain;
   gap: 8px;
   font-weight: 850;
   color: rgba(255,255,255,.85);
+  font-size: 14px;
 }
 
 .tier-classes{
@@ -727,11 +749,12 @@ overscroll-behavior-x: contain;
   background: rgba(255,255,255,.04);
   font-weight: 850;
   color: rgba(255,255,255,.85);
+  font-size: 14px;
 }
 
 .tier-help{
   margin-top: 8px;
-  font-size: 12px;
+  font-size: 13px; /* 12 -> 13 */
   color: rgba(255,255,255,.65);
 }
 
@@ -743,6 +766,7 @@ overscroll-behavior-x: contain;
   padding: 10px 12px;
   border-radius: 14px;
   font-weight: 850;
+  font-size: 14px;
 }
 
 .tier-grid{
@@ -773,7 +797,7 @@ overscroll-behavior-x: contain;
   margin-bottom: 8px;
 }
 
-.tier-name{ font-weight: 950; }
+.tier-name{ font-weight: 950; font-size: 15px; }
 
 .tier-card-sub{
   display:flex;
@@ -787,7 +811,7 @@ overscroll-behavior-x: contain;
   padding: 4px 10px;
   border-radius: 999px;
   font-weight: 950;
-  font-size: 12px;
+  font-size: 13px; /* 12 -> 13 */
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.06);
 }
@@ -838,19 +862,19 @@ overscroll-behavior-x: contain;
 }
 .tier-section-title{
   font-weight: 950;
-  font-size: 14px;
+  font-size: 15px; /* 14 -> 15 */
   color: rgba(255,255,255,.92);
 }
 .tier-section-sub{
   font-weight: 850;
-  font-size: 12px;
+  font-size: 13px; /* 12 -> 13 */
   color: rgba(255,255,255,.65);
   white-space: nowrap;
 }
 .tier-party-block{ margin-top: 10px; }
 .tier-party-title{
   font-weight: 950;
-  font-size: 13px;
+  font-size: 14px; /* 13 -> 14 */
   color: rgba(255,255,255,.86);
   margin-bottom: 8px;
 }
@@ -865,11 +889,11 @@ overscroll-behavior-x: contain;
   }
 
   .title-row h1{
-    font-size: 20px;
+    font-size: 21px; /* 20 -> 21 */
     line-height: 1.15;
   }
 
-  /* ✅ 모바일: 필터 내부는 기존 너가 만든 2열 그리드 유지 */
+  /* ✅ 모바일: 필터 내부 2열 그리드 유지 */
   .filters{
     display:grid !important;
     grid-template-columns: 2fr 1fr !important;
@@ -880,11 +904,12 @@ overscroll-behavior-x: contain;
   .filters .input,
   .filters .select,
   .filters .btn{
-    height:36px !important;
+    height:40px !important;       /* 36 -> 40 : 글자 커져도 안 잘리게 */
     padding:0 10px !important;
-    font-size:14px !important;
+    font-size:15px !important;    /* 14 -> 15 */
     width:100% !important;
     min-width:0 !important;
+    line-height: 1.1 !important;
   }
 
   /* 1행: 검색 + 클래스 */
@@ -915,8 +940,6 @@ overscroll-behavior-x: contain;
   }
 }
 
-
-
 /* =========================
    Nav button (top bar)
 ========================= */
@@ -928,7 +951,8 @@ overscroll-behavior-x: contain;
   background: rgba(255,255,255,.04);
   color: inherit;
   text-decoration: none;
-  font-size: 13px;
+  font-size: 14px; /* 13 -> 14 */
+  line-height: 1.1;
 }
 .navbtn:hover{
   background: rgba(255,255,255,.08);
@@ -961,7 +985,8 @@ overscroll-behavior-x: contain;
   padding: 8px 10px;
   border-radius: 12px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px; /* 13 -> 14 */
+  line-height: 1.1;
 }
 .rune-tab-btn.active{
   background: rgba(255,255,255,.10);
@@ -988,7 +1013,7 @@ overscroll-behavior-x: contain;
 
 .rune-build-title{
   font-weight: 700;
-  font-size: 15px;
+  font-size: 16px; /* 15 -> 16 */
 }
 
 .rune-sets{
@@ -1022,9 +1047,9 @@ overscroll-behavior-x: contain;
   display:inline-block;
 }
 
-.rune-set-txt{ line-height: 1.15; }
-.rune-set-name{ font-weight: 700; font-size: 13px; }
-.rune-set-piece{ font-size: 12px; opacity: .75; }
+.rune-set-txt{ line-height: 1.2; }
+.rune-set-name{ font-weight: 700; font-size: 14px; } /* 13 -> 14 */
+.rune-set-piece{ font-size: 13px; opacity: .75; }    /* 12 -> 13 */
 
 .rune-cols{
   display:grid;
@@ -1037,7 +1062,7 @@ overscroll-behavior-x: contain;
 }
 
 .rune-col-title{
-  font-size: 13px;
+  font-size: 14px; /* 13 -> 14 */
   font-weight: 700;
   margin-bottom: 8px;
   opacity: .92;
@@ -1062,6 +1087,7 @@ overscroll-behavior-x: contain;
 .rune-slot-k{
   font-weight: 800;
   opacity: .85;
+  font-size: 14px;
 }
 .rune-slot-v{
   display:flex;
@@ -1074,7 +1100,8 @@ overscroll-behavior-x: contain;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.04);
-  font-size: 12px;
+  font-size: 13px; /* 12 -> 13 */
+  line-height: 1.1;
 }
 
 .rune-list{
@@ -1086,17 +1113,18 @@ overscroll-behavior-x: contain;
 }
 .rune-list-title{
   font-weight: 800;
-  font-size: 13px;
+  font-size: 14px; /* 13 -> 14 */
   margin-bottom: 6px;
 }
 .rune-list ul{
   margin: 0;
   padding-left: 18px;
-  line-height: 1.45;
+  line-height: 1.55;
 }
 .rune-list li{
   margin: 2px 0;
   opacity: .92;
+  font-size: 15px;
 }
 
 /* =========================
@@ -1114,15 +1142,4 @@ overscroll-behavior-x: contain;
   height: 22px;
   border-radius: 7px;
   object-fit: cover;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.05);
-}
-
-.rune-mini-ph{
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  display:inline-block;
-}
+  border: 1px solid rgba(25
