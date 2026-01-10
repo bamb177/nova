@@ -1354,3 +1354,83 @@ body{
   font-size: 14px !important;
 }
 
+
+
+/* =========================================================
+   Wide desktop (전체창/와이드) 레이아웃 개선
+   - 등급표 상단 줄: 좌측(프리셋+버튼) / 우측(클래스 조건) 균형
+   - 버튼 폭 과도하게 늘어나는 현상 방지
+   - 패널 내부 여백/정렬 통일
+========================================================= */
+
+/* PC 전체창에서 컨테이너 폭 확장(콘텐츠 밀도 개선) */
+@media (min-width: 1200px){
+  .wrap{ max-width: 1520px; }
+}
+
+/* tier 상단 라인을 와이드에서 "좌/우"로 보기 좋게 */
+@media (min-width: 1101px){
+  .tier-row.tier-topline{
+    display: grid;
+    grid-template-columns: minmax(260px, 380px) minmax(420px, 1fr) minmax(360px, 460px);
+    gap: 12px;
+    align-items: start;
+  }
+
+  /* 프리셋 */
+  #tierPreset{
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* 버튼 묶음: 너무 길게 늘어나는 걸 방지하고 균형 배치 */
+  .tier-actions{
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  #btnBuildTierParty,
+  #btnAiParty{
+    flex: 0 0 auto;
+    min-width: 200px;
+    max-width: 260px;
+    width: auto;
+    justify-content: center;
+  }
+
+  /* 클래스 조건 박스: 우측 고정 폭 느낌으로 안정 */
+  #tierClassInline{
+    width: 100%;
+    min-width: 0 !important;
+    justify-self: end;
+  }
+  .tier-class-inline{
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* 하단 전체선택/해제는 오른쪽 정렬 */
+  .tier-actions-inline{
+    justify-content: flex-end !important;
+    gap: 10px;
+  }
+}
+
+/* wide에서 카드/섹션 내부 여백 조금 여유 있게 */
+@media (min-width: 1100px){
+  .panel{ padding: 16px; }
+  .tier-panel{ padding: 14px; }
+  .filters-box{ padding: 12px 14px; }
+}
+
+/* 검색/필터 바도 전체창에서 한 줄 유지 도움 */
+@media (min-width: 1100px){
+  .filters{
+    gap: 12px;
+  }
+  .input{ min-width: 320px; }
+  .select{ min-width: 190px; }
+}
+
