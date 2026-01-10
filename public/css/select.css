@@ -24,9 +24,9 @@ body{
   color:var(--txt);
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
 
-  /* ✅ 전역 폰트 스케일 업 (PC/모바일 공통 체감 상승) */
-  font-size: 17px;
-  line-height: 1.45;
+  /* ✅ 100%에서 150% 느낌: +3pt(≈4px) 전역 업스케일 */
+  font-size: 20px;
+  line-height: 1.5;
 
   /* ✅ 전체 페이지 스크롤은 기본 허용(모바일 스크롤 이슈 방지) */
   overflow-y: auto;
@@ -63,16 +63,14 @@ body{
 
   margin-bottom: 12px;
 
-  /* 가독성/완성도: 스크롤 시에도 상단 정보가 유지되도록 */
   background: rgba(7,11,20,.62);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 16px;
-  padding: 10px 12px;
+  padding: 12px 14px;
 }
 
-/* ✅ h1 + 캐릭터수 + 갱신시간 한 줄 */
 .title-row{
   display:flex;
   align-items:baseline;
@@ -82,20 +80,20 @@ body{
 
 .title-row h1{
   margin:0;
-  font-size: 21px; /* 20 -> 21 */
+  font-size: 26px;
   font-weight: 900;
   letter-spacing: .2px;
 }
 
 .meta-inline{
-  font-size: 14px; /* 13 -> 14 */
+  font-size: 17px;
   font-weight: 850;
   color: var(--muted2);
   white-space: nowrap;
 }
 
 .refresh{
-  font-size: 14px; /* 명시 + 상향 */
+  font-size: 17px;
   font-weight: 800;
   color: var(--muted2);
   white-space: nowrap;
@@ -109,7 +107,7 @@ body{
   border:1px solid var(--line2);
   background: rgba(255,255,255,.06);
   color: var(--txt);
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-radius: 12px;
   font-weight: 850;
   cursor:pointer;
@@ -117,9 +115,7 @@ body{
   display:inline-flex;
   align-items:center;
   gap:8px;
-
-  /* ✅ 버튼도 전역 글자 크기 상향과 자연스럽게 맞춤 */
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.1;
 }
 .btn:hover{ background: rgba(255,255,255,.10); }
@@ -129,25 +125,20 @@ body{
 ========================= */
 .panel{
   border:1px solid var(--line);
-
-  /* ✅ 기존: rgba(255,255,255,.03) 덩어리 느낌 → 유리(Glass) 카드로 */
   background: rgba(255,255,255,.045);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 
   border-radius: 16px;
-  padding: 14px;
+  padding: 16px;
 
-  /* ✅ margin-top으로 쌓이면 ‘박스 단위로 끊김’이 더 잘 보임 → 제거 */
   margin-top: 0;
 
-  /* ✅ 카드가 떠 보이게(끊김 체감↓, 완성도↑) */
   box-shadow:
     0 10px 24px rgba(0,0,0,.22),
     inset 0 1px 0 rgba(255,255,255,.05);
 }
 
-/* ✅ 패널 간 간격은 형제 결합으로 통일 (기존 margin-top 대체) */
 .panel + .panel{
   margin-top: 12px;
 }
@@ -160,7 +151,7 @@ body{
   padding: 12px 14px;
   margin-top: 10px;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 17px;
 }
 
 /* =========================
@@ -168,14 +159,12 @@ body{
 ========================= */
 .filters-box{
   border:1px solid rgba(255,255,255,.10);
-
-  /* ✅ filters 박스도 동일한 유리 톤으로 통일 */
   background: rgba(255,255,255,.04);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 
   border-radius: 16px;
-  padding: 10px 12px;
+  padding: 12px 14px;
 }
 
 .filters-summary{
@@ -187,22 +176,22 @@ body{
   gap:10px;
   font-weight: 950;
   color: rgba(255,255,255,.90);
+  font-size: 18px;
 }
 .filters-summary::-webkit-details-marker{ display:none; }
 
 .filters-summary-title{ font-weight: 950; }
 .filters-summary-hint{
-  font-size: 13px; /* 12 -> 13 */
+  font-size: 16px;
   font-weight: 850;
   color: rgba(255,255,255,.65);
   white-space: nowrap;
 }
 
-.filters-body{ margin-top: 10px; }
+.filters-body{ margin-top: 12px; }
 
-/* 접혀 있을 때(= summary만 보일 때) 얇게 */
 .filters-box:not([open]){
-  padding: 8px 10px;
+  padding: 10px 12px;
 }
 .filters-box:not([open]) .filters-body{
   display:none;
@@ -222,18 +211,16 @@ body{
   border: 1px solid var(--line2);
   background: rgba(0,0,0,.18);
   color: var(--txt);
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-radius: 12px;
   font-weight: 800;
   outline: none;
-
-  /* ✅ 입력류도 명시적으로 확대 (브라우저 기본 16px 고정 회피) */
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.1;
 }
 
-.input{ min-width: 260px; }
-.select{ min-width: 160px; }
+.input{ min-width: 280px; }
+.select{ min-width: 180px; }
 
 /* =========================
    Table + horizontal scroll
@@ -250,7 +237,7 @@ body{
 
 .table{
   width:100%;
-  min-width: 920px;
+  min-width: 1040px; /* 글자 커짐 대응 */
   border-collapse: separate;
   border-spacing: 0;
   overflow: hidden;
@@ -258,7 +245,6 @@ body{
   border: 1px solid var(--line);
   margin-top: 12px;
 
-  /* ✅ 테이블도 유리 톤으로 살짝 통일 */
   background: rgba(255,255,255,.025);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -266,12 +252,10 @@ body{
 
 .table thead th{
   text-align:left;
-  padding: 12px 12px;
-  font-size: 14px; /* 13 -> 14 */
+  padding: 14px 14px;
+  font-size: 17px;
   color: rgba(255,255,255,.78);
   border-bottom: 1px solid var(--line);
-
-  /* ✅ 헤더도 ‘단절되는 진한 바’ 느낌 최소화 */
   background: rgba(255,255,255,.035);
 
   position: sticky;
@@ -280,20 +264,20 @@ body{
 }
 
 .table tbody td{
-  padding: 12px 12px;
+  padding: 14px 14px;
   border-bottom: 1px solid rgba(255,255,255,.07);
   vertical-align: middle;
-  font-size: 16px; /* 15 -> 16 */
+  font-size: 19px;
   color: rgba(255,255,255,.90);
 }
 .table tbody tr:hover{ background: rgba(255,255,255,.03); }
 
 .col-check{ width: 56px; }
-.col-rarity{ width: 92px; }
-.col-elem{ width: 160px; }
-.col-faction{ width: 180px; }
-.col-class{ width: 160px; }
-.col-role{ width: 140px; }
+.col-rarity{ width: 96px; }
+.col-elem{ width: 170px; }
+.col-faction{ width: 190px; }
+.col-class{ width: 170px; }
+.col-role{ width: 150px; }
 
 .char-cell{
   display:flex;
@@ -314,7 +298,7 @@ body{
 }
 
 .char-name{
-  font-size: 17px; /* 16 -> 17 */
+  font-size: 20px;
   font-weight: 900;
   letter-spacing: .2px;
 }
@@ -326,20 +310,20 @@ body{
   display:inline-flex;
   align-items:center;
   gap: 8px;
-  padding: 7px 12px;
+  padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.04);
   font-weight: 900;
-  font-size: 14px; /* 13 -> 14 */
+  font-size: 17px;
   line-height: 1;
   color: rgba(255,255,255,.90);
   white-space: nowrap;
 }
 
 .pill img{
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 999px;
   object-fit: contain;
   opacity: .95;
@@ -352,8 +336,8 @@ body{
   vertical-align: middle;
 }
 .pill-with-icon .mini-icon{
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 4px;
   object-fit: cover;
   flex: 0 0 auto;
@@ -419,46 +403,46 @@ body{
   align-items:center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 16px 18px;
   border-bottom: 1px solid rgba(255,255,255,.10);
   background: rgba(6, 12, 24, .88);
   backdrop-filter: blur(10px);
 }
 
 .modal-title{
-  font-size: 17px; /* 16 -> 17 */
+  font-size: 20px;
   font-weight: 950;
 }
 .modal-title .cn{
   margin-left: 10px;
-  font-size: 13px; /* 12 -> 13 */
+  font-size: 16px;
   font-weight: 850;
   color: rgba(255,255,255,.70);
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(0,0,0,.20);
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 999px;
 }
 
 .modal-close{
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.06);
   color: rgba(255,255,255,.92);
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
 }
 
-.modal-body{ padding: 16px; }
+.modal-body{ padding: 18px; }
 
 .modal-loading{
   padding: 18px;
   color: rgba(255,255,255,.70);
   font-weight: 800;
-  font-size: 15px;
+  font-size: 17px;
 }
 
 .detail-empty{
@@ -468,7 +452,7 @@ body{
   background: rgba(255,255,255,.04);
   color: rgba(255,255,255,.72);
   font-weight: 800;
-  font-size: 15px;
+  font-size: 17px;
 }
 
 /* =========================
@@ -480,27 +464,23 @@ body{
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 6px;
+  padding: 8px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.10);
-
-  /* ✅ 탭 바도 유리 톤 */
   background: rgba(255,255,255,.035);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
 .tab-btn{
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.04);
   color: rgba(255,255,255,.82);
   font-weight: 900;
   cursor: pointer;
-
-  /* ✅ 탭 버튼 가독성 */
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.1;
 }
 .tab-btn.active{
@@ -515,25 +495,22 @@ body{
 .cards{
   display: grid;
   grid-template-columns: 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 
 .card{
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.10);
-
-  /* ✅ 카드도 동일 톤으로 이어지게 */
   background: rgba(255,255,255,.04);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-
-  padding: 12px;
+  padding: 14px;
 }
 
 .card-title{
-  font-size: 16px; /* 15 -> 16 */
+  font-size: 19px;
   font-weight: 950;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   color: rgba(255,255,255,.92);
   display:flex;
   align-items:center;
@@ -542,21 +519,21 @@ body{
 }
 
 .card-desc{
-  font-size: 15px; /* 14 -> 15 */
+  font-size: 18px;
   color: rgba(255,255,255,.78);
-  line-height: 1.5;
+  line-height: 1.55;
   white-space: pre-wrap;
 }
 
 .kv{
   width:100%;
   border-collapse: collapse;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 .kv td{
   border-top: 1px solid rgba(255,255,255,.08);
-  padding: 8px 6px;
-  font-size: 13px; /* 12 -> 13 */
+  padding: 10px 8px;
+  font-size: 16px;
   color: rgba(255,255,255,.78);
   vertical-align: top;
   white-space: pre-wrap;
@@ -573,17 +550,16 @@ body{
 .group{ margin-top: 12px; border-radius: 14px; }
 
 .group-title{
-  margin: 0 0 8px 0;
-  font-size: 14px; /* 13 -> 14 */
+  margin: 0 0 10px 0;
+  font-size: 17px;
   font-weight: 950;
   color: rgba(255,255,255,.90);
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.03);
 }
 
-/* Auto/Ultimate/Passive/Normal/Team 색상 구분 */
 .group-auto .group-title{
   border-color: rgba(120,220,255,.22);
   background: linear-gradient(90deg, rgba(120,220,255,.14), rgba(255,255,255,.03));
@@ -610,16 +586,16 @@ body{
   color: rgba(255,255,255,.82);
   font-weight: 900;
   margin-top: 10px;
-  font-size: 14px;
+  font-size: 17px;
 }
 .raw pre{
   margin: 8px 0 0 0;
-  padding: 10px;
+  padding: 12px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(0,0,0,.25);
   overflow:auto;
-  font-size: 13px; /* 12 -> 13 */
+  font-size: 16px;
   color: rgba(255,255,255,.78);
 }
 
@@ -635,11 +611,11 @@ body{
   background: rgba(255,255,255,.02);
 }
 .awak-table th, .awak-table td{
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-bottom: 1px solid rgba(255,255,255,.08);
   text-align: left;
   vertical-align: top;
-  font-size: 14px; /* 13 -> 14 */
+  font-size: 17px;
   color: rgba(255,255,255,.82);
   white-space: pre-wrap;
 }
@@ -658,21 +634,18 @@ body{
 .tier-panel{
   margin-top: 12px;
   border: 1px solid rgba(255,255,255,.10);
-
-  /* ✅ tier-panel도 동일 톤으로 */
   background: rgba(255,255,255,.04);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 
   border-radius: 16px;
-  padding: 12px;
+  padding: 14px;
 
   box-shadow:
     0 10px 24px rgba(0,0,0,.18),
     inset 0 1px 0 rgba(255,255,255,.05);
 }
 
-/* ✅ details 요약 헤더: 검색/필터와 동일한 (열기/닫기) UX */
 .tier-summary{
   list-style: none;
   cursor: pointer;
@@ -682,21 +655,21 @@ body{
   gap: 10px;
   font-weight: 950;
   color: rgba(255,255,255,.90);
+  font-size: 18px;
 }
 .tier-summary::-webkit-details-marker{ display:none; }
 .tier-summary-title{ font-weight: 950; }
 .tier-summary-hint{
-  font-size: 13px; /* 12 -> 13 */
+  font-size: 16px;
   font-weight: 850;
   color: rgba(255,255,255,.65);
   white-space: nowrap;
 }
 
-.tier-body{ margin-top: 10px; }
+.tier-body{ margin-top: 12px; }
 
-/* 접혀 있을 때(= summary만 보일 때) 얇게 */
 .tier-panel:not([open]){
-  padding: 8px 10px;
+  padding: 10px 12px;
 }
 .tier-panel:not([open]) .tier-body{
   display:none;
@@ -713,10 +686,10 @@ body{
   flex-wrap: wrap;
 }
 
-.tier-row.tier-sub{ margin-top: 6px; }
+.tier-row.tier-sub{ margin-top: 8px; }
 
 .tier-info{
-  font-size: 13px; /* 12 -> 13 */
+  font-size: 16px;
   color: rgba(255,255,255,.68);
   font-weight: 850;
 }
@@ -727,52 +700,52 @@ body{
   gap: 8px;
   font-weight: 850;
   color: rgba(255,255,255,.85);
-  font-size: 14px;
+  font-size: 17px;
 }
 
 .tier-classes{
   display:flex;
   gap: 10px;
   flex-wrap: wrap;
-  padding: 8px 0 0;
+  padding: 10px 0 0;
 }
 
 .tier-classes[aria-disabled="true"]{ opacity: .55; }
 
 .tier-class-item{
   display:inline-flex;
-  gap: 6px;
+  gap: 8px;
   align-items:center;
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.04);
   font-weight: 850;
   color: rgba(255,255,255,.85);
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .tier-help{
-  margin-top: 8px;
-  font-size: 13px; /* 12 -> 13 */
+  margin-top: 10px;
+  font-size: 16px;
   color: rgba(255,255,255,.65);
 }
 
-.tier-result{ margin-top: 10px; }
+.tier-result{ margin-top: 12px; }
 
 .tier-error{
   border:1px solid rgba(255,80,80,.35);
   background: rgba(255,80,80,.10);
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-radius: 14px;
   font-weight: 850;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .tier-grid{
   display: grid;
   grid-template-columns: repeat(2, minmax(0,1fr));
-  gap: 10px;
+  gap: 12px;
 }
 @media (min-width: 640px){
   .tier-grid{ grid-template-columns: repeat(4, minmax(0,1fr)); }
@@ -780,38 +753,36 @@ body{
 
 .tier-card{
   border: 1px solid rgba(255,255,255,.10);
-
-  /* ✅ 결과 카드도 동일 톤으로 */
   background: rgba(255,255,255,.04);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 
   border-radius: 14px;
-  padding: 10px;
+  padding: 12px;
 }
 
 .tier-card-top{
   display:flex;
-  gap: 8px;
+  gap: 10px;
   align-items:center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
-.tier-name{ font-weight: 950; font-size: 15px; }
+.tier-name{ font-weight: 950; font-size: 18px; }
 
 .tier-card-sub{
   display:flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .tier-badge{
   display:inline-flex;
   align-items:center;
-  padding: 4px 10px;
+  padding: 6px 12px;
   border-radius: 999px;
   font-weight: 950;
-  font-size: 13px; /* 12 -> 13 */
+  font-size: 16px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.06);
 }
@@ -827,9 +798,8 @@ body{
 .tier-s{ background: rgba(255,255,255,.10); }
 .tier-a{ background: rgba(255,255,255,.06); }
 
-/* ✅ collapse: head만 남기고 내용 숨김 + 얇게 */
 .tier-panel.collapsed{
-  padding: 10px 12px;
+  padding: 12px 14px;
 }
 .tier-panel.collapsed .tier-panel-head{
   margin-bottom: 0;
@@ -840,43 +810,40 @@ body{
   display: none;
 }
 
-/* ===== Tier result sections (Guild/PVE/PVP/Rift) ===== */
 .tier-section{
   margin-top: 12px;
   border: 1px solid rgba(255,255,255,.10);
-
-  /* ✅ 섹션도 끊김이 덜 보이도록 톤 통일 */
   background: rgba(255,255,255,.035);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 
   border-radius: 16px;
-  padding: 12px;
+  padding: 14px;
 }
 .tier-section-head{
   display:flex;
   align-items:baseline;
   justify-content:space-between;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .tier-section-title{
   font-weight: 950;
-  font-size: 15px; /* 14 -> 15 */
+  font-size: 18px;
   color: rgba(255,255,255,.92);
 }
 .tier-section-sub{
   font-weight: 850;
-  font-size: 13px; /* 12 -> 13 */
+  font-size: 16px;
   color: rgba(255,255,255,.65);
   white-space: nowrap;
 }
-.tier-party-block{ margin-top: 10px; }
+.tier-party-block{ margin-top: 12px; }
 .tier-party-title{
   font-weight: 950;
-  font-size: 14px; /* 13 -> 14 */
+  font-size: 17px;
   color: rgba(255,255,255,.86);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 /* =========================
@@ -889,30 +856,27 @@ body{
   }
 
   .title-row h1{
-    font-size: 21px; /* 20 -> 21 */
+    font-size: 24px;
     line-height: 1.15;
   }
 
-  /* ✅ 모바일: 필터 내부 2열 그리드 유지 */
   .filters{
     display:grid !important;
     grid-template-columns: 2fr 1fr !important;
-    gap:8px !important;
+    gap:10px !important;
     align-items:stretch !important;
   }
 
   .filters .input,
   .filters .select,
   .filters .btn{
-    height:40px !important;       /* 36 -> 40 : 글자 커져도 안 잘리게 */
-    padding:0 10px !important;
-    font-size:15px !important;    /* 14 -> 15 */
+    height:48px !important;
+    padding:0 12px !important;
+    font-size:17px !important;
     width:100% !important;
     min-width:0 !important;
-    line-height: 1.1 !important;
   }
 
-  /* 1행: 검색 + 클래스 */
   .filters #q{
     grid-column: 1 / 2 !important;
     grid-row: 1 !important;
@@ -924,7 +888,6 @@ body{
     min-width:0 !important;
   }
 
-  /* 2행부터: 자동 배치 */
   .filters #rarityFilter,
   .filters #elemFilter,
   .filters #factionFilter,
@@ -934,7 +897,6 @@ body{
     grid-column: auto !important;
   }
 
-  /* ✅ 모바일에서 카드 라운드 살짝 정리 */
   .panel, .filters-box, .tier-panel, .tier-section, .card{
     border-radius: 14px;
   }
@@ -945,14 +907,13 @@ body{
 ========================= */
 .navbtn{
   margin-left: 12px;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--line, rgba(255,255,255,.14));
   background: rgba(255,255,255,.04);
   color: inherit;
   text-decoration: none;
-  font-size: 14px; /* 13 -> 14 */
-  line-height: 1.1;
+  font-size: 17px;
 }
 .navbtn:hover{
   background: rgba(255,255,255,.08);
@@ -982,11 +943,10 @@ body{
   border: 1px solid var(--line, rgba(255,255,255,.14));
   background: rgba(255,255,255,.03);
   color: inherit;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: 12px;
   cursor: pointer;
-  font-size: 14px; /* 13 -> 14 */
-  line-height: 1.1;
+  font-size: 17px;
 }
 .rune-tab-btn.active{
   background: rgba(255,255,255,.10);
@@ -1000,7 +960,7 @@ body{
   border: 1px solid var(--line, rgba(255,255,255,.14));
   background: rgba(255,255,255,.03);
   border-radius: 16px;
-  padding: 12px;
+  padding: 14px;
 }
 
 .rune-build-head{
@@ -1008,26 +968,26 @@ body{
   align-items:center;
   justify-content: space-between;
   gap:10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .rune-build-title{
   font-weight: 700;
-  font-size: 16px; /* 15 -> 16 */
+  font-size: 20px;
 }
 
 .rune-sets{
   display:flex;
   flex-wrap:wrap;
-  gap:10px;
+  gap:12px;
   margin-bottom: 12px;
 }
 
 .rune-set-pill{
   display:flex;
   align-items:center;
-  gap:10px;
-  padding: 8px 10px;
+  gap:12px;
+  padding: 10px 12px;
   border-radius: 14px;
   border: 1px solid var(--line, rgba(255,255,255,.14));
   background: rgba(0,0,0,.10);
@@ -1048,8 +1008,8 @@ body{
 }
 
 .rune-set-txt{ line-height: 1.2; }
-.rune-set-name{ font-weight: 700; font-size: 14px; } /* 13 -> 14 */
-.rune-set-piece{ font-size: 13px; opacity: .75; }    /* 12 -> 13 */
+.rune-set-name{ font-weight: 700; font-size: 17px; }
+.rune-set-piece{ font-size: 16px; opacity: .75; }
 
 .rune-cols{
   display:grid;
@@ -1062,15 +1022,15 @@ body{
 }
 
 .rune-col-title{
-  font-size: 14px; /* 13 -> 14 */
+  font-size: 17px;
   font-weight: 700;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   opacity: .92;
 }
 
 .rune-slots{
   display:grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .rune-slot-row{
@@ -1078,7 +1038,7 @@ body{
   grid-template-columns: 36px 1fr;
   gap: 10px;
   align-items: start;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.02);
@@ -1087,44 +1047,43 @@ body{
 .rune-slot-k{
   font-weight: 800;
   opacity: .85;
-  font-size: 14px;
+  font-size: 17px;
 }
 .rune-slot-v{
   display:flex;
   flex-wrap:wrap;
-  gap:6px;
+  gap:8px;
 }
 .rune-stat{
   display:inline-block;
-  padding: 4px 8px;
+  padding: 6px 10px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.04);
-  font-size: 13px; /* 12 -> 13 */
-  line-height: 1.1;
+  font-size: 16px;
 }
 
 .rune-list{
-  margin-top: 10px;
+  margin-top: 12px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(0,0,0,.06);
   border-radius: 14px;
-  padding: 10px;
+  padding: 12px;
 }
 .rune-list-title{
   font-weight: 800;
-  font-size: 14px; /* 13 -> 14 */
-  margin-bottom: 6px;
+  font-size: 17px;
+  margin-bottom: 8px;
 }
 .rune-list ul{
   margin: 0;
   padding-left: 18px;
-  line-height: 1.55;
+  line-height: 1.65;
 }
 .rune-list li{
-  margin: 2px 0;
+  margin: 4px 0;
   opacity: .92;
-  font-size: 15px;
+  font-size: 18px;
 }
 
 /* =========================
@@ -1142,4 +1101,15 @@ body{
   height: 22px;
   border-radius: 7px;
   object-fit: cover;
-  border: 1px solid rgba(25
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.05);
+}
+
+.rune-mini-ph{
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  display:inline-block;
+}
