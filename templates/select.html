@@ -68,31 +68,46 @@
     }
 
   
-    /* Memory Card image (modal) */
+    /* Memory Card image (modal) — 카드열 확장 + 이미지 꽉차게 */
     .memcard-wrap{
       display:flex;
       gap:14px;
       align-items:flex-start;
       flex-wrap:wrap;
     }
+
+    /* 카드열: PC에서는 크게, 모바일에서는 과도하지 않게 */
+    .memcard-imgcell{
+      vertical-align: top;
+      padding: 10px;
+      width: clamp(240px, 30vw, 420px);
+    }
+
+    /* 이미지: 카드열을 100%로 꽉 채움 (기존 150x240 고정 제거) */
     .memcard-img{
-      width: 150px;
-      height: 240px;
-      border-radius:14px;
+      display:block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 5 / 8;
+      border-radius:16px;
       object-fit:cover;
-      box-shadow: 0 6px 16px rgba(0,0,0,.35);
-      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 10px 26px rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.12);
       background: rgba(255,255,255,.06);
     }
     .memcard-img.hidden{ display:none; }
-    .memcard-imgcell{
-      vertical-align: top;
-      padding-top: 10px;
-      width: 180px;
+
+    @media (max-width: 520px){
+      .memcard-imgcell{
+        width: clamp(170px, 54vw, 320px);
+        padding: 8px;
+      }
+      .memcard-img{
+        border-radius: 14px;
+      }
     }
 
-
-    /* Stats columns (HP/ATK/DEF/CRIT) */
+/* Stats columns (HP/ATK/DEF/CRIT) */
     .col-hp, .col-atk, .col-def, .col-crit { width: 108px; min-width: 108px; text-align: right; }
     td.col-hp, td.col-atk, td.col-def, td.col-crit { font-weight: 800; color: rgba(255,255,255,.86); }
     
