@@ -1239,3 +1239,24 @@ body{
   }
   .memcard-table td.memcard-imgcell{ padding: 8px; }
 }
+
+
+/* =========================================================
+   Memory Card (force): select.html 인라인 스타일보다 우선 적용
+========================================================= */
+.memcard-table td.memcard-imgcell{
+  width: clamp(240px, 30vw, 420px) !important;
+  padding: 10px !important;
+}
+.memcard-table td.memcard-imgcell .memcard-img{
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 5 / 8;
+  object-fit: cover;
+}
+@media (max-width: 520px){
+  .memcard-table td.memcard-imgcell{
+    width: clamp(170px, 54vw, 320px) !important;
+    padding: 8px !important;
+  }
+}
