@@ -1239,3 +1239,56 @@ body{
   .pill{ font-size: 15px; }
 }
 
+/* =========================================================
+   Memory Card tab: 좌측 카드 이미지 크게 + 꽉차게 (PC/모바일)
+   - 표 기반(rowspan) 제거 후, 반응형 그리드 레이아웃으로 표시
+========================================================= */
+.memcard-wrap--grid{
+  display: grid;
+  grid-template-columns: clamp(240px, 26vw, 360px) 1fr; /* 좌측 크게 */
+  gap: 16px;
+  align-items: start;
+}
+
+.memcard-left{ min-width: 0; }
+.memcard-right{ min-width: 0; }
+
+/* 카드 이미지를 “셀 꽉차게” */
+.memcard-img--big{
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 5 / 8;         /* 150x240 비율 */
+  object-fit: cover;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 26px rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+}
+
+/* 효과 텍스트를 “카드”처럼 보기 좋게 */
+.memcard-eff{
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  color: rgba(255,255,255,.86);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+.memcard-eff + .memcard-eff{ margin-top: 10px; }
+
+/* 모바일: 이미지가 위로 올라가서 크게, 가운데 정렬 */
+@media (max-width: 640px){
+  .memcard-wrap--grid{
+    grid-template-columns: 1fr;
+  }
+  .memcard-left{
+    display: flex;
+    justify-content: center;
+  }
+  .memcard-img--big{
+    width: min(84vw, 360px) !important; /* 모바일에서 “꽉차게” */
+  }
+}
+
