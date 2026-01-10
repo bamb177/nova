@@ -24,9 +24,9 @@ body{
   color:var(--txt);
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
 
-  /* ✅ 100%에서 150% 느낌: +3pt(≈4px) 전역 업스케일 */
-  font-size: 20px;
-  line-height: 1.5;
+  /* ===== Typography (PC 100%에서 “150%에 가까운 체감” +3pt) ===== */
+  font-size: 18px;          /* 기존 대비 +2~3pt 체감 */
+  line-height: 1.45;
 
   /* ✅ 전체 페이지 스크롤은 기본 허용(모바일 스크롤 이슈 방지) */
   overflow-y: auto;
@@ -42,10 +42,18 @@ body{
   body{ background-attachment: scroll; }
 }
 
+/* =========================
+   Container width
+========================= */
 .wrap{
   max-width: 1200px;
   margin: 0 auto;
   padding: 18px;
+}
+
+/* ✅ PC에서 더 넓게 (select.html에서 하던 것을 CSS로 흡수) */
+@media (min-width: 1100px){
+  .wrap{ max-width: 1600px; }
 }
 
 /* =========================
@@ -68,9 +76,10 @@ body{
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 16px;
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 
+/* ✅ h1 + 캐릭터수 + 갱신시간 한 줄 */
 .title-row{
   display:flex;
   align-items:baseline;
@@ -80,20 +89,20 @@ body{
 
 .title-row h1{
   margin:0;
-  font-size: 26px;
+  font-size: 23px;     /* +3pt 체감 */
   font-weight: 900;
   letter-spacing: .2px;
 }
 
 .meta-inline{
-  font-size: 17px;
+  font-size: 15px;     /* +2pt */
   font-weight: 850;
   color: var(--muted2);
   white-space: nowrap;
 }
 
 .refresh{
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--muted2);
   white-space: nowrap;
@@ -107,7 +116,7 @@ body{
   border:1px solid var(--line2);
   background: rgba(255,255,255,.06);
   color: var(--txt);
-  padding: 12px 14px;
+  padding: 11px 14px;          /* 조금 키움 */
   border-radius: 12px;
   font-weight: 850;
   cursor:pointer;
@@ -115,8 +124,7 @@ body{
   display:inline-flex;
   align-items:center;
   gap:8px;
-  font-size: 17px;
-  line-height: 1.1;
+  font-size: 16px;             /* +1~2pt */
 }
 .btn:hover{ background: rgba(255,255,255,.10); }
 
@@ -130,8 +138,7 @@ body{
   -webkit-backdrop-filter: blur(10px);
 
   border-radius: 16px;
-  padding: 16px;
-
+  padding: 14px;
   margin-top: 0;
 
   box-shadow:
@@ -151,7 +158,6 @@ body{
   padding: 12px 14px;
   margin-top: 10px;
   font-weight: 800;
-  font-size: 17px;
 }
 
 /* =========================
@@ -162,9 +168,8 @@ body{
   background: rgba(255,255,255,.04);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-
   border-radius: 16px;
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 
 .filters-summary{
@@ -176,22 +181,21 @@ body{
   gap:10px;
   font-weight: 950;
   color: rgba(255,255,255,.90);
-  font-size: 18px;
 }
 .filters-summary::-webkit-details-marker{ display:none; }
 
-.filters-summary-title{ font-weight: 950; }
+.filters-summary-title{ font-weight: 950; font-size: 18px; } /* + */
 .filters-summary-hint{
-  font-size: 16px;
+  font-size: 14px;             /* + */
   font-weight: 850;
   color: rgba(255,255,255,.65);
   white-space: nowrap;
 }
 
-.filters-body{ margin-top: 12px; }
+.filters-body{ margin-top: 10px; }
 
 .filters-box:not([open]){
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 .filters-box:not([open]) .filters-body{
   display:none;
@@ -207,23 +211,31 @@ body{
   align-items:center;
 }
 
-.input, .select{
+.input, .select, select{
   border: 1px solid var(--line2);
   background: rgba(0,0,0,.18);
   color: var(--txt);
-  padding: 12px 14px;
+  padding: 11px 12px;          /* 약간 키움 */
   border-radius: 12px;
   font-weight: 800;
   outline: none;
-  font-size: 17px;
-  line-height: 1.1;
+  font-size: 16px;             /* + */
+}
+
+/* Select dropdown readability (options contrast) */
+select option{
+  background: #0b1222;
+  color: rgba(255,255,255,.90);
+}
+select option:disabled{
+  color: rgba(255,255,255,.58);
 }
 
 .input{ min-width: 280px; }
 .select{ min-width: 180px; }
 
 /* =========================
-   Table + horizontal scroll
+   Table + horizontal scroll  (중요: 데스크탑에서도 overflow 유지)
 ========================= */
 .table-wrap{
   width: 100%;
@@ -235,9 +247,20 @@ body{
   border-radius: 16px;
 }
 
+/* ✅ 모바일에서 리스트 자체 스크롤도 유지하고 싶으면 (기존 의도 유지) */
+@media (max-width: 900px){
+  .table-wrap{
+    overflow: auto;
+    touch-action: pan-x pan-y;
+    max-height: calc(100svh - 310px);
+  }
+  .table-wrap *{ touch-action: pan-x pan-y; }
+}
+
+/* ✅ 데스크탑에서도 “열 찌그러짐” 방지 위해 min-width 유지 */
 .table{
   width:100%;
-  min-width: 1040px; /* 글자 커짐 대응 */
+  min-width: 1380px;         /* 커진 글씨/필(pill) 대비 */
   border-collapse: separate;
   border-spacing: 0;
   overflow: hidden;
@@ -248,37 +271,71 @@ body{
   background: rgba(255,255,255,.025);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+
+  table-layout: auto;
 }
 
+/* ====== (1) 헤더/셀 줄바꿈 및 한글 음절 분리 방지: “선/택” 방지 핵심 ====== */
+.table thead th,
+.table tbody td{
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+/* 헤더 */
 .table thead th{
   text-align:left;
-  padding: 14px 14px;
-  font-size: 17px;
-  color: rgba(255,255,255,.78);
+  padding: 14px 12px;       /* + */
+  font-size: 16px;          /* +3pt 체감 */
+  color: rgba(255,255,255,.82);
   border-bottom: 1px solid var(--line);
   background: rgba(255,255,255,.035);
-
   position: sticky;
   top: 0;
   z-index: 1;
 }
 
+/* 바디 */
 .table tbody td{
-  padding: 14px 14px;
+  padding: 14px 12px;       /* + */
   border-bottom: 1px solid rgba(255,255,255,.07);
   vertical-align: middle;
-  font-size: 19px;
+  font-size: 16px;          /* + */
   color: rgba(255,255,255,.90);
 }
 .table tbody tr:hover{ background: rgba(255,255,255,.03); }
 
-.col-check{ width: 56px; }
-.col-rarity{ width: 96px; }
-.col-elem{ width: 170px; }
-.col-faction{ width: 190px; }
-.col-class{ width: 170px; }
-.col-role{ width: 150px; }
+/* ====== 열 폭: “선택”/“필수” 한 줄, pill 커짐 대비 ====== */
+.col-check{ width: 86px; min-width: 86px; text-align:center; }
+.col-req{   width: 86px; min-width: 86px; text-align:center; }
+.table th.col-req{ text-align:center; }
 
+.col-hp, .col-atk, .col-def, .col-crit{
+  width: 108px;
+  min-width: 108px;
+  text-align: right;
+}
+td.col-hp, td.col-atk, td.col-def, td.col-crit{
+  font-weight: 800;
+  color: rgba(255,255,255,.86);
+}
+
+.col-elem{    width: 220px; min-width: 220px; }
+.col-faction{ width: 240px; min-width: 240px; }
+.col-class{   width: 220px; min-width: 220px; }
+.col-role{    width: 170px; min-width: 170px; }
+.col-rarity{  width: 130px; min-width: 130px; text-align:center; }
+
+.table thead th.col-check,
+.table tbody td.col-check,
+.table thead th.col-req,
+.table tbody td.col-req{
+  text-align:center;
+}
+
+/* =========================
+   Character cell
+========================= */
 .char-cell{
   display:flex;
   align-items:center;
@@ -288,8 +345,8 @@ body{
 }
 
 .char-img{
-  width: 56px;
-  height: 56px;
+  width: 58px;
+  height: 58px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.12);
   object-fit: cover;
@@ -298,24 +355,24 @@ body{
 }
 
 .char-name{
-  font-size: 20px;
+  font-size: 18px;   /* + */
   font-weight: 900;
   letter-spacing: .2px;
 }
 
 /* =========================
-   Pills
+   Pills (속성/특성/클래스/역할/등급) — 요청: 알맞게 키우기
 ========================= */
 .pill{
   display:inline-flex;
   align-items:center;
-  gap: 8px;
-  padding: 8px 14px;
+  gap: 10px;
+  padding: 9px 14px;     /* + */
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.04);
   font-weight: 900;
-  font-size: 17px;
+  font-size: 15.5px;     /* 기존 대비 +2~3pt 체감 */
   line-height: 1;
   color: rgba(255,255,255,.90);
   white-space: nowrap;
@@ -332,7 +389,7 @@ body{
 .pill-with-icon{
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   vertical-align: middle;
 }
 .pill-with-icon .mini-icon{
@@ -403,46 +460,45 @@ body{
   align-items:center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px;
+  padding: 14px 16px;
   border-bottom: 1px solid rgba(255,255,255,.10);
   background: rgba(6, 12, 24, .88);
   backdrop-filter: blur(10px);
 }
 
 .modal-title{
-  font-size: 20px;
+  font-size: 18px;       /* + */
   font-weight: 950;
 }
 .modal-title .cn{
   margin-left: 10px;
-  font-size: 16px;
+  font-size: 14px;       /* + */
   font-weight: 850;
   color: rgba(255,255,255,.70);
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(0,0,0,.20);
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 999px;
 }
 
 .modal-close{
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.06);
   color: rgba(255,255,255,.92);
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1;
   cursor: pointer;
 }
 
-.modal-body{ padding: 18px; }
+.modal-body{ padding: 16px; }
 
 .modal-loading{
   padding: 18px;
   color: rgba(255,255,255,.70);
   font-weight: 800;
-  font-size: 17px;
 }
 
 .detail-empty{
@@ -452,19 +508,20 @@ body{
   background: rgba(255,255,255,.04);
   color: rgba(255,255,255,.72);
   font-weight: 800;
-  font-size: 17px;
 }
 
 /* =========================
    Tabs + Cards
+   (select.html JS가 tab-buttons를 사용하므로 alias 처리)
 ========================= */
 .tabs { display: flex; flex-direction: column; gap: 12px; }
 
-.tab-bar{
+.tab-bar,
+.tab-buttons{
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 8px;
+  padding: 6px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.035);
@@ -473,15 +530,14 @@ body{
 }
 
 .tab-btn{
-  padding: 10px 14px;
+  padding: 9px 14px;    /* + */
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.04);
   color: rgba(255,255,255,.82);
   font-weight: 900;
   cursor: pointer;
-  font-size: 16px;
-  line-height: 1.1;
+  font-size: 15px;      /* + */
 }
 .tab-btn.active{
   background: rgba(255,255,255,.12);
@@ -495,7 +551,7 @@ body{
 .cards{
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
 .card{
@@ -504,13 +560,13 @@ body{
   background: rgba(255,255,255,.04);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  padding: 14px;
+  padding: 12px;
 }
 
 .card-title{
-  font-size: 19px;
+  font-size: 16px;   /* + */
   font-weight: 950;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: rgba(255,255,255,.92);
   display:flex;
   align-items:center;
@@ -519,21 +575,24 @@ body{
 }
 
 .card-desc{
-  font-size: 18px;
+  font-size: 15px;   /* + */
   color: rgba(255,255,255,.78);
-  line-height: 1.55;
+  line-height: 1.45;
   white-space: pre-wrap;
 }
 
+/* =========================
+   KV table
+========================= */
 .kv{
   width:100%;
   border-collapse: collapse;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 .kv td{
   border-top: 1px solid rgba(255,255,255,.08);
-  padding: 10px 8px;
-  font-size: 16px;
+  padding: 8px 6px;
+  font-size: 13.5px; /* + */
   color: rgba(255,255,255,.78);
   vertical-align: top;
   white-space: pre-wrap;
@@ -550,16 +609,17 @@ body{
 .group{ margin-top: 12px; border-radius: 14px; }
 
 .group-title{
-  margin: 0 0 10px 0;
-  font-size: 17px;
+  margin: 0 0 8px 0;
+  font-size: 15px;   /* + */
   font-weight: 950;
   color: rgba(255,255,255,.90);
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.03);
 }
 
+/* Auto/Ultimate/Passive/Normal/Team 색상 구분 */
 .group-auto .group-title{
   border-color: rgba(120,220,255,.22);
   background: linear-gradient(90deg, rgba(120,220,255,.14), rgba(255,255,255,.03));
@@ -586,16 +646,15 @@ body{
   color: rgba(255,255,255,.82);
   font-weight: 900;
   margin-top: 10px;
-  font-size: 17px;
 }
 .raw pre{
   margin: 8px 0 0 0;
-  padding: 12px;
+  padding: 10px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(0,0,0,.25);
   overflow:auto;
-  font-size: 16px;
+  font-size: 13px; /* + */
   color: rgba(255,255,255,.78);
 }
 
@@ -611,11 +670,11 @@ body{
   background: rgba(255,255,255,.02);
 }
 .awak-table th, .awak-table td{
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-bottom: 1px solid rgba(255,255,255,.08);
   text-align: left;
   vertical-align: top;
-  font-size: 17px;
+  font-size: 15px; /* + */
   color: rgba(255,255,255,.82);
   white-space: pre-wrap;
 }
@@ -629,7 +688,7 @@ body{
 }
 
 /* =========================
-   Tier Panel
+   Tier Panel (select.html에서 쓰던 것 CSS로 이관)
 ========================= */
 .tier-panel{
   margin-top: 12px;
@@ -637,10 +696,8 @@ body{
   background: rgba(255,255,255,.04);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-
   border-radius: 16px;
-  padding: 14px;
-
+  padding: 12px;
   box-shadow:
     0 10px 24px rgba(0,0,0,.18),
     inset 0 1px 0 rgba(255,255,255,.05);
@@ -655,91 +712,113 @@ body{
   gap: 10px;
   font-weight: 950;
   color: rgba(255,255,255,.90);
-  font-size: 18px;
 }
 .tier-summary::-webkit-details-marker{ display:none; }
-.tier-summary-title{ font-weight: 950; }
+.tier-summary-title{ font-weight: 950; font-size: 18px; }
 .tier-summary-hint{
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 850;
   color: rgba(255,255,255,.65);
   white-space: nowrap;
 }
 
-.tier-body{ margin-top: 12px; }
+.tier-body{ margin-top: 10px; }
 
 .tier-panel:not([open]){
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 .tier-panel:not([open]) .tier-body{
   display:none;
 }
 
-.tier-actions{
-  gap: 8px;
-}
-
-.tier-row{
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.tier-row.tier-sub{ margin-top: 8px; }
-
-.tier-info{
-  font-size: 16px;
-  color: rgba(255,255,255,.68);
-  font-weight: 850;
-}
-
-.tier-check{
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 850;
-  color: rgba(255,255,255,.85);
-  font-size: 17px;
-}
-
-.tier-classes{
+.tier-topline{
   display:flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 10px 0 0;
+  align-items:flex-start;
+  gap:10px;
+  flex-wrap:wrap;
 }
 
-.tier-classes[aria-disabled="true"]{ opacity: .55; }
+.tier-actions-inline{
+  margin-left:auto;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:nowrap;
+}
+
+@media (min-width: 900px){
+  .tier-topline{ flex-wrap:nowrap; }
+}
+
+/* Tier panel: class condition inline box */
+.tier-class-inline{
+  flex: 1 1 auto;
+  min-width: 420px;
+  display: grid;
+  grid-template-columns: 210px 1fr;
+  align-items: start;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.05);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.tier-check-inline{
+  white-space: nowrap;
+  font-weight: 950;
+  color: rgba(255,255,255,.92);
+  font-size: 16px;
+}
+
+.tier-classes-inline{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+@media (max-width: 720px){
+  .tier-topline{ flex-wrap: wrap; }
+  .tier-class-inline{
+    min-width: 0;
+    width: 100%;
+    order: 3;
+    grid-template-columns: 1fr;
+  }
+  .tier-actions-inline{
+    order: 4;
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .tier-classes-inline{ grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 420px){
+  .tier-classes-inline{ grid-template-columns: 1fr; }
+}
 
 .tier-class-item{
   display:inline-flex;
   gap: 8px;
   align-items:center;
-  padding: 8px 12px;
+  padding: 7px 12px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.04);
   font-weight: 850;
   color: rgba(255,255,255,.85);
-  font-size: 16px;
+  white-space: nowrap;
 }
 
-.tier-help{
-  margin-top: 10px;
-  font-size: 16px;
-  color: rgba(255,255,255,.65);
-}
-
-.tier-result{ margin-top: 12px; }
+/* Tier results */
+.tier-result{ margin-top: 10px; }
 
 .tier-error{
   border:1px solid rgba(255,80,80,.35);
   background: rgba(255,80,80,.10);
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-radius: 14px;
   font-weight: 850;
-  font-size: 16px;
 }
 
 .tier-grid{
@@ -756,123 +835,136 @@ body{
   background: rgba(255,255,255,.04);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-
-  border-radius: 14px;
+  border-radius: 18px;
   padding: 12px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.20);
 }
 
 .tier-card-top{
   display:flex;
-  gap: 10px;
   align-items:center;
-  margin-bottom: 10px;
+  gap:10px;
 }
 
-.tier-name{ font-weight: 950; font-size: 18px; }
+.tier-portrait{
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  object-fit:cover;
+  flex:0 0 auto;
+  box-shadow: 0 8px 18px rgba(0,0,0,.25);
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.tier-name{
+  font-weight: 900;
+  font-size: 17px;
+  line-height: 1.2;
+}
 
 .tier-card-sub{
+  margin-top: 8px;
   display:flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
+  align-items:center;
 }
 
-.tier-badge{
-  display:inline-flex;
-  align-items:center;
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-weight: 950;
-  font-size: 16px;
-  border: 1px solid rgba(255,255,255,.12);
+/* (select.html에서 하던 것) 긴 특성명 2줄 방지 */
+.tier-card-sub .pill{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 190px;
+}
+
+/* =========================
+   Memory Card image (modal)
+========================= */
+.memcard-imgcell{
+  vertical-align: top;
+  padding-top: 10px;
+  width: 180px;
+}
+.memcard-img{
+  width: 150px;
+  height: 240px;
+  border-radius:14px;
+  object-fit:cover;
+  box-shadow: 0 6px 16px rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.06);
 }
+.memcard-img.hidden{ display:none; }
 
-.tier-sss{
-  background: linear-gradient(90deg, rgba(255,255,170,.95), rgba(255,240,110,.92));
-  color: rgba(0,0,0,.78);
+/* =========================
+   Nav button (top bar)
+========================= */
+.navbtn{
+  margin-left: 12px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line, rgba(255,255,255,.14));
+  background: rgba(255,255,255,.04);
+  color: inherit;
+  text-decoration: none;
+  font-size: 15px; /* + */
 }
-.tier-ss{
-  background: linear-gradient(90deg, rgba(255,180,70,.92), rgba(255,120,40,.90));
-  color: rgba(0,0,0,.80);
-}
-.tier-s{ background: rgba(255,255,255,.10); }
-.tier-a{ background: rgba(255,255,255,.06); }
-
-.tier-panel.collapsed{
-  padding: 12px 14px;
-}
-.tier-panel.collapsed .tier-panel-head{
-  margin-bottom: 0;
-}
-.tier-panel.collapsed .tier-row,
-.tier-panel.collapsed .tier-help,
-.tier-panel.collapsed .tier-result{
-  display: none;
+.navbtn:hover{
+  background: rgba(255,255,255,.08);
 }
 
-.tier-section{
-  margin-top: 12px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.035);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-
-  border-radius: 16px;
-  padding: 14px;
+/* =========================
+   Sortable stat headers
+========================= */
+.th-sort{
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 18px;
 }
-.tier-section-head{
-  display:flex;
-  align-items:baseline;
-  justify-content:space-between;
-  gap: 10px;
-  margin-bottom: 12px;
+.th-sort::after{
+  content: "↕";
+  position: absolute;
+  right: 6px;
+  opacity: .45;
+  font-size: 12px;
+  top: 50%;
+  transform: translateY(-50%);
 }
-.tier-section-title{
-  font-weight: 950;
-  font-size: 18px;
-  color: rgba(255,255,255,.92);
-}
-.tier-section-sub{
-  font-weight: 850;
-  font-size: 16px;
-  color: rgba(255,255,255,.65);
-  white-space: nowrap;
-}
-.tier-party-block{ margin-top: 12px; }
-.tier-party-title{
-  font-weight: 950;
-  font-size: 17px;
-  color: rgba(255,255,255,.86);
-  margin-bottom: 10px;
-}
+.th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
+.th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
 
 /* =========================
    Mobile tuning
 ========================= */
 @media (max-width: 520px){
+  body{ font-size: 17px; } /* 모바일은 너무 커 보일 수 있어 -1 */
+
   .wrap{
     padding: 10px;
     padding-bottom: calc(10px + env(safe-area-inset-bottom));
   }
 
   .title-row h1{
-    font-size: 24px;
+    font-size: 22px;
     line-height: 1.15;
   }
 
   .filters{
     display:grid !important;
     grid-template-columns: 2fr 1fr !important;
-    gap:10px !important;
+    gap:8px !important;
     align-items:stretch !important;
   }
 
   .filters .input,
   .filters .select,
   .filters .btn{
-    height:48px !important;
-    padding:0 12px !important;
-    font-size:17px !important;
+    height:40px !important;
+    padding:0 10px !important;
+    font-size:15px !important;
     width:100% !important;
     min-width:0 !important;
   }
@@ -900,27 +992,16 @@ body{
   .panel, .filters-box, .tier-panel, .tier-section, .card{
     border-radius: 14px;
   }
+
+  /* 모바일에서 stat 폭 살짝 줄여도 되지만, nowrap이라 최소폭은 유지 */
+  .col-hp, .col-atk, .col-def, .col-crit{
+    width: 96px;
+    min-width: 96px;
+  }
 }
 
 /* =========================
-   Nav button (top bar)
-========================= */
-.navbtn{
-  margin-left: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--line, rgba(255,255,255,.14));
-  background: rgba(255,255,255,.04);
-  color: inherit;
-  text-decoration: none;
-  font-size: 17px;
-}
-.navbtn:hover{
-  background: rgba(255,255,255,.08);
-}
-
-/* =========================
-   Rune Recommendation UI
+   Rune Recommendation UI (기존 유지)
 ========================= */
 .rune-wrap{
   display: grid;
@@ -943,10 +1024,10 @@ body{
   border: 1px solid var(--line, rgba(255,255,255,.14));
   background: rgba(255,255,255,.03);
   color: inherit;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 12px;
   cursor: pointer;
-  font-size: 17px;
+  font-size: 13px;
 }
 .rune-tab-btn.active{
   background: rgba(255,255,255,.10);
@@ -960,7 +1041,7 @@ body{
   border: 1px solid var(--line, rgba(255,255,255,.14));
   background: rgba(255,255,255,.03);
   border-radius: 16px;
-  padding: 14px;
+  padding: 12px;
 }
 
 .rune-build-head{
@@ -968,26 +1049,26 @@ body{
   align-items:center;
   justify-content: space-between;
   gap:10px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .rune-build-title{
   font-weight: 700;
-  font-size: 20px;
+  font-size: 15px;
 }
 
 .rune-sets{
   display:flex;
   flex-wrap:wrap;
-  gap:12px;
+  gap:10px;
   margin-bottom: 12px;
 }
 
 .rune-set-pill{
   display:flex;
   align-items:center;
-  gap:12px;
-  padding: 10px 12px;
+  gap:10px;
+  padding: 8px 10px;
   border-radius: 14px;
   border: 1px solid var(--line, rgba(255,255,255,.14));
   background: rgba(0,0,0,.10);
@@ -1007,9 +1088,9 @@ body{
   display:inline-block;
 }
 
-.rune-set-txt{ line-height: 1.2; }
-.rune-set-name{ font-weight: 700; font-size: 17px; }
-.rune-set-piece{ font-size: 16px; opacity: .75; }
+.rune-set-txt{ line-height: 1.15; }
+.rune-set-name{ font-weight: 700; font-size: 13px; }
+.rune-set-piece{ font-size: 12px; opacity: .75; }
 
 .rune-cols{
   display:grid;
@@ -1022,15 +1103,15 @@ body{
 }
 
 .rune-col-title{
-  font-size: 17px;
+  font-size: 13px;
   font-weight: 700;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   opacity: .92;
 }
 
 .rune-slots{
   display:grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .rune-slot-row{
@@ -1038,7 +1119,7 @@ body{
   grid-template-columns: 36px 1fr;
   gap: 10px;
   align-items: start;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.02);
@@ -1047,43 +1128,41 @@ body{
 .rune-slot-k{
   font-weight: 800;
   opacity: .85;
-  font-size: 17px;
 }
 .rune-slot-v{
   display:flex;
   flex-wrap:wrap;
-  gap:8px;
+  gap:6px;
 }
 .rune-stat{
   display:inline-block;
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.04);
-  font-size: 16px;
+  font-size: 12px;
 }
 
 .rune-list{
-  margin-top: 12px;
+  margin-top: 10px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(0,0,0,.06);
   border-radius: 14px;
-  padding: 12px;
+  padding: 10px;
 }
 .rune-list-title{
   font-weight: 800;
-  font-size: 17px;
-  margin-bottom: 8px;
+  font-size: 13px;
+  margin-bottom: 6px;
 }
 .rune-list ul{
   margin: 0;
   padding-left: 18px;
-  line-height: 1.65;
+  line-height: 1.45;
 }
 .rune-list li{
-  margin: 4px 0;
+  margin: 2px 0;
   opacity: .92;
-  font-size: 18px;
 }
 
 /* =========================
