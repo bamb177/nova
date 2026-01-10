@@ -811,7 +811,7 @@ function pick(obj, ...keys) {
       const effects = pick(mem, "effects", "effect");
 
       let effectsHtml = "";
-      if (Array.isArray(effects)) {
+          if (Array.isArray(effects)) {
         const charName = pick(detail, "name") || "";
         const imgUrl = `/images/games/zone-nova/card/${encodeURIComponent(String(charName))}card.jpg`;
 
@@ -823,25 +823,20 @@ function pick(obj, ...keys) {
         if (effRows.length === 0) {
           effectsHtml = `<div class="detail-empty">효과 데이터 없음</div>`;
         } else {
-          const first = effRows[0];
-          const rest = effRows.slice(1);
-
-          const tbody = [
-            `<tr>
-               <td class="memcard-imgcell" rowspan="${effRows.length}">
-                 <img class="memcard-img" src="${imgUrl}" alt="Memory Card"
-                      onerror="this.classList.add('hidden');" />
-               </td>
-               <td>${escapeHtml(first)}</td>
-             </tr>`,
-            ...rest.map(x => `<tr><td>${escapeHtml(x)}</td></tr>`)
-          ].join("");
+          const items = effRows.map(txt => {
+            return `<div class="memcard-eff">${escapeHtml(txt)}</div>`;
+          }).join("");
 
           effectsHtml = `
-            <table class="awak-table">
-              <thead><tr><th style="width:180px;">카드</th><th>효과</th></tr></thead>
-              <tbody>${tbody}</tbody>
-            </table>
+            <div class="memcard-wrap memcard-wrap--grid">
+              <div class="memcard-left">
+                <img class="memcard-img memcard-img--big" src="${imgUrl}" alt="Memory Card"
+                     onerror="this.classList.add('hidden');" />
+              </div>
+              <div class="memcard-right">
+                ${items}
+              </div>
+            </div>
           `;
         }
       } else if (effects && typeof effects === "object") {
