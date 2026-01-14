@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Optional, Any
 
 from flask import Flask, jsonify, redirect, render_template, request
-from collections import Counter 
+from collections import Counter
 
 APP_TITLE = os.getenv("APP_TITLE", "Nova")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1111,10 +1111,11 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dic
         if sc4 < -5:
             continue
         for s2 in sets:
+            # 룬 세트는 중복 장착 불가: 4세트와 2세트가 같은 세트면 제외
+            if s2 == s4:
+                continue
             sc2 = _score_set(profile, s2, 2, rune_db, tag_idx)
             total = sc4 + sc2
-            if s2 == s4:
-                total -= 1.0
             best.append((total, s4, s2))
 
     best.sort(key=lambda x: x[0], reverse=True)
