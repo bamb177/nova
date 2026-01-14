@@ -193,6 +193,171 @@ def candidate_image_keys(cid: str, raw_name: str, display_name: str, image_hint:
 # Runes: parse runes.js + resolve icons
 # -------------------------
 
+# =========================
+# Rune effect parsing (2pc/4pc text -> structured effects)
+# =========================
+
+def _parse_seconds(s: str) -> Optional[float]:
+    if not s:
+        return None
+    m = re.search(r"(\d+(?:\.\d+)?)\s*s", s.lower())
+    if not m:
+        return None
+    try:
+        return float(m.group(1))
+    except Exception:
+        return None
+
+def _pct_from_text(s: str) -> Optional[float]:
+    if not s:
+        return None
+    m = re.search(r"([+-]?\d+(?:\.\d+)?)\s*%", s)
+    if not m:
+        return None
+    try:
+        return float(m.group(1)) / 100.0
+    except Exception:
+        return None
+
+def parse_rune_effect_text(text: str) -> dict:
+    """
+    2pc/4pc 효과 문구를 '효과 벡터'로 변환.
+    반환 예:
+      {
+        "mods": {"atk_pct":0.08, "crit_rate":0.06, "basic_dmg":0.30, ...},
+        "cond": {"type":"hp_gt", "value":0.80} or {"type":"after_ultimate","dur":10},
+        "target":"self|team",
+        "notes":[...]
+      }
+    """
+    out = {"mods": {}, "cond": None, "target": "self", "notes": []}
+    if not isinstance(text, str) or not text.strip():
+        return out
+
+    t = text.strip()
+    tl = t.lower()
+
+    # --- condition parsing ---
+    # When HP >80%: ...
+    m = re.search(r"when\s+hp\s*([<>]=?)\s*(\d+(?:\.\d+)?)\s*%", tl)
+    if m:
+        op = m.group(1)
+        val = float(m.group(2)) / 100.0
+        out["cond"] = {"type": "hp_cond", "op": op, "value": val}
+        # 조건 앞부분 제거 후 본문만 남겨 파싱 계속
+        t = re.sub(r"(?i)when\s+hp\s*[<>]=?\s*\d+(?:\.\d+)?\s*%\s*:\s*", "", t).strip()
+        tl = t.lower()
+
+    # After ultimate / after dealing X
+    if "after ultimate" in tl or "after ult" in tl or "궁극기" in t or "필살기" in t:
+        dur = _parse_seconds(t)  # (10s)
+        out["cond"] = {"type": "after_ultimate", "dur": dur}
+
+    if "after dealing extra attack" in tl or "extra attack damage" in tl or "추가 공격" in t:
+        dur = _parse_seconds(t)
+        out["cond"] = {"type": "after_extra", "dur": dur}
+
+    if "after dealing continuous damage" in tl or "continuous damage" in tl or "dot" in tl or "지속" in t:
+        dur = _parse_seconds(t)
+        out["cond"] = {"type": "after_dot", "dur": dur}
+
+    if "battle start" in tl or "전투 시작" in t:
+        out["cond"] = {"type": "battle_start", "dur": None}
+
+    # stacking
+    if "stacks up to" in tl or "stack" in tl or "중첩" in t:
+        m2 = re.search(r"stacks\s+up\s+to\s+(\d+)", tl)
+        if m2:
+            out["notes"].append(f"stack_max={m2.group(1)}")
+
+    # team target
+    if "team" in tl or "파티" in t or "아군" in t:
+        out["target"] = "team"
+
+    # --- stat/damage mods parsing ---
+    # Attack Power +8%
+    if "attack power" in tl or "atk" in tl or "공격력" in t:
+        p = _pct_from_text(t)
+        if p is not None and ("attack power" in tl or "공격력" in t):
+            out["mods"]["atk_pct"] = out["mods"].get("atk_pct", 0.0) + p
+
+    # HP +8%
+    if re.search(r"\bhp\b", tl) or "체력" in t or "생명력" in t:
+        p = _pct_from_text(t)
+        if p is not None and ("hp" in tl or "체력" in t or "생명력" in t):
+            out["mods"]["hp_pct"] = out["mods"].get("hp_pct", 0.0) + p
+
+    # Defense +12%
+    if "defense" in tl or "def" in tl or "방어력" in t:
+        p = _pct_from_text(t)
+        if p is not None and ("defense" in tl or "방어력" in t):
+            out["mods"]["def_pct"] = out["mods"].get("def_pct", 0.0) + p
+
+    # Crit rate +6%
+    if "critical hit rate" in tl or "crit rate" in tl or "치명타 확률" in t or "치명률" in t or "크리" in t:
+        p = _pct_from_text(t)
+        if p is not None:
+            out["mods"]["crit_rate"] = out["mods"].get("crit_rate", 0.0) + p
+
+    # Crit damage +24%
+    if "critical hit damage" in tl or "crit damage" in tl or "치명타 피해" in t or "치피" in t or "크리피해" in t:
+        p = _pct_from_text(t)
+        if p is not None:
+            out["mods"]["crit_dmg"] = out["mods"].get("crit_dmg", 0.0) + p
+
+    # Basic Attack Damage +30%
+    if "basic attack damage" in tl or "기본 공격" in t or "평타" in t:
+        p = _pct_from_text(t)
+        if p is not None and ("damage" in tl or "피해" in t):
+            out["mods"]["basic_dmg"] = out["mods"].get("basic_dmg", 0.0) + p
+
+    # Extra Attack damage +20%
+    if "extra attack" in tl or "추가 공격" in t:
+        p = _pct_from_text(t)
+        if p is not None and ("damage" in tl or "피해" in t):
+            out["mods"]["extra_dmg"] = out["mods"].get("extra_dmg", 0.0) + p
+
+    # Continuous damage +20% (DOT)
+    if "continuous damage" in tl or "dot" in tl or "지속" in t:
+        p = _pct_from_text(t)
+        if p is not None and ("damage" in tl or "피해" in t):
+            out["mods"]["dot_dmg"] = out["mods"].get("dot_dmg", 0.0) + p
+
+    # Team damage +10%
+    if ("team" in tl and "damage" in tl) or ("파티" in t and "피해" in t):
+        p = _pct_from_text(t)
+        if p is not None:
+            out["mods"]["team_dmg"] = out["mods"].get("team_dmg", 0.0) + p
+
+    # Healing Effectiveness +10%
+    if "healing effectiveness" in tl or "치유" in t or "회복" in t:
+        p = _pct_from_text(t)
+        if p is not None:
+            out["mods"]["heal_eff"] = out["mods"].get("heal_eff", 0.0) + p
+
+    # Shield Effectiveness +20%
+    if "shield effectiveness" in tl or "보호막" in t or "실드" in t:
+        p = _pct_from_text(t)
+        if p is not None:
+            out["mods"]["shield_eff"] = out["mods"].get("shield_eff", 0.0) + p
+
+    # Energy gain at battle start
+    if ("gain" in tl and "energy" in tl) or ("에너지" in t and ("획득" in t or "얻" in t)):
+        out["mods"]["energy_start"] = 1.0
+
+    return out
+
+def rune_effects_enriched(rune_db: dict) -> dict:
+    """
+    rune_db_by_name() 결과에 2pc/4pc 파싱 결과를 붙인 사전 반환
+    """
+    out = {}
+    for name, r in rune_db.items():
+        two = parse_rune_effect_text(str(r.get("twoPiece") or ""))
+        four = parse_rune_effect_text(str(r.get("fourPiece") or ""))
+        out[name] = {**r, "_two": two, "_four": four}
+    return out
+
 def _strip_js_comments(s: str) -> str:
     s = re.sub(r"//.*?$", "", s, flags=re.M)
     s = re.sub(r"/\*.*?\*/", "", s, flags=re.S)
@@ -481,6 +646,167 @@ def rune_db_by_name() -> dict[str, dict]:
 # -------------------------
 # Rune recommendation logic
 # -------------------------
+
+def _to_float(x, default=None):
+    if x is None:
+        return default
+    if isinstance(x, (int, float)):
+        return float(x)
+    if isinstance(x, str):
+        try:
+            return float(x.replace("%","").strip())
+        except Exception:
+            return default
+    return default
+
+def _get_base_crit(detail: dict) -> tuple[float, float]:
+    """
+    캐릭터 base critRate(0~1), critDmg(보너스, 예: 0.50=+50%)
+    JSON 구조가 다를 수 있으니 보수적 기본값 사용.
+    """
+    st = _extract_canonical_stats(detail or {})
+    cr = _to_float(st.get("CRIT_RATE"), None)
+    cd = _to_float(st.get("CRIT_DMG"), None)
+
+    # 일부 데이터가 0~100(%)로 들어올 수 있으므로 보정
+    if cr is not None and cr > 1.0:
+        cr = cr / 100.0
+    if cd is not None and cd > 2.0:
+        cd = cd / 100.0
+
+    # 기본값(게임마다 다르지만 비교용)
+    if cr is None:
+        cr = 0.05
+    if cd is None:
+        cd = 0.50
+    return max(0.0, min(1.0, cr)), max(0.0, cd)
+
+def _stat_weight_by_scaling(scaling: str) -> dict:
+    # 스킬 스케일링 기반으로 “공격/체력/방어 %”가 딜에 기여하는 비중을 러프하게 가중
+    scaling = (scaling or "MIX").upper()
+    if scaling == "ATK":
+        return {"atk_pct": 1.00, "hp_pct": 0.25, "def_pct": 0.25}
+    if scaling == "HP":
+        return {"atk_pct": 0.35, "hp_pct": 1.00, "def_pct": 0.25}
+    if scaling == "DEF":
+        return {"atk_pct": 0.35, "hp_pct": 0.25, "def_pct": 1.00}
+    return {"atk_pct": 0.60, "hp_pct": 0.35, "def_pct": 0.35}
+
+def _estimate_uptime(cond: Optional[dict], profile: dict, detail: dict, burst_window_s: float = 20.0) -> float:
+    """
+    조건부 4세트의 업타임을 0~1로 추정.
+    - 제한시간(버스트) 컨텐츠 기준: burst_window_s를 짧게 잡을수록 “초반 즉발/짧은 버프”가 유리해짐
+    """
+    if not cond:
+        return 1.0
+
+    ctype = cond.get("type")
+    dur = cond.get("dur")
+    dur = float(dur) if isinstance(dur, (int, float)) else None
+
+    if ctype == "hp_cond":
+        # HP>80 유지 가능성: 자해/HP소모 문구 있으면 하락
+        texts = _collect_texts((detail or {}).get("skills"))
+        blob = "\n".join([t.lower() for t in texts])
+        bad = ["consume hp", "lose hp", "hp cost", "sacrifice", "self damage", "체력 소모", "자해", "희생", "체력 감소"]
+        if any(k in blob for k in bad):
+            return 0.55
+        return 0.80
+
+    if ctype == "battle_start":
+        # 시작 즉발은 버스트에서 항상 강함
+        return 1.0
+
+    # 트리거형: 빈도(키워드 카운트)로 대략적 발생률 추정 후, duration/burst_window로 업타임 계산
+    if ctype in ("after_ultimate", "after_extra", "after_dot"):
+        cnt_key = {"after_ultimate": "ult_cnt", "after_extra": "extra_cnt", "after_dot": "dot_cnt"}[ctype]
+        c = float(profile.get(cnt_key) or 0.0)
+
+        # 발생률(0~1): 카운트가 늘수록 증가, 과대평가 방지
+        freq = min(1.0, 0.20 * c)
+
+        if dur is None or dur <= 0:
+            # duration 정보 없으면 보수적으로 절반만
+            return 0.50 * freq
+
+        # 업타임 ≈ 발생률 * (버프 지속 / 제한시간)
+        return min(1.0, freq * (dur / max(1.0, burst_window_s)))
+
+    return 0.60
+
+def _expected_crit_gain(delta_cr: float, delta_cd: float, base_cr: float, base_cd: float) -> float:
+    """
+    기대 딜 증가를 단순화:
+      기대배율 = 1 + CR * CD
+    이때 CR/CD 변화의 1차 근사 증가량:
+      d( CR*CD ) ≈ delta_cr*base_cd + base_cr*delta_cd
+    """
+    return (max(0.0, delta_cr) * max(0.0, base_cd)) + (max(0.0, base_cr) * max(0.0, delta_cd))
+
+def score_rune_piece(effect: dict, profile: dict, detail: dict, no_crit: bool, burst_window_s: float = 20.0) -> float:
+    """
+    effect: parse_rune_effect_text() 결과(2pc 또는 4pc)
+    반환: 비교용 점수(높을수록 딜/기여 증가)
+    """
+    mods = (effect or {}).get("mods") or {}
+    cond = (effect or {}).get("cond")
+    uptime = _estimate_uptime(cond, profile, detail, burst_window_s=burst_window_s)
+
+    scaling = profile.get("scaling") or "MIX"
+    archetype = profile.get("archetype") or "dps"
+
+    w = _stat_weight_by_scaling(scaling)
+
+    base_cr, base_cd = _get_base_crit(detail or {})
+    if no_crit:
+        base_cr = 0.0
+        base_cd = 0.0
+
+    # --- 딜 관련 가중치(버스트 기준) ---
+    # “추가공격/도트 비중”은 profile 카운트로 러프 추정
+    extra_share = min(0.55, 0.12 * float(profile.get("extra_cnt") or 0))
+    dot_share = min(0.55, 0.12 * float(profile.get("dot_cnt") or 0))
+    basic_share = 0.30  # 기본 공격 비중 기본값(데이터 없을 때)
+
+    score = 0.0
+
+    # 1) 스탯% (스케일링 반영)
+    score += uptime * (mods.get("atk_pct", 0.0) * w["atk_pct"])
+    score += uptime * (mods.get("hp_pct", 0.0) * w["hp_pct"])
+    score += uptime * (mods.get("def_pct", 0.0) * w["def_pct"])
+
+    # 2) 크리 관련 (no_crit이면 자동 0)
+    if not no_crit:
+        dcr = mods.get("crit_rate", 0.0)
+        dcd = mods.get("crit_dmg", 0.0)
+        score += uptime * _expected_crit_gain(dcr, dcd, base_cr, base_cd)
+
+    # 3) 피해 계열(공격 타입별 비중 반영)
+    score += uptime * (mods.get("basic_dmg", 0.0) * basic_share)
+    score += uptime * (mods.get("extra_dmg", 0.0) * extra_share)
+    score += uptime * (mods.get("dot_dmg", 0.0) * dot_share)
+
+    # 4) 팀 피해(딜러에게도 제한시간에서 유효하지만, 개인딜보다 낮게)
+    score += uptime * (mods.get("team_dmg", 0.0) * 0.60)
+
+    # 5) 힐/실드(딜 최적화 기준에서는 낮게. 단 archetype별로 보정 가능)
+    if archetype == "healer":
+        score += uptime * (mods.get("heal_eff", 0.0) * 0.80)
+    else:
+        score += uptime * (mods.get("heal_eff", 0.0) * 0.05)
+
+    if archetype == "tank":
+        score += uptime * (mods.get("shield_eff", 0.0) * 0.60)
+    else:
+        score += uptime * (mods.get("shield_eff", 0.0) * 0.05)
+
+    # 6) 전투 시작 에너지: 제한시간(버스트)에서 강력. 궁극기 빈도가 높을수록 점수↑
+    if mods.get("energy_start"):
+        ult = float(profile.get("ult_cnt") or 0.0)
+        score += 0.12 + min(0.10, 0.02 * ult)
+
+    return score
+
 
 _KW_HEAL = ["heal", "healing", "restore", "recovery", "회복", "치유", "힐"]
 _KW_SHIELD = ["shield", "barrier", "보호막", "실드"]
@@ -1282,65 +1608,80 @@ def _substats_for(archetype: str, scaling: str, no_crit: bool) -> list[str]:
     return out
 
 
-def _pick_sets(profile: dict, base: dict, no_crit: bool) -> tuple[list[dict], list[list[dict]], list[str]]:
-    archetype = profile["archetype"]
-    dot = profile["dot_cnt"] > 0
-    extra = profile["extra_cnt"] > 0
-    shield = profile["shield_cnt"] > 0
-    ult = profile["ult_cnt"] > 0
-
-    primary: list[dict] = []
-    alternates: list[list[dict]] = []
+def _pick_sets(profile: dict, base: dict, no_crit: bool, detail: dict = None) -> tuple[list[dict], list[list[dict]], list[str]]:
+    """
+    ✅ 모든 룬을 대상으로 4pc 후보 + 2pc 후보를 전수 평가.
+    - 점수는 2pc 효과 + 4pc 효과를 모두 반영
+    - 제한시간 버스트 컨텐츠를 기본 가정(burst_window_s=20). 필요 시 조정 가능.
+    """
     rationale: list[str] = []
+    alternates: list[list[dict]] = []
 
-    # off-piece 2set 선택: critless면 Beth 제외
-    off2 = {"set": ("Epsilon" if no_crit else "Beth"), "pieces": 2}
+    rune_db = rune_db_by_name()
+    enriched = rune_effects_enriched(rune_db)
 
-    if archetype == "tank":
-        if shield:
-            primary = [{"set": "Shattered Foundation", "pieces": 4}, {"set": "Zahn", "pieces": 2}]
-            rationale.append("보호막/생존 키워드 감지 → 방어/보호막 세트 우선.")
-        else:
-            primary = [{"set": "Zahn", "pieces": 4}, {"set": "Shattered Foundation", "pieces": 2}]
-            rationale.append("탱커 분류 → HP/피해감소 중심 세트 우선.")
-        return primary, alternates, rationale
+    # 버스트 시간(제한시간 내 최고딜) 기본값
+    burst_window_s = 20.0
 
-    if archetype == "healer":
-        primary = [{"set": "Daleth", "pieces": 4}, {"set": "Zahn", "pieces": 2}]
-        rationale.append("힐러 분류 → 치유 효율/초반 에너지/생존 세트 우선.")
-        if profile.get("healer_hybrid"):
-            alternates.append([{"set": "Daleth", "pieces": 4}, {"set": ("Epsilon" if no_crit else "Beth"), "pieces": 2}])
-            alternates.append([{"set": "Epsilon", "pieces": 4}, {"set": "Daleth", "pieces": 2}])
-            rationale.append("힐러지만 공격 스케일링이 강함(하이브리드) → 딜 보조 대체안 제공.")
-        return primary, alternates, rationale
+    # 4pc 가능한 룬만
+    candidates_4 = []
+    candidates_2 = []
 
-    if archetype == "debuffer":
-        primary = [{"set": "Epsilon", "pieces": 4}, {"set": "Zahn", "pieces": 2}]
-        rationale.append("디버퍼 분류 → 궁극기/파티 기여 중심(Epsilon) 세트 우선.")
-        if not no_crit:
-            alternates.append([{"set": "Epsilon", "pieces": 4}, {"set": "Beth", "pieces": 2}])
-        return primary, alternates, rationale
+    for name, r in enriched.items():
+        # 2pc/4pc 텍스트가 비어있지 않으면 후보
+        if str(r.get("twoPiece") or "").strip():
+            candidates_2.append(name)
+        if str(r.get("fourPiece") or "").strip():
+            candidates_4.append(name)
 
-    # dps
-    if dot:
-        primary = [{"set": "Gimel", "pieces": 4}, off2]
-        alternates.append([{"set": "Alpha", "pieces": 4}, off2])
-        rationale.append("지속피해(DOT) 키워드 감지 → DOT 강화 세트 우선.")
-        return primary, alternates, rationale
+    if not candidates_4:
+        return [{"set": "Alpha", "pieces": 4}, {"set": "Beth", "pieces": 2}], alternates, ["4세트 후보가 없어 기본값 적용"]
 
-    if extra:
-        primary = [{"set": "Hert", "pieces": 4}, off2]
-        alternates.append([{"set": "Alpha", "pieces": 4}, off2])
-        rationale.append("추가공격 키워드 감지 → 추가공격 강화 세트 우선.")
-        return primary, alternates, rationale
+    best = None  # (score, set4, set2)
+    scored_list = []
 
-    primary = [{"set": "Alpha", "pieces": 4}, off2]
-    rationale.append("기본 딜러 분류 → 범용 딜 세트(Alpha) 우선.")
-    if ult:
-        alternates.append([{"set": "Epsilon", "pieces": 4}, off2])
-        rationale.append("궁극기/파티 기여 키워드 감지 → 팀 딜 보조(Epsilon) 대체안 제공.")
+    for s4 in candidates_4:
+        e4 = enriched[s4]["_four"]
+        e4_score = score_rune_piece(e4, profile, detail or {}, no_crit, burst_window_s=burst_window_s)
+        # 4세트는 “2pc도 동시에 적용될 수 있음” 가정(게임 룰에 따라 다르면 조정)
+        # 만약 4세트 장착 시 2pc도 같이 활성화라면, 아래처럼 2pc 점수도 더하는 것이 합리적
+        e4_score += score_rune_piece(enriched[s4]["_two"], profile, detail or {}, no_crit, burst_window_s=burst_window_s)
+
+        for s2 in candidates_2:
+            if s2 == s4:
+                continue
+            e2 = enriched[s2]["_two"]
+            e2_score = score_rune_piece(e2, profile, detail or {}, no_crit, burst_window_s=burst_window_s)
+
+            total = e4_score + e2_score
+            scored_list.append((total, s4, s2))
+
+    scored_list.sort(reverse=True, key=lambda x: x[0])
+
+    if not scored_list:
+        return [{"set": candidates_4[0], "pieces": 4}, {"set": candidates_2[0] if candidates_2 else candidates_4[0], "pieces": 2}], alternates, ["후보 평가 실패로 임의 선택"]
+
+    best_total, best4, best2 = scored_list[0]
+
+    primary = [{"set": best4, "pieces": 4}, {"set": best2, "pieces": 2}]
+
+    # 대체안(상위 2~4개)
+    for i in range(1, min(4, len(scored_list))):
+        _, a4, a2 = scored_list[i]
+        alternates.append([{"set": a4, "pieces": 4}, {"set": a2, "pieces": 2}])
+
+    # 근거(요약)
+    rationale.append(f"버스트(제한시간) 기대값 점수 기반 전수평가: 1위 {best4}4 + {best2}2 (score={best_total:.4f})")
+    rationale.append(f"판정 요약: scaling={profile.get('scaling')}, no_crit={no_crit}, extra_cnt={profile.get('extra_cnt')}, dot_cnt={profile.get('dot_cnt')}, ult_cnt={profile.get('ult_cnt')}")
+
+    sample_text = profile.get("sample_text")
+    if sample_text:
+        rationale.append(f"스케일링 근거 문구: '{sample_text[:120]}'")
+
+    if no_crit:
+        rationale.append("크리티컬 불가/0 탐지 → 치확/치피 관련 효과는 점수에서 자동 무효 처리.")
+
     return primary, alternates, rationale
-
 
 def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
     overrides = load_rune_overrides()
