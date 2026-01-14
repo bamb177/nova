@@ -51,69 +51,10 @@
   
     /* ✅ Tier 상단 버튼(전체선택/해제) 우측 정렬 */
     .tier-topline{
-      display:grid;
-      grid-template-columns: minmax(220px, 360px) minmax(180px, 260px) minmax(160px, 240px) 1fr auto;
-      grid-template-areas:
-        "preset build ai spacer actions"
-        "class  class class class  class";
-      gap: 12px;
-      align-items: center;
-    }
-    /* grid areas */
-    #tierPreset{ grid-area: preset; width:100%; }
-    #btnBuildTierParty{ grid-area: build; justify-self:start; }
-    #btnAiParty{ grid-area: ai; justify-self:start; }
-    .tier-actions-inline{
-      grid-area: actions;
       display:flex;
+      align-items:center;
       gap:10px;
-      align-items:center;
-      justify-content:flex-end;
-      flex-wrap:nowrap;
-    }
-    .tier-class-inline{
-      grid-area: class;
-      display:flex;
-      align-items:center;
-      gap:12px;
       flex-wrap:wrap;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
-      min-width: 0;
-    }
-    .tier-classes-inline{ display:flex; flex-wrap:wrap; gap:8px; min-width:0; }
-
-    /* mid widths: keep tidy */
-    @media (max-width: 980px){
-      .tier-topline{
-        grid-template-columns: 1fr 1fr;
-        grid-template-areas:
-          "preset preset"
-          "build ai"
-          "actions actions"
-          "class class";
-        align-items: stretch;
-      }
-      #btnBuildTierParty, #btnAiParty{ width:100%; }
-      .tier-actions-inline{ justify-self:stretch; justify-content:flex-end; }
-    }
-
-    /* mobile */
-    @media (max-width: 560px){
-      .tier-topline{
-        grid-template-columns: 1fr;
-        grid-template-areas:
-          "preset"
-          "build"
-          "ai"
-          "actions"
-          "class";
-      }
-      #btnBuildTierParty, #btnAiParty{ width:100%; }
-      .tier-actions-inline{ justify-content:space-between; width:100%; }
     }
     .tier-topline .tier-actions-inline{
       margin-left:auto;
@@ -270,19 +211,7 @@
       }
       .tier-classes-inline::-webkit-scrollbar{ height: 8px; }
       .tier-classes-inline::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.14); border-radius: 999px; }
-      .tier-classes-inline .tier-class-item{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding: 7px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.03);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
-      white-space: nowrap;
-      user-select:none;
-    }
-    .tier-class-item input{ accent-color: rgba(255,255,255,.9); }
+      .tier-classes-inline .tier-class-item{ white-space: nowrap; }
     }
 
     /* Tier panel box itself a bit clearer */
@@ -506,6 +435,84 @@ html, body{
       font-weight: 900;
       letter-spacing: .2px;
     }
+
+    /* =========================
+       Tier panel — PC 2줄 고정 레이아웃(공간 효율 개선)
+       1줄: 등급표선택 / 등급표 파티 / AI 파티 / (여백) / 전체선택 / 전체해제
+       2줄: 선택클래스 / Buffer..Warrior (7개)
+    ========================= */
+    .tier-row.tier-topline{
+      display:grid !important;
+      grid-template-columns: minmax(260px, 420px) minmax(220px, 280px) minmax(200px, 260px) 1fr auto;
+      align-items:center;
+      gap:12px;
+      flex-wrap: unset !important;
+    }
+    .tier-top-spacer{ min-width: 8px; }
+
+    .tier-row.tier-classline{
+      margin-top: 10px;
+    }
+    .tier-class-inline{
+      width: 100%;
+      min-width: 0 !important;
+      display:grid;
+      grid-template-columns: auto 1fr;
+      align-items:center;
+      gap: 12px;
+      padding: 10px 12px;
+    }
+    .tier-check-inline{
+      white-space: nowrap;
+    }
+
+    /* ✅ 클래스 7개: PC에서는 한 줄(7컬럼), 창이 줄어들면 4/3로 자동 */
+    .tier-classes-inline{
+      display:grid !important;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap:10px;
+      align-items:stretch;
+      margin-left: 0 !important;
+      width: 100%;
+      min-width: 0;
+    }
+    .tier-classes-inline .tier-class-item,
+    .tier-classes-inline label.tier-class-item{
+      min-width: 0 !important;
+      width: 100%;
+      padding: 10px 10px;
+      border-radius: 14px;
+      justify-content:flex-start;
+      gap: 8px;
+    }
+    .tier-classes-inline .tier-class-item span,
+    .tier-classes-inline label.tier-class-item span{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    /* 중간 폭: 4/3(2행) */
+    @media (max-width: 1100px){
+      .tier-classes-inline{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    /* 모바일: 기존처럼 wrap (가독성 우선) */
+    @media (max-width: 720px){
+      .tier-row.tier-topline{
+        grid-template-columns: 1fr;
+      }
+      .tier-actions-inline{
+        justify-content:flex-start;
+      }
+      .tier-class-inline{
+        grid-template-columns: 1fr;
+      }
+      .tier-classes-inline{
+        display:flex !important;
+        flex-wrap: wrap;
+      }
+    }
+
 </style>
 </head>
 
@@ -586,18 +593,23 @@ html, body{
             <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
             <button class="btn" id="btnAiParty" type="button" disabled>AI 추천 파티</button>
 
-            
+            <div class="tier-top-spacer" aria-hidden="true"></div>
+
+            <!-- ✅ 전체선택/전체해제: 1줄 우측 -->
+            <div class="tier-actions-inline">
+              <button class="btn" id="btnAll" type="button">전체 선택</button>
+              <button class="btn" id="btnNone" type="button">전체 해제</button>
+            </div>
+          </div>
+
+          <!-- ✅ 2줄: 선택 클래스 포함 조건 + 클래스(7개) -->
+          <div class="tier-row tier-classline">
             <div class="tier-class-inline" id="tierClassInline">
               <label class="tier-check tier-check-inline" title="체크한 클래스가 파티(4인)에 포함되도록 구성합니다. 후보를 해당 클래스로만 제한하지 않습니다.">
                 <input type="checkbox" id="useClassFilter" />
                 선택 클래스 포함 조건
               </label>
               <div class="tier-classes tier-classes-inline" id="tierClassBox" aria-disabled="true"></div>
-            </div>
-<!-- ✅ 전체선택/전체해제: 등급표 상단 우측 정렬 -->
-            <div class="tier-actions-inline">
-              <button class="btn" id="btnAll" type="button">전체 선택</button>
-              <button class="btn" id="btnNone" type="button">전체 해제</button>
             </div>
           </div>
 <div id="tierPartyResult" class="tier-result"></div>
