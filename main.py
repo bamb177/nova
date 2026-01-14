@@ -643,305 +643,22 @@ def rune_db_by_name() -> dict[str, dict]:
     return {str(r.get("name")): r for r in db if isinstance(r, dict) and r.get("name")}
 
 
+
 # -------------------------
-# Rune recommendation logic
+# Rune recommendation logic (C) — exhaustive scoring across all rune sets
 # -------------------------
 
-def _to_float(x, default=None):
-    if x is None:
-        return default
-    if isinstance(x, (int, float)):
-        return float(x)
-    if isinstance(x, str):
-        try:
-            return float(x.replace("%","").strip())
-        except Exception:
-            return default
-    return default
+# Keyword buckets (EN + KO) — use broad matching to survive translation variance
+_KW_HEAL = ["heal", "healing", "restore", "recovery", "regen", "회복", "치유", "힐", "재생", "회복량"]
+_KW_SHIELD = ["shield", "barrier", "guard", "protect", "보호막", "실드", "방벽"]
+_KW_DOT = ["continuous damage", "damage over time", "dot", "burn", "bleed", "poison", "지속", "지속 피해", "도트", "화상", "중독", "출혈"]
+_KW_EXTRA = ["extra attack", "follow-up", "follow up", "additional attack", "추가 공격", "추격", "연속 공격", "추가타"]
+_KW_ULT = ["ultimate", "ult", "burst", "궁극기", "필살기"]
+_KW_CRIT_OFF = ["cannot critically", "can't critically", "cannot crit", "can't crit", "does not crit", "no critical",
+                "크리티컬 불가", "치명타 불가", "치명타가 발생하지", "크리티컬이 발생하지", "치명타가 발생하지 않"]
 
-def _get_base_crit(detail: dict) -> tuple[float, float]:
-    """
-    캐릭터 base critRate(0~1), critDmg(보너스, 예: 0.50=+50%)
-    JSON 구조가 다를 수 있으니 보수적 기본값 사용.
-    """
-    st = _extract_canonical_stats(detail or {})
-    cr = _to_float(st.get("CRIT_RATE"), None)
-    cd = _to_float(st.get("CRIT_DMG"), None)
-
-    # 일부 데이터가 0~100(%)로 들어올 수 있으므로 보정
-    if cr is not None and cr > 1.0:
-        cr = cr / 100.0
-    if cd is not None and cd > 2.0:
-        cd = cd / 100.0
-
-    # 기본값(게임마다 다르지만 비교용)
-    if cr is None:
-        cr = 0.05
-    if cd is None:
-        cd = 0.50
-    return max(0.0, min(1.0, cr)), max(0.0, cd)
-
-def _stat_weight_by_scaling(scaling: str) -> dict:
-    # 스킬 스케일링 기반으로 “공격/체력/방어 %”가 딜에 기여하는 비중을 러프하게 가중
-    scaling = (scaling or "MIX").upper()
-    if scaling == "ATK":
-        return {"atk_pct": 1.00, "hp_pct": 0.25, "def_pct": 0.25}
-    if scaling == "HP":
-        return {"atk_pct": 0.35, "hp_pct": 1.00, "def_pct": 0.25}
-    if scaling == "DEF":
-        return {"atk_pct": 0.35, "hp_pct": 0.25, "def_pct": 1.00}
-    return {"atk_pct": 0.60, "hp_pct": 0.35, "def_pct": 0.35}
-
-def _estimate_uptime(cond: Optional[dict], profile: dict, detail: dict, burst_window_s: float = 20.0) -> float:
-    """
-    조건부 4세트의 업타임을 0~1로 추정.
-    - 제한시간(버스트) 컨텐츠 기준: burst_window_s를 짧게 잡을수록 “초반 즉발/짧은 버프”가 유리해짐
-    """
-    if not cond:
-        return 1.0
-
-    ctype = cond.get("type")
-    dur = cond.get("dur")
-    dur = float(dur) if isinstance(dur, (int, float)) else None
-
-    if ctype == "hp_cond":
-        # HP>80 유지 가능성: 자해/HP소모 문구 있으면 하락
-        texts = _collect_texts((detail or {}).get("skills"))
-        blob = "\n".join([t.lower() for t in texts])
-        bad = ["consume hp", "lose hp", "hp cost", "sacrifice", "self damage", "체력 소모", "자해", "희생", "체력 감소"]
-        if any(k in blob for k in bad):
-            return 0.55
-        return 0.80
-
-    if ctype == "battle_start":
-        # 시작 즉발은 버스트에서 항상 강함
-        return 1.0
-
-    # 트리거형: 빈도(키워드 카운트)로 대략적 발생률 추정 후, duration/burst_window로 업타임 계산
-    if ctype in ("after_ultimate", "after_extra", "after_dot"):
-        cnt_key = {"after_ultimate": "ult_cnt", "after_extra": "extra_cnt", "after_dot": "dot_cnt"}[ctype]
-        c = float(profile.get(cnt_key) or 0.0)
-
-        # 발생률(0~1): 카운트가 늘수록 증가, 과대평가 방지
-        freq = min(1.0, 0.20 * c)
-
-        if dur is None or dur <= 0:
-            # duration 정보 없으면 보수적으로 절반만
-            return 0.50 * freq
-
-        # 업타임 ≈ 발생률 * (버프 지속 / 제한시간)
-        return min(1.0, freq * (dur / max(1.0, burst_window_s)))
-
-    return 0.60
-
-def _expected_crit_gain(delta_cr: float, delta_cd: float, base_cr: float, base_cd: float) -> float:
-    """
-    기대 딜 증가를 단순화:
-      기대배율 = 1 + CR * CD
-    이때 CR/CD 변화의 1차 근사 증가량:
-      d( CR*CD ) ≈ delta_cr*base_cd + base_cr*delta_cd
-    """
-    return (max(0.0, delta_cr) * max(0.0, base_cd)) + (max(0.0, base_cr) * max(0.0, delta_cd))
-
-def score_rune_piece(effect: dict, profile: dict, detail: dict, no_crit: bool, burst_window_s: float = 20.0) -> float:
-    """
-    effect: parse_rune_effect_text() 결과(2pc 또는 4pc)
-    반환: 비교용 점수(높을수록 딜/기여 증가)
-    """
-    mods = (effect or {}).get("mods") or {}
-    cond = (effect or {}).get("cond")
-    uptime = _estimate_uptime(cond, profile, detail, burst_window_s=burst_window_s)
-
-    scaling = profile.get("scaling") or "MIX"
-    archetype = profile.get("archetype") or "dps"
-
-    w = _stat_weight_by_scaling(scaling)
-
-    base_cr, base_cd = _get_base_crit(detail or {})
-    if no_crit:
-        base_cr = 0.0
-        base_cd = 0.0
-
-    # --- 딜 관련 가중치(버스트 기준) ---
-    # “추가공격/도트 비중”은 profile 카운트로 러프 추정
-    extra_share = min(0.55, 0.12 * float(profile.get("extra_cnt") or 0))
-    dot_share = min(0.55, 0.12 * float(profile.get("dot_cnt") or 0))
-    basic_share = 0.30  # 기본 공격 비중 기본값(데이터 없을 때)
-
-    score = 0.0
-
-    # 1) 스탯% (스케일링 반영)
-    score += uptime * (mods.get("atk_pct", 0.0) * w["atk_pct"])
-    score += uptime * (mods.get("hp_pct", 0.0) * w["hp_pct"])
-    score += uptime * (mods.get("def_pct", 0.0) * w["def_pct"])
-
-    # 2) 크리 관련 (no_crit이면 자동 0)
-    if not no_crit:
-        dcr = mods.get("crit_rate", 0.0)
-        dcd = mods.get("crit_dmg", 0.0)
-        score += uptime * _expected_crit_gain(dcr, dcd, base_cr, base_cd)
-
-    # 3) 피해 계열(공격 타입별 비중 반영)
-    score += uptime * (mods.get("basic_dmg", 0.0) * basic_share)
-    score += uptime * (mods.get("extra_dmg", 0.0) * extra_share)
-    score += uptime * (mods.get("dot_dmg", 0.0) * dot_share)
-
-    # 4) 팀 피해(딜러에게도 제한시간에서 유효하지만, 개인딜보다 낮게)
-    score += uptime * (mods.get("team_dmg", 0.0) * 0.60)
-
-    # 5) 힐/실드(딜 최적화 기준에서는 낮게. 단 archetype별로 보정 가능)
-    if archetype == "healer":
-        score += uptime * (mods.get("heal_eff", 0.0) * 0.80)
-    else:
-        score += uptime * (mods.get("heal_eff", 0.0) * 0.05)
-
-    if archetype == "tank":
-        score += uptime * (mods.get("shield_eff", 0.0) * 0.60)
-    else:
-        score += uptime * (mods.get("shield_eff", 0.0) * 0.05)
-
-    # 6) 전투 시작 에너지: 제한시간(버스트)에서 강력. 궁극기 빈도가 높을수록 점수↑
-    if mods.get("energy_start"):
-        ult = float(profile.get("ult_cnt") or 0.0)
-        score += 0.12 + min(0.10, 0.02 * ult)
-
-    return score
-
-
-_KW_HEAL = ["heal", "healing", "restore", "recovery", "회복", "치유", "힐"]
-_KW_SHIELD = ["shield", "barrier", "보호막", "실드"]
-_KW_DOT = ["continuous damage", "dot", "burn", "bleed", "poison", "지속", "지속 피해", "도트"]
-_KW_EXTRA = ["extra attack", "follow-up", "추가 공격", "추격", "연속 공격"]
-_KW_ULT = ["ultimate", "ult", "궁극기", "필살기"]
-
-# ✅ no-crit 텍스트 힌트(데이터에 스탯 키가 없을 때 보완)
-_KW_NO_CRIT = [
-    "cannot crit", "can't crit", "no critical", "non-critical",
-    "critical hit cannot", "critical cannot",
-    "치명타 불가", "치명타가 발생하지", "크리티컬 불가", "크리티컬이 발생하지",
-]
-
-# =========================
-# Skill/Stat parsing 강화
-# =========================
-
-_SKILL_TYPE_ALIASES = {
-    "normal": [
-        "normal", "basic", "basic attack", "normal attack", "auto attack",
-        "일반", "기본", "평타", "통상", "일반공격", "기본공격",
-    ],
-    "auto": [
-        "auto", "active", "skill", "special", "combat skill",
-        "자동", "액티브", "스킬", "특수", "전투스킬",
-    ],
-    "ultimate": [
-        "ultimate", "ult", "burst", "finisher",
-        "궁극", "필살", "궁극기", "필살기", "버스트",
-    ],
-    "passive": [
-        "passive", "talent", "trait", "aura",
-        "패시브", "특성", "재능", "오라",
-    ],
-    "team": [
-        "team", "teamskill", "team skill",
-        "팀", "팀스킬", "파티", "연계",
-    ],
-}
-
-# 스킬 타입별 가중치(스케일링 판정에 반영)
-_SKILL_TYPE_WEIGHT = {
-    "ultimate": 1.45,
-    "auto": 1.20,
-    "normal": 1.00,
-    "passive": 0.85,
-    "team": 1.05,
-    "unknown": 1.00,
-}
-
-# stats 키 후보(영/한/약어/번역 흔들림 대비)
-_STAT_KEY_CANDIDATES = {
-    "HP": [
-        "hp", "maxhp", "max_hp", "health", "maxhealth", "life", "vitality",
-        "체력", "최대체력", "생명력", "최대생명력",
-    ],
-    "ATK": [
-        "atk", "attack", "attackpower", "attack_power", "power",
-        "공격", "공격력", "공격력증가",
-    ],
-    "DEF": [
-        "def", "defense", "defence", "armor", "armour",
-        "방어", "방어력", "방어도",
-    ],
-    "CRIT_RATE": [
-        "critrate", "crit_rate", "criticalrate", "critical_rate",
-        "criticalhitrate", "critical_hit_rate", "crit", "cr",
-        "치명", "치명률", "치명타", "치명타확률", "치명타확률증가",
-        "크리", "크리확률", "크리티컬확률",
-    ],
-    "CRIT_DMG": [
-        "critdmg", "crit_dmg", "criticaldmg", "critical_dmg", "criticaldamage", "critical_damage",
-        "criticalhitdamage", "critical_hit_damage", "cd",
-        "치명타피해", "치피", "크리피해", "크리티컬피해",
-    ],
-    "CAN_CRIT": [
-        "cancrit", "can_crit", "criticalenabled", "critical_enabled",
-        "cannotcrit", "cannot_crit", "critdisabled", "crit_disabled",
-        "치명타가능", "치명타불가", "크리불가",
-    ],
-}
-
-# 스케일링 탐지용 키워드(문장 내 표기)
-_SCALE_KEYS = {
-    "ATK": ["attack power", "attack", "atk", "공격력", "공격"],
-    "HP": ["max hp", "hp", "health", "life", "체력", "생명력", "최대체력", "최대 생명력"],
-    "DEF": ["defense", "defence", "def", "armor", "방어력", "방어"],
-}
-
-def _norm_k(s: str) -> str:
-    s = (s or "").strip().lower()
-    s = s.replace("’", "'")
-    s = re.sub(r"[\s\-_]+", "", s)
-    s = re.sub(r"[^a-z0-9가-힣]", "", s)
-    return s
-
-def _guess_skill_type_from_text(text: str) -> str:
-    tl = (text or "").strip().lower()
-    for typ, kws in _SKILL_TYPE_ALIASES.items():
-        for k in kws:
-            if k in tl:
-                return typ
-    return "unknown"
-
-def _guess_skill_type(skill_obj: dict, fallback_text: str = "") -> str:
-    """
-    skill dict 내부 키/값을 보고 normal/auto/ultimate/passive/team 추정.
-    """
-    if not isinstance(skill_obj, dict):
-        return _guess_skill_type_from_text(fallback_text)
-
-    # 우선적으로 type/kind/category 같은 키를 확인
-    for key in ["type", "kind", "category", "slot", "skillType", "skill_type", "tag", "group"]:
-        v = skill_obj.get(key)
-        if isinstance(v, str) and v.strip():
-            t = _guess_skill_type_from_text(v)
-            if t != "unknown":
-                return t
-
-    # 이름/제목도 힌트가 됨
-    for key in ["name", "title", "label"]:
-        v = skill_obj.get(key)
-        if isinstance(v, str) and v.strip():
-            t = _guess_skill_type_from_text(v)
-            if t != "unknown":
-                return t
-
-    # 그래도 없으면 fallback_text
-    return _guess_skill_type_from_text(fallback_text)
 
 def _collect_texts(x) -> list[str]:
-    """
-    (기존 함수 대체) 문자열을 깊게 수집.
-    """
     out: list[str] = []
 
     def walk(v):
@@ -971,463 +688,242 @@ def _collect_texts(x) -> list[str]:
             uniq.append(s)
     return uniq
 
-def _collect_skill_texts(detail: dict) -> list[tuple[str, str]]:
-    """
-    skills / teamSkill 구조가 리스트/딕셔너리/중첩이든 간에
-    가능한 한 (skill_type, text) 형태로 수집한다.
-    """
-    pairs: list[tuple[str, str]] = []
 
-    if not isinstance(detail, dict):
-        return pairs
+def _get_first(d: dict, keys: list[str]):
+    for k in keys:
+        if k in d:
+            return d.get(k)
+    return None
 
-    def push(typ: str, txt: str):
-        t = (txt or "").strip()
-        if t:
-            pairs.append((typ, t))
 
-    # 1) skills
-    skills = detail.get("skills")
-    if skills is None:
-        # 흔한 변형 키
-        for k in ["skill", "Skill", "abilities", "ability", "combatSkills", "combat_skills"]:
-            if k in detail:
-                skills = detail.get(k)
-                break
-
-    def walk_skill_obj(obj, forced_type: Optional[str] = None):
-        if obj is None:
-            return
-        if isinstance(obj, str):
-            push(forced_type or "unknown", obj)
-            return
-        if isinstance(obj, list):
-            for it in obj:
-                walk_skill_obj(it, forced_type)
-            return
-        if isinstance(obj, dict):
-            # 스킬 객체: description 계열 우선
-            typ = forced_type or _guess_skill_type(obj)
-            for k in ["description", "desc", "effect", "text", "detail", "tooltip", "summary"]:
-                v = obj.get(k)
-                if isinstance(v, str):
-                    push(typ, v)
-                elif isinstance(v, (dict, list)):
-                    for s in _collect_texts(v):
-                        push(typ, s)
-
-            # 각 레벨/단계 효과도 포함
-            for k in ["levels", "level", "rank", "ranks", "effects"]:
-                v = obj.get(k)
-                if isinstance(v, (list, dict)):
-                    for s in _collect_texts(v):
-                        push(typ, s)
-
-            # 남은 필드도 한번 훑되, 과도한 노이즈 방지 위해 문자열만
-            for kk, vv in obj.items():
-                if kk in ("description","desc","effect","text","detail","tooltip","summary","levels","level","rank","ranks","effects"):
-                    continue
-                if isinstance(vv, str) and len(vv.strip()) >= 8:
-                    # 짧은 라벨은 노이즈가 많아 길이 제한
-                    push(typ, vv)
-
-            return
-
-    # skills 구조 처리
-    if isinstance(skills, list):
-        for it in skills:
-            walk_skill_obj(it, None)
-    elif isinstance(skills, dict):
-        # {"normal": {...}, "ultimate": {...}} 같은 케이스
-        for k, v in skills.items():
-            forced = _guess_skill_type_from_text(str(k))
-            walk_skill_obj(v, forced if forced != "unknown" else None)
-
-    # 2) teamSkill
-    team = detail.get("teamSkill") or detail.get("team_skill") or detail.get("team")
-    if team is not None:
-        # teamSkill은 타입을 team으로 강제
-        for s in _collect_texts(team):
-            push("team", s)
-
-    # 중복 제거(타입+텍스트)
-    seen = set()
-    uniq: list[tuple[str, str]] = []
-    for typ, txt in pairs:
-        key = (typ, txt)
-        if key not in seen:
-            seen.add(key)
-            uniq.append(key)
-    return uniq
-
-def _try_parse_percent(x: str) -> Optional[float]:
-    try:
-        return float(x)
-    except Exception:
+def _as_float(v) -> Optional[float]:
+    if v is None:
         return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str):
+        s = v.strip().replace(",", "")
+        if not s:
+            return None
+        m = re.search(r"-?\d+(?:\.\d+)?", s)
+        if not m:
+            return None
+        try:
+            return float(m.group(0))
+        except Exception:
+            return None
+    return None
 
-def _pct_hits(text: str, keys: list[str]) -> list[float]:
+
+def _normalize_stats(detail: dict) -> dict[str, Optional[float]]:
     """
-    (기존 함수 교체) 스케일링 %를 더 촘촘하게 탐지.
-    반환값은 '퍼센트 수치'로 통일(예: 1.2배는 120으로 변환).
+    JSON 스키마 편차 흡수:
+    - stats / stat / attributes / attribute / baseStats / base_stats 등
+    - hp / health / maxHp / maxHP / atk / attack / attackPower / def / defense / critRate 등
     """
-    hits: list[float] = []
-    if not text:
-        return hits
+    stats_obj = None
+    for key in ["stats", "stat", "attributes", "attribute", "baseStats", "base_stats", "base", "status"]:
+        v = detail.get(key)
+        if isinstance(v, (dict, list)):
+            stats_obj = v
+            break
 
-    t = text.lower()
+    out = {"hp": None, "attack": None, "defense": None, "critRate": None}
 
-    # 0) ATK×1.2 / ATK*1.2 / 1.2*ATK / ATK x 1.2
-    #    -> 120%로 환산
-    for k in keys:
-        kk = re.escape(k.lower())
-        for m in re.finditer(rf"\b{kk}\b\s*[\*x×]\s*(\d+(?:\.\d+)?)", t):
-            v = _try_parse_percent(m.group(1))
-            if v is not None:
-                hits.append(v * 100.0)
-        for m in re.finditer(rf"(\d+(?:\.\d+)?)\s*[\*x×]\s*\b{kk}\b", t):
-            v = _try_parse_percent(m.group(1))
-            if v is not None:
-                hits.append(v * 100.0)
+    # dict 형태
+    if isinstance(stats_obj, dict):
+        hp = _get_first(stats_obj, ["hp", "HP", "health", "Health", "maxHp", "maxHP", "MaxHP", "max_hp"])
+        atk = _get_first(stats_obj, ["attack", "Attack", "atk", "ATK", "attackPower", "attack_power", "atkPower", "atk_power"])
+        de = _get_first(stats_obj, ["defense", "Defense", "def", "DEF", "defence", "Defence"])
+        cr = _get_first(stats_obj, ["critRate", "crit_rate", "crit", "criticalRate", "critical_rate", "치명타", "치확", "크리티컬"])
+        out["hp"] = _as_float(hp)
+        out["attack"] = _as_float(atk)
+        out["defense"] = _as_float(de)
+        out["critRate"] = _as_float(cr)
 
-    # 1) "120% attack power" / "120% of ATK" / "120% ATK"
-    for k in keys:
-        kk = re.escape(k.lower())
-        # "120% ... atk"
-        for m in re.finditer(rf"(\d+(?:\.\d+)?)\s*%\s*[^%\n]{{0,40}}\b{kk}\b", t):
-            v = _try_parse_percent(m.group(1))
-            if v is not None:
-                hits.append(v)
-
-        # "120% of atk"
-        for m in re.finditer(rf"(\d+(?:\.\d+)?)\s*%\s*(?:of|based\s+on|equal\s+to)\s*[^%\n]{{0,20}}\b{kk}\b", t):
-            v = _try_parse_percent(m.group(1))
-            if v is not None:
-                hits.append(v)
-
-        # "atk 120%"
-        for m in re.finditer(rf"\b{kk}\b\s*[:=]?\s*(\d+(?:\.\d+)?)\s*%", t):
-            v = _try_parse_percent(m.group(1))
-            if v is not None:
-                hits.append(v)
-
-    # 2) 한국어: "공격력의 120%" / "공격력 120%의 피해" / "최대 체력의 10%"
-    for k in keys:
-        # k는 이미 한글 포함 가능, 원문(text)로도 체크
-        for m in re.finditer(re.escape(k) + r"\s*의\s*(\d+(?:\.\d+)?)\s*%", text):
-            v = _try_parse_percent(m.group(1))
-            if v is not None:
-                hits.append(v)
-        for m in re.finditer(re.escape(k) + r"\s*(\d+(?:\.\d+)?)\s*%\s*의", text):
-            v = _try_parse_percent(m.group(1))
-            if v is not None:
-                hits.append(v)
-
-    # 3) "Deals damage equal to 120% of Max HP" 같은 장문 패턴
-    for k in keys:
-        kk = re.escape(k.lower())
-        for m in re.finditer(rf"(?:equal\s+to|deals|deal|damage)\s*[^%\n]{{0,60}}(\d+(?:\.\d+)?)\s*%\s*[^%\n]{{0,30}}\b{kk}\b", t):
-            v = _try_parse_percent(m.group(1))
-            if v is not None:
-                hits.append(v)
-
-    return hits
-
-def _extract_canonical_stats(detail: dict) -> dict[str, Any]:
-    """
-    detail 내부 stats/attributes 등에서 hp/atk/def/critRate/critDmg/canCrit을 최대한 회수.
-    값 형식은 원 데이터가 섞여있으니 여기서는 원값을 유지하고, 숫자 변환은 필요 시만.
-    """
-    out = {
-        "HP": None,
-        "ATK": None,
-        "DEF": None,
-        "CRIT_RATE": None,
-        "CRIT_DMG": None,
-        "CAN_CRIT": None,
-        "_found_keys": [],
-    }
-
-    if not isinstance(detail, dict):
-        return out
-
-    containers = []
-    for k in ["stats", "stat", "attributes", "attribute", "baseStats", "base_stats", "params", "param"]:
-        v = detail.get(k)
-        if v is not None:
-            containers.append(v)
-
-    def try_set(canon: str, key: str, val: Any):
-        if out.get(canon) is None and val is not None:
-            out[canon] = val
-            out["_found_keys"].append(key)
-
-    def scan_obj(obj):
-        if obj is None:
-            return
-        if isinstance(obj, dict):
-            for k, v in obj.items():
-                nk = _norm_k(str(k))
-                # CAN_CRIT은 false/true가 많아 우선 처리
-                if nk in [_norm_k(x) for x in _STAT_KEY_CANDIDATES["CAN_CRIT"]]:
-                    try_set("CAN_CRIT", str(k), v)
-                    continue
-                for canon, cands in _STAT_KEY_CANDIDATES.items():
-                    if canon == "CAN_CRIT":
-                        continue
-                    if nk in [_norm_k(x) for x in cands]:
-                        try_set(canon, str(k), v)
-                        break
-                # deeper
-                if isinstance(v, (dict, list)):
-                    scan_obj(v)
-        elif isinstance(obj, list):
-            for it in obj:
-                scan_obj(it)
-
-    # 1) 후보 컨테이너 먼저 스캔
-    for c in containers:
-        scan_obj(c)
-
-    # 2) 그래도 부족하면 전체를 얕게 한 번 더(과탐 방지: 키 매칭만)
-    scan_obj(detail)
+    # list 형태: [{"name":"HP","value":"7,711"}, ...] 같은 케이스
+    if isinstance(stats_obj, list):
+        for row in stats_obj:
+            if not isinstance(row, dict):
+                continue
+            name = str(row.get("name") or row.get("stat") or row.get("key") or "").strip().lower()
+            val = row.get("value")
+            if any(k in name for k in ["hp", "health", "max hp", "체력", "생명"]):
+                out["hp"] = out["hp"] or _as_float(val)
+            elif any(k in name for k in ["attack", "atk", "공격"]):
+                out["attack"] = out["attack"] or _as_float(val)
+            elif any(k in name for k in ["defense", "def", "방어"]):
+                out["defense"] = out["defense"] or _as_float(val)
+            elif any(k in name for k in ["crit", "critical", "치명", "크리"]):
+                out["critRate"] = out["critRate"] or _as_float(val)
 
     return out
 
 
-
-# --- v2: robust stat multiplier parser (ATK/HP/DEF/CRIT) ---
-
-_STAT_ALIASES = {
-    # 공격 계열
-    "ATK": [
-        "attack power", "attack", "atk", "atkp", "attack stat",
-        "공격력", "공격", "공격 수치",
-    ],
-    # 방어 계열
-    "DEF": [
-        "defense", "def", "defence",
-        "방어력", "방어", "방어 수치",
-    ],
-    # 체력 계열
-    "HP": [
-        "max hp", "maximum hp", "hp", "health", "life",
-        "최대 체력", "최대체력", "체력", "생명", "생명력",
-    ],
-    # 치확/치피 (스케일링이 아니라 “키워드 탐지/카운트” 목적도 포함)
-    "CRIT_RATE": [
-        "critical hit rate", "critical rate", "crit rate", "critical chance", "crit chance",
-        "치명타 확률", "치명 확률", "치명률", "치확",
-        "크리 확률", "크리티컬 확률", "크리율",
-    ],
-    "CRIT_DMG": [
-        "critical hit damage", "critical damage", "crit damage", "crit dmg",
-        "치명타 피해", "치명 피해", "치명피해", "치피",
-        "크리 피해", "크리티컬 피해",
-    ],
-}
-
-def _term_to_pat(term: str) -> str:
+def _skill_nodes(detail: dict) -> list[dict]:
     """
-    용어를 regex-friendly 패턴으로 변환:
-    - 공백은 \s* 로 흡수
-    - 나머지는 escape
+    skills 구조 편차 흡수:
+    - skills
+    - skill / ability / abilities
     """
-    t = (term or "").strip()
-    if not t:
-        return ""
-    t = re.escape(t)
-    t = t.replace(r"\ ", r"\s*")
-    return t
+    for key in ["skills", "skill", "abilities", "ability"]:
+        v = detail.get(key)
+        if isinstance(v, dict):
+            return [v]
+        if isinstance(v, list):
+            return [x for x in v if isinstance(x, dict)]
+    return []
 
-def _alt_pat(stat_code: str) -> str:
-    terms = _STAT_ALIASES.get(stat_code, [])
-    pats = [_term_to_pat(x) for x in terms if x]
-    pats = [p for p in pats if p]
-    if not pats:
-        return r"(?:\b__NO_MATCH__\b)"
-    return r"(?:%s)" % "|".join(pats)
 
-# 캐시(컴파일 비용 절감)
-_STAT_REGEX_CACHE: dict[str, list[re.Pattern]] = {}
-
-def _compile_stat_regexes(stat_code: str) -> list[re.Pattern]:
-    if stat_code in _STAT_REGEX_CACHE:
-        return _STAT_REGEX_CACHE[stat_code]
-
-    alt = _alt_pat(stat_code)
-
-    # 숫자 퍼센트: 120% / 120.5%
-    num_pct = r"(?P<pct>\d+(?:\.\d+)?)\s*%"
-
-    # 숫자 배수: 1.2x / 1.2× / 1.2 *  (ATK/DEF/HP)
-    num_mul = r"(?P<mul>\d+(?:\.\d+)?)\s*(?:x|×|\*)"
-
-    # “자신/시전자/사용자” 수식어(영/한 혼합)
-    owner = r"(?:the\s+)?(?:caster's|user's|own|self|자신의|사용자의|시전자의)?\s*"
-
-    regs: list[re.Pattern] = []
-
-    # 1) "Deals damage equal to 120% attack power" / "120% of ATK"
-    regs.append(re.compile(
-        rf"{num_pct}\s*(?:of\s*)?{owner}\s*{alt}\b",
-        flags=re.I
-    ))
-
-    # 2) "attack power 120%" (퍼센트가 뒤에 붙는 영어/혼합 표기)
-    regs.append(re.compile(
-        rf"{owner}\s*{alt}\s*[:\-]?\s*{num_pct}",
-        flags=re.I
-    ))
-
-    # 3) 한국어: "공격력의 120%" / "방어력의 80%"
-    regs.append(re.compile(
-        rf"{alt}\s*(?:의|기준)\s*(?P<pct>\d+(?:\.\d+)?)\s*%",
-        flags=re.I
-    ))
-
-    # 4) "1.2x ATK" / "1.2× DEF"
-    regs.append(re.compile(
-        rf"{num_mul}\s*{alt}\b",
-        flags=re.I
-    ))
-
-    # 5) "ATK x1.2" / "DEF×1.2"
-    regs.append(re.compile(
-        rf"{alt}\s*(?:x|×|\*)\s*(?P<mul>\d+(?:\.\d+)?)\b",
-        flags=re.I
-    ))
-
-    # 6) 한국어 배수: "공격력 1.2배" / "방어력의 1.2배"
-    regs.append(re.compile(
-        rf"{alt}\s*(?:의\s*)?(?P<mul>\d+(?:\.\d+)?)\s*배",
-        flags=re.I
-    ))
-    regs.append(re.compile(
-        rf"(?P<mul>\d+(?:\.\d+)?)\s*배\s*{alt}\b",
-        flags=re.I
-    ))
-
-    _STAT_REGEX_CACHE[stat_code] = regs
-    return regs
-
-def _stat_hits(text: str, stat_code: str) -> list[float]:
+def _extract_skill_texts(detail: dict) -> list[str]:
     """
-    텍스트에서 stat_code(ATK/HP/DEF/CRIT_RATE/CRIT_DMG)와 결합된
-    스케일(%) 혹은 배수(x/배)를 찾아서 '퍼센트' 기준으로 반환.
-
-    - 120% -> 120.0
-    - 1.2x / 1.2배 -> 120.0 로 환산
+    normal / auto / ultimate / passive 뿐 아니라 다양한 키를 넓게 수용.
     """
-    if not text:
-        return []
-    t = text.strip()
-    if not t:
-        return []
+    texts: list[str] = []
+    for node in _skill_nodes(detail):
+        # 흔한 nested keys
+        for k in [
+            "normal", "basic", "basicAttack", "basic_attack", "normalAttack", "normal_attack",
+            "auto", "autoAttack", "auto_attack",
+            "skill1", "skill_1", "s1", "active1", "active_1",
+            "skill2", "skill_2", "s2", "active2", "active_2",
+            "skill3", "skill_3", "s3", "active3", "active_3",
+            "ultimate", "ult", "burst", "ultimateSkill", "ultimate_skill",
+            "passive", "passive1", "passive_1", "passive2", "passive_2",
+        ]:
+            v = node.get(k)
+            if v is None:
+                continue
+            texts += _collect_texts(v)
 
-    regs = _compile_stat_regexes(stat_code)
+        # skills가 list로 들어온 경우: name/desc
+        if isinstance(node.get("list"), list):
+            for it in node["list"]:
+                texts += _collect_texts(it)
+
+        # 어떤 파일은 skills = {"normal":{...},"auto":{...},...} 대신
+        # {"1":{...},"2":{...}} 형태가 있음 → 전수 스캔
+        for _, v in node.items():
+            texts += _collect_texts(v)
+
+    # 팀스킬/연계/기타
+    for k in ["teamSkill", "team_skill", "team", "combo", "comboSkill", "combo_skill", "chain", "chainSkill"]:
+        v = detail.get(k)
+        if v is not None:
+            texts += _collect_texts(v)
+
+    # dedupe
+    seen, uniq = set(), []
+    for t in texts:
+        if t and t not in seen:
+            seen.add(t)
+            uniq.append(t)
+    return uniq
+
+
+def detect_no_crit(detail: dict) -> bool:
+    """
+    '기본 치확=0'은 많은 게임에서 정상일 수 있으므로 no-crit로 보지 않는다.
+    아래 케이스만 no-crit로 판정:
+    - 명시적인 boolean/flag
+    - 스킬 설명에 '치명타 불가/크리티컬 불가/cannot crit' 같은 문구가 존재
+    """
+    if not isinstance(detail, dict):
+        return False
+
+    for k in ["noCrit", "no_crit", "cannotCrit", "cannot_crit", "critDisabled", "crit_disabled"]:
+        v = detail.get(k)
+        if v is True:
+            return True
+
+    # deep scan for explicit flags
+    def deep_flag(obj) -> bool:
+        if isinstance(obj, dict):
+            for kk, vv in obj.items():
+                kkl = str(kk).lower()
+                if any(x in kkl for x in ["nocrit", "cannotcrit", "critdisabled"]):
+                    if vv is True:
+                        return True
+                if deep_flag(vv):
+                    return True
+        elif isinstance(obj, list):
+            for it in obj:
+                if deep_flag(it):
+                    return True
+        return False
+
+    if deep_flag(detail):
+        return True
+
+    # phrase scan in skills
+    for t in _extract_skill_texts(detail):
+        tl = t.lower()
+        if any(p in tl for p in _KW_CRIT_OFF):
+            return True
+    return False
+
+
+def _pct_hits(text: str, keys: list[str]) -> list[float]:
+    """
+    스킬 문구에서 스케일링(%) 값을 뽑는다.
+    - EN: "Deals 120% attack power"
+    - KO: "공격력의 120%"
+    - EN alt: "equal to 120% of DEF"
+    """
     hits: list[float] = []
+    t = text.lower()
 
-    for rgx in regs:
-        for m in rgx.finditer(t):
+    # pattern A: "<num>% ... <key>"
+    for k in keys:
+        for m in re.finditer(r"(\d+(?:\.\d+)?)\s*%\s*[^%\n]{0,40}\b" + re.escape(k) + r"\b", t):
             try:
-                if m.groupdict().get("pct") is not None:
-                    hits.append(float(m.group("pct")))
-                elif m.groupdict().get("mul") is not None:
-                    hits.append(float(m.group("mul")) * 100.0)
+                hits.append(float(m.group(1)))
+            except Exception:
+                pass
+
+    # pattern B: "<key> ... <num>%"
+    for k in keys:
+        for m in re.finditer(r"\b" + re.escape(k) + r"\b[^%\n]{0,40}(\d+(?:\.\d+)?)\s*%", t):
+            try:
+                hits.append(float(m.group(1)))
+            except Exception:
+                pass
+
+    # pattern C: "공격력의 120%"
+    for k in keys:
+        for m in re.finditer(re.escape(k) + r"\s*의\s*(\d+(?:\.\d+)?)\s*%", text):
+            try:
+                hits.append(float(m.group(1)))
+            except Exception:
+                pass
+
+    # pattern D: "120% of ATK/DEF/HP"
+    for k in keys:
+        for m in re.finditer(r"(\d+(?:\.\d+)?)\s*%\s*of\s*" + re.escape(k), t):
+            try:
+                hits.append(float(m.group(1)))
             except Exception:
                 pass
 
     return hits
 
 
-
-def detect_no_crit(detail: dict) -> bool:
-    """
-    '크리티컬 비활성/불가' 탐지 강화.
-
-    우선순위:
-    1) 명시적 플래그( noCrit / cannotCrit / canCrit=false )
-    2) stats에서 critRate & critDmg가 둘 다 0으로 명시된 경우(과탐 방지)
-    3) 스킬 텍스트에 "cannot crit/치명타 불가" 문구가 있는 경우
-    """
-    if not isinstance(detail, dict):
-        return False
-
-    # 1) 명시적 플래그(상위 키)
-    for k in ["noCrit", "no_crit", "cannotCrit", "cannot_crit", "critDisabled", "crit_disabled"]:
-        v = detail.get(k)
-        if v is True:
-            return True
-
-    for k in ["canCrit", "can_crit", "criticalEnabled", "critical_enabled"]:
-        v = detail.get(k)
-        if isinstance(v, bool) and v is False:
-            return True
-
-    st = _extract_canonical_stats(detail)
-    can_crit = st.get("CAN_CRIT")
-    if isinstance(can_crit, bool) and can_crit is False:
-        return True
-
-    def to_num(x):
-        if isinstance(x, (int, float)):
-            return float(x)
-        if isinstance(x, str):
-            try:
-                return float(x.strip())
-            except Exception:
-                return None
-        return None
-
-    cr = to_num(st.get("CRIT_RATE"))
-    cd = to_num(st.get("CRIT_DMG"))
-
-    # 2) crit 관련 키가 실제로 존재했고, 둘 다 0이면 no-crit로 판정
-    if (st.get("CRIT_RATE") is not None or st.get("CRIT_DMG") is not None) and (cr is not None and cd is not None):
-        if cr <= 0 and cd <= 0:
-            return True
-
-    # 3) 스킬 문구 기반
-    pairs = _collect_skill_texts(detail)
-    blob = "\n".join([txt.lower() for _, txt in pairs])
-    if any(k in blob for k in _KW_NO_CRIT):
-        return True
-
-    return False
-
-
-
 def _detect_profile(detail: dict, base: dict) -> dict:
-    """
-    스킬/스탯 문구를 기반으로 스케일링(ATK/HP/DEF)과 전투 아키타입(dps/tank/healer/debuffer)을 추정한다.
-    - skills/teamSkill 구조가 흔들려도 최대한 텍스트를 수집
-    - 스킬 타입(ultimate/auto/normal/passive/team)에 따라 가중치 반영
-    """
-    pairs = _collect_skill_texts(detail or {})
-    texts_only = [t for _, t in pairs]
+    texts = _extract_skill_texts(detail or {})
 
     atk_hits: list[float] = []
     hp_hits: list[float] = []
     def_hits: list[float] = []
 
     heal_cnt = shield_cnt = dot_cnt = extra_cnt = ult_cnt = 0
+    extra_lines = dot_lines = 0
 
     sample = {"ATK": None, "HP": None, "DEF": None}
 
-    def weighted_extend(target: list[float], values: list[float], w: float):
-        if not values:
-            return
-        for v in values:
-            # hits 자체에 가중치 반영(빈도 + 평균 방식이 자연스럽게 커짐)
-            target.append(v * w)
-
-    for typ, t in pairs:
-        w = _SKILL_TYPE_WEIGHT.get(typ, 1.0)
-
-        a = _pct_hits(t, _SCALE_KEYS["ATK"])
-        h = _pct_hits(t, _SCALE_KEYS["HP"])
-        d = _pct_hits(t, _SCALE_KEYS["DEF"])
+    for t in texts:
+        a = _pct_hits(t, ["attack power", "atk", "attack", "공격력", "공격"])
+        h = _pct_hits(t, ["max hp", "hp", "health", "체력", "생명"])
+        d = _pct_hits(t, ["defense", "def", "방어력", "방어"])
 
         if a and sample["ATK"] is None:
             sample["ATK"] = t
@@ -1436,9 +932,9 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         if d and sample["DEF"] is None:
             sample["DEF"] = t
 
-        weighted_extend(atk_hits, a, w)
-        weighted_extend(hp_hits, h, w)
-        weighted_extend(def_hits, d, w)
+        atk_hits += a
+        hp_hits += h
+        def_hits += d
 
         tl = t.lower()
         if any(k in tl for k in _KW_HEAL):
@@ -1447,9 +943,11 @@ def _detect_profile(detail: dict, base: dict) -> dict:
             shield_cnt += 1
         if any(k in tl for k in _KW_DOT):
             dot_cnt += 1
+            dot_lines += 1
         if any(k in tl for k in _KW_EXTRA):
             extra_cnt += 1
-        if typ == "ultimate" or any(k in tl for k in _KW_ULT):
+            extra_lines += 1
+        if any(k in tl for k in _KW_ULT):
             ult_cnt += 1
 
     def score(hits: list[float]) -> float:
@@ -1472,21 +970,11 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     cls_l = cls.lower()
     role_l = role.lower()
 
-    # class/role 한글/변형도 커버
-    def is_healer(s: str) -> bool:
-        return any(x in s for x in ["healer", "heal", "힐러", "치유", "회복"])
-
-    def is_tank(s: str) -> bool:
-        return any(x in s for x in ["guardian", "tank", "defender", "탱", "탱커", "수호", "가디언", "방어"])
-
-    def is_debuffer(s: str) -> bool:
-        return any(x in s for x in ["debuffer", "debuff", "서포트", "지원", "약화", "디버프"])
-
-    if is_healer(cls_l) or is_healer(role_l):
+    if cls_l == "healer" or role_l == "healer":
         archetype = "healer"
-    elif is_tank(cls_l) or is_tank(role_l):
+    elif cls_l == "guardian" or role_l == "tank":
         archetype = "tank"
-    elif is_debuffer(cls_l) or is_debuffer(role_l):
+    elif cls_l == "debuffer" or role_l == "debuffer":
         archetype = "debuffer"
     else:
         archetype = "dps"
@@ -1494,13 +982,11 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     # healer hybrid: healer지만 ATK 스케일이 강하게 잡히는 경우
     healer_hybrid = bool(archetype == "healer" and atk_s >= 15.0 and (atk_s >= hp_s or atk_s >= def_s))
 
-    # ✅ DEF/HP 스케일링이 확실하면 dps라도 tank로 승격(과소분류 방지: Apep 류)
-    if archetype == "dps":
-        if scaling == "DEF" and def_s > 0 and def_s >= max(atk_s, hp_s) + 5.0:
-            archetype = "tank"
-        elif scaling == "HP" and hp_s > 0 and hp_s >= atk_s + 5.0 and shield_cnt > 0:
-            archetype = "tank"
+    # "추가공격/지속피해가 얼마나 중심인가"를 0~1 범위로 근사
+    extra_share = min(1.0, 0.15 * extra_lines + 0.05 * max(0, extra_cnt - extra_lines))
+    dot_share = min(1.0, 0.15 * dot_lines + 0.05 * max(0, dot_cnt - dot_lines))
 
+    stats = _normalize_stats(detail or {})
     return {
         "scaling": scaling,
         "atk_score": atk_s,
@@ -1514,8 +1000,11 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         "archetype": archetype,
         "healer_hybrid": healer_hybrid,
         "sample_text": sample.get(scaling) if scaling in sample else None,
-        "skill_text_count": len(texts_only),
+        "stats": stats,
+        "extra_share": extra_share,
+        "dot_share": dot_share,
     }
+
 
 def _element_damage_label(element: str) -> str:
     e = normalize_element(element or "-")
@@ -1557,11 +1046,13 @@ def _slot_plan_for(archetype: str, scaling: str, element: str, no_crit: bool) ->
         plan["5"] = [_element_damage_label(element), "Attack (%)", "HP (%) (생존)"]
         plan["6"] = ["Attack (%)", "HP (%) (생존)", "Defense (%) (생존)"]
     else:
-        # DEF/HP 스케일링 딜러라도 '크리 가능'이면 치확이 의미 있을 수 있어 기본은 유지
-        # (다만 Apep 같은 DEF 탱커는 위 archetype 보정으로 여기로 내려오지 않게 한다)
         plan["4"] = ["Critical Rate (%)", "Attack Penetration (%)", "Critical Damage (%)", "Attack (%)"]
         plan["5"] = [_element_damage_label(element), "Attack (%)", "HP (%)", "Defense (%)"]
         plan["6"] = ["Attack (%)", "HP (%)", "Defense (%)"]
+
+    # 스케일링이 HP/DEF 기반이면 부옵/메인스탯 후보에 더 자주 반영
+    if scaling in ("HP", "DEF") and archetype in ("dps", "debuffer"):
+        plan["6"] = [f"{scaling} (%)", "Attack (%)", "HP (%)", "Defense (%)"]
 
     return plan
 
@@ -1608,84 +1099,328 @@ def _substats_for(archetype: str, scaling: str, no_crit: bool) -> list[str]:
     return out
 
 
-def _pick_sets(profile: dict, base: dict, no_crit: bool, detail: dict = None) -> tuple[list[dict], list[list[dict]], list[str]]:
+# -------------------------
+# Rune effect parsing & scoring
+# -------------------------
+
+def _parse_effect_text(s: str) -> dict[str, float]:
     """
-    ✅ 모든 룬을 대상으로 4pc 후보 + 2pc 후보를 전수 평가.
-    - 점수는 2pc 효과 + 4pc 효과를 모두 반영
-    - 제한시간 버스트 컨텐츠를 기본 가정(burst_window_s=20). 필요 시 조정 가능.
+    rune 2pc/4pc 문자열에서 효과를 정규화한다.
+    반환 값은 '가중치가 가능한' 단순 스탯 벡터.
     """
-    rationale: list[str] = []
-    alternates: list[list[dict]] = []
+    if not isinstance(s, str) or not s.strip():
+        return {}
+    t = s.strip()
+    tl = t.lower()
 
-    rune_db = rune_db_by_name()
-    enriched = rune_effects_enriched(rune_db)
+    eff: dict[str, float] = {}
 
-    # 버스트 시간(제한시간 내 최고딜) 기본값
-    burst_window_s = 20.0
+    def add(k: str, v: float):
+        if v == 0:
+            return
+        eff[k] = eff.get(k, 0.0) + float(v)
 
-    # 4pc 가능한 룬만
-    candidates_4 = []
-    candidates_2 = []
+    # % 숫자 추출 헬퍼
+    def pct_near(keys: list[str]) -> Optional[float]:
+        for key in keys:
+            # "X +8%" / "X 8%" / "X: ... +8%"
+            m = re.search(re.escape(key) + r"[^%\n]{0,24}([+\-]?\d+(?:\.\d+)?)\s*%", tl)
+            if m:
+                try:
+                    return float(m.group(1))
+                except Exception:
+                    pass
+            # "+8% X" 형태
+            m = re.search(r"([+\-]?\d+(?:\.\d+)?)\s*%\s*[^%\n]{0,24}" + re.escape(key), tl)
+            if m:
+                try:
+                    return float(m.group(1))
+                except Exception:
+                    pass
+        return None
 
-    for name, r in enriched.items():
-        # 2pc/4pc 텍스트가 비어있지 않으면 후보
-        if str(r.get("twoPiece") or "").strip():
-            candidates_2.append(name)
-        if str(r.get("fourPiece") or "").strip():
-            candidates_4.append(name)
+    # Core stats
+    v = pct_near(["attack power", "attack", "atk", "공격력"])
+    if v is not None:
+        add("atk_pct", v)
+    v = pct_near(["hp", "health", "max hp", "체력", "생명"])
+    if v is not None:
+        add("hp_pct", v)
+    v = pct_near(["defense", "def", "방어력", "방어"])
+    if v is not None:
+        add("def_pct", v)
 
-    if not candidates_4:
-        return [{"set": "Alpha", "pieces": 4}, {"set": "Beth", "pieces": 2}], alternates, ["4세트 후보가 없어 기본값 적용"]
+    # Crit
+    v = pct_near(["critical hit rate", "crit rate", "critical rate", "치명타 확률", "치명확률", "치확", "크리티컬 확률"])
+    if v is not None:
+        add("crit_rate", v)
+    v = pct_near(["critical hit damage", "crit damage", "critical damage", "치명타 피해", "치피", "크리티컬 피해"])
+    if v is not None:
+        add("crit_dmg", v)
 
-    best = None  # (score, set4, set2)
-    scored_list = []
+    # Healing / Shield
+    v = pct_near(["healing effectiveness", "healing", "치유", "회복", "회복량", "치유량"])
+    if v is not None:
+        add("heal_eff", v)
+    v = pct_near(["shield effectiveness", "shield", "보호막", "실드", "방벽"])
+    if v is not None:
+        add("shield_eff", v)
 
-    for s4 in candidates_4:
-        e4 = enriched[s4]["_four"]
-        e4_score = score_rune_piece(e4, profile, detail or {}, no_crit, burst_window_s=burst_window_s)
-        # 4세트는 “2pc도 동시에 적용될 수 있음” 가정(게임 룰에 따라 다르면 조정)
-        # 만약 4세트 장착 시 2pc도 같이 활성화라면, 아래처럼 2pc 점수도 더하는 것이 합리적
-        e4_score += score_rune_piece(enriched[s4]["_two"], profile, detail or {}, no_crit, burst_window_s=burst_window_s)
+    # Extra / DOT
+    v = pct_near(["extra attack", "follow-up", "additional attack", "추가 공격", "추가공격", "추가타"])
+    if v is not None:
+        add("extra_dmg", v)
+    v = pct_near(["continuous damage", "dot", "지속 피해", "지속피해", "도트"])
+    if v is not None:
+        add("dot_dmg", v)
 
-        for s2 in candidates_2:
-            if s2 == s4:
-                continue
-            e2 = enriched[s2]["_two"]
-            e2_score = score_rune_piece(e2, profile, detail or {}, no_crit, burst_window_s=burst_window_s)
+    # Basic attack damage
+    v = pct_near(["basic attack damage", "basic damage", "기본 공격 피해", "평타 피해"])
+    if v is not None:
+        add("basic_dmg", v)
 
-            total = e4_score + e2_score
-            scored_list.append((total, s4, s2))
+    # Team damage
+    v = pct_near(["team damage", "party damage", "team dmg", "파티 피해", "팀 피해", "아군 피해"])
+    if v is not None:
+        add("team_dmg", v)
 
-    scored_list.sort(reverse=True, key=lambda x: x[0])
+    # Attack penetration
+    v = pct_near(["attack penetration", "penetration", "관통"])
+    if v is not None:
+        add("pen", v)
 
-    if not scored_list:
-        return [{"set": candidates_4[0], "pieces": 4}, {"set": candidates_2[0] if candidates_2 else candidates_4[0], "pieces": 2}], alternates, ["후보 평가 실패로 임의 선택"]
+    # Energy start (flat bonus → score as fixed utility)
+    if "gain 1 energy" in tl or "에너지" in t and ("즉시" in t or "전투 시작" in t):
+        add("energy", 1.0)
 
-    best_total, best4, best2 = scored_list[0]
+    # Conditional like "When HP >80%: Crit dmg +24%" already covered by crit_dmg; apply mild condition penalty later
+    if "when hp" in tl or "hp >" in tl or "체력" in t and ("이상" in t or "초과" in t):
+        add("conditional", 1.0)
 
-    primary = [{"set": best4, "pieces": 4}, {"set": best2, "pieces": 2}]
+    return eff
 
-    # 대체안(상위 2~4개)
-    for i in range(1, min(4, len(scored_list))):
-        _, a4, a2 = scored_list[i]
-        alternates.append([{"set": a4, "pieces": 4}, {"set": a2, "pieces": 2}])
 
-    # 근거(요약)
-    rationale.append(f"버스트(제한시간) 기대값 점수 기반 전수평가: 1위 {best4}4 + {best2}2 (score={best_total:.4f})")
-    rationale.append(f"판정 요약: scaling={profile.get('scaling')}, no_crit={no_crit}, extra_cnt={profile.get('extra_cnt')}, dot_cnt={profile.get('dot_cnt')}, ult_cnt={profile.get('ult_cnt')}")
+def _set_effects(rune: dict, pieces: int) -> dict[str, float]:
+    if not isinstance(rune, dict):
+        return {}
+    if pieces == 2:
+        return _parse_effect_text(str(rune.get("twoPiece") or ""))
+    return _parse_effect_text(str(rune.get("fourPiece") or ""))
 
-    sample_text = profile.get("sample_text")
-    if sample_text:
-        rationale.append(f"스케일링 근거 문구: '{sample_text[:120]}'")
+
+def _score_effect_vec(profile: dict, eff: dict[str, float], pieces: int, no_crit: bool) -> float:
+    """
+    프로필 기반 유틸리티 점수(상대 비교용).
+    - 절대치가 아니라, 세트 간 상대 순위가 안정적으로 나오도록 설계.
+    """
+    if not eff:
+        return 0.0
+
+    archetype = profile.get("archetype") or "dps"
+    scaling = profile.get("scaling") or "MIX"
+    extra_share = float(profile.get("extra_share") or 0.0)
+    dot_share = float(profile.get("dot_share") or 0.0)
+
+    # weight base
+    w_atk = 1.0
+    w_hp = 0.6
+    w_def = 0.6
+    w_crit_r = 1.0
+    w_crit_d = 0.9
+    w_pen = 0.8
+    w_elem = 0.7
+    w_team = 0.6
+    w_basic = 0.5
+    w_extra = 1.0
+    w_dot = 1.0
+    w_heal = 1.0
+    w_shield = 0.9
+    w_energy = 0.7
+
+    if archetype == "healer":
+        w_heal = 1.4
+        w_hp = 1.0
+        w_def = 0.8
+        w_atk = 0.35  # 기본은 낮게, 하이브리드는 아래에서 보정
+        w_crit_r = 0.2
+        w_crit_d = 0.15
+        w_team = 0.6
+        w_energy = 0.9
+
+    if archetype == "tank":
+        w_hp = 1.2
+        w_def = 1.2
+        w_shield = 1.2
+        w_atk = 0.2
+        w_crit_r = 0.1
+        w_crit_d = 0.1
+        w_pen = 0.1
+        w_team = 0.2
+
+    if archetype == "debuffer":
+        w_team = 1.0
+        w_energy = 0.9
+        w_atk = 0.6
+        w_pen = 0.5
+
+    # scaling emphasis
+    if scaling == "HP":
+        w_hp *= 1.5
+        w_atk *= 0.6
+    elif scaling == "DEF":
+        w_def *= 1.5
+        w_atk *= 0.6
+
+    # hybrid healer boost
+    if archetype == "healer" and profile.get("healer_hybrid"):
+        w_atk *= 1.25
+        w_crit_r *= 0.8
+        w_crit_d *= 0.8
 
     if no_crit:
-        rationale.append("크리티컬 불가/0 탐지 → 치확/치피 관련 효과는 점수에서 자동 무효 처리.")
+        w_crit_r = 0.0
+        w_crit_d = 0.0
 
-    return primary, alternates, rationale
+    # conditional penalty (HP>80 등) — 시간제한 딜에서는 유지가 어려울 수 있어 감점
+    cond = 0.0
+    if eff.get("conditional"):
+        cond = 0.92  # 약 8% 패널티
+    else:
+        cond = 1.0
+
+    # score
+    score = 0.0
+    score += w_atk * eff.get("atk_pct", 0.0)
+    score += w_hp * eff.get("hp_pct", 0.0)
+    score += w_def * eff.get("def_pct", 0.0)
+    score += w_crit_r * eff.get("crit_rate", 0.0)
+    score += w_crit_d * eff.get("crit_dmg", 0.0)
+    score += w_pen * eff.get("pen", 0.0)
+    score += w_basic * eff.get("basic_dmg", 0.0)
+    score += w_team * eff.get("team_dmg", 0.0)
+    score += w_heal * eff.get("heal_eff", 0.0)
+    score += w_shield * eff.get("shield_eff", 0.0)
+
+    # Extra/DOT are only valuable if the kit actually uses them
+    score += w_extra * extra_share * eff.get("extra_dmg", 0.0)
+    score += w_dot * dot_share * eff.get("dot_dmg", 0.0)
+
+    # energy: treat as fixed utility, scaled by pieces (4pc generally has stronger impact)
+    score += w_energy * eff.get("energy", 0.0) * (1.4 if pieces == 4 else 1.0)
+
+    return score * cond
+
+
+def _best_set_combo(profile: dict, rune_db: list[dict], no_crit: bool) -> tuple[list[dict], list[list[dict]], list[str]]:
+    """
+    모든 룬에 대해 4pc, 2pc 후보를 스코어링하고,
+    가장 높은 4+2 조합을 산출한다. (Guild raid only 패널티 없음)
+    """
+    if not rune_db:
+        return (
+            [{"set": "Alpha", "pieces": 4}, {"set": ("Epsilon" if no_crit else "Beth"), "pieces": 2}],
+            [],
+            ["runes.js 로딩 실패 → 기본 세트(Alpha + Beth/Epsilon) fallback 적용"],
+        )
+
+    # precompute
+    scored4 = []
+    scored2 = []
+
+    for r in rune_db:
+        nm = str(r.get("name") or "").strip()
+        if not nm:
+            continue
+
+        eff2 = _set_effects(r, 2)
+        eff4 = _set_effects(r, 4)
+
+        s2 = _score_effect_vec(profile, eff2, 2, no_crit)
+        s4 = _score_effect_vec(profile, eff4, 4, no_crit)
+
+        scored2.append((s2, nm, eff2))
+        scored4.append((s4, nm, eff4))
+
+    scored2.sort(key=lambda x: x[0], reverse=True)
+    scored4.sort(key=lambda x: x[0], reverse=True)
+
+    # best 4+2 with different set names
+    best = None
+    for s4, n4, e4 in scored4[:30]:
+        if s4 <= 0:
+            continue
+        for s2, n2, e2 in scored2[:30]:
+            if n2 == n4:
+                continue
+            total = s4 + s2
+            if best is None or total > best[0]:
+                best = (total, n4, n2, s4, s2, e4, e2)
+
+    if best is None:
+        # all scores are 0 → revert to old heuristic
+        return (
+            [{"set": "Alpha", "pieces": 4}, {"set": ("Epsilon" if no_crit else "Beth"), "pieces": 2}],
+            [],
+            ["세트 효과 점수화가 불가(효과 파싱 0) → 기본 세트 fallback 적용"],
+        )
+
+    _, n4, n2, s4, s2, e4, e2 = best
+
+    rationale = [
+        f"세트 최적화(C): 4세트 '{n4}'(점수 {s4:.1f}) + 2세트 '{n2}'(점수 {s2:.1f}) 조합이 가장 높음.",
+    ]
+
+    # explain drivers (top 3 effect keys per set)
+    def top_keys(eff: dict[str, float], limit=3):
+        items = [(k, v) for k, v in eff.items() if v]
+        items.sort(key=lambda x: abs(x[1]), reverse=True)
+        return items[:limit]
+
+    t4 = ", ".join([f"{k}:{v:g}" for k, v in top_keys(e4)])
+    t2 = ", ".join([f"{k}:{v:g}" for k, v in top_keys(e2)])
+    if t4:
+        rationale.append(f"4세트 핵심효과 벡터: {t4}")
+    if t2:
+        rationale.append(f"2세트 핵심효과 벡터: {t2}")
+
+    # alternates: top 2 alternative 4pc with same best 2pc
+    alternates: list[list[dict]] = []
+    for s4x, n4x, _ in scored4[1:8]:
+        if n4x == n4:
+            continue
+        alternates.append([{"set": n4x, "pieces": 4}, {"set": n2, "pieces": 2}])
+        if len(alternates) >= 3:
+            break
+
+    return (
+        [{"set": n4, "pieces": 4}, {"set": n2, "pieces": 2}],
+        alternates,
+        rationale,
+    )
+
 
 def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
-    overrides = load_rune_overrides()
-    rune_db = rune_db_by_name()
+    """
+    반환 스키마(프론트 호환):
+    {
+      mode: 'override'|'auto'|'error',
+      profile: {...},
+      builds: [{
+        title, setPlan:[{set,pieces,icon,twoPiece,fourPiece,note}], slots, substats, notes, rationale
+      }]
+    }
+    """
+    try:
+        overrides = load_rune_overrides()
+    except Exception:
+        overrides = {}
+
+    try:
+        rune_db_list = load_runes_db()
+    except Exception:
+        rune_db_list = []
+
+    rune_db_map = {str(r.get("name")): r for r in rune_db_list if isinstance(r, dict) and r.get("name")}
 
     # manual override 우선
     ov = overrides.get(cid)
@@ -1699,7 +1434,7 @@ def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
                 if not isinstance(it, dict):
                     continue
                 sname = str(it.get("set") or "").strip()
-                r = rune_db.get(sname) or {}
+                r = rune_db_map.get(sname) or {}
                 sp.append({
                     "set": sname,
                     "pieces": int(it.get("pieces") or 0),
@@ -1718,23 +1453,24 @@ def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
             })
         return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
 
-    # auto
+    # auto (C)
     profile = _detect_profile(detail or {}, base or {})
     no_crit = detect_no_crit(detail or {})
-    primary, alternates, rationale = _pick_sets(profile, base or {}, no_crit)
 
+    primary, alternates, rationale = _best_set_combo(profile, rune_db_list, no_crit)
+
+    # add scaling evidence
     sample_text = profile.get("sample_text")
     if sample_text:
-        rationale = rationale + [f"스케일링 판정({profile.get('scaling')}): '{sample_text[:120]}'"]
-
+        rationale.append(f"스케일링 판정({profile.get('scaling')}): '{sample_text[:120]}'")
     if no_crit:
-        rationale = rationale + ["크리티컬 비활성/불가로 탐지됨 → 치확/치피 추천을 제외."]
+        rationale.append("치명타 불가/크리티컬 비활성 문구 감지 → 크리 관련 추천(치확/치피)을 제외.")
 
     def mk_build(title: str, setplan: list[dict]) -> dict:
         sp = []
         for x in setplan:
             sname = x["set"]
-            r = rune_db.get(sname) or {}
+            r = rune_db_map.get(sname) or {}
             sp.append({
                 "set": sname,
                 "pieces": x["pieces"],
@@ -1752,16 +1488,16 @@ def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
             "rationale": rationale,
         }
 
-    builds = [mk_build("추천(자동)", primary)]
+    builds = [mk_build("추천(자동/C)", primary)]
     for idx, alt in enumerate(alternates[:3], start=1):
         builds.append(mk_build(f"대체안 {idx}", alt))
 
-    # rune DB 기반 제약/노트 표기
+    # rune DB 기반 제약/노트 표기 (표시만, 페널티는 없음)
     notes = []
     for b in builds:
         for s in b["setPlan"]:
             nm = s["set"]
-            r = rune_db.get(nm) or {}
+            r = rune_db_map.get(nm) or {}
             cr = r.get("classRestriction") or []
             if cr:
                 notes.append(f"{nm} 4세트는 클래스 제한이 있습니다: {', '.join(map(str, cr))}")
@@ -1770,7 +1506,8 @@ def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
             if r.get("teamConflict"):
                 notes.append(f"{nm}: 팀 세트 상충 주의 ({', '.join(map(str, r.get('teamConflict')))} )")
 
-    seen, uniq_notes = set(), []
+    uniq_notes = []
+    seen = set()
     for n in notes:
         if n not in seen:
             seen.add(n)
@@ -1783,435 +1520,22 @@ def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
 
 
 def rune_summary_for_list(cid: str, base: dict, detail: dict) -> Optional[dict]:
-    reco = recommend_runes(cid, base, detail)
-    builds = reco.get("builds") or []
-    if not builds:
-        return None
-    b0 = builds[0]
-    # 리스트에는 가볍게 세트만 노출(효과는 상세에서)
-    return {"mode": reco.get("mode"), "sets": [{"set": s.get("set"), "pieces": s.get("pieces"), "icon": s.get("icon")} for s in (b0.get("setPlan") or [])]}
-
-
-
-
-# -------------------------
-# Party recommendation (AI)
-# -------------------------
-
-def _to_float(x) -> Optional[float]:
-    if x is None:
-        return None
-    if isinstance(x, (int, float)):
-        return float(x)
-    if isinstance(x, str):
-        s = x.strip().replace(",", "")
-        if not s:
-            return None
-        # "12.3%" -> 12.3
-        if s.endswith("%"):
-            s = s[:-1].strip()
-        try:
-            return float(s)
-        except Exception:
-            return None
-    return None
-
-
-def _rarity_weight(r: str) -> float:
-    rr = (r or "-").strip().upper()
-    if rr == "SSR":
-        return 3.0
-    if rr == "SR":
-        return 1.5
-    if rr == "R":
-        return 0.5
-    return 0.0
-
-
-def _rank_weight(rank_map: dict, cid: str) -> float:
+    """
+    리스트 카드용: 세트만 가볍게 노출
+    - 에러가 나더라도 None 반환으로 UI 전체를 깨지 않게 처리
+    """
     try:
-        v = rank_map.get(cid)
-        if isinstance(v, (int, float)):
-            return float(v)
-        if isinstance(v, str) and v.strip():
-            return float(v)
+        reco = recommend_runes(cid, base, detail)
+        builds = reco.get("builds") or []
+        if not builds:
+            return None
+        b0 = builds[0]
+        return {
+            "mode": reco.get("mode"),
+            "sets": [{"set": s.get("set"), "pieces": s.get("pieces"), "icon": s.get("icon")} for s in (b0.get("setPlan") or [])],
+        }
     except Exception:
-        pass
-    return 0.0
-
-
-def _norm_class_name(s: str) -> str:
-    return (s or "-").strip().lower().replace(" ", "")
-
-
-def _party_combo_bonus(members: list[dict]) -> tuple[float, dict]:
-    """원소/특성 콤보 보너스 (같은 속성 2+ 또는 같은 특성 2+)."""
-    from collections import Counter
-
-    elems = [str(m.get("element") or "-") for m in members]
-    facs = [str(m.get("faction") or "-") for m in members]
-
-    ce = Counter([e for e in elems if e and e != "-"])
-    cf = Counter([f for f in facs if f and f != "-"])
-
-    bonus = 0.0
-    detail = {"element": dict(ce), "faction": dict(cf), "element_hits": [], "faction_hits": []}
-
-    for e, n in ce.items():
-        if n >= 2:
-            bonus += 12.0
-            detail["element_hits"].append(e)
-        if n >= 3:
-            bonus += 6.0
-    for f, n in cf.items():
-        if n >= 2:
-            bonus += 12.0
-            detail["faction_hits"].append(f)
-        if n >= 3:
-            bonus += 6.0
-
-    return bonus, detail
-
-
-def _score_member(base: dict, detail: dict, rank_map: dict) -> dict:
-    cid = str(base.get("id") or "")
-    profile = _detect_profile(detail or {}, base or {})
-    no_crit = detect_no_crit(detail or {})
-
-    st = _extract_canonical_stats(detail or {})
-    hp = _to_float(st.get("HP")) or 0.0
-    atk = _to_float(st.get("ATK")) or 0.0
-    df = _to_float(st.get("DEF")) or 0.0
-    cr = _to_float(st.get("CRIT_RATE")) or 0.0
-
-    # stats score: 규모 보정(대략적인 밸런스용)
-    stats_score = (atk / 55.0) + (hp / 650.0) + (df / 35.0) + (cr / 4.0)
-
-    # archetype bias (과도한 힐/탱 몰림 방지: 딜러 가중 강화)
-    arch = profile.get("archetype") or "dps"
-    arch_bonus = 0.0
-
-    heal_cnt = float(profile.get("heal_cnt") or 0)
-    shield_cnt = float(profile.get("shield_cnt") or 0)
-
-    if arch == "healer":
-        arch_bonus += 10.0 + min(8.0, heal_cnt * 1.5)
-    elif arch == "tank":
-        arch_bonus += 10.0 + min(8.0, shield_cnt * 1.5)
-    elif arch == "debuffer":
-        arch_bonus += 8.0
-    else:
-        arch_bonus += 14.0
-
-    # scaling 보정: ATK 스케일은 딜 기여로 우선
-    scaling = (profile.get("scaling") or "").upper()
-    if scaling == "ATK":
-        arch_bonus += 3.0
-    elif scaling == "DEF":
-        arch_bonus += 1.5
-    elif scaling == "HP":
-        arch_bonus += 1.0
-
-    if no_crit:
-        # 크리 불가 캐릭터는 치확 위주 티어를 과대평가하지 않게 소폭 페널티
-        arch_bonus -= 4.0
-
-    tier = _rank_weight(rank_map, cid)
-
-    score = 0.0
-    score += tier * 110.0
-    score += _rarity_weight(str(base.get("rarity") or "-")) * 18.0
-    score += stats_score
-    score += arch_bonus
-
-    # 스킬 키워드 가점(대략)
-    score += min(8.0, float(profile.get("dot_cnt") or 0) * 2.0)
-    score += min(8.0, float(profile.get("extra_cnt") or 0) * 2.0)
-    score += min(6.0, float(profile.get("ult_cnt") or 0) * 1.5)
-
-    return {
-        "id": cid,
-        "base": base,
-        "profile": profile,
-        "no_crit": no_crit,
-        "stats": {"hp": hp, "attack": atk, "defense": df, "critRate": cr},
-        "tier": tier,
-        "score": score,
-    }
-
-
-def _score_party(members: list[dict], required_classes: set[str], require_combo: bool) -> tuple[float, dict]:
-    """파티 점수: 개별 점수 합 + 역할 밸런스 + 콤보(속성/특성)"""
-    total = sum(float(m.get("score") or 0.0) for m in members)
-
-    counts = {"tank": 0, "healer": 0, "debuffer": 0, "dps": 0}
-    for m in members:
-        arch = (m.get("profile") or {}).get("archetype") or "dps"
-        if arch in counts:
-            counts[arch] += 1
-        else:
-            counts["dps"] += 1
-
-    # 밸런스 보정: 최소 1 딜러를 강제에 가깝게 유도
-    balance = 0.0
-
-    has_dps = counts["dps"] >= 1
-    if has_dps:
-        balance += 18.0
-        if counts["dps"] >= 2:
-            balance += 10.0
-    else:
-        # 딜러가 없으면 사실상 파티로서 성립이 어려우므로 큰 페널티(필터링에도 사용)
-        balance -= 220.0
-
-    if counts["tank"] == 1:
-        balance += 8.0
-    elif counts["tank"] > 1:
-        balance -= 25.0 * (counts["tank"] - 1)
-
-    if counts["healer"] == 1:
-        balance += 10.0
-    elif counts["healer"] > 1:
-        balance -= 25.0 * (counts["healer"] - 1)
-    else:
-        # 힐러가 0이면 안정성 감소(완전 배제는 아님)
-        balance -= 6.0
-
-    if counts["debuffer"] >= 1:
-        balance += 5.0
-    if counts["debuffer"] > 1:
-        balance -= 6.0 * (counts["debuffer"] - 1)
-
-    total += balance
-
-    combo_detail = {}
-    combo_bonus = 0.0
-    if True:
-        combo_bonus, combo_detail = _party_combo_bonus([m["base"] for m in members])
-        total += combo_bonus
-
-    # 클래스 조건 충족 확인 (필수)
-    classes_present = set(_norm_class_name(str(m["base"].get("class") or "-")) for m in members)
-    missing_classes = sorted([c for c in required_classes if c and c not in classes_present])
-
-    ok_classes = len(missing_classes) == 0
-
-    # 콤보 요구(최소 1개라도 2+가 있어야 함)
-    has_combo = True
-    if require_combo:
-        has_combo = bool(combo_detail.get("element_hits") or combo_detail.get("faction_hits"))
-
-    meta = {
-        "counts": counts,
-        "has_dps": has_dps,
-        "balance_bonus": balance,
-        "combo_bonus": combo_bonus,
-        "combo_detail": combo_detail,
-        "classes_present": sorted(list(classes_present)),
-        "missing_classes": missing_classes,
-        "ok_classes": ok_classes,
-        "has_combo": has_combo,
-    }
-    return total, meta
-
-
-def recommend_best_party(
-    owned_ids: list[str],
-    required_ids: list[str],
-    required_classes: list[str],
-    rank_map: dict,
-    party_size: int = 4,
-    top_k: int = 1,
-    require_combo: bool = True,
-) -> dict:
-    load_all()
-
-    owned = [slug_id(x) for x in (owned_ids or []) if slug_id(x)]
-    required = [slug_id(x) for x in (required_ids or []) if slug_id(x)]
-    required = [x for x in required if x in owned]  # required는 owned 내부로 강제
-
-    if party_size < 1:
-        party_size = 4
-    party_size = min(6, max(1, int(party_size)))
-
-    if len(required) > party_size:
-        return {"ok": False, "error": f"필수 포함 캐릭터가 {len(required)}명입니다. 파티 인원({party_size})을 초과합니다."}
-
-    # required_classes 정규화
-    req_cls = set()
-    for c in (required_classes or []):
-        cc = _norm_class_name(str(c))
-        if cc and cc != "-":
-            req_cls.add(cc)
-    if len(req_cls) > party_size:
-        return {"ok": False, "error": f"클래스 조건이 {len(req_cls)}개입니다. 파티 인원({party_size})을 초과합니다."}
-
-    # base/detail 확보
-    by_id = {c.get("id"): c for c in (CACHE.get("chars") or []) if isinstance(c, dict) and c.get("id")}
-    details = CACHE.get("details") or {}
-
-    # 후보 구성
-    fixed_members = []
-    for cid in required:
-        b = by_id.get(cid)
-        d = details.get(cid)
-        if isinstance(b, dict) and isinstance(d, dict):
-            fixed_members.append(_score_member(b, d, rank_map))
-
-    fixed_ids = set(m["id"] for m in fixed_members)
-
-    cand_members = []
-    for cid in owned:
-        if cid in fixed_ids:
-            continue
-        b = by_id.get(cid)
-        d = details.get(cid)
-        if isinstance(b, dict) and isinstance(d, dict):
-            cand_members.append(_score_member(b, d, rank_map))
-
-    # 후보 정렬 및 제한(조합 폭발 방지)
-    cand_members.sort(key=lambda x: float(x.get("score") or 0.0), reverse=True)
-    cand_members = cand_members[:28]  # 충분히 넓게, 그래도 안전
-
-    need = party_size - len(fixed_members)
-    if need <= 0:
-        total, meta = _score_party(fixed_members, req_cls, require_combo)
-
-        # ✅ 기본 최적 파티 룰 동일 적용 (필수만으로 완성된 경우도 예외 없음)
-        cnt = meta.get("counts") or {}
-        caps_ok = (cnt.get("dps") or 0) >= 1 and (cnt.get("healer") or 0) <= 1 and (cnt.get("tank") or 0) <= 1
-
-        ok = bool(meta.get("ok_classes") and meta.get("has_combo") and caps_ok)
-
-        note = "필수 포함만으로 파티가 완성되었습니다."
-        if not caps_ok:
-            note += " (역할 밸런스: 딜러 1+ / 힐러 1 / 탱커 1 규칙을 만족하지 못했습니다)"
-
-        return {
-            "ok": bool(ok),
-            "party_size": party_size,
-            "evaluated": 1,
-            "party": fixed_members,
-            "total_score": total,
-            "meta": meta,
-            "note": note,
-        }
-
-    if len(cand_members) < need:
-        return {"ok": False, "error": f"후보가 부족합니다. (필수 제외 후 후보 {len(cand_members)}명, 필요 {need}명)"}
-
-    import itertools
-
-    best: list[tuple[float, list[dict], dict]] = []
-    evaluated = 0
-
-    for comb in itertools.combinations(cand_members, need):
-        evaluated += 1
-        members = fixed_members + list(comb)
-
-        total, meta = _score_party(members, req_cls, require_combo)
-
-        # ✅ 기본 최적 파티 룰(일반 PVE/PVP 공용): 딜러 최소 1, 탱커/힐러는 과투입 방지
-        cnt = meta.get("counts") or {}
-        if (cnt.get("dps") or 0) < 1:
-            continue
-        if (cnt.get("healer") or 0) > 1:
-            continue
-        if (cnt.get("tank") or 0) > 1:
-            continue
-        # ✅ 클래스 기반 딜러(Warrior/Rogue/Mage) 최소 1, Buffer 과투입(2+) 방지
-        class_list = [str(((x.get("base") or {}).get("class")) or "").strip() for x in members]
-        role_list = [str(((x.get("base") or {}).get("role")) or "").strip() for x in members]
-        class_cnt = Counter([c.lower() for c in class_list if c])
-        dps_class_cnt = sum(1 for c in class_list if str(c).strip().lower() in ("warrior","rogue","mage"))
-        buffer_class_cnt = class_cnt.get("buffer", 0)
-
-        # meta에 기록(프론트 표시/디버그용)
-        meta["class_counts"] = dict(class_cnt)
-        meta["dps_class_count"] = dps_class_cnt
-        meta["buffer_class_count"] = buffer_class_cnt
-
-        # 기본 룰: 버퍼 2명 이상은 제외, 딜러 클래스를 최소 1명 포함
-        if buffer_class_cnt > 1:
-            continue
-        if dps_class_cnt < 1:
-            continue
-
-        # 필수 조건 체크
-        if not meta.get("ok_classes"):
-            continue
-        if require_combo and not meta.get("has_combo"):
-            continue
-
-        best.append((total, members, meta))
-
-    if not best:
-        # 조건 때문에 공집합이면, 콤보 조건만 완화한 대체안 제공(클래스는 유지)
-        for comb in itertools.combinations(cand_members, need):
-            evaluated += 1
-            members = fixed_members + list(comb)
-            total, meta = _score_party(members, req_cls, require_combo=False)
-            # ✅ 기본 최적 파티 룰 유지 (fallback에서도 과도한 힐/탱 방지)
-            cnt = meta.get("counts") or {}
-            if (cnt.get("dps") or 0) < 1:
-                continue
-            if (cnt.get("healer") or 0) > 1:
-                continue
-            if (cnt.get("tank") or 0) > 1:
-                continue
-            # ✅ 클래스 기반 딜러 최소 1 + Buffer 과투입 방지 (fallback에서도 유지)
-            class_list = [str(((x.get("base") or {}).get("class")) or "").strip() for x in members]
-            role_list = [str(((x.get("base") or {}).get("role")) or "").strip() for x in members]
-            class_cnt = Counter([c.lower() for c in class_list if c])
-            dps_class_cnt = sum(1 for c in class_list if str(c).strip().lower() in ("warrior","rogue","mage"))
-            buffer_class_cnt = class_cnt.get("buffer", 0)
-
-            meta["class_counts"] = dict(class_cnt)
-            meta["dps_class_count"] = dps_class_cnt
-            meta["buffer_class_count"] = buffer_class_cnt
-
-            if buffer_class_cnt > 1:
-                continue
-            if dps_class_cnt < 1:
-                continue
-            if not meta.get("ok_classes"):
-                continue
-            best.append((total, members, meta))
-        if not best:
-            return {"ok": False, "error": "조건을 만족하는 파티를 찾지 못했습니다. (필수/클래스/후보를 확인해주세요)", "evaluated": evaluated}
-
-    best.sort(key=lambda x: x[0], reverse=True)
-    top = best[: max(1, int(top_k))]
-
-    def pack(members: list[dict], total: float, meta: dict) -> dict:
-        return {
-            "total_score": total,
-            "meta": meta,
-            "members": [
-                {
-                    **(mm.get("base") or {}),
-                    "score": float(mm.get("score") or 0.0),
-                    "tier": float(mm.get("tier") or 0.0),
-                    "archetype": (mm.get("profile") or {}).get("archetype"),
-                    "scaling": (mm.get("profile") or {}).get("scaling"),
-                    "no_crit": bool(mm.get("no_crit")),
-                }
-                for mm in sorted(members, key=lambda x: float(x.get("score") or 0.0), reverse=True)
-            ],
-        }
-
-    out_parties = [pack(mems, total, meta) for (total, mems, meta) in top]
-
-    return {
-        "ok": True,
-        "party_size": party_size,
-        "evaluated": evaluated,
-        "required": required,
-        "required_classes": sorted(list(req_cls)),
-        "require_combo": bool(require_combo),
-        "parties": out_parties,
-    }
-
+        return None
 # -------------------------
 # Load characters
 # -------------------------
