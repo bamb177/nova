@@ -51,10 +51,69 @@
   
     /* ✅ Tier 상단 버튼(전체선택/해제) 우측 정렬 */
     .tier-topline{
+      display:grid;
+      grid-template-columns: minmax(220px, 360px) minmax(180px, 260px) minmax(160px, 240px) 1fr auto;
+      grid-template-areas:
+        "preset build ai spacer actions"
+        "class  class class class  class";
+      gap: 12px;
+      align-items: center;
+    }
+    /* grid areas */
+    #tierPreset{ grid-area: preset; width:100%; }
+    #btnBuildTierParty{ grid-area: build; justify-self:start; }
+    #btnAiParty{ grid-area: ai; justify-self:start; }
+    .tier-actions-inline{
+      grid-area: actions;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap:nowrap;
+    }
+    .tier-class-inline{
+      grid-area: class;
       display:flex;
       align-items:center;
-      gap:10px;
+      gap:12px;
       flex-wrap:wrap;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+      min-width: 0;
+    }
+    .tier-classes-inline{ display:flex; flex-wrap:wrap; gap:8px; min-width:0; }
+
+    /* mid widths: keep tidy */
+    @media (max-width: 980px){
+      .tier-topline{
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+          "preset preset"
+          "build ai"
+          "actions actions"
+          "class class";
+        align-items: stretch;
+      }
+      #btnBuildTierParty, #btnAiParty{ width:100%; }
+      .tier-actions-inline{ justify-self:stretch; justify-content:flex-end; }
+    }
+
+    /* mobile */
+    @media (max-width: 560px){
+      .tier-topline{
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "preset"
+          "build"
+          "ai"
+          "actions"
+          "class";
+      }
+      #btnBuildTierParty, #btnAiParty{ width:100%; }
+      .tier-actions-inline{ justify-content:space-between; width:100%; }
     }
     .tier-topline .tier-actions-inline{
       margin-left:auto;
@@ -211,7 +270,19 @@
       }
       .tier-classes-inline::-webkit-scrollbar{ height: 8px; }
       .tier-classes-inline::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.14); border-radius: 999px; }
-      .tier-classes-inline .tier-class-item{ white-space: nowrap; }
+      .tier-classes-inline .tier-class-item{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.03);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+      white-space: nowrap;
+      user-select:none;
+    }
+    .tier-class-item input{ accent-color: rgba(255,255,255,.9); }
     }
 
     /* Tier panel box itself a bit clearer */
@@ -435,102 +506,6 @@ html, body{
       font-weight: 900;
       letter-spacing: .2px;
     }
-
-    /* =========================
-       Responsive Fix Pack (PC/모바일/창조절 자동 레이아웃) — 2026-01-14
-       - tier-topline: 5개 요소(grid)로 깨짐 방지
-       - filters: auto-fit grid
-       - topbar: wrap 안전
-       ========================= */
-
-    /* Topbar: wide screens에서도 줄바꿈/정렬 안정화 */
-    .topbar .title-row{
-      display:flex;
-      flex-wrap:wrap;
-      align-items:center;
-      gap:10px 12px;
-    }
-    .topbar h1{
-      margin:0;
-      line-height:1.15;
-      white-space:nowrap;
-    }
-    .topbar .navbtn{ white-space: nowrap; }
-    .topbar .meta-inline, .topbar .refresh{ white-space: nowrap; opacity:.85; }
-
-    /* Filters: 화면 폭에 맞춰 자동 컬럼 수 조절 */
-    .filters{
-      display:grid !important;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-      gap: 10px 10px;
-      align-items: center;
-    }
-    @media (max-width: 520px){
-      .filters{ grid-template-columns: 1fr; }
-    }
-
-    /* Tier: 5개 컴포넌트(드롭다운/버튼2/클래스조건/전체선택) 그리드 배치 */
-    #tierPreset{ grid-area: preset; width:100%; min-width:0; }
-    #btnBuildTierParty{ grid-area: build; width:100%; }
-    #btnAiParty{ grid-area: ai; width:100%; }
-    #tierClassInline{ grid-area: class; min-width:0 !important; width:100%; }
-    .tier-actions-inline{ grid-area: actions; margin-left:0 !important; justify-self:end; align-self:start; }
-
-    @media (min-width: 1100px){
-      .tier-topline{
-        display:grid !important;
-        grid-template-areas: "preset build ai class actions";
-        grid-template-columns: minmax(260px, 320px) minmax(190px, 230px) minmax(190px, 230px) 1fr auto;
-        gap: 12px;
-        align-items: start;
-      }
-      .tier-actions-inline{ display:flex; gap:8px; flex-wrap:nowrap; }
-    }
-
-    /* 중간 폭(태블릿/창 절반): 상단 1줄 + 클래스조건 2행 */
-    @media (max-width: 1099px) and (min-width: 721px){
-      .tier-topline{
-        display:grid !important;
-        grid-template-areas:
-          "preset build ai actions"
-          "class  class class class";
-        grid-template-columns: minmax(260px, 1fr) minmax(180px, 220px) minmax(180px, 220px) auto;
-        gap: 12px;
-        align-items: start;
-      }
-      .tier-actions-inline{ justify-self:end; }
-    }
-
-    /* 모바일: 세로 스택 */
-    @media (max-width: 720px){
-      .tier-topline{
-        display:grid !important;
-        grid-template-areas:
-          "preset"
-          "build"
-          "ai"
-          "actions"
-          "class";
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-      .tier-actions-inline{
-        justify-self:end;
-        width: 100%;
-        justify-content:flex-end;
-      }
-    }
-
-    /* Tier 클래스 조건: 내용이 많아도 자동 줄바꿈(가로 스크롤 강제 방지) */
-    .tier-class-inline{
-      min-width: 0 !important;
-      width: 100%;
-    }
-    .tier-classes-inline{
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
-      overflow: visible !important;
-    }
-
 </style>
 </head>
 
