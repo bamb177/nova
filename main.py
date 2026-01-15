@@ -1442,7 +1442,18 @@ def _member_payload(cid: str, tier: float, base: dict, detail: dict, role_overri
         "score": tier,  # UI에서 member.score로 표기
     }
 
-def _score_party(members: list[dict], require_combo: bool, required_classes: list[str]) -> tuple[float, dict]:
+def _score_party(
+    members: list[dict],
+    require_combo: bool,
+    required_classes: list[str],
+    combo_mode: str = "both",
+) -> tuple[float, dict]:
+    """Return (score, meta).
+
+    combo_mode:
+      - "either": (same element 2+) OR (same faction 2+)
+      - "both"  : (same element 2+) AND (same faction 2+)
+    """
     # base score: sum of tier
     total = sum(float(m.get("tier") or 0.0) for m in members)
 
@@ -1463,13 +1474,23 @@ def _score_party(members: list[dict], require_combo: bool, required_classes: lis
         miss = [c for c in req if c not in present]
         if miss:
             total -= 9999.0  # invalid
+
     # combo
     combo = _combo_detail(members)
+    cm = (str(combo_mode or "both").strip().lower() or "both")
+    if cm not in ("either", "both"):
+        cm = "both"
+
     if require_combo:
-        if not (combo["element_hits"] or combo["faction_hits"]):
+        ok = False
+        if cm == "either":
+            ok = bool(combo["element_hits"] or combo["faction_hits"])
+        else:
+            ok = bool(combo["element_hits"] and combo["faction_hits"])
+        if not ok:
             total -= 9999.0
 
-    meta = {"counts": counts, "combo_detail": combo}
+    meta = {"counts": counts, "combo_detail": combo, "combo_mode": cm}
     return total, meta
 
 
@@ -1481,7 +1502,9 @@ def recommend_best_party(
     party_size: int = 4,
     top_k: int = 1,
     require_combo: bool = True,
-    required_overrides: Optional[dict] = None,) -> dict:
+    combo_mode: str = "both",
+    required_overrides: Optional[dict] = None,
+) -> dict:
     load_all()
 
     party_size = int(party_size or 4)
@@ -1571,7 +1594,7 @@ def recommend_best_party(
     best = []
 
     if remaining == 0:
-        score, meta = _score_party(req_members, require_combo, required_classes)
+        score, meta = _score_party(req_members, require_combo, required_classes, combo_mode)
         if score <= -9990:
             return {"ok": False, "error": "필수 조건(클래스/콤보)을 만족하는 파티를 구성할 수 없습니다."}
         best.append((score, req_members, meta))
@@ -1586,7 +1609,7 @@ def recommend_best_party(
                 det = det if isinstance(det, dict) else {}
                 mems.append(_member_payload(cid, tier, base, det, role_override=ov_map.get(cid)))
 
-            score, meta = _score_party(mems, require_combo, required_classes)
+            score, meta = _score_party(mems, require_combo, required_classes, combo_mode)
             if score <= -9990:
                 continue
             best.append((score, mems, meta))
@@ -1607,6 +1630,165 @@ def recommend_best_party(
         })
 
     return {"ok": True, "parties": parties, "evaluated": evaluated}
+
+
+def recommend_multi_parties(
+    owned_ids: list[str],
+    must_assignments: Optional[dict],
+    required_overrides: Optional[dict],
+    required_classes: list[str],
+    rank_map: dict,
+    party_size: int = 4,
+    require_combo: bool = True,
+    combo_mode: str = "both",
+) -> dict:
+    """Build multiple parties:
+      - Guild: 3 parties
+      - PVP  : 2 parties
+      - Left : 2 parties (remaining pool)
+
+    Characters are consumed sequentially across categories (no duplicates across parties).
+    must_assignments format:
+      { auto: [cid...], byCategory: { Guild:[[...],[...],[...]], PVP:[[...],[...]], Left:[[...],[...]] } }
+    """
+
+    def _dedupe(seq):
+        out = []
+        seen = set()
+        for x in seq or []:
+            x = slug_id(str(x))
+            if x and x not in seen:
+                seen.add(x)
+                out.append(x)
+        return out
+
+    owned = _dedupe(owned_ids)
+
+    if not owned:
+        return {"ok": False, "error": "owned(보유 캐릭터) 목록이 비어있습니다."}
+
+    # derive assignments
+    auto = []
+    by = {"Guild": [[], [], []], "PVP": [[], []], "Left": [[], []]}
+
+    ma = must_assignments if isinstance(must_assignments, dict) else None
+    if ma:
+        auto = _dedupe(ma.get("auto") or [])
+        by_cat = ma.get("byCategory") or {}
+        for cat in ("Guild", "PVP", "Left"):
+            slots = by_cat.get(cat)
+            if isinstance(slots, list):
+                for i in range(min(len(by[cat]), len(slots))):
+                    by[cat][i] = _dedupe(slots[i] if isinstance(slots[i], list) else [])
+    else:
+        # fallback: use target info in required_overrides if present
+        ro = required_overrides if isinstance(required_overrides, dict) else {}
+        for cid, v in ro.items():
+            cid2 = slug_id(str(cid))
+            if not cid2:
+                continue
+            tgt = str((v or {}).get("target") or "").strip()
+            if not tgt:
+                auto.append(cid2)
+                continue
+            try:
+                cat, idxs = tgt.split(":")
+                i = int(idxs) - 1
+            except Exception:
+                auto.append(cid2)
+                continue
+            if cat in by and 0 <= i < len(by[cat]):
+                by[cat][i].append(cid2)
+            else:
+                auto.append(cid2)
+        auto = _dedupe(auto)
+        for cat in by:
+            for i in range(len(by[cat])):
+                by[cat][i] = _dedupe(by[cat][i])
+
+    # Ensure all assigned/auto are owned
+    owned_set = set(owned)
+    miss = [x for x in (auto + sum(sum(by.values(), []), [])) if x not in owned_set]
+    if miss:
+        miss = _dedupe(miss)
+        return {"ok": False, "error": f"필수 캐릭터가 보유 목록에 없습니다: {', '.join(miss)}"}
+
+    # auto list should not duplicate already fixed assignments
+    fixed = set()
+    for cat in by:
+        for slot in by[cat]:
+            fixed.update(slot)
+    auto = [x for x in auto if x not in fixed]
+
+    # sequential consume across categories
+    remaining = owned[:]  # list
+    used = set()
+
+    def _consume(ids: list[str]):
+        nonlocal remaining
+        for cid in ids:
+            used.add(cid)
+        remaining = [x for x in remaining if x not in used]
+
+    def _take_auto(n: int) -> list[str]:
+        take = []
+        while auto and len(take) < n:
+            take.append(auto.pop(0))
+        return take
+
+    groups_out: dict[str, list[dict]] = {"Guild": [], "PVP": [], "Left": []}
+
+    # category build order
+    for cat in ("Guild", "PVP", "Left"):
+        for idx, forced in enumerate(by[cat], start=1):
+            forced = _dedupe(forced)
+            need = party_size - len(forced)
+            if need < 0:
+                return {"ok": False, "error": f"{cat} {idx}파티: 필수 캐릭터 수가 파티 크기를 초과합니다."}
+
+            # fill with auto-required if any
+            req_ids = forced + _take_auto(need)
+
+            res = recommend_best_party(
+                owned_ids=remaining,
+                required_ids=req_ids,
+                required_classes=required_classes,
+                rank_map=rank_map,
+                party_size=party_size,
+                top_k=1,
+                require_combo=require_combo,
+                combo_mode=combo_mode,
+                required_overrides=required_overrides,
+            )
+
+            if not res.get("ok"):
+                return {"ok": False, "error": f"{cat} {idx}파티 구성 실패: {res.get('error') or 'unknown'}"}
+
+            party = (res.get("parties") or [None])[0]
+            if not party or not isinstance(party.get("members"), list):
+                return {"ok": False, "error": f"{cat} {idx}파티: 추천 결과가 비정상입니다."}
+
+            # consume members to avoid duplicates across parties
+            mem_ids = [slug_id(m.get("id") or "") for m in party["members"] if m.get("id")]
+            mem_ids = [x for x in mem_ids if x]
+            _consume(mem_ids)
+
+            party["party_key"] = f"{cat}:{idx}"
+            groups_out[cat].append(party)
+
+    # if auto still remains, report as warning
+    warnings = []
+    if auto:
+        warnings.append(f"타겟 미지정 필수 캐릭터가 {len(auto)}명 남았습니다(파티 크기 제한으로 미배치): {', '.join(auto[:8])}{'…' if len(auto)>8 else ''}")
+
+    # Validate (no overlap) + provide summary
+    return {
+        "ok": True,
+        "groups": groups_out,
+        "warnings": warnings,
+        "remaining_pool": remaining,
+        "used_count": len(used),
+    }
 
 # Load characters
 # -------------------------
@@ -1832,17 +2014,36 @@ def api_recommend_party():
         if not isinstance(rank_map, dict):
             rank_map = {}
 
-        res = recommend_best_party(
-            owned_ids=owned if isinstance(owned, list) else [],
-            required_ids=required if isinstance(required, list) else [],
-            required_classes=required_classes if isinstance(required_classes, list) else [],
-            rank_map=rank_map,
-            party_size=int(party_size) if str(party_size).isdigit() else 4,
-            top_k=int(top_k) if str(top_k).isdigit() else 1,
-            require_combo=bool(require_combo),
-            required_overrides=required_overrides,
-        )
+        combo_mode = payload.get("combo_mode") or "both"
+        must_assignments = payload.get("must_assignments") or payload.get("mustAssignments")
+        multi = payload.get("multi")
+        if not isinstance(multi, bool):
+            # must_assignments가 있으면 multi로 판단
+            multi = isinstance(must_assignments, dict)
 
+        if multi:
+            res = recommend_multi_parties(
+                owned_ids=owned if isinstance(owned, list) else [],
+                must_assignments=must_assignments if isinstance(must_assignments, dict) else None,
+                required_overrides=required_overrides if isinstance(required_overrides, dict) else {},
+                required_classes=required_classes if isinstance(required_classes, list) else [],
+                rank_map=rank_map,
+                party_size=int(party_size) if str(party_size).isdigit() else 4,
+                require_combo=bool(require_combo),
+                combo_mode=str(combo_mode),
+            )
+        else:
+            res = recommend_best_party(
+                owned_ids=owned if isinstance(owned, list) else [],
+                required_ids=required if isinstance(required, list) else [],
+                required_classes=required_classes if isinstance(required_classes, list) else [],
+                rank_map=rank_map,
+                party_size=int(party_size) if str(party_size).isdigit() else 4,
+                top_k=int(top_k) if str(top_k).isdigit() else 1,
+                require_combo=bool(require_combo),
+                combo_mode=str(combo_mode),
+                required_overrides=required_overrides,
+            )
         code = 200 if res.get("ok") else 400
         return jsonify(res), code
 
