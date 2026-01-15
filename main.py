@@ -7,7 +7,6 @@ from typing import Optional, Any
 
 from itertools import combinations
 from flask import Flask, jsonify, redirect, render_template, request
-from jinja2 import TemplateNotFound
 from collections import Counter
 
 APP_TITLE = os.getenv("APP_TITLE", "Nova")
@@ -34,7 +33,7 @@ VALID_IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 
 ELEMENT_RENAME = {"Fire": "Blaze", "Wind": "Storm", "Ice": "Frost"}
 
-app = Flask(__name__, static_folder=os.path.join(BASE_DIR, "public"), static_url_path="", template_folder=os.path.join(BASE_DIR, "templates"))
+app = Flask(__name__, static_folder="public", static_url_path="")
 
 CACHE: dict[str, Any] = {
     "chars": [],
@@ -1663,26 +1662,6 @@ def load_all(force: bool = False) -> None:
 # Routes
 # -------------------------
 
-
-# -------------------------
-# Error handlers (diagnostic-safe)
-# -------------------------
-@app.errorhandler(TemplateNotFound)
-def _handle_template_not_found(e):
-    # Return a helpful plaintext error so Cloud Run users can see the missing template quickly.
-    tdir = os.path.join(BASE_DIR, "templates")
-    try:
-        files = sorted(os.listdir(tdir))
-    except Exception:
-        files = []
-    return (
-        "TemplateNotFound: " + str(getattr(e, "name", e)) + "\n"
-        + "BASE_DIR=" + str(BASE_DIR) + "\n"
-        + "templates_dir=" + str(tdir) + "\n"
-        + "templates_files=" + ", ".join(files)
-    ), 500
-
-
 @app.get("/")
 def home():
     return redirect("/ui/select")
@@ -1853,19 +1832,6 @@ def runes_page():
         title="룬 정보",
         last_refresh=CACHE.get("last_refresh") or "",
     )
-
-@app.get("/__version")
-def __version():
-    import os
-    from datetime import datetime, timezone
-    return jsonify({
-        "ok": True,
-        "time": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "k_revision": os.getenv("K_REVISION", ""),
-        "k_service": os.getenv("K_SERVICE", ""),
-        "cwd": os.getcwd(),
-        "file": __file__,
-    })
 
 
 if __name__ == "__main__":
