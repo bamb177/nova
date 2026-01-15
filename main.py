@@ -1854,6 +1854,19 @@ def runes_page():
         last_refresh=CACHE.get("last_refresh") or "",
     )
 
+@app.get("/__version")
+def __version():
+    import os
+    from datetime import datetime, timezone
+    return jsonify({
+        "ok": True,
+        "time": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "k_revision": os.getenv("K_REVISION", ""),
+        "k_service": os.getenv("K_SERVICE", ""),
+        "cwd": os.getcwd(),
+        "file": __file__,
+    })
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "10000"))
