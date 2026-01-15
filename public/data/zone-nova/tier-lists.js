@@ -141,6 +141,7 @@ export const PVP_TIER_LIST = {
       { name: 'Zashiki-warashi' },
       { name: 'Lavinia' },
       { name: 'Apep' },
+      { name: 'shuten-doji' },
     ],
     A: [{ name: 'Tefnut' }, { name: 'Rose' }, { name: 'Mordred' }, { name: 'Leviathan' }],
     Situational: [
@@ -200,6 +201,7 @@ export const RIFT_TIER_LIST = {
       { name: 'Arthur' },
       { name: 'Cleopatra' },
       { name: 'Lavinia' },
+      { name: 'shuten-doji' },
     ],
     A: [
       { name: 'Tefnut' },
@@ -267,6 +269,7 @@ export const GUILD_RAID_TIER_LIST = {
       { name: 'Anubis' },
       { name: 'Lily' },
       { name: 'Apep' },
+      { name: 'shuten-doji' },
     ],
     A: [
       { name: 'Rose' },
