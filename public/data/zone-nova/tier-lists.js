@@ -64,6 +64,7 @@ export const PVE_TIER_LIST = {
       { name: 'Apep' },
       { name: 'Sigurd' },
       { name: 'Jorogumo' },
+      { name: 'shuten-doji' },
     ],
     S: [
       { name: 'Shu' },
