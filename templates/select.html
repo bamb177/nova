@@ -760,6 +760,54 @@ html, body{
   </div>
 
   <script>
+        // ===== JS Error Diagnostic (temporary) =====
+    (function () {
+      function ensureBanner() {
+        // 기존 배너가 있으면 그걸 사용, 없으면 임시로 생성
+        let el = document.querySelector('#jsErrorBanner, .js-error-banner, .js-error, #jsError');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'jsErrorBanner';
+          el.style.cssText = [
+            'position:sticky','top:0','z-index:99999',
+            'background:#b00020','color:#fff',
+            'padding:10px 12px','font-weight:800',
+            'white-space:pre-wrap','word-break:break-word'
+          ].join(';');
+          document.body.prepend(el);
+        }
+        return el;
+      }
+    
+      function show(msg) {
+        try {
+          const el = ensureBanner();
+          el.textContent = msg;
+          el.style.display = 'block';
+        } catch (_) {}
+      }
+    
+      // 런타임 에러(일반 JS 에러)
+      window.addEventListener('error', function (e) {
+        const msg = [
+          'JS 오류: ' + (e?.message || e),
+          e?.filename ? `@ ${e.filename}:${e.lineno}:${e.colno}` : '',
+          e?.error?.stack ? '\n' + String(e.error.stack) : ''
+        ].filter(Boolean).join(' ');
+        show(msg);
+      });
+    
+      // Promise 에러
+      window.addEventListener('unhandledrejection', function (e) {
+        const reason = e?.reason;
+        const msg = [
+          'JS 오류: UnhandledRejection: ' + (reason?.message || String(reason)),
+          reason?.stack ? '\n' + String(reason.stack) : ''
+        ].filter(Boolean).join(' ');
+        show(msg);
+      });
+    })();
+
     const CHARS_RAW = {{ chars_json|safe }};
 
     function escapeHtml(str) {
