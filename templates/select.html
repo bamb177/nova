@@ -11,10 +11,10 @@
   <!-- ✅ Tier 결과 카드 이미지 + PC 폭 확장 오버라이드 -->
   <style>
 
-    /* ✅ 선택/필수 컬럼: 한 줄 유지(선/택 방지) */
+    /* ✅ 선택 컬럼: 한 줄 유지(선/택 방지) */
     .col-check{ width: 86px; min-width: 86px; text-align: center; }
-    .col-req{ width: 86px; min-width: 86px; text-align: center; }
-    .table th.col-check, .table th.col-req{ text-align:center; }
+    .table th.col-check{ text-align:center; }
+
 
     /* (2) 전체 페이지 폭 확장 (PC) */
     @media (min-width: 1100px){
@@ -726,8 +726,7 @@ html, body{
           <thead>
             <tr>
               <th class="col-check">선택</th>
-              <th class="col-req">필수</th>
-              <th>캐릭터</th>
+                            <th>캐릭터</th>
               <th class="col-hp th-sort" data-sort="hp">체력</th>
               <th class="col-def th-sort" data-sort="defense">방어력</th>
               <th class="col-atk th-sort" data-sort="attack">공격력</th>
@@ -1551,8 +1550,7 @@ const rows = filtered.map(c => {
     <select class="must-slot" data-cid="${escapeHtml(cid)}" disabled title="필수 배치(자동 또는 특정 파티 지정)"></select>
   </div>
 </td>
-            <td class="col-req"><input class="chk-required" type="checkbox" data-cid="${escapeHtml(cid)}" title="파티에 필수 포함"></td>
-            <td>
+<td>
               <div class="char-cell clickable" data-cid="${escapeHtml(cid)}">
                 ${img}
                 <div class="char-name">${escapeHtml(nm)}</div>
@@ -1582,7 +1580,7 @@ const rows = filtered.map(c => {
         `;
       }).join("");
 
-      $tbody.innerHTML = rows || `<tr><td colspan="12" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
+      $tbody.innerHTML = rows || `<tr><td colspan="11" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
     
       fillStatsForVisibleRows();
       initMustControlsForVisibleRows();
@@ -1598,37 +1596,59 @@ const rows = filtered.map(c => {
     });
     document.getElementById("btnNone").addEventListener("click", () => {
       document.querySelectorAll(".chk-owned").forEach(x => x.checked = false);
-      document.querySelectorAll(".chk-required").forEach(x => x.checked = false);
-    });
+
+// 필수(파티 지정)도 초기화
+MUST_STATE = {};
+saveMustState();
+document.querySelectorAll(".chk-must").forEach(x => x.checked = false);
+document.querySelectorAll(".must-slot").forEach(s => { s.value = ""; s.disabled = true; });
+});
 
 
-// ✅ 필수 포함 체크 동기화
+// ✅ 보유(선택) ↔ 필수(파티 지정) 동기화
+// - 필수 체크 시: 보유도 자동 체크
+// - 보유 해제 시: 필수 해제 + 배치 초기화(MUST_STATE도 반영)
 document.addEventListener("change", (e) => {
   const t = e.target;
-  if (!t) return;
+  if (!t || !t.classList) return;
 
-  if (t.classList && t.classList.contains("chk-required")){
+  if (t.classList.contains("chk-must")){
     const cid = t.dataset.cid;
     if (!cid) return;
-    // 필수 체크하면 자동으로 보유도 체크
+
     if (t.checked){
-      const owned = document.querySelector(`.chk-owned[data-cid="${CSS.escape(cid)}"]`);
+      const owned = document.querySelector(`.chk-owned[data-cid="${cssEsc(cid)}"]`);
       if (owned) owned.checked = true;
     }
+    // MUST_STATE는 initMustControlsForVisibleRows()의 개별 핸들러에서 저장/초기화
     return;
   }
 
-  if (t.classList && t.classList.contains("chk-owned")){
+  if (t.classList.contains("chk-owned")){
     const cid = t.dataset.cid;
     if (!cid) return;
-    // 보유 해제하면 필수도 해제
+
+    // 보유 해제하면 필수도 해제 + 배치 초기화
     if (!t.checked){
-      const req = document.querySelector(`.chk-required[data-cid="${CSS.escape(cid)}"]`);
-      if (req) req.checked = false;
+      const must = document.querySelector(`.chk-must[data-cid="${cssEsc(cid)}"]`);
+      const slot = document.querySelector(`.must-slot[data-cid="${cssEsc(cid)}"]`);
+
+      if (must) must.checked = false;
+      if (slot){
+        slot.value = "";
+        slot.disabled = true;
+      }
+
+      if (MUST_STATE && MUST_STATE[cid]){
+        MUST_STATE[cid].on = false;
+        MUST_STATE[cid].target = "";
+        saveMustState();
+      }
     }
     return;
   }
 });
+
 
     document.addEventListener("click", (e) => {
       const chk = e.target.closest(".chk-owned");
@@ -1828,6 +1848,19 @@ function initMustControlsForVisibleRows(){
   });
 }
 
+
+function getMustSelectedIds(){
+  // MUST_STATE 기반(지속 저장) + 현재 화면 체크 보강
+  const out = new Set();
+  for (const [cid, st] of Object.entries(MUST_STATE || {})){
+    if (st && st.on) out.add(cid);
+  }
+  document.querySelectorAll(".chk-must").forEach(chk => {
+    if (chk.checked && chk.dataset.cid) out.add(chk.dataset.cid);
+  });
+  return Array.from(out);
+}
+
 function getMustAssignments(){
   const byCategory = { Guild:[[],[],[]], PVP:[[],[]], Left:[[],[]] };
   const auto = [];
@@ -1850,14 +1883,6 @@ function getMustAssignments(){
   }
 
   return { auto, byCategory };
-}
-
-function getRequiredSelectedIds(){
-  const out = [];
-  document.querySelectorAll(".chk-required").forEach(chk => {
-    if (chk.checked && chk.dataset.cid) out.push(chk.dataset.cid);
-  });
-  return out;
 }
 
 function getRankMapObjectForCurrentPreset(){
@@ -1952,7 +1977,7 @@ function renderAiPartyResult(res){
 
 async function requestAiParty(){
   const owned = getOwnedSelectedIds();
-  const required = getRequiredSelectedIds();
+  const required = getMustSelectedIds();
 
   if (owned.length < 4){
     renderAiPartyResult({ ok:false, error:"보유(선택) 캐릭터가 4명 이상이어야 합니다." });
