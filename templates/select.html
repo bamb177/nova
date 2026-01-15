@@ -1,2819 +1,1840 @@
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>{{ title }}</title>
+import os
+import json
+import re
+import ast
+from datetime import datetime, timezone
+from typing import Optional, Any
 
-  <!-- 공통/페이지 CSS 분리 유지 -->
-  <link rel="stylesheet" href="/css/select.css?v={{ last_refresh }}" />
+from itertools import combinations
+from flask import Flask, jsonify, redirect, render_template, request
+from collections import Counter
 
-  <!-- ✅ Tier 결과 카드 이미지 + PC 폭 확장 오버라이드 -->
-  <style>
+APP_TITLE = os.getenv("APP_TITLE", "Nova")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-    /* ✅ 선택/필수 컬럼: 한 줄 유지(선/택 방지) */
-    .col-check{ width: 86px; min-width: 86px; text-align: center; }
-    .col-req{ width: 86px; min-width: 86px; text-align: center; }
-    .table th.col-check, .table th.col-req{ text-align:center; }
+DATA_DIR = os.path.join(BASE_DIR, "public", "data", "zone-nova")
+CHAR_KO_DIR = os.path.join(DATA_DIR, "characters_ko")
 
-    /* (2) 전체 페이지 폭 확장 (PC) */
-    @media (min-width: 1100px){
-      .wrap{ max-width: 1600px !important; }
-    }
+# ✅ name/faction override
+OVERRIDE_NAMES = os.path.join(DATA_DIR, "overrides_names.json")
+OVERRIDE_FACTIONS = os.path.join(DATA_DIR, "overrides_factions.json")
 
-    /* (1) 등급표 파티 카드: 좌측 초상화 + 이름 */
-    .tier-card-top{
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-    .tier-portrait{
-      width:44px;
-      height:44px;
-      border-radius:12px;
-      object-fit:cover;
-      flex:0 0 auto;
-      box-shadow: 0 8px 18px rgba(0,0,0,.25);
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.10);
-    }
-    .tier-portrait-empty{
-      display:block;
-    }
+# ✅ runes
+RUNES_JS = os.path.join(DATA_DIR, "runes.js")
+RUNE_OVERRIDES = os.path.join(DATA_DIR, "rune_overrides.json")
 
-    /* (2) 긴 특성명(예: Heikyo Castle) 2줄 방지: 1줄 유지 + 넘치면 말줄임 */
-    .tier-card-sub .pill{
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 190px;
-    }
-  
-    /* ✅ Tier 상단 버튼(전체선택/해제) 우측 정렬 */
-    .tier-topline{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .tier-topline .tier-actions-inline{
-      margin-left:auto;
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:nowrap;
-    }
-    @media (min-width: 900px){
-      .tier-topline{ flex-wrap:nowrap; }
-    }
+# ✅ images
+CHAR_IMG_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "characters")
+ELEM_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "element")
+CLASS_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "classes")
+RUNE_ICON_DIR = os.path.join(BASE_DIR, "public", "images", "games", "zone-nova", "runes")
 
-  
-    /* Memory Card image (modal) — 카드열 확장 + 이미지 꽉차게 */
-    .memcard-wrap{
-      display:flex;
-      gap:14px;
-      align-items:flex-start;
-      flex-wrap:wrap;
-    }
+VALID_IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 
-    /* 카드열: PC에서는 크게, 모바일에서는 과도하지 않게 */
-    .memcard-imgcell{
-      vertical-align: top;
-      padding: 10px;
-      width: clamp(240px, 30vw, 420px);
-    }
+ELEMENT_RENAME = {"Fire": "Blaze", "Wind": "Storm", "Ice": "Frost"}
 
-    /* 이미지: 카드열을 100%로 꽉 채움 (기존 150x240 고정 제거) */
-    .memcard-img{
-      display:block;
-      width: 100%;
-      height: auto;
-      aspect-ratio: 5 / 8;
-      border-radius:16px;
-      object-fit:cover;
-      box-shadow: 0 10px 26px rgba(0,0,0,.35);
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-    }
-    .memcard-img.hidden{ display:none; }
+app = Flask(__name__, static_folder="public", static_url_path="")
 
-    @media (max-width: 520px){
-      .memcard-imgcell{
-        width: clamp(170px, 54vw, 320px);
-        padding: 8px;
-      }
-      .memcard-img{
-        border-radius: 14px;
-      }
-    }
-
-/* Stats columns (HP/ATK/DEF/CRIT) */
-    .col-hp, .col-atk, .col-def, .col-crit { width: 108px; min-width: 108px; text-align: right; }
-    td.col-hp, td.col-atk, td.col-def, td.col-crit { font-weight: 800; color: rgba(255,255,255,.86); }
-    
-    @media (max-width: 520px){
-      .col-hp, .col-atk, .col-def, .col-crit { width: 96px; min-width: 96px; }
-    }
-  
-    /* Tier panel: move class condition row into top line (better readability) */
-    .tier-topline{
-      align-items: flex-start;
-    }
-    .tier-class-inline{
-      flex: 1 1 auto;
-      min-width: 420px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
-    }
-    .tier-check-inline{
-      white-space: nowrap;
-      font-weight: 900;
-      color: rgba(255,255,255,.92);
-    }
-    .tier-classes-inline{
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      margin-left: 4px;
-    }
-    /* On small screens, keep layout tidy */
-    @media (max-width: 720px){
-      .tier-topline{ flex-wrap: wrap; }
-      .tier-class-inline{
-        min-width: 0;
-        width: 100%;
-        order: 3;
-      }
-      .tier-topline .tier-actions-inline{
-        order: 4;
-        width: 100%;
-        justify-content: flex-end;
-      }
-    }
-
-    /* Select dropdown readability (options contrast) */
-    select, .select{
-      color: rgba(255,255,255,.92);
-    }
-    select option{
-      background: #0b1222;
-      color: rgba(255,255,255,.90);
-    }
-    select option:disabled{
-      color: rgba(255,255,255,.58);
-    }
-
-  
-    /* ===== Readability: larger typography ===== */
-    body{ font-size: 16px; }
-    .topbar h1{ font-size: 22px; }
-    .filters-summary-title{ font-size: 18px; }
-    .filters-summary-hint{ font-size: 14px; opacity:.85; }
-    .input, .select, select, .btn{ font-size: 15px; }
-    .table th{ font-size: 14.5px; }
-    .table td{ font-size: 14.5px; }
-    .pill{ font-size: 13.5px; }
-
-    /* ===== Tier top layout: clean grid on PC ===== */
-    @media (min-width: 900px){
-      .tier-topline{
-        display: grid;
-        grid-template-columns: 280px 180px 1fr auto;
-        gap: 12px;
-        align-items: center;
-      }
-      .tier-topline #tierPreset{ width: 100%; min-width: 0; }
-      .tier-topline #btnBuildTierParty{ width: 100%; }
-      .tier-actions-inline{
-        margin-left: 0;           /* grid 모드에서는 불필요 */
-        justify-self: end;
-      }
-      .tier-actions-inline .btn{
-        min-width: 96px;
-        padding: 10px 14px;
-      }
-      .tier-class-inline{
-        min-width: 0;             /* grid에서 넘침 방지 */
-        padding: 10px 12px;
-      }
-      .tier-classes-inline{
-        flex-wrap: nowrap;        /* 2줄로 떨어지지 않게 */
-        overflow-x: auto;         /* 길면 가로 스크롤 */
-        scrollbar-width: thin;
-        padding-bottom: 2px;
-      }
-      .tier-classes-inline::-webkit-scrollbar{ height: 8px; }
-      .tier-classes-inline::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.14); border-radius: 999px; }
-      .tier-classes-inline .tier-class-item{ white-space: nowrap; }
-    }
-
-    /* Tier panel box itself a bit clearer */
-    .tier-class-inline{
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.12);
-    }
-    .tier-check-inline{
-      font-size: 15px;
-      font-weight: 950;
-    }
-
-  
-    @media (max-width: 720px){
-      .tier-actions-inline .btn{ min-width: 84px; }
-      .tier-class-inline{ padding: 10px 10px; }
-      .tier-classes-inline{ gap: 8px; }
-    }
-
-  
-    /* Sortable stat headers */
-    .th-sort{
-      cursor: pointer;
-      user-select: none;
-      position: relative;
-      padding-right: 18px;
-    }
-    .th-sort::after{
-      content: "↕";
-      position: absolute;
-      right: 6px;
-      opacity: .45;
-      font-size: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-    .th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
-    .th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
-
-  
-    /* === Stats sortable headers === */
-    th.th-sort{
-      cursor: pointer;
-      user-select: none;
-      position: relative;
-      padding-right: 18px;
-    }
-    th.th-sort::after{
-      content: "↕";
-      position: absolute;
-      right: 6px;
-      top: 50%;
-      transform: translateY(-50%);
-      opacity: .45;
-      font-size: 12px;
-    }
-    th.th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
-    th.th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
-
-    /* === Tier class condition: 2-column layout (no horizontal scrollbar) === */
-    .tier-class-inline{
-      display: grid;
-      grid-template-columns: 210px 1fr;
-      align-items: start;
-      gap: 12px;
-    }
-    .tier-classes-inline{
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px 12px;
-      overflow: visible !important;
-    }
-    @media (max-width: 720px){
-      .tier-class-inline{ grid-template-columns: 1fr; }
-      .tier-classes-inline{ grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 420px){
-      .tier-classes-inline{ grid-template-columns: 1fr; }
-    }
-
-  
-    /* ===== Mobile vertical scroll fix (character list) ===== */
-
-    /* ===== Mobile: allow vertical + horizontal scrolling INSIDE character list ===== */
-    html, body{
-      height: auto !important;
-      min-height: 100% !important;
-      overflow-x: hidden !important;
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-x pan-y;
-    }
-
-    /* Make the list area a true scroll container on mobile */
-    .table-wrap{
-      overflow: auto !important;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-x pan-y;
-      overscroll-behavior: contain;
-      /* Use small-viewport units for mobile address-bar changes */
-      max-height: calc(100svh - 310px);
-      border-radius: 18px;
-    }
-
-    /* Ensure the table can exceed viewport width so horizontal scroll is possible */
-    .table{
-      min-width: 980px;
-    }
-
-    /* On desktop, let the page scroll normally (no forced max-height) */
-    @media (min-width: 900px){
-      .table-wrap{ max-height: none; overflow-x: auto; overflow-y: visible; }
-      .table{ min-width: 1380px; }
-    }
-
-    /* Allow gestures even on nested elements */
-    .table-wrap *{ touch-action: pan-x pan-y; }
-
-html, body{
-      height: auto !important;
-      min-height: 100% !important;
-      overflow-x: hidden !important;
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch;
-    }
-/* ===== Background: remove multi-radial seams, use a single fixed gradient ===== */
-    body{
-      background: linear-gradient(180deg, #070b14 0%, #0b1222 100%) fixed !important;
-    }
-    /* Panels remain consistent on the simplified background */
-    .panel, .table-wrap, .modal-card, .tier-panel, .tier-class-inline{
-      background: rgba(255,255,255,.035);
-    }
-
-  
-    /* ===== FINAL OVERRIDE: allow horizontal scroll inside character list (mobile) ===== */
-    @media (max-width: 900px){
-      .table-wrap{
-        overflow-x: auto !important;
-        overflow-y: auto !important;
-        touch-action: pan-x pan-y !important;
-      }
-      .table, .table *{
-        touch-action: pan-x pan-y !important;
-      }
-      /* Ensure content actually overflows horizontally */
-      .table{
-        min-width: 1100px !important;
-        table-layout: auto !important;
-      }
-    }
-
-  
-    /* ===== AI 추천/등급표 결과 카드 레이아웃 개선 ===== */
-    .tier-cat{
-      margin-top: 14px;
-      padding: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 18px;
-      background: rgba(255,255,255,.03);
-    }
-    .tier-cat-title{
-      font-weight: 900;
-      letter-spacing: .2px;
-      margin-bottom: 8px;
-    }
-    .tier-cat-meta{
-      margin: 0 0 12px 0;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-      color: rgba(255,255,255,.80);
-      line-height: 1.35;
-    }
-    .tier-grid{
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-    }
-    @media (max-width: 1100px){
-      .tier-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (max-width: 520px){
-      .tier-grid{ grid-template-columns: 1fr; }
-    }
-
-    .tier-card{
-      padding: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 18px;
-      background: rgba(255,255,255,.04);
-      box-shadow: 0 10px 26px rgba(0,0,0,.20);
-      transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
-    }
-    @media (hover:hover){
-      .tier-card:hover{
-        transform: translateY(-1px);
-        background: rgba(255,255,255,.06);
-        box-shadow: 0 14px 32px rgba(0,0,0,.26);
-      }
-    }
-    .tier-name{
-      font-weight: 900;
-      font-size: 16px;
-      line-height: 1.2;
-    }
-    .tier-card-sub{
-      margin-top: 8px;
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    /* archetype pill */
-    .pill-accent{
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.08);
-      color: rgba(255,255,255,.92);
-      font-weight: 900;
-      letter-spacing: .2px;
-    }
-
-    /* =========================
-       Tier panel — PC 2줄 고정 레이아웃(공간 효율 개선)
-       1줄: 등급표선택 / 등급표 파티 / AI 파티 / (여백) / 전체선택 / 전체해제
-       2줄: 선택클래스 / Buffer..Warrior (7개)
-    ========================= */
-    .tier-row.tier-topline{
-      display:grid !important;
-      grid-template-columns: minmax(260px, 420px) minmax(220px, 280px) minmax(200px, 260px) 1fr auto;
-      align-items:center;
-      gap:12px;
-      flex-wrap: unset !important;
-    }
-    .tier-top-spacer{ min-width: 8px; }
-
-    .tier-row.tier-classline{
-      margin-top: 10px;
-    }
-    .tier-class-inline{
-      width: 100%;
-      min-width: 0 !important;
-      display:grid;
-      grid-template-columns: auto 1fr;
-      align-items:center;
-      gap: 12px;
-      padding: 10px 12px;
-    }
-    .tier-check-inline{
-      white-space: nowrap;
-    }
-
-    /* ✅ 클래스 7개: PC에서는 한 줄(7컬럼), 창이 줄어들면 4/3로 자동 */
-    .tier-classes-inline{
-      display:grid !important;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap:10px;
-      align-items:stretch;
-      margin-left: 0 !important;
-      width: 100%;
-      min-width: 0;
-    }
-    .tier-classes-inline .tier-class-item,
-    .tier-classes-inline label.tier-class-item{
-      min-width: 0 !important;
-      width: 100%;
-      padding: 10px 10px;
-      border-radius: 14px;
-      justify-content:flex-start;
-      gap: 8px;
-    }
-    .tier-classes-inline .tier-class-item span,
-    .tier-classes-inline label.tier-class-item span{
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-    }
-
-    /* 중간 폭: 4/3(2행) */
-    @media (max-width: 1100px){
-      .tier-classes-inline{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    }
-    /* 모바일: 기존처럼 wrap (가독성 우선) */
-    @media (max-width: 720px){
-      .tier-row.tier-topline{
-        grid-template-columns: 1fr;
-      }
-      .tier-actions-inline{
-        justify-content:flex-start;
-      }
-      .tier-class-inline{
-        grid-template-columns: 1fr;
-      }
-      .tier-classes-inline{
-        display:flex !important;
-        flex-wrap: wrap;
-      }
-    }
-
-
-/* ✅ 필수(파티 지정) UI: 선택/필수/배치 드롭다운 */
-.pick-stack{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  align-items:flex-start;
-}
-.pick-line{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  font-size:12px;
-  color: rgba(255,255,255,.82);
-  user-select:none;
-}
-.pick-line input{ transform: translateY(0.5px); }
-.pick-text{ white-space:nowrap; }
-.must-slot{
-  width: 132px;
-  max-width: 132px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--line2);
-  background: rgba(255,255,255,.04);
-  color: var(--txt);
-  font-size: 12px;
-  outline: none;
-}
-.must-slot:disabled{ opacity: .55; cursor: not-allowed; }
-
-.tier-warn{
-  margin:10px 0 6px;
-  padding:10px 12px;
-  border:1px solid rgba(255,210,120,.35);
-  background: rgba(255,210,120,.08);
-  border-radius: 14px;
-  color: rgba(255,255,255,.88);
-  font-size: 13px;
-}
-
-@media (max-width: 720px){
-  .must-slot{ width: 118px; max-width: 118px; }
-  .pick-line{ font-size: 11px; gap: 7px; }
-  .pick-stack{ gap: 5px; }
+CACHE: dict[str, Any] = {
+    "chars": [],
+    "details": {},
+    "last_refresh": None,
+    "error": None,
+    "runes_db": None,
+    "rune_overrides": None,
+    "rune_img_map": None,
 }
 
 
-/* ===== Subpanel (class condition) toggle ===== */
-.subpanel{
-  margin-top: 8px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: rgba(255,255,255,.02);
-}
-.subpanel[open]{
-  background: rgba(255,255,255,.025);
-}
-.subpanel-summary{
-  list-style: none;
-  cursor: pointer;
-  user-select: none;
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 14px;
-}
-.subpanel-summary::-webkit-details-marker{ display:none; }
-.subpanel-title{
-  font-weight: 700;
-  color: var(--txt);
-}
-.subpanel-toggle{
-  color: var(--muted);
-  font-size: 12px;
-}
-.subpanel:not([open]) .tier-class-inline{
-  display:none;
-}
-/* 더 촘촘한 클래스 칩 */
-.tier-classes-inline{
-  margin-top: 10px;
-  display: grid !important;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 10px;
-}
-@media (max-width: 1100px){
-  .tier-classes-inline{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-@media (max-width: 720px){
-  .tier-classes-inline{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
+# -------------------------
+# Helpers: IO / normalize
+# -------------------------
 
-</style>
-</head>
+def now_iso() -> str:
+    return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
-<body>
-  
-  <div id="jsErrorBanner" style="display:none;position:sticky;top:0;z-index:9999;background:rgba(180,40,40,.92);color:#fff;padding:10px 14px;font-weight:700;border-bottom:1px solid rgba(255,255,255,.25);">
-    JS 오류: <span id="jsErrorText"></span>
-  </div>
-<div class="wrap">
 
-    <!-- ===== Topbar ===== -->
-    <div class="topbar">
-      <div class="title-row">
-        <h1>{{ title }}</h1>
-        <a class="navbtn" href="/runes">룬 정보</a>
-        <div class="meta-inline">캐릭터 {{ cache_count }}명</div>
-        <div class="refresh">갱신 {{ last_refresh }}</div>
-      </div>
-    </div>
-    
-  
-    {% if error %}
-      <div class="error">로딩 오류: {{ error }}</div>
-    {% endif %}
+def slug_id(s: str) -> str:
+    s = (s or "").strip().lower().replace("’", "'")
+    s = re.sub(r"[\s'\"`]+", "", s)
+    s = re.sub(r"[^a-z0-9_-]", "", s)
+    return s
 
-    <div class="panel">
 
-      <!-- ===== Filters (Mobile collapsible) ===== -->
-      <details id="filtersPanel" class="filters-box" open>
-        <summary class="filters-summary">
-          <span class="filters-summary-title">검색/필터</span>
-          <span class="filters-summary-hint">(열기/닫기)</span>
-        </summary>
+def safe_load_json(path: str):
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
 
-        <div class="filters-body">
-          <div class="filters">
-            <input id="q" class="input" type="text" placeholder="검색 (이름/ID/특성/속성)" autocomplete="off" />
 
-            <select id="classFilter" class="select">
-              <option value="">클래스(전체)</option>
-            </select>
+def safe_read_text(path: str) -> Optional[str]:
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception:
+        return None
 
-            <select id="rarityFilter" class="select">
-              <option value="">등급(전체)</option>
-              <option value="SSR">SSR</option>
-              <option value="SR">SR</option>
-              <option value="R">R</option>
-              <option value="-">-</option>
-            </select>
 
-            <select id="elemFilter" class="select">
-              <option value="">속성(전체)</option>
-            </select>
+def normalize_char_name(name: str) -> str:
+    name = (name or "").replace("’", "'").strip()
+    return " ".join(name.split())
 
-            <select id="factionFilter" class="select">
-              <option value="">특성(전체)</option>
-            </select>
 
-            <select id="roleFilter" class="select">
-              <option value="">역할(전체)</option>
-            </select>
-</div>
-        </div>
-      </details>
+def normalize_element(v: str) -> str:
+    s = (v or "").strip()
+    if not s:
+        return "-"
+    s2 = s[:1].upper() + s[1:].lower()
+    return ELEMENT_RENAME.get(s2, s2)
 
-      <!-- ===== Tier Party Builder (details: open/close like filters) ===== -->
-      <details class="tier-panel" id="tierPanel" open>
-        <summary class="tier-summary">
-          <span class="tier-summary-title">등급표</span>
-          <span class="tier-summary-hint">(열기/닫기)</span>
-        </summary>
 
-        <div class="tier-body">
-          <div class="tier-row tier-topline">
-            <select id="tierPreset" class="select" disabled>
-              <option value="">tier-lists.js 로딩중...</option>
-            </select>
-            <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
-            <button class="btn" id="btnAiParty" type="button" disabled>AI 추천 파티</button>
+def load_overrides() -> tuple[dict, dict]:
+    names = safe_load_json(OVERRIDE_NAMES)
+    factions = safe_load_json(OVERRIDE_FACTIONS)
+    return (names if isinstance(names, dict) else {}), (factions if isinstance(factions, dict) else {})
 
-            <div class="tier-top-spacer" aria-hidden="true"></div>
 
-            <!-- ✅ 전체선택/전체해제: 1줄 우측 -->
-            <div class="tier-actions-inline">
-              <button class="btn" id="btnAll" type="button">전체 선택</button>
-              <button class="btn" id="btnNone" type="button">전체 해제</button>
-            </div>
-          </div>
+def find_file_by_stem(folder: str, stem: str) -> Optional[str]:
+    if not os.path.isdir(folder):
+        return None
+    target = (stem or "").strip().lower()
+    if not target:
+        return None
+    for fn in os.listdir(folder):
+        base, ext = os.path.splitext(fn)
+        if ext.lower() in VALID_IMG_EXT and base.lower() == target:
+            return fn
+    return None
 
-          <!-- ✅ 2줄: 선택 클래스 포함 조건 (접기/펼치기) -->
-          <div class="tier-row tier-classline">
-            <details class="subpanel" id="classCondPanel" open>
-              <summary class="subpanel-summary">
-                <span class="subpanel-title">선택 클래스 포함 조건</span>
-                <span class="subpanel-toggle">(열기/닫기)</span>
-              </summary>
 
-              <div class="tier-class-inline" id="tierClassInline">
-                <label class="tier-check tier-check-inline" title="체크한 클래스가 파티(4인)에 포함되도록 구성합니다. 후보를 해당 클래스로만 제한하지 않습니다.">
-                  <input type="checkbox" id="useClassFilter" />
-                  포함 조건 사용
-                </label>
-                <div class="tier-classes tier-classes-inline" id="tierClassBox" aria-disabled="true"></div>
-              </div>
-            </details>
-          </div>
-          </div>
-<div id="tierPartyResult" class="tier-result"></div>
-          <div id="aiPartyResult" class="tier-result"></div>
-        </div>
-      </details>
+def element_icon_url(element: str) -> Optional[str]:
+    if not element or element == "-":
+        return None
+    fn = find_file_by_stem(ELEM_ICON_DIR, element)
+    return f"/images/games/zone-nova/element/{fn}" if fn else None
 
-      <!-- ===== Characters list ===== -->
-      <div class="table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th class="col-check">선택</th>
-              <th class="col-req">필수</th>
-              <th>캐릭터</th>
-              <th class="col-hp th-sort" data-sort="hp">체력</th>
-              <th class="col-def th-sort" data-sort="defense">방어력</th>
-              <th class="col-atk th-sort" data-sort="attack">공격력</th>
-              <th class="col-crit th-sort" data-sort="critRate">크리%</th>
-              <th class="col-elem">속성</th>
-              <th class="col-faction">특성</th>
-              <th class="col-class">클래스</th>
-              <th class="col-role">역할</th>
-              <th class="col-rarity">등급</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
 
-    </div><!-- /.panel -->
-  </div><!-- /.wrap -->
+def class_icon_url(cls: str) -> Optional[str]:
+    if not cls or cls == "-":
+        return None
+    fn = find_file_by_stem(CLASS_ICON_DIR, str(cls).strip())
+    return f"/images/games/zone-nova/classes/{fn}" if fn else None
 
-  <!-- ===== Modal ===== -->
-  <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal-head">
-        <div class="modal-title" id="modalTitle">Character</div>
-        <button class="modal-close" id="modalClose" type="button">×</button>
-      </div>
-      <div class="modal-body" id="modalBody">
-        <div class="modal-loading">Loading…</div>
-      </div>
-    </div>
-  </div>
 
-  <script>
-    const CHARS_RAW = {{ chars_json|safe }};
+# -------------------------
+# Character image mapping
+# -------------------------
 
-    function escapeHtml(str) {
-      return (str || "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#39;");
-    }
+def build_character_image_map(folder: str) -> dict[str, str]:
+    m: dict[str, str] = {}
+    if not os.path.isdir(folder):
+        return m
 
-    
+    for fn in os.listdir(folder):
+        ext = os.path.splitext(fn)[1].lower()
+        if ext not in VALID_IMG_EXT:
+            continue
 
-    function formatDescText(s){
-      const t = String(s ?? "");
-      // Korean sentence breaks: force newline after "다." when followed by whitespace
-      // Also keep basic breaks after . ? !
-      return t
-        .replace(/다\.(\s+)/g, "다.<br>")
-        .replace(/([\.\?\!])\s+/g, "$1<br>");
-    }
-function pick(obj, ...keys) {
-      for (const k of keys) {
-        const v = obj?.[k];
-        if (v !== undefined && v !== null) return v;
+        base = os.path.splitext(fn)[0]
+        base_low = base.lower()
+
+        keys = set()
+        keys.add(base_low)
+        keys.add(slug_id(base))
+
+        compact = re.sub(r"[\s\-_]+", "", base_low)
+        if compact:
+            keys.add(compact)
+            keys.add(slug_id(compact))
+
+        stripped = re.sub(r"^[0-9]+[_\-\s]*", "", base_low).strip()
+        if stripped:
+            keys.add(stripped)
+            keys.add(slug_id(stripped))
+
+        for k in keys:
+            if k and k not in m:
+                m[k] = fn
+
+    return m
+
+
+def candidate_image_keys(cid: str, raw_name: str, display_name: str, image_hint: Optional[str]) -> list[str]:
+    out: list[str] = []
+
+    def add(x: str):
+        x = (x or "").strip()
+        if not x:
+            return
+        out.append(x.lower())
+        out.append(slug_id(x))
+        out.append(re.sub(r"[\s\-_]+", "", x.lower()))
+        out.append(slug_id(re.sub(r"[\s\-_]+", "", x)))
+
+    add(image_hint or "")
+    add(raw_name or "")
+    add(cid or "")
+    add(display_name or "")
+
+    seen, uniq = set(), []
+    for x in out:
+        if x and x not in seen:
+            seen.add(x)
+            uniq.append(x)
+    return uniq
+
+
+# -------------------------
+# Runes: parse runes.js + resolve icons
+# -------------------------
+
+# =========================
+# Rune effect parsing (2pc/4pc text -> structured effects)
+# =========================
+
+def _parse_seconds(s: str) -> Optional[float]:
+    if not s:
+        return None
+    m = re.search(r"(\d+(?:\.\d+)?)\s*s", s.lower())
+    if not m:
+        return None
+    try:
+        return float(m.group(1))
+    except Exception:
+        return None
+
+def _pct_from_text(s: str) -> Optional[float]:
+    if not s:
+        return None
+    m = re.search(r"([+-]?\d+(?:\.\d+)?)\s*%", s)
+    if not m:
+        return None
+    try:
+        return float(m.group(1)) / 100.0
+    except Exception:
+        return None
+
+def parse_rune_effect_text(text: str) -> dict:
+    """
+    2pc/4pc 효과 문구를 '효과 벡터'로 변환.
+    반환 예:
+      {
+        "mods": {"atk_pct":0.08, "crit_rate":0.06, "basic_dmg":0.30, ...},
+        "cond": {"type":"hp_gt", "value":0.80} or {"type":"after_ultimate","dur":10},
+        "target":"self|team",
+        "notes":[...]
       }
-      return null;
-    }
+    """
+    out = {"mods": {}, "cond": None, "target": "self", "notes": []}
+    if not isinstance(text, str) or not text.strip():
+        return out
 
-    function isEmpty(v) {
-      if (v === null || v === undefined) return true;
-      if (Array.isArray(v)) return v.length === 0;
-      if (typeof v === "object") return Object.keys(v).length === 0;
-      if (typeof v === "string") return v.trim() === "";
-      return false;
-    }
+    t = text.strip()
+    tl = t.lower()
 
-    function slugKey(s){
-      return String(s || "")
-        .toLowerCase()
-        .replace(/[’']/g, "")
-        .replace(/[\s\-_]+/g, "")
-        .trim();
-    }
+    # --- condition parsing ---
+    # When HP >80%: ...
+    m = re.search(r"when\s+hp\s*([<>]=?)\s*(\d+(?:\.\d+)?)\s*%", tl)
+    if m:
+        op = m.group(1)
+        val = float(m.group(2)) / 100.0
+        out["cond"] = {"type": "hp_cond", "op": op, "value": val}
+        # 조건 앞부분 제거 후 본문만 남겨 파싱 계속
+        t = re.sub(r"(?i)when\s+hp\s*[<>]=?\s*\d+(?:\.\d+)?\s*%\s*:\s*", "", t).strip()
+        tl = t.lower()
+
+    # After ultimate / after dealing X
+    if "after ultimate" in tl or "after ult" in tl or "궁극기" in t or "필살기" in t:
+        dur = _parse_seconds(t)  # (10s)
+        out["cond"] = {"type": "after_ultimate", "dur": dur}
+
+    if "after dealing extra attack" in tl or "extra attack damage" in tl or "추가 공격" in t:
+        dur = _parse_seconds(t)
+        out["cond"] = {"type": "after_extra", "dur": dur}
+
+    if "after dealing continuous damage" in tl or "continuous damage" in tl or "dot" in tl or "지속" in t:
+        dur = _parse_seconds(t)
+        out["cond"] = {"type": "after_dot", "dur": dur}
+
+    if "battle start" in tl or "전투 시작" in t:
+        out["cond"] = {"type": "battle_start", "dur": None}
+
+    # stacking
+    if "stacks up to" in tl or "stack" in tl or "중첩" in t:
+        m2 = re.search(r"stacks\s+up\s+to\s+(\d+)", tl)
+        if m2:
+            out["notes"].append(f"stack_max={m2.group(1)}")
+
+    # team target
+    if "team" in tl or "파티" in t or "아군" in t:
+        out["target"] = "team"
+
+    # --- stat/damage mods parsing ---
+    # Attack Power +8%
+    if "attack power" in tl or "atk" in tl or "공격력" in t:
+        p = _pct_from_text(t)
+        if p is not None and ("attack power" in tl or "공격력" in t):
+            out["mods"]["atk_pct"] = out["mods"].get("atk_pct", 0.0) + p
+
+    # HP +8%
+    if re.search(r"\bhp\b", tl) or "체력" in t or "생명력" in t:
+        p = _pct_from_text(t)
+        if p is not None and ("hp" in tl or "체력" in t or "생명력" in t):
+            out["mods"]["hp_pct"] = out["mods"].get("hp_pct", 0.0) + p
+
+    # Defense +12%
+    if "defense" in tl or "def" in tl or "방어력" in t:
+        p = _pct_from_text(t)
+        if p is not None and ("defense" in tl or "방어력" in t):
+            out["mods"]["def_pct"] = out["mods"].get("def_pct", 0.0) + p
+
+    # Crit rate +6%
+    if "critical hit rate" in tl or "crit rate" in tl or "치명타 확률" in t or "치명률" in t or "크리" in t:
+        p = _pct_from_text(t)
+        if p is not None:
+            out["mods"]["crit_rate"] = out["mods"].get("crit_rate", 0.0) + p
+
+    # Crit damage +24%
+    if "critical hit damage" in tl or "crit damage" in tl or "치명타 피해" in t or "치피" in t or "크리피해" in t:
+        p = _pct_from_text(t)
+        if p is not None:
+            out["mods"]["crit_dmg"] = out["mods"].get("crit_dmg", 0.0) + p
+
+    # Basic Attack Damage +30%
+    if "basic attack damage" in tl or "기본 공격" in t or "평타" in t:
+        p = _pct_from_text(t)
+        if p is not None and ("damage" in tl or "피해" in t):
+            out["mods"]["basic_dmg"] = out["mods"].get("basic_dmg", 0.0) + p
+
+    # Extra Attack damage +20%
+    if "extra attack" in tl or "추가 공격" in t:
+        p = _pct_from_text(t)
+        if p is not None and ("damage" in tl or "피해" in t):
+            out["mods"]["extra_dmg"] = out["mods"].get("extra_dmg", 0.0) + p
+
+    # Continuous damage +20% (DOT)
+    if "continuous damage" in tl or "dot" in tl or "지속" in t:
+        p = _pct_from_text(t)
+        if p is not None and ("damage" in tl or "피해" in t):
+            out["mods"]["dot_dmg"] = out["mods"].get("dot_dmg", 0.0) + p
+
+    # Team damage +10%
+    if ("team" in tl and "damage" in tl) or ("파티" in t and "피해" in t):
+        p = _pct_from_text(t)
+        if p is not None:
+            out["mods"]["team_dmg"] = out["mods"].get("team_dmg", 0.0) + p
+
+    # Healing Effectiveness +10%
+    if "healing effectiveness" in tl or "치유" in t or "회복" in t:
+        p = _pct_from_text(t)
+        if p is not None:
+            out["mods"]["heal_eff"] = out["mods"].get("heal_eff", 0.0) + p
+
+    # Shield Effectiveness +20%
+    if "shield effectiveness" in tl or "보호막" in t or "실드" in t:
+        p = _pct_from_text(t)
+        if p is not None:
+            out["mods"]["shield_eff"] = out["mods"].get("shield_eff", 0.0) + p
+
+    # Energy gain at battle start
+    if ("gain" in tl and "energy" in tl) or ("에너지" in t and ("획득" in t or "얻" in t)):
+        out["mods"]["energy_start"] = 1.0
+
+    return out
+
+def rune_effects_enriched(rune_db: dict) -> dict:
+    """
+    rune_db_by_name() 결과에 2pc/4pc 파싱 결과를 붙인 사전 반환
+    """
+    out = {}
+    for name, r in rune_db.items():
+        two = parse_rune_effect_text(str(r.get("twoPiece") or ""))
+        four = parse_rune_effect_text(str(r.get("fourPiece") or ""))
+        out[name] = {**r, "_two": two, "_four": four}
+    return out
+
+def _strip_js_comments(s: str) -> str:
+    s = re.sub(r"//.*?$", "", s, flags=re.M)
+    s = re.sub(r"/\*.*?\*/", "", s, flags=re.S)
+    return s
 
 
-    // -------------------------
-    // 필수(파티 지정) 상태 관리 (초기화는 render보다 먼저)
-    // -------------------------
-    // MUST_STATE[cid] = { on: true/false, target: "" | "Guild:1" | "PVP:2" | "Left:1" }
-    var MUST_STATE = {};
-    const MUST_KEY = "nova.must.v1";
+def _extract_balanced(s: str, start: int) -> Optional[str]:
+    """
+    start 위치의 '{' 또는 '[' 에서 시작해 괄호를 밸런싱하며 리터럴을 추출한다.
+    문자열/이스케이프를 고려한다.
+    """
+    if start < 0 or start >= len(s):
+        return None
+    opener = s[start]
+    if opener not in "[{":
+        return None
+    closer = "]" if opener == "[" else "}"
 
-    function loadMustState(){
-      try{
-        const raw = localStorage.getItem(MUST_KEY);
-        const obj = raw ? JSON.parse(raw) : {};
-        return (obj && typeof obj === "object") ? obj : {};
-      }catch(e){
-        return {};
-      }
-    }
+    depth = 0
+    i = start
+    in_str = False
+    quote = ""
+    esc = False
 
-    function saveMustState(){
-      try{ localStorage.setItem(MUST_KEY, JSON.stringify(MUST_STATE || {})); }catch(e){}
-    }
+    while i < len(s):
+        ch = s[i]
 
-    MUST_STATE = loadMustState();
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == quote:
+                in_str = False
+                quote = ""
+            i += 1
+            continue
 
-    const RARITY_ORDER = { "SSR": 3, "SR": 2, "R": 1, "-": 0 };
-    function rarityVal(r){
-      const x = String(r || "-").toUpperCase();
-      return RARITY_ORDER[x] ?? 0;
-    }
+        if ch in ("'", '"'):
+            in_str = True
+            quote = ch
+            i += 1
+            continue
 
-    function classLabel(cls){
-      const v = (cls || "-").toString().trim();
-      return v || "-";
-    }
-    function roleLabel(role){
-      const v = (role || "-").toString().trim();
-      return v || "-";
-    }
-    function rarityPillClass(r){
-      const v = (r || "-").toString().trim().toUpperCase();
-      if (v === "SSR") return "pill-ssr";
-      if (v === "SR") return "pill-sr";
-      if (v === "R") return "pill-r";
-      return "pill-none";
-    }
+        if ch == opener:
+            depth += 1
+        elif ch == closer:
+            depth -= 1
+            if depth == 0:
+                return s[start:i + 1]
+        i += 1
 
-    // ===== Modal rendering (skills/awakenings/memory) =====
-    function renderKV(obj) {
-      if (!obj || typeof obj !== "object") return `<div class="detail-empty">데이터 없음</div>`;
-      const rows = Object.entries(obj).map(([k, v]) => {
-        const vv = (typeof v === "object") ? JSON.stringify(v) : String(v);
-        return `<tr><td class="kv-k">${escapeHtml(k)}</td><td class="kv-v">${escapeHtml(vv)}</td></tr>`;
-      }).join("");
-      return `<table class="kv"><tbody>${rows}</tbody></table>`;
-    }
+    return None
 
-    function looksLikeSkillObject(o){
-      if (!o || typeof o !== "object" || Array.isArray(o)) return false;
-      const keys = ["name","title","skillName","description","desc","text","cooldown","energyCost","cost","type","category"];
-      return keys.some(k => o[k] !== undefined && o[k] !== null);
-    }
 
-    function normalizeSkillEntry(x, fallbackTitle) {
-      if (!x) return { title: fallbackTitle || "-", desc: "", extra: null };
+def _extract_js_literal(raw: str) -> Optional[str]:
+    """
+    runes.js에서 export default <literal or identifier> 형태를 최대한 복원
+    """
+    if not raw:
+        return None
 
-      if (typeof x === "string") {
-        return { title: fallbackTitle || "-", desc: x, extra: null };
-      }
+    s = _strip_js_comments(raw)
 
-      if (typeof x === "object") {
-        const title =
-          (typeof x.name === "string" && x.name) ||
-          (typeof x.title === "string" && x.title) ||
-          (typeof x.skillName === "string" && x.skillName) ||
-          fallbackTitle || "-";
+    # export default <literal or IDENT>
+    m = re.search(r"export\s+default\s+([A-Za-z_][A-Za-z0-9_]*|\[|\{)", s)
+    if not m:
+        return None
 
-        const desc =
-          (typeof x.description === "string" && x.description) ||
-          (typeof x.desc === "string" && x.desc) ||
-          (typeof x.text === "string" && x.text) ||
-          "";
+    token = m.group(1)
+    if token in ("[", "{"):
+        start = m.start(1)
+        return _extract_balanced(s, start)
 
-        const extra = {};
-        for (const [k, v] of Object.entries(x)) {
-          if (["name","title","skillName","description","desc","text"].includes(k)) continue;
-          if (v === null || v === undefined) continue;
-          if (typeof v === "object") continue;
-          extra[k] = v;
-        }
-        return { title, desc, extra: Object.keys(extra).length ? extra : null };
-      }
+    # export default IDENT;
+    ident = token
+    # const IDENT = <literal>;
+    m2 = re.search(rf"\bconst\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
+    if m2:
+        start = m2.start(1)
+        return _extract_balanced(s, start)
 
-      return { title: fallbackTitle || "-", desc: String(x), extra: null };
-    }
+    # let/var IDENT = <literal>;
+    m2 = re.search(rf"\b(?:let|var)\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
+    if m2:
+        start = m2.start(1)
+        return _extract_balanced(s, start)
 
-    function renderOneSkillCard(s) {
-      const desc = s.desc
-        ? `<div class="card-desc">${formatDescText(escapeHtml(s.desc))}</div>`
-        : `<div class="card-desc" style="opacity:.75;">(설명 없음)</div>`;
-      const extra = s.extra ? renderKV(s.extra) : "";
-      return `
-        <div class="card">
-          <div class="card-title"><span>${escapeHtml(String(s.title || "-"))}</span></div>
-          ${desc}
-          ${extra ? `<div style="margin-top:8px;">${extra}</div>` : ""}
-        </div>
-      `;
-    }
+    return None
 
-    function renderSkillCards(skillsObjOrArr) {
-      if (isEmpty(skillsObjOrArr)) return `<div class="detail-empty">스킬 데이터 없음</div>`;
 
-      if (looksLikeSkillObject(skillsObjOrArr)) {
-        const s = normalizeSkillEntry(skillsObjOrArr, "Skill");
-        return `<div class="cards">${renderOneSkillCard(s)}</div>`;
-      }
+def _json_friendly(js: str) -> str:
+    # JSON 파서 친화적으로 보정(마지막 시도용)
+    s = js.strip()
+    s = re.sub(r",\s*([}\]])", r"\1", s)  # trailing comma
+    s = re.sub(r"\bundefined\b", "null", s)
+    # unquoted keys -> quoted keys
+    s = re.sub(r'([{\[,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*):', r'\1"\2"\3:', s)
+    # single quote -> double quote (best-effort)
+    s = re.sub(r"'", r'"', s)
+    return s
 
-      if (Array.isArray(skillsObjOrArr)) {
-        const cards = skillsObjOrArr
-          .map((x, idx) => renderOneSkillCard(normalizeSkillEntry(x, `Skill ${idx + 1}`)))
-          .join("");
-        return `<div class="cards">${cards}</div>`;
-      }
 
-      if (typeof skillsObjOrArr === "object") {
-        const cards = [];
-        for (const [k, v] of Object.entries(skillsObjOrArr)) {
-          if (isEmpty(v)) continue;
+def _to_python_literal(js: str) -> str:
+    """
+    ast.literal_eval을 위한 Python 리터럴 변환(핵심: JS 키/값을 Python이 읽을 수 있게)
+    """
+    s = js.strip()
+    s = re.sub(r",\s*([}\]])", r"\1", s)  # trailing comma
+    s = re.sub(r"\bnull\b", "None", s)
+    s = re.sub(r"\btrue\b", "True", s, flags=re.I)
+    s = re.sub(r"\bfalse\b", "False", s, flags=re.I)
+    s = re.sub(r"\bundefined\b", "None", s)
+    # unquoted keys -> quoted keys
+    s = re.sub(r'([{\[,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*):', r'\1"\2"\3:', s)
+    return s
 
-          if (looksLikeSkillObject(v)) {
-            cards.push(renderOneSkillCard(normalizeSkillEntry(v, k)));
-            continue;
-          }
 
-          if (Array.isArray(v)) {
-            for (let i = 0; i < v.length; i++) {
-              cards.push(renderOneSkillCard(normalizeSkillEntry(v[i], `${k} ${i + 1}`)));
+def _norm_key(s: str) -> str:
+    s = (s or "").strip().lower()
+    s = re.sub(r"[\s\-_\.]+", "", s)
+    s = re.sub(r"[^a-z0-9가-힣]", "", s)
+    return s
+
+
+def build_rune_image_map(folder: str) -> dict[str, str]:
+    """
+    public/images/games/zone-nova/runes 폴더를 스캔해서
+    세트명 -> 실제 파일명으로 매핑(대소문자/공백/언더스코어/접미어 차이 흡수)
+    """
+    m: dict[str, str] = {}
+    if not os.path.isdir(folder):
+        return m
+
+    for root, _, files in os.walk(folder):
+        for fn in files:
+            ext = os.path.splitext(fn)[1].lower()
+            if ext not in VALID_IMG_EXT:
+                continue
+
+            base = os.path.splitext(fn)[0]
+            rel = os.path.relpath(os.path.join(root, fn), folder).replace("\\", "/")
+
+            keys = {
+                base.lower(),
+                _norm_key(base),
+                re.sub(r"\d+", "", base.lower()),
+                _norm_key(re.sub(r"\d+", "", base)),
+                re.sub(r"\brune\b", "", base, flags=re.I).strip().lower(),
+                _norm_key(re.sub(r"\brune\b", "", base, flags=re.I).strip()),
             }
-          }
-        }
-
-        if (cards.length === 0) {
-          const s = normalizeSkillEntry(skillsObjOrArr, "Skill");
-          return `<div class="cards">${renderOneSkillCard(s)}</div>`;
-        }
-        return `<div class="cards">${cards.join("")}</div>`;
-      }
-
-      const s = normalizeSkillEntry(skillsObjOrArr, "Skill");
-      return `<div class="cards">${renderOneSkillCard(s)}</div>`;
-    }
-
-    function renderSkills(detail) {
-      const skills = pick(detail, "skills") || {};
-      const teamSkill = pick(detail, "teamSkill", "team_skill", "team");
-      const normalData = !isEmpty(skills?.normal) ? skills.normal : skills?.basic;
-
-      const sections = [
-        { label: "Auto",       data: skills?.auto,     css: "group-auto" },
-        { label: "Ultimate",   data: skills?.ultimate, css: "group-ultimate" },
-        { label: "Passive",    data: skills?.passive,  css: "group-passive" },
-        { label: "Normal",     data: normalData,       css: "group-normal" },
-        { label: "Team Skill", data: teamSkill,        css: "group-team" },
-      ];
-
-      return sections.map(s => `
-        <div class="group ${s.css}">
-          <div class="group-title">${escapeHtml(s.label)}</div>
-          ${isEmpty(s.data) ? `<div class="detail-empty">${escapeHtml(s.label)} 데이터 없음</div>` : renderSkillCards(s.data)}
-        </div>
-      `).join("");
-    }
-
-    function normalizeAwakenings(aw) {
-      if (!aw) return [];
-      if (Array.isArray(aw)) return aw;
-      if (typeof aw === "object" && Array.isArray(aw.levels)) return aw.levels;
-      return [];
-    }
-
-    function awakenRowEffect(x) {
-      if (x == null) return "";
-      if (typeof x === "string") return x;
-      if (typeof x === "number" || typeof x === "boolean") return String(x);
-      if (typeof x === "object") {
-        const eff = pick(x, "effect", "effects", "desc", "description", "text");
-        if (typeof eff === "string") return eff;
-        return JSON.stringify(x, null, 2);
-      }
-      return String(x);
-    }
-
-    function renderAwakenings(detail) {
-      const aw = pick(detail, "awakenings", "awakening");
-      const rows = normalizeAwakenings(aw);
-      if (!rows.length) return `<div class="detail-empty">각성 데이터 없음</div>`;
-
-      const tbody = rows.map((x, idx) => {
-        const lvl = pick(x, "level", "lv", "stage") ?? (idx + 1);
-        const eff = awakenRowEffect(x);
-        return `<tr><td style="width:110px;font-weight:950;">Lv.${escapeHtml(String(lvl))}</td><td>${escapeHtml(eff)}</td></tr>`;
-      }).join("");
-
-      return `
-        <table class="awak-table">
-          <thead><tr><th style="width:110px;">레벨</th><th>효과</th></tr></thead>
-          <tbody>${tbody}</tbody>
-        </table>
-      `;
-    }
-
-    function renderMemoryCard(detail) {
-      const mem = pick(detail, "memoryCard", "memory_card");
-      if (isEmpty(mem)) return `<div class="detail-empty">메모리카드 데이터 없음</div>`;
-      if (typeof mem !== "object") return `<div class="detail-empty">${escapeHtml(String(mem))}</div>`;
-
-      const name = pick(mem, "name", "title") || "Memory Card";
-      const desc = pick(mem, "description", "desc", "text") || "";
-      const effects = pick(mem, "effects", "effect");
-
-      let effectsHtml = "";
-      if (Array.isArray(effects)) {
-        const charName = pick(detail, "name") || "";
-        const imgUrl = `/images/games/zone-nova/card/${encodeURIComponent(String(charName))}card.jpg`;
-
-        const effRows = (effects || []).map(e => {
-          if (typeof e === "string") return e;
-          try { return JSON.stringify(e, null, 2); } catch { return String(e); }
-        });
-
-        if (effRows.length === 0) {
-          effectsHtml = `<div class="detail-empty">효과 데이터 없음</div>`;
-        } else {
-          const first = effRows[0];
-          const rest = effRows.slice(1);
-
-          const tbody = [
-            `<tr>
-               <td class="memcard-imgcell" rowspan="${effRows.length}">
-                 <img class="memcard-img" src="${imgUrl}" alt="Memory Card"
-                      onerror="this.classList.add('hidden');" />
-               </td>
-               <td>${escapeHtml(first)}</td>
-             </tr>`,
-            ...rest.map(x => `<tr><td>${escapeHtml(x)}</td></tr>`)
-          ].join("");
-
-          effectsHtml = `
-            <table class="awak-table memcard-table">
-              <thead><tr><th class="memcard-th">카드</th><th>효과</th></tr></thead>
-              <tbody>${tbody}</tbody>
-            </table>
-          `;
-        }
-      } else if (effects && typeof effects === "object") {
-        effectsHtml = renderKV(effects);
-      } else if (typeof effects === "string") {
-        effectsHtml = `<div class="card-desc">${escapeHtml(effects)}</div>`;
-      } else {
-        effectsHtml = renderKV(mem);
-      }
-
-      return `
-        <div class="card">
-          <div class="card-title"><span>${escapeHtml(String(name))}</span></div>
-          ${desc ? `<div class="card-desc">${formatDescText(escapeHtml(String(desc)))}</div>` : ""}
-          <div style="margin-top:10px;">${effectsHtml}</div>
-        </div>
-      `;
-    }
-
-    function renderPanel(id, html, active=false) {
-      return `<div class="tab-panel ${active ? "active" : ""}" data-panel="${escapeHtml(id)}">${html}</div>`;
-    }
-
-    function renderRecommendedRunes(runeReco) {
-      if (!runeReco || !Array.isArray(runeReco.builds) || runeReco.builds.length === 0) {
-        return `<div class="detail-empty">추천 룬 정보가 없습니다.</div>`;
-      }
-
-      const builds = runeReco.builds;
-
-      function renderSetItem(s) {
-        const icon = (s && s.icon) ? `<img class="rune-ico" src="${escapeHtml(String(s.icon))}" alt="" loading="lazy" />` : `<div class="rune-ico rune-ico-empty"></div>`;
-        const name = escapeHtml(String(s.set || "-"));
-        const pcs = escapeHtml(String(s.pieces || ""));
-        const two = (s && s.twoPiece) ? `<div class="rune-eff"><span class="rune-eff-tag">2세트</span> ${formatDescText(escapeHtml(String(s.twoPiece)))}</div>` : "";
-        const four = (s && s.fourPiece) ? `<div class="rune-eff"><span class="rune-eff-tag">4세트</span> ${formatDescText(escapeHtml(String(s.fourPiece)))}</div>` : "";
-        const note = (s && s.note) ? `<div class="rune-note">${formatDescText(escapeHtml(String(s.note)))}</div>` : "";
-        return `
-          <div class="rune-set">
-            <div class="rune-set-top">
-              ${icon}
-              <div class="rune-set-name">
-                <div class="rune-set-title">${name} <span class="rune-set-pcs">${pcs}세트</span></div>
-              </div>
-            </div>
-            <div class="rune-set-body">
-              ${two}
-              ${four}
-              ${note}
-            </div>
-          </div>
-        `;
-      }
-
-      function renderSlots(slots) {
-        if (!slots || typeof slots !== "object") return "";
-        const rows = ["1","2","3","4","5","6"].map(k => {
-          const v = slots[k];
-          const list = Array.isArray(v) ? v : (typeof v === "string" ? [v] : []);
-          const html = list.length ? list.map(x => `<div class="slot-item">${escapeHtml(String(x))}</div>`).join("") : `<div class="slot-item muted">-</div>`;
-          return `<div class="slot-row"><div class="slot-k">${k}번</div><div class="slot-v">${html}</div></div>`;
-        }).join("");
-        return `<div class="rune-slots">${rows}</div>`;
-      }
-
-      function renderList(title, arr) {
-        if (!arr || !Array.isArray(arr) || arr.length === 0) return "";
-        return `
-          <div class="rune-list">
-            <div class="rune-list-title">${escapeHtml(title)}</div>
-            <ul class="rune-ul">
-              ${arr.map(x => `<li>${formatDescText(escapeHtml(String(x)))}</li>`).join("")}
-            </ul>
-          </div>
-        `;
-      }
-
-      const cards = builds.map((b) => {
-        const title = escapeHtml(String(b.title || "추천"));
-        const setPlan = Array.isArray(b.setPlan) ? b.setPlan : [];
-        const rationale = Array.isArray(b.rationale) ? b.rationale : [];
-        const notes = Array.isArray(b.notes) ? b.notes : [];
-        const substats = Array.isArray(b.substats) ? b.substats : [];
-        const slots = b.slots || {};
-
-        return `
-          <div class="card">
-            <div class="card-title"><span>${title}</span></div>
-
-            <div class="rune-sets">
-              ${setPlan.map(renderSetItem).join("")}
-            </div>
-
-            <div class="rune-grid">
-              <div class="rune-grid-col">
-                <div class="rune-sec-title">슬롯별 메인 스탯</div>
-                ${renderSlots(slots)}
-              </div>
-              <div class="rune-grid-col">
-                ${renderList("부옵 우선순위", substats)}
-                ${renderList("추천 근거", rationale)}
-                ${renderList("주의/제약", notes)}
-              </div>
-            </div>
-          </div>
-        `;
-      }).join("");
-
-      const style = `
-        <style>
-          .rune-sets{ display:grid; gap:10px; margin-top:10px; }
-          .rune-set{ border:1px solid rgba(255,255,255,.10); border-radius:14px; padding:10px; background:rgba(255,255,255,.02); }
-          .rune-set-top{ display:flex; align-items:center; gap:10px; }
-          .rune-ico{ width:42px; height:42px; border-radius:12px; object-fit:cover; flex:0 0 auto; background:rgba(255,255,255,.06); }
-          .rune-ico-empty{ display:inline-block; }
-          .rune-set-title{ font-weight:700; }
-          .rune-set-pcs{ font-size:.92em; opacity:.75; margin-left:6px; }
-          .rune-set-body{ margin-top:8px; display:grid; gap:6px; }
-          .rune-eff{ line-height:1.35; }
-          .rune-eff-tag{ display:inline-block; min-width:44px; padding:2px 8px; margin-right:6px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); font-size:.86em; opacity:.9; }
-          .rune-note{ opacity:.78; font-size:.95em; }
-          .rune-grid{ display:grid; grid-template-columns: 1.05fr .95fr; gap:12px; margin-top:12px; }
-          @media (max-width: 920px){ .rune-grid{ grid-template-columns: 1fr; } }
-          .rune-sec-title{ font-weight:700; margin:4px 0 10px; opacity:.92; }
-          .rune-slots{ display:grid; gap:8px; }
-          .slot-row{ display:flex; gap:10px; }
-          .slot-k{ width:46px; opacity:.8; }
-          .slot-v{ flex:1; display:grid; gap:6px; }
-          .slot-item{ padding:6px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); }
-          .slot-item.muted{ opacity:.6; }
-          .rune-list{ margin-top:10px; }
-          .rune-list-title{ font-weight:700; opacity:.92; margin-bottom:6px; }
-          .rune-ul{ margin:0; padding-left:18px; display:grid; gap:6px; }
-        </style>
-      `;
-
-      return style + cards;
-    }
-
-    function renderDetailTabs(detail, runeReco) {
-      const tabs = [
-        { id: "skills", label: "스킬", content: renderSkills(detail) },
-        { id: "awakenings", label: "각성", content: renderAwakenings(detail) },
-        { id: "memory", label: "메모리카드", content: renderMemoryCard(detail) },
-        { id: "runes", label: "추천 룬", content: renderRecommendedRunes(runeReco) },
-      ];
-      const firstActive = "skills";
-
-      const tabBtns = tabs.map(t =>
-        `<button type="button" class="tab-btn ${t.id === firstActive ? "active" : ""}" data-tab="${escapeHtml(t.id)}">${escapeHtml(t.label)}</button>`
-      ).join("");
-
-      const panels = tabs.map(t => renderPanel(t.id, t.content, t.id === firstActive)).join("");
-
-      return `
-        <div class="tabs">
-          <div class="tab-buttons">${tabBtns}</div>
-          <div class="tab-panels">${panels}</div>
-        </div>
-      `;
-    }
-
-    function bindTabEvents() {
-      const root = document.getElementById("modalBody");
-      if (!root) return;
-      root.onclick = (e) => {
-        const btn = e.target.closest(".tab-btn");
-        if (!btn) return;
-        const tab = btn.dataset.tab;
-        if (!tab) return;
-
-        root.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-        root.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === tab));
-      };
-    }
-
-    // ===== Modal open/close =====
-    const backdrop = document.getElementById("modalBackdrop");
-    const modalBody = document.getElementById("modalBody");
-    const modalTitle = document.getElementById("modalTitle");
-    const modalClose = document.getElementById("modalClose");
-
-    function openModal() {
-      backdrop.classList.add("show");
-      backdrop.setAttribute("aria-hidden", "false");
-    }
-    function closeModal() {
-      backdrop.classList.remove("show");
-      backdrop.setAttribute("aria-hidden", "true");
-      modalBody.innerHTML = `<div class="modal-loading">Loading…</div>`;
-    }
-    modalClose.addEventListener("click", closeModal);
-    backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeModal(); });
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && backdrop.classList.contains("show")) closeModal(); });
-
-    function setModalTitle(name, cn){
-      const safeName = escapeHtml(name || "Character");
-      const safeCn = cn ? escapeHtml(cn) : "";
-      modalTitle.innerHTML = safeCn ? `${safeName}<span class="cn">${safeCn}</span>` : safeName;
-    }
-
-    async function fetchAndOpen(cid) {
-      openModal();
-      modalBody.innerHTML = `<div class="modal-loading">Loading…</div>`;
-      try {
-        const r = await fetch(`/zones/zone-nova/characters/${encodeURIComponent(cid)}`, { cache: "no-store" });
-        const j = await r.json();
-        if (!j.ok) {
-          modalBody.innerHTML = `<div class="detail-empty">불러오기 실패: ${escapeHtml(j.error || "unknown")}</div>`;
-          return;
-        }
-
-        const detail = j.detail || {};
-        const name = pick(detail, "name") || j.character?.name || j.id || "Character";
-        const cn = pick(detail, "chineseName", "chinesename", "chinessname", "cnName", "cn_name");
-
-        setModalTitle(name, cn);
-        const runeReco = j.rune_reco || null;
-        modalBody.innerHTML = renderDetailTabs(detail, runeReco);
-        bindTabEvents();
-      } catch (e) {
-        modalBody.innerHTML = `<div class="detail-empty">불러오기 실패: ${escapeHtml(String(e))}</div>`;
-      }
-    }
-
-    // ===== JS error banner =====
-    (function(){
-      const banner = document.getElementById('jsErrorBanner');
-      const text = document.getElementById('jsErrorText');
-      if (!banner || !text) return;
-      function show(msg){
-        text.textContent = String(msg || 'unknown');
-        banner.style.display = 'block';
-      }
-      window.addEventListener('error', (e) => { show(e?.message || e); });
-      window.addEventListener('unhandledrejection', (e) => { show(e?.reason || e); });
-    })();
-
-    // ===== List render =====
-    function dedupeById(list){
-      const m = new Map();
-      for (const c of (list || [])){
-        if (!c) continue;
-        const id = (c.id || "").toString().trim();
-        if (!id) continue;
-        if (!m.has(id)) m.set(id, c);
-      }
-      return Array.from(m.values());
-    }
-
-    const chars = dedupeById(CHARS_RAW || []);
-
-    const $tbody = document.getElementById("tbody");
-    const $q = document.getElementById("q");
-    const $rarity = document.getElementById("rarityFilter");
-    const $elem = document.getElementById("elemFilter");
-    const $faction = document.getElementById("factionFilter");
-    const $class = document.getElementById("classFilter");
-    const $role = document.getElementById("roleFilter");
-function uniqSorted(values){
-      return Array.from(new Set(values.filter(v => v && v !== "-")))
-        .sort((a,b) => a.localeCompare(b));
-    }
-    function fillSelect(sel, values){
-      for (const v of values){
-        const opt = document.createElement("option");
-        opt.value = v;
-        opt.textContent = v;
-        sel.appendChild(opt);
-      }
-    }
-
-    fillSelect($elem, uniqSorted(chars.map(c => (c.element || "-"))));
-    fillSelect($faction, uniqSorted(chars.map(c => (c.faction || "-"))));
-    fillSelect($class, uniqSorted(chars.map(c => classLabel(c.class))));
-    fillSelect($role, uniqSorted(chars.map(c => roleLabel(c.role))));
-
-    function matchFilters(c){
-      const q = ($q.value || "").trim().toLowerCase();
-      const rarityV = ($rarity.value || "").trim().toUpperCase();
-      const elemV = ($elem.value || "").trim();
-      const factionV = ($faction.value || "").trim();
-      const classV = ($class.value || "").trim();
-      const roleV = ($role.value || "").trim();
-
-      const name = (c.name || "").toString().toLowerCase();
-      const id = (c.id || "").toString().toLowerCase();
-      const faction = (c.faction || "-").toString().toLowerCase();
-      const elem = (c.element || "-").toString();
-
-      if (q){
-        const ok = name.includes(q) || id.includes(q) || faction.includes(q) || elem.toLowerCase().includes(q);
-        if (!ok) return false;
-      }
-      if (rarityV && (c.rarity || "-").toString().toUpperCase() !== rarityV) return false;
-      if (elemV && (c.element || "-") !== elemV) return false;
-      if (factionV && (c.faction || "-") !== factionV) return false;
-      if (classV && classLabel(c.class) !== classV) return false;
-      if (roleV && roleLabel(c.role) !== roleV) return false;
-      return true;
-    }
-
-    function sortChars(list){
-      return list.slice().sort((a,b) => {
-        const ra = rarityVal(a.rarity);
-        const rb = rarityVal(b.rarity);
-        if (rb !== ra) return rb - ra;
-        const na = (a.name || a.id || "").toString();
-        const nb = (b.name || b.id || "").toString();
-        return na.localeCompare(nb);
-      });
-    }
-
-    
-    // ===== Stats (HP/ATK/DEF) loaded from /data/zone-nova/characters_ko/<id>.json =====
-    const STAT_CACHE = new Map(); // cid -> {hp, attack, defense}
-
-    async function fetchStats(cid){
-      if (!cid) return null;
-      if (STAT_CACHE.has(cid)) return STAT_CACHE.get(cid);
-
-      // Try common static paths
-      
-      const cidStr = String(cid);
-      const cidKey = slugKey(cidStr);
-      // filename overrides (test case)
-      const OV_FILE = (cidKey === "aphrodite") ? "afrodite" : null;
-
-const enc = encodeURIComponent(String(cid));
-      const encLower = encodeURIComponent(String(cid).toLowerCase());
-      const candidates = [
-        ...(OV_FILE ? [
-          `/data/zone-nova/characters_ko/${encodeURIComponent(OV_FILE)}.json`,
-          `/public/data/zone-nova/characters_ko/${encodeURIComponent(OV_FILE)}.json`,
-        ] : []),
-
-        `/data/zone-nova/characters_ko/${enc}.json`,
-        `/data/zone-nova/characters_ko/${encLower}.json`,
-        `/public/data/zone-nova/characters_ko/${enc}.json`,
-        `/public/data/zone-nova/characters_ko/${encLower}.json`,
-      ];
-
-      for (const url of candidates){
-        try{
-          const r = await fetch(url, { cache: "no-store" });
-          if (!r.ok) continue;
-          const j = await r.json();
-          
-          const s = (j && typeof j === "object" && j.stats && typeof j.stats === "object") ? j.stats : j;
-        const hp = pick(s, "hp", "HP");
-        const defense = pick(s, "defense", "def", "DEF");
-        const attack = pick(s, "attack", "atk", "ATK");
-        const critRate = pick(s, "critRate", "crit_rate", "criticalRate", "crit"); // 호환
-        
-        const stats = {
-          hp: hp ?? "-",
-          attack: attack ?? "-",
-          defense: defense ?? "-",
-          critRate: critRate ?? "-",
-        };
-          STAT_CACHE.set(cid, stats);
-          return stats;
-        }catch(e){}
-      }
-
-      // cache miss
-     const stats = { hp: "-", attack: "-", defense: "-", critRate: "-" };
-      STAT_CACHE.set(cid, stats);
-      return stats;
-    }
-
-    function fillStatsForVisibleRows(){
-      // fetch stats asynchronously for rendered rows
-      const cells = document.querySelectorAll('td[data-stat][data-cid]');
-      const need = new Set();
-      cells.forEach(td => {
-        const cid = td.dataset.cid;
-        if (cid && !STAT_CACHE.has(cid)) need.add(cid);
-      });
-      // fire and forget
-      need.forEach(async (cid) => {
-        const stats = await fetchStats(cid);
-        document.querySelectorAll(`td[data-stat][data-cid="${CSS.escape(cid)}"]`).forEach(td => {
-          const k = td.dataset.stat;
-          const v = stats?.[k] ?? "-";
-        td.textContent = formatStatDisplay(k, v);
-        });
-      });
-
-      // fill already cached
-      cells.forEach(td => {
-        const cid = td.dataset.cid;
-        const k = td.dataset.stat;
-        const st = STAT_CACHE.get(cid);
-        if (st && st[k] !== undefined) td.textContent = String(st[k]);
-      });
-    }
-    // ===== Stats sorting by header click =====
-    const SORT_STATE = { key: null, dir: "desc" }; // key: hp|attack|defense|null, dir: asc|desc
-
-    function formatStatDisplay(key, v){
-      if (v === null || v === undefined) return "-";
-      const s = String(v).trim();
-      if (s === "" || s === "-") return "-";
-    
-      if (key === "critRate"){
-        // 이미 %가 있으면 그대로, 숫자면 % 붙이기
-        if (s.includes("%")) return s;
-        const n = Number(s.replace(/,/g, ""));
-        return Number.isFinite(n) ? `${n}%` : s;
-      }
-      return s;
-    }
-    
-    function statNum(v){
-      if (v === null || v === undefined) return -1;
-      const n = Number(String(v).replace(/,/g, "").replace(/%/g, ""));
-      return Number.isFinite(n) ? n : -1;
-    }
-
-    function updateStatHeaderIndicators(){
-      document.querySelectorAll("th.th-sort").forEach(th => {
-        th.classList.remove("sort-asc", "sort-desc");
-        if (SORT_STATE.key && th.dataset.sort === SORT_STATE.key){
-          th.classList.add(SORT_STATE.dir === "asc" ? "sort-asc" : "sort-desc");
-        }
-      });
-    }
-
-
-
-async function render(){
-      
-      const base = chars.filter(matchFilters);
-
-      // Sort: default (rarity/name) or stats(header)
-      let filtered = [];
-      if (SORT_STATE.key === "hp" || SORT_STATE.key === "defense" || SORT_STATE.key === "attack" || SORT_STATE.key === "critRate") {
-        const ids = base.map(c => c.id).filter(Boolean);
-        await Promise.all(ids.map(cid => fetchStats(cid)));
-        filtered = base.slice().sort((a,b) => {
-          const sa = STAT_CACHE.get(a.id);
-          const sb = STAT_CACHE.get(b.id);
-          const va = statNum(sa?.[SORT_STATE.key]);
-          const vb = statNum(sb?.[SORT_STATE.key]);
-          if (va !== vb) {
-            return (SORT_STATE.dir === "asc") ? (va - vb) : (vb - va);
-          }
-          // tie-breakers: rarity then name
-          const ra = rarityVal(a.rarity);
-          const rb = rarityVal(b.rarity);
-          if (rb !== ra) return rb - ra;
-          const na = (a.name || a.id || "").toString();
-          const nb = (b.name || b.id || "").toString();
-          return na.localeCompare(nb);
-        });
-      } else {
-        filtered = sortChars(base);
-      }
-
-      updateStatHeaderIndicators();
-
-const rows = filtered.map(c => {
-        const cid = c.id;
-        const nm = c.name || cid;
-
-        const elem = (c.element || "-");
-        const faction = (c.faction || "-");
-        const cls = classLabel(c.class);
-        const role = roleLabel(c.role);
-        const rar = (c.rarity || "-").toString().toUpperCase();
-
-        const img = c.image
-          ? `<img class="char-img" src="${escapeHtml(c.image)}" alt="">`
-          : `<div class="char-img"></div>`;
-
-        const elemIcon = c.element_icon ? `<img class="mini-icon" src="${escapeHtml(c.element_icon)}" alt="">` : "";
-        const classIcon = c.class_icon ? `<img class="mini-icon" src="${escapeHtml(c.class_icon)}" alt="">` : "";
-
-        return `
-          <tr>
-            <td class="col-check">
-  <div class="pick-stack">
-    <label class="pick-line" title="보유(선택) 캐릭터로 포함">
-      <input class="chk-owned" type="checkbox" data-cid="${escapeHtml(cid)}">
-      <span class="pick-text">선택</span>
-    </label>
-    <label class="pick-line" title="추천 파티에 반드시 포함(파티 지정 가능)">
-      <input class="chk-must" type="checkbox" data-cid="${escapeHtml(cid)}">
-      <span class="pick-text">필수</span>
-    </label>
-    <select class="must-slot" data-cid="${escapeHtml(cid)}" disabled title="필수 배치(자동 또는 특정 파티 지정)"></select>
-  </div>
-</td>
-            <td class="col-req"><input class="chk-required" type="checkbox" data-cid="${escapeHtml(cid)}" title="파티에 필수 포함"></td>
-            <td>
-              <div class="char-cell clickable" data-cid="${escapeHtml(cid)}">
-                ${img}
-                <div class="char-name">${escapeHtml(nm)}</div>
-              </div>
-            </td>
-           <td class="col-hp" data-stat="hp" data-cid="${escapeHtml(cid)}">-</td>\
-           <td class="col-def" data-stat="defense" data-cid="${escapeHtml(cid)}">-</td>
-           <td class="col-atk" data-stat="attack" data-cid="${escapeHtml(cid)}">-</td>
-           <td class="col-crit" data-stat="critRate" data-cid="${escapeHtml(cid)}">-</td>
-
-            <td class="col-elem">
-              <span class="pill pill-neutral pill-with-icon">
-                ${elemIcon}
-                <span class="pill-text">${escapeHtml(elem)}</span>
-              </span>
-            </td>
-            <td class="col-faction"><span class="pill pill-neutral">${escapeHtml(faction)}</span></td>
-            <td class="col-class">
-              <span class="pill pill-neutral pill-with-icon">
-                ${classIcon}
-                <span class="pill-text">${escapeHtml(cls)}</span>
-              </span>
-            </td>
-            <td class="col-role"><span class="pill pill-neutral">${escapeHtml(role)}</span></td>
-            <td class="col-rarity"><span class="pill ${rarityPillClass(rar)}">${escapeHtml(rar)}</span></td>
-          </tr>
-        `;
-      }).join("");
-
-      $tbody.innerHTML = rows || `<tr><td colspan="12" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
-    
-      fillStatsForVisibleRows();
-      initMustControlsForVisibleRows();
-    }
-
-    [$q, $rarity, $elem, $faction, $class, $role].forEach(el => {
-      el.addEventListener("input", render);
-      el.addEventListener("change", render);
-    });
-
-    document.getElementById("btnAll").addEventListener("click", () => {
-      document.querySelectorAll(".chk-owned").forEach(x => x.checked = true);
-    });
-    document.getElementById("btnNone").addEventListener("click", () => {
-      document.querySelectorAll(".chk-owned").forEach(x => x.checked = false);
-      document.querySelectorAll(".chk-required").forEach(x => x.checked = false);
-    });
-
-
-// ✅ 필수 포함 체크 동기화
-document.addEventListener("change", (e) => {
-  const t = e.target;
-  if (!t) return;
-
-  if (t.classList && t.classList.contains("chk-required")){
-    const cid = t.dataset.cid;
-    if (!cid) return;
-    // 필수 체크하면 자동으로 보유도 체크
-    if (t.checked){
-      const owned = document.querySelector(`.chk-owned[data-cid="${CSS.escape(cid)}"]`);
-      if (owned) owned.checked = true;
-    }
-    return;
-  }
-
-  if (t.classList && t.classList.contains("chk-owned")){
-    const cid = t.dataset.cid;
-    if (!cid) return;
-    // 보유 해제하면 필수도 해제
-    if (!t.checked){
-      const req = document.querySelector(`.chk-required[data-cid="${CSS.escape(cid)}"]`);
-      if (req) req.checked = false;
-    }
-    return;
-  }
-});
-
-    document.addEventListener("click", (e) => {
-      const chk = e.target.closest(".chk-owned");
-      if (chk) return;
-      const cell = e.target.closest(".char-cell.clickable");
-      if (!cell) return;
-      const cid = cell.dataset.cid;
-      if (cid) fetchAndOpen(cid);
-    });
-
-    render();
-
-
-    // Click stat headers to sort (toggle asc/desc)
-    (function bindStatHeaderSort(){
-      const table = document.querySelector(".table");
-      if (!table) return;
-      const thead = table.querySelector("thead");
-      if (!thead) return;
-      thead.addEventListener("click", (e) => {
-        const th = e.target.closest("th.th-sort");
-        if (!th) return;
-        const key = th.dataset.sort;
-        if (!key) return;
-        if (SORT_STATE.key === key) SORT_STATE.dir = (SORT_STATE.dir === "asc") ? "desc" : "asc";
-        else { SORT_STATE.key = key; SORT_STATE.dir = "desc"; }
-        render();
-      });
-    })();
-
-    // ===== Filters collapse (mobile) =====
-    // - 모바일에서는 기본 접힘
-    // - 사용자가 한 번 열고/닫으면 localStorage로 기억
-    (function initFiltersCollapse(){
-      const d = document.getElementById("filtersPanel");
-      if (!d) return;
-
-      const KEY = "nova_filters_open";
-      const mq = window.matchMedia("(max-width: 520px)");
-
-      const applyDefault = () => {
-        if (mq.matches) d.removeAttribute("open");
-        else d.setAttribute("open", "");
-      };
-
-      const saved = localStorage.getItem(KEY);
-      if (saved === "1") d.setAttribute("open", "");
-      else if (saved === "0") d.removeAttribute("open");
-      else applyDefault();
-
-      d.addEventListener("toggle", () => {
-        localStorage.setItem(KEY, d.open ? "1" : "0");
-      });
-
-      mq.addEventListener?.("change", () => {
-        // 저장값이 없을 때만 자동 적용(사용자 선택을 덮어쓰지 않음)
-        if (localStorage.getItem(KEY) == null) applyDefault();
-      });
-    })();
-
-    // ===== Tier Party Builder =====
-    let ALL_TIER_LISTS = null;
-    const TIER_SCORE = { SSS: 4, SS: 3, S: 2, A: 1 };
-
-    function keyify(s){
-      return slugKey(s);
-    }
-
-    // key -> [id...] (동명이인/오버라이드 충돌 대비)
-    function buildCharIndex(chars){
-      const byKey = new Map();
-      const byId = new Map((chars || []).map(c => [String(c.id), c]));
-
-      function addKey(key, id){
-        if (!key || !id) return;
-        const arr = byKey.get(key) || [];
-        if (!arr.includes(id)) arr.push(id);
-        // SSR 우선 정렬(있어도 되고 없어도 되지만, 일관성 위해 유지)
-        arr.sort((a,b) => rarityVal(byId.get(b)?.rarity) - rarityVal(byId.get(a)?.rarity));
-        byKey.set(key, arr);
-      }
-
-      for (const c of (chars || [])){
-        if (!c?.id) continue;
-        const id = String(c.id);
-        if (c.name) addKey(keyify(c.name), id);
-        if (c.raw_name) addKey(keyify(c.raw_name), id);
-        addKey(keyify(id), id);
-      }
-      return { byKey };
-    }
-
-    // ✅ 동일 name이 여러 id로 매핑되면 "전부" rankMap에 반영
-    function buildRankMapFromTierList(tierList, chars){
-      const { byKey } = buildCharIndex(chars);
-      const rank = new Map();
-      const tiers = tierList?.tiers || {};
-
-      for (const [tier, arr] of Object.entries(tiers)){
-        const T = String(tier).toUpperCase();
-        if (!TIER_SCORE[T]) continue;
-
-        const list = Array.isArray(arr) ? arr : [];
-        for (const it of list){
-          const nm = (it && typeof it === "object") ? it.name : null;
-          const ids = byKey.get(keyify(nm));
-          if (!ids || !ids.length) continue;
-
-          for (const cid of ids){
-            const prev = rank.get(cid) || 0;
-            rank.set(cid, Math.max(prev, TIER_SCORE[T]));
-          }
-        }
-      }
-      return rank;
-    }
-
-    function getOwnedSelectedIds(){
-      const out = [];
-      document.querySelectorAll(".chk-owned").forEach(chk => {
-        if (chk.checked && chk.dataset.cid) out.push(chk.dataset.cid);
-      });
-      return out;
-    }
-
-
-function cssEsc(s){
-  try{
-    if (window.CSS && typeof CSS.escape === 'function') return CSS.escape(String(s));
-  }catch(e){}
-  return String(s).replace(/[^a-zA-Z0-9_\-]/g, (m)=>`\\${m}`);
-}
-
-function mustOptionHTML(){
-  const groups = [
-    { name:"Guild", n:3 },
-    { name:"PVP",   n:2 },
-    { name:"Left",  n:2 },
-  ];
-  let html = `<option value="">자동</option>`;
-  for (const g of groups){
-    html += `<optgroup label="${escapeHtml(g.name)}">`;
-    for (let i=1; i<=g.n; i++){
-      html += `<option value="${escapeHtml(g.name+":"+i)}">${escapeHtml(i+"파티")}</option>`;
-    }
-    html += `</optgroup>`;
-  }
-  return html;
-}
-
-function initMustControlsForVisibleRows(){
-  const optionHTML = mustOptionHTML();
-
-  document.querySelectorAll(".must-slot").forEach(sel => {
-    const cid = sel.dataset.cid || "";
-    if (!cid) return;
-
-    sel.innerHTML = optionHTML;
-
-    const chk = document.querySelector(`.chk-must[data-cid="${cssEsc(cid)}"]`);
-    const st = MUST_STATE[cid] || { on:false, target:"" };
-
-    if (chk){
-      chk.checked = !!st.on;
-      sel.disabled = !chk.checked;
-      sel.value = st.target || "";
-
-      if (!chk.dataset.bound){
-        chk.addEventListener("change", () => {
-          const on = chk.checked;
-          MUST_STATE[cid] = MUST_STATE[cid] || { on:false, target:"" };
-          MUST_STATE[cid].on = on;
-          if (!on) MUST_STATE[cid].target = "";
-          saveMustState();
-
-          sel.disabled = !on;
-          if (!on) sel.value = "";
-        });
-        chk.dataset.bound = "1";
-      }
-    }
-
-    if (!sel.dataset.bound){
-      sel.addEventListener("change", () => {
-        const v = String(sel.value || "");
-        MUST_STATE[cid] = MUST_STATE[cid] || { on:false, target:"" };
-        MUST_STATE[cid].on = true;
-        MUST_STATE[cid].target = v;
-        saveMustState();
-
-        const chk2 = document.querySelector(`.chk-must[data-cid="${cssEsc(cid)}"]`);
-        if (chk2) chk2.checked = true;
-        sel.disabled = false;
-      });
-      sel.dataset.bound = "1";
-    }
-  });
-}
-
-function getMustAssignments(){
-  const byCategory = { Guild:[[],[],[]], PVP:[[],[]], Left:[[],[]] };
-  const auto = [];
-
-  for (const [cid, st] of Object.entries(MUST_STATE || {})){
-    if (!st || !st.on) continue;
-
-    const target = String(st.target || "");
-    if (!target){ auto.push(cid); continue; }
-
-    const [cat, idxStr] = target.split(":");
-    const i = parseInt(idxStr, 10);
-    if (!cat || !i) { auto.push(cid); continue; }
-
-    if (byCategory[cat] && byCategory[cat][i-1]){
-      byCategory[cat][i-1].push(cid);
-    }else{
-      auto.push(cid);
-    }
-  }
-
-  return { auto, byCategory };
-}
-
-function getRequiredSelectedIds(){
-  const out = [];
-  document.querySelectorAll(".chk-required").forEach(chk => {
-    if (chk.checked && chk.dataset.cid) out.push(chk.dataset.cid);
-  });
-  return out;
-}
-
-function getRankMapObjectForCurrentPreset(){
-  const sel = document.getElementById("tierPreset");
-  if (!sel || !ALL_TIER_LISTS) return {};
-  const k = sel.value;
-  if (!k || !ALL_TIER_LISTS[k]) return {};
-  const rankMap = buildRankMapFromTierList(ALL_TIER_LISTS[k], chars);
-  const obj = {};
-  rankMap.forEach((v, key) => { obj[key] = v; });
-  return obj;
-}
-
-function renderAiPartyResult(res){
-  const box = document.getElementById("aiPartyResult");
-  if (!box) return;
-
-  if (!res || !res.ok){
-    const msg = escapeHtml(String(res?.error || res?.msg || "추천 결과를 불러오지 못했습니다."));
-    box.innerHTML = `<div class="tier-error">${msg}</div>`;
-    return;
-  }
-
-  const party = (res.parties && res.parties[0]) ? res.parties[0] : null;
-  if (!party){
-    box.innerHTML = `<div class="tier-error">추천 파티 데이터가 없습니다.</div>`;
-    return;
-  }
-
-  const mems = Array.isArray(party.members) ? party.members : [];
-  const meta = party.meta || {};
-
-  const cards = mems.map(m => {
-    const img = m.image
-      ? `<img class="tier-portrait" src="${escapeHtml(m.image)}" alt="">`
-      : `<div class="tier-portrait tier-portrait-empty"></div>`;
-
-    const arch = String(m.archetype || "dps").toLowerCase();
-    const archLabel = (arch === "tank") ? "Tank" : (arch === "healer") ? "Healer" : (arch === "debuffer") ? "Debuffer" : "DPS";
-    const archPill = `<span class="pill pill-accent pill-arch-${arch}">${archLabel}</span>`;
-
-    const pills = [
-      m.element ? `<span class="pill pill-neutral">${escapeHtml(String(m.element))}</span>` : "",
-      m.faction ? `<span class="pill pill-neutral">${escapeHtml(String(m.faction))}</span>` : "",
-      archPill,
-    ].filter(Boolean).join("");
-
-    const small = [
-      (m.class ? `class: ${escapeHtml(String(m.class))}` : ""),
-      (m.role ? `role: ${escapeHtml(String(m.role))}` : ""),
-      (m.scaling ? `scaling: ${escapeHtml(String(m.scaling))}` : ""),
-      (typeof m.tier === "number" ? `tier: ${m.tier}` : ""),
-      (typeof m.score === "number" ? `score: ${m.score.toFixed(1)}` : ""),
-      (m.no_crit ? `크리불가` : ""),
-    ].filter(Boolean).join(" · ");
-
-    return `
-      <div class="tier-card">
-        <div class="tier-card-top">
-          ${img}
-          <span class="tier-name">${escapeHtml(String(m.name || m.id || "Unknown"))}</span>
-        </div>
-        <div class="tier-card-sub">${pills}</div>
-        <div class="tier-card-sub" style="opacity:.85;font-size:12px">${small}</div>
-      </div>
-    `;
-  }).join("");
-
-  const combo = meta.combo_detail || {};
-  const elemHits = Array.isArray(combo.element_hits) ? combo.element_hits : [];
-  const facHits = Array.isArray(combo.faction_hits) ? combo.faction_hits : [];
-
-  const counts = meta.counts || {};
-  const compLine = `구성: Tank ${counts.tank || 0} / Healer ${counts.healer || 0} / DPS ${counts.dps || 0} / Debuffer ${counts.debuffer || 0}`;
-
-  const metaLines = [
-    (typeof party.total_score === "number") ? `총점: ${party.total_score.toFixed(1)}` : "",
-    compLine,
-    (typeof res.evaluated === "number") ? `탐색: ${res.evaluated}조합` : "",
-    (elemHits.length ? `속성 콤보: ${escapeHtml(elemHits.join(", "))}` : ""),
-    (facHits.length ? `특성 콤보: ${escapeHtml(facHits.join(", "))}` : ""),
-  ].filter(Boolean).join(" / ");
-
-  box.innerHTML = `
-    <div class="tier-cat">
-      <div class="tier-cat-title">AI 추천 파티</div>
-      <div class="tier-cat-meta">${metaLines || ""}</div>
-      <div class="tier-grid">${cards}</div>
-    </div>
-  `;
-}
-
-async function requestAiParty(){
-  const owned = getOwnedSelectedIds();
-  const required = getRequiredSelectedIds();
-
-  if (owned.length < 4){
-    renderAiPartyResult({ ok:false, error:"보유(선택) 캐릭터가 4명 이상이어야 합니다." });
-    return;
-  }
-  if (required.length > 4){
-    renderAiPartyResult({ ok:false, error:"필수 포함은 최대 4명까지 가능합니다." });
-    return;
-  }
-
-  // ✅ 등급표 기반 추천: 등급표 선택이 없으면 정확도가 크게 떨어지므로 차단
-  const preset = document.getElementById("tierPreset")?.value || "";
-  if (!preset){
-    renderAiPartyResult({ ok:false, error:"등급표를 먼저 선택하세요. (좌측 드롭다운)" });
-    return;
-  }
-
-  const classSet = getEnabledClassSet();
-  const requiredClasses = classSet ? Array.from(classSet) : [];
-
-  const payload = {
-    owned,
-    required,
-    required_classes: requiredClasses,
-    rank_map: getRankMapObjectForCurrentPreset(),
-    party_size: 4,
-    top_k: 1,
-    require_combo: true,
-  };
-
-  const box = document.getElementById("aiPartyResult");
-  if (box) box.innerHTML = `<div class="tier-loading">AI 추천 계산중…</div>`;
-
-  try {
-    const r = await fetch("/zones/zone-nova/recommend", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const ct = (r.headers.get("content-type") || "").toLowerCase();
-    if (ct.includes("application/json")) {
-      const j = await r.json();
-      renderAiPartyResult(j);
-    } else {
-      const t = await r.text();
-      renderAiPartyResult({ ok:false, error: "서버가 JSON이 아닌 응답을 반환했습니다. (라우트/서버 에러 가능)\n" + t.slice(0, 400) });
-    }
-  } catch (e){
-    renderAiPartyResult({ ok:false, error: String(e?.message || e) });
-  }
-}
-
-
-    function initTierClassCheckboxes(){
-      const box = document.getElementById("tierClassBox");
-      const use = document.getElementById("useClassFilter");
-      if (!box || !use) return;
-
-      const classes = Array.from(new Set((chars || []).map(c => String(c.class || "-")).filter(v => v && v !== "-")))
-        .sort((a,b) => a.localeCompare(b));
-
-      box.innerHTML = classes.map(cls => `
-        <label class="tier-class-item">
-          <input type="checkbox" value="${escapeHtml(cls)}" disabled>
-          <span>${escapeHtml(cls)}</span>
-        </label>
-      `).join("");
-
-      const toggle = () => {
-        const on = !!use.checked;
-        box.setAttribute("aria-disabled", String(!on));
-        box.querySelectorAll("input[type=checkbox]").forEach(x => x.disabled = !on);
-      };
-      use.addEventListener("change", toggle);
-      toggle();
-    }
-
-    function getEnabledClassSet(){
-      const use = document.getElementById("useClassFilter")?.checked;
-      if (!use) return null;
-
-      const picked = new Set();
-      document.querySelectorAll(".tier-class-item input[type=checkbox]").forEach(x => {
-        if (x.checked) picked.add(x.value);
-      });
-      return picked.size ? picked : null;
-    }
-
-    function hasComboSkill(party, charsById){
-      const elem = new Map();
-      const fac = new Map();
-      for (const cid of party){
-        const c = charsById.get(cid);
-        if (!c) continue;
-        const e = c.element || "-";
-        const f = c.faction || "-";
-        elem.set(e, (elem.get(e) || 0) + 1);
-        fac.set(f, (fac.get(f) || 0) + 1);
-      }
-      const maxElem = Math.max(0, ...elem.values());
-      const maxFac = Math.max(0, ...fac.values());
-      return (maxElem >= 2) || (maxFac >= 2);
-    }
-
-    // ✅ 모든 파티원이 콤보(속성2+ 또는 특성2+)에 “참여”해야 함
-    function allMembersContributeToCombo(party, charsById){
-      const elemCount = new Map();
-      const facCount = new Map();
-
-      for (const cid of party){
-        const c = charsById.get(cid);
-        if (!c) continue;
-        const e = c.element || "-";
-        const f = c.faction || "-";
-        elemCount.set(e, (elemCount.get(e) || 0) + 1);
-        facCount.set(f, (facCount.get(f) || 0) + 1);
-      }
-
-      for (const cid of party){
-        const c = charsById.get(cid);
-        if (!c) return false;
-
-        const e = c.element || "-";
-        const f = c.faction || "-";
-
-        const eOk = e !== "-" && (elemCount.get(e) || 0) >= 2;
-        const fOk = f !== "-" && (facCount.get(f) || 0) >= 2;
-
-        if (!eOk && !fOk) return false;
-      }
-      return true;
-    }
-
-    function isTank(c){
-      const cls = String(c?.class || "").toLowerCase();
-      const role = String(c?.role || "").toLowerCase();
-      return cls === "guardian" || role === "tank";
-    }
-
-    function isHealer(c){
-      const cls = String(c?.class || "").toLowerCase();
-      const role = String(c?.role || "").toLowerCase();
-      return cls === "healer" || role === "healer";
-    }
-
-    function passesTankHealerCap(party, charsById){
-      let tank = 0, healer = 0;
-      for (const cid of party){
-        const c = charsById.get(cid);
-        if (!c) continue;
-        if (isTank(c)) tank++;
-        if (isHealer(c)) healer++;
-        if (tank > 1 || healer > 1) return false;
-      }
-      return true;
-    }
-
-    function passesRequiredClasses(party, charsById, requiredClassSet){
-      if (!requiredClassSet || requiredClassSet.size === 0) return true;
-
-      const seen = new Set();
-      for (const cid of party){
-        const c = charsById.get(cid);
-        if (!c) continue;
-        seen.add(String(c.class || "-"));
-      }
-
-      for (const req of requiredClassSet){
-        if (!seen.has(req)) return false;
-      }
-      return true;
-    }
-
-    function partyScore(party, rankMap, charsById){
-      let sum = 0;
-      const elem = new Map();
-      const fac = new Map();
-
-      for (const cid of party){
-        const c = charsById.get(cid);
-
-        // tier 점수
-        sum += (rankMap.get(cid) || 0) * 100;
-
-        // rarity 보너스(동명이인 충돌 상황에서 SSR 우선 선택 유도)
-        sum += rarityVal(c?.rarity) * 5;
-
-        if (!c) continue;
-        const e = c.element || "-";
-        const f = c.faction || "-";
-        elem.set(e, (elem.get(e) || 0) + 1);
-        fac.set(f, (fac.get(f) || 0) + 1);
-      }
-
-      const maxElem = Math.max(0, ...elem.values());
-      const maxFac = Math.max(0, ...fac.values());
-
-      if (maxElem >= 2) sum += 20;
-      if (maxFac >= 2) sum += 20;
-      if (maxElem >= 3) sum += 10;
-      if (maxFac >= 3) sum += 10;
-
-      return sum;
-    }
-
-    function tierLabelFromScore(s){
-      if (s === 4) return "SSS";
-      if (s === 3) return "SS";
-      if (s === 2) return "S";
-      if (s === 1) return "A";
-      return "-";
-    }
-
-    /**
-     * ✅ 한 번에 "최고 1개 파티"를 뽑는다(현재 남아있는 후보 중)
-     * - usedSet(카테고리 내부 중복 금지)을 반영해 후보에서 제외
-     * - 조건 만족하는 4인 조합 중 점수 최고 선택
-     */
-    function buildBestPartyOnce(rankMap, usedSet, forcedIds, reservedAll){
-  const owned = getOwnedSelectedIds();
-  if (owned.length < 4) return { ok:false, msg:"보유 체크가 4명 이상이어야 합니다." };
-
-  const charsById = new Map(chars.map(c => [c.id, c]));
-
-  // 강제 포함(필수) 정리
-  const forced = (Array.isArray(forcedIds) ? forcedIds : [])
-    .filter(cid => cid && charsById.has(cid))
-    .filter((cid, i, arr) => arr.indexOf(cid) === i)
-    .filter(cid => owned.includes(cid))
-    .filter(cid => !usedSet.has(cid)); // 이미 같은 카테고리에서 사용된 캐릭터는 불가
-
-  if (forced.length > 4){
-    return { ok:false, msg:"필수 지정이 4명을 초과했습니다." };
-  }
-
-  const reserved = new Set();
-  if (reservedAll instanceof Set){
-    for (const cid of reservedAll) reserved.add(cid);
-  }
-  // 다른 파티에 지정된 필수 캐릭터를 미리 소비하지 않도록, (reserved - forced)는 후보에서 제외
-  for (const cid of forced) reserved.delete(cid);
-
-  // usedSet(카테고리 중복 금지) + reserved(다른 파티 필수 보호) 제외
-  const candidatesAll = owned
-    .filter(cid => charsById.has(cid))
-    .filter(cid => !usedSet.has(cid))
-    .filter(cid => !reserved.has(cid) || forced.includes(cid));
-
-  // 강제 포함이 있는 경우에도, 최소한 남은 자리가 채워질 후보가 있어야 함
-  const need = 4 - forced.length;
-  const rest = candidatesAll.filter(cid => !forced.includes(cid));
-  if (rest.length < need){
-    return { ok:false, msg:"(필수/중복 제외 후) 후보가 부족하여 파티를 구성할 수 없습니다." };
-  }
-
-  const classSet = getEnabledClassSet();
-  if (classSet && classSet.size > 4){
-    return { ok:false, msg:"선택 클래스는 최대 4개까지만 지정할 수 있습니다(4인 파티)." };
-  }
-
-  // tier 우선 정렬(없으면 0)
-  const sorted = candidatesAll.slice().sort((a,b) => (rankMap.get(b) || 0) - (rankMap.get(a) || 0));
-
-  // 탐색 풀 제한(브라우저 성능 보호)
-  const N = Math.min(28, sorted.length);
-
-  // forced는 무조건 풀에 포함, 나머지 상위 N에서 채움
-  const pool = [];
-  for (const cid of forced) pool.push(cid);
-  for (const cid of sorted){
-    if (pool.length >= N) break;
-    if (pool.includes(cid)) continue;
-    pool.push(cid);
-  }
-
-  const poolRest = pool.filter(cid => !forced.includes(cid));
-  const m = forced.length;
-
-  // 조합 탐색(강제 포함을 고정한 상태로 나머지 자리만 탐색)
-  let best = null;
-
-  function consider(party){
-    if (!passesTankHealerCap(party, charsById)) return;
-    if (!passesRequiredClasses(party, charsById, classSet)) return;
-
-    if (!hasComboSkill(party, charsById)) return;
-    if (!allMembersContributeToCombo(party, charsById)) return;
-
-    const sc = partyScore(party, rankMap, charsById);
-    if (!best || sc.score > best.score){
-      best = { party, score: sc.score, details: sc.details };
-    }
-  }
-
-  if (m === 4){
-    consider(forced.slice(0,4));
-  } else if (m === 3){
-    for (let i=0; i<poolRest.length; i++){
-      consider([forced[0], forced[1], forced[2], poolRest[i]]);
-    }
-  } else if (m === 2){
-    for (let i=0; i<poolRest.length-1; i++){
-      for (let j=i+1; j<poolRest.length; j++){
-        consider([forced[0], forced[1], poolRest[i], poolRest[j]]);
-      }
-    }
-  } else if (m === 1){
-    for (let i=0; i<poolRest.length-2; i++){
-      for (let j=i+1; j<poolRest.length-1; j++){
-        for (let k=j+1; k<poolRest.length; k++){
-          consider([forced[0], poolRest[i], poolRest[j], poolRest[k]]);
-        }
-      }
-    }
-  } else {
-    // 기존: 4-combination
-    for (let i=0; i<poolRest.length-3; i++){
-      for (let j=i+1; j<poolRest.length-2; j++){
-        for (let k=j+1; k<poolRest.length-1; k++){
-          for (let l=k+1; l<poolRest.length; l++){
-            consider([poolRest[i], poolRest[j], poolRest[k], poolRest[l]]);
-          }
-        }
-      }
-    }
-  }
-
-  if (!best){
-    return { ok:false, msg:"조건(탱/힐 제한/콤보) 때문에 파티 구성이 불가합니다. 후보를 늘리거나 클래스 포함 조건을 완화하세요." };
-  }
-
-  return { ok:true, party: best.party, score: best.score, scoreDetails: best.details };
-}
-
-    /**
- * ✅ 카테고리별로 n개 파티 만들기(카테고리 내부 중복 금지)
- * - mustByParty: [ [cid...], [cid...], ... ] (각 파티별 강제 포함)
- * - 같은 카테고리 내 파티끼리 중복은 금지(usedSet)
- * - 다른 파티에 "지정된 필수" 캐릭터를 먼저 소비하지 않도록 예약(reservedAll) 반영
- */
-function buildPartiesForCategory(rankMap, n, mustByParty){
-  const used = new Set();
-  const parties = [];
-
-  const mustLists = Array.isArray(mustByParty) ? mustByParty : [];
-  const reservedAll = new Set();
-  for (const arr of mustLists){
-    if (!Array.isArray(arr)) continue;
-    for (const cid of arr) reservedAll.add(cid);
-  }
-
-  for (let i=0; i<n; i++){
-    const forced = Array.isArray(mustLists[i]) ? mustLists[i] : [];
-    const res = buildBestPartyOnce(rankMap, used, forced, reservedAll);
-    if (!res.ok) break;
-
-    parties.push(res.party);
-    for (const cid of res.party) used.add(cid);
-  }
-
-  return parties;
-}
-
-// ------------------------------
-// Multi-party build optimization
-// ------------------------------
-// buildPartiesForCategory()는 파티를 1→N 순서로 그리디하게 구성합니다.
-// 다파티(특히 Guild/PVP/Left)에서는 "어느 파티를 먼저 채우느냐"가 결과에 영향을 주므로,
-// n이 작을 때(<=3) 모든 순열을 시도하여 총점 합이 최대가 되는 순서를 선택합니다.
-
-function _permute(arr){
-  const out = [];
-  function rec(prefix, rest){
-    if (!rest.length){ out.push(prefix.slice()); return; }
-    for (let i=0; i<rest.length; i++){
-      const next = rest[i];
-      const r2 = rest.slice(0,i).concat(rest.slice(i+1));
-      prefix.push(next);
-      rec(prefix, r2);
-      prefix.pop();
-    }
-  }
-  rec([], arr.slice());
-  return out;
-}
-
-function buildPartiesForCategoryWithOrder(rankMap, n, mustByParty, order){
-  const used = new Set();
-  const parties = new Array(n).fill(null);
-
-  const mustLists = Array.isArray(mustByParty) ? mustByParty : [];
-  const reservedAll = new Set();
-  for (const arr of mustLists){
-    if (!Array.isArray(arr)) continue;
-    for (const cid of arr) reservedAll.add(cid);
-  }
-
-  const ord = Array.isArray(order) && order.length === n
-    ? order
-    : [...Array(n).keys()];
-
-  for (const idx of ord){
-    const forced = Array.isArray(mustLists[idx]) ? mustLists[idx] : [];
-    const res = buildBestPartyOnce(rankMap, used, forced, reservedAll);
-    if (!res.ok) return { ok:false, msg: res.msg || "파티 구성 실패", parties: [] };
-    parties[idx] = res;
-    // 중복 금지 소비
-    for (const cid of res.party) used.add(cid);
-  }
-
-  return { ok:true, parties };
-}
-
-function buildPartiesForCategoryOptimized(rankMap, n, mustByParty){
-  // n이 작을 때만 순열 최적화(요청사항: Guild 3, PVP 2, Left 2)
-  const nn = Math.max(0, Number(n||0)|0);
-  if (nn <= 1){
-    const p = buildPartiesForCategory(rankMap, nn, mustByParty);
-    return p;
-  }
-
-  const idxs = [...Array(nn).keys()];
-  const perms = _permute(idxs);
-
-  let best = null;
-  for (const ord of perms){
-    const res = buildPartiesForCategoryWithOrder(rankMap, nn, mustByParty, ord);
-    if (!res.ok) continue;
-    const sum = res.parties.reduce((a,x)=>a + (x?.score||0), 0);
-    if (!best || sum > best.sum){
-      best = { sum, parties: res.parties, order: ord };
-    }
-  }
-
-  if (!best){
-    // 기존 로직 fallback
-    return buildPartiesForCategory(rankMap, nn, mustByParty);
-  }
-
-  // buildPartiesForCategory()가 반환하는 형식과 동일하게 배열로 리턴
-  return best.parties;
-}
-
-/**
- * ✅ 기본 파티 수(요청사항)
- * - Guild 3
- * - PVP 2
- * - Left 2
- * - 나머지 1
- */
-const PARTY_COUNTS = { Guild:3, PVE:1, PVP:2, Left:2 };
-
-function buildEmptyMustMap(){
-  return {
-    Guild: Array.from({length: PARTY_COUNTS.Guild}, () => []),
-    PVP:   Array.from({length: PARTY_COUNTS.PVP},   () => []),
-    Left:  Array.from({length: PARTY_COUNTS.Left},  () => []),
-    PVE:   Array.from({length: PARTY_COUNTS.PVE},   () => []),
-  };
-}
-
-
-// autoMust(타겟 미지정)는 "현재 빌드 대상"의 첫 카테고리에 자동 배치합니다.
-// 기존 라운드로빈은 '모두 1파티' 문제를 완화하지만, 최적이 아닙니다.
-// ✅ 개선: 각 autoMust를 어느 파티에 넣을지 '총점 합 최대'가 되도록 자동 판단(점수 최적화).
-function applyAutoMust(autoMust, mustByCat, primaryCat, rankMap){
-  const list = (Array.isArray(autoMust) ? autoMust : []).slice().filter(Boolean);
-  if (!list.length) return;
-
-  const cat = String(primaryCat||"");
-  const arr = mustByCat[cat];
-  if (!Array.isArray(arr) || !arr.length) return;
-
-  const n = arr.length;
-
-  // 이미 특정 파티에 강제 지정된 필수는 건드리지 않음
-  const already = new Set();
-  for (const p of arr){
-    for (const cid of (p||[])) already.add(cid);
-  }
-
-  // autoMust 중복 제거 + 이미 지정된 항목 제거
-  const uniq = [];
-  const seen = new Set();
-  for (const cid of list){
-    if (already.has(cid)) continue;
-    if (seen.has(cid)) continue;
-    seen.add(cid);
-    uniq.push(cid);
-  }
-  if (!uniq.length) return;
-
-  // 그리디 최적화: 하나씩 넣어보며 "총점 합"이 가장 커지는 파티에 배치
-  // (n<=3이므로 buildPartiesForCategoryOptimized를 여러 번 호출해도 충분히 감당 가능)
-  for (const cid of uniq){
-    let bestIdx = -1;
-    let bestSum = -Infinity;
-
-    for (let i=0; i<n; i++){
-      if ((arr[i]||[]).length >= 4) continue;
-
-      // 시뮬레이션용 mustByParty 복제
-      const tmp = arr.map(x => (Array.isArray(x) ? x.slice() : []));
-      tmp[i].push(cid);
-
-      const parties = buildPartiesForCategoryOptimized(rankMap, n, tmp);
-      if (!Array.isArray(parties) || parties.length < n) continue;
-
-      // 모든 파티가 정상 구성된 경우만 평가
-      let ok = true;
-      let sum = 0;
-      for (const p of parties){
-        if (!p || p.ok === false || !Array.isArray(p.party)) { ok = false; break; }
-        sum += (p.score || 0);
-      }
-      if (!ok) continue;
-
-      if (sum > bestSum){
-        bestSum = sum;
-        bestIdx = i;
-      }
-    }
-
-    if (bestIdx >= 0){
-      arr[bestIdx].push(cid);
-    } else {
-      // 넣을 곳이 없거나(4명 초과) 조건 때문에 실패 → 마지막에 sanitize가 경고를 찍도록 둠
-      // (여기서는 조용히 스킵)
-    }
-  }
-}
-
-function sanitizeMustByCat(mustByCat){
-  // 1) 파티 내 중복 제거
-  // 2) 같은 카테고리 내, 여러 파티에 중복 지정된 cid는 "먼저 나온 것"만 유지
-  const warnings = [];
-  for (const cat of Object.keys(mustByCat)){
-    const arr = mustByCat[cat];
-    if (!Array.isArray(arr)) continue;
-
-    // 파티 내 중복 제거
-    for (let i=0; i<arr.length; i++){
-      const seen = new Set();
-      arr[i] = (arr[i] || []).filter(cid => {
-        if (seen.has(cid)) return false;
-        seen.add(cid);
-        return true;
-      });
-    }
-
-    // 파티 간 중복 제거
-    const used = new Set();
-    for (let i=0; i<arr.length; i++){
-      const before = arr[i].slice();
-      arr[i] = arr[i].filter(cid => {
-        if (used.has(cid)) return false;
-        used.add(cid);
-        return true;
-      });
-      if (arr[i].length !== before.length){
-        warnings.push(`${cat}: 필수 캐릭터가 여러 파티에 중복 지정되어 일부는 첫 파티 배치만 유지했습니다.`);
-      }
-    }
-
-    // 4명 초과는 뒤로 넘기되, 넘길 곳이 없으면 경고
-    for (let i=0; i<arr.length; i++){
-      while (arr[i].length > 4){
-        const moved = arr[i].pop();
-        let j = i+1;
-        while (j < arr.length && arr[j].length >= 4) j++;
-        if (j < arr.length) arr[j].push(moved);
-        else {
-          warnings.push(`${cat}: 필수 지정이 4명을 초과하여 일부는 반영되지 않을 수 있습니다.`);
-          break;
-        }
-      }
-    }
-  }
-  return { mustByCat, warnings };
-}
-
-function buildAllCategoryParties(rankMap, mustByCat){
-  const must = mustByCat || buildEmptyMustMap();
-  return {
-    Guild: buildPartiesForCategoryOptimized(rankMap, PARTY_COUNTS.Guild, must.Guild),
-    PVE:   buildPartiesForCategoryOptimized(rankMap, PARTY_COUNTS.PVE,   must.PVE),
-    PVP:   buildPartiesForCategoryOptimized(rankMap, PARTY_COUNTS.PVP,   must.PVP),
-    Left:  buildPartiesForCategoryOptimized(rankMap, PARTY_COUNTS.Left,  must.Left),
-  };
-}
-
-// ✅ 선택한 등급표(pve/pvp/left/guild-raid/...)에 맞춰 결과 카테고리를 제한
-function buildPartiesByPresetKey(rankMap, presetKey){
-  const k = String(presetKey || "").toLowerCase();
-
-  const mustRaw = getMustAssignments();
-  const mustByCat = buildEmptyMustMap();
-
-  // explicit 배치 반영
-  if (mustRaw && mustRaw.byCategory){
-    for (const cat of ["Guild","PVP","Left"]){
-      const src = mustRaw.byCategory[cat];
-      if (!Array.isArray(src)) continue;
-      for (let i=0; i<mustByCat[cat].length; i++){
-        mustByCat[cat][i] = (src[i] || []).slice();
-      }
-    }
-  }
-
-  // 기본값: 전체 카테고리
-  const defOrder = ["Guild", "PVE", "PVP", "Left"];
-  const primaryCat = (
-    k === "pvp" ? "PVP" :
-    (k === "rift" || k === "left") ? "Left" :
-    (k === "guild-raid" ? "Guild" :
-     (k === "pve" || k === "new-player") ? "PVE" :
-     "Guild")
-  );
-
-  // auto must를 primaryCat에 라운드로빈 분배
-  applyAutoMust(mustRaw?.auto || [], mustByCat, primaryCat, rankMap);
-
-  const sanitized = sanitizeMustByCat(mustByCat);
-
-  if (k === "pvp") {
+
+            for k in keys:
+                if k:
+                    m.setdefault(k, rel)
+    return m
+
+
+def get_rune_img_map(force: bool = False) -> dict[str, str]:
+    if CACHE.get("rune_img_map") is not None and not force:
+        return CACHE["rune_img_map"]
+    CACHE["rune_img_map"] = build_rune_image_map(RUNE_ICON_DIR)
+    return CACHE["rune_img_map"]
+
+
+def resolve_rune_icon(set_name: str, rune_map: dict[str, str]) -> Optional[str]:
+    if not set_name:
+        return None
+
+    candidates = [
+        set_name,
+        set_name.lower(),
+        _norm_key(set_name),
+        re.sub(r"\d+", "", set_name.lower()),
+        _norm_key(re.sub(r"\d+", "", set_name)),
+        f"{set_name} rune",
+        f"rune {set_name}",
+        _norm_key(f"{set_name} rune"),
+        _norm_key(f"rune {set_name}"),
+    ]
+
+    for c in candidates:
+        k1 = (c or "").strip().lower()
+        if k1 in rune_map:
+            return f"/images/games/zone-nova/runes/{rune_map[k1]}"
+        k2 = _norm_key(c)
+        if k2 in rune_map:
+            return f"/images/games/zone-nova/runes/{rune_map[k2]}"
+    return None
+
+
+def load_rune_overrides(force: bool = False) -> dict:
+    if CACHE["rune_overrides"] is not None and not force:
+        return CACHE["rune_overrides"]
+    data = safe_load_json(RUNE_OVERRIDES)
+    CACHE["rune_overrides"] = data if isinstance(data, dict) else {}
+    return CACHE["rune_overrides"]
+
+
+# fallback only used when runes.js parsing fails
+FALLBACK_RUNES = [
+    {"name": "Alpha", "twoPiece": "Attack Power +8%", "fourPiece": "Basic Attack Damage +30%", "icon": None},
+    {"name": "Beth", "twoPiece": "Critical Hit Rate +6%", "fourPiece": "When HP >80%: Critical Hit Damage +24%", "icon": None},
+    {"name": "Zahn", "twoPiece": "HP +8%", "fourPiece": "After Ultimate: Take 5% less damage (10s)", "icon": None},
+    {"name": "Shattered Foundation", "twoPiece": "Defense +12%", "fourPiece": "Shield Effectiveness +20%", "icon": None},
+    {"name": "Daleth", "twoPiece": "Healing Effectiveness +10%", "fourPiece": "Battle Start: Gain 1 Energy immediately", "icon": None},
+    {"name": "Epsilon", "twoPiece": "Attack Power +8%", "fourPiece": "After ultimate, team damage +10% (10s)", "icon": None, "note": "Same passive effect cannot stack"},
+    {"name": "Hert", "twoPiece": "Extra Attack damage +20%", "fourPiece": "After dealing Extra Attack damage, Critical Hit Rate +15% (10s)", "icon": None, "note": "Guild raid only"},
+    {"name": "Gimel", "twoPiece": "Continuous damage +20%", "fourPiece": "After dealing continuous damage, own attack power +2% (stacks up to 10, 5s)", "icon": None, "note": "Guild raid only"},
+]
+
+
+def load_runes_db(force: bool = False) -> list[dict]:
+    if CACHE["runes_db"] is not None and not force:
+        return CACHE["runes_db"]
+
+    raw = safe_read_text(RUNES_JS)
+    runes = None
+
+    if raw:
+        lit = _extract_js_literal(raw)
+        if lit:
+            # 1) pure json
+            try:
+                runes = json.loads(lit)
+            except Exception:
+                # 2) python literal eval (single quote / trailing comma robust)
+                try:
+                    runes = ast.literal_eval(_to_python_literal(lit))
+                except Exception:
+                    # 3) json-friendly best-effort
+                    try:
+                        runes = json.loads(_json_friendly(lit))
+                    except Exception:
+                        runes = None
+
+    if not isinstance(runes, list):
+        runes = FALLBACK_RUNES
+
+    rune_img_map = get_rune_img_map()
+
+    norm: list[dict] = []
+    for r in runes:
+        if not isinstance(r, dict):
+            continue
+
+        name = str(r.get("name") or r.get("title") or "").strip()
+        if not name:
+            continue
+
+        # NOTE: runes.js가 한글을 포함하면 그대로 전달(두/네 세트 효과)
+        two_piece = r.get("twoPiece") or r.get("two_piece") or r.get("2pc") or r.get("two") or r.get("twoSet") or ""
+        four_piece = r.get("fourPiece") or r.get("four_piece") or r.get("4pc") or r.get("four") or r.get("fourSet") or ""
+
+        icon = r.get("icon")
+        img = r.get("image") or r.get("img") or r.get("jpg") or r.get("file") or r.get("iconFile")
+
+        if not icon and isinstance(img, str) and img:
+            icon = f"/images/games/zone-nova/runes/{img.strip().lstrip('/')}"
+
+        if isinstance(icon, str) and icon and not icon.startswith("/"):
+            icon = f"/images/games/zone-nova/runes/{icon.strip().lstrip('/')}"
+
+        if not icon:
+            icon = resolve_rune_icon(name, rune_img_map)
+
+        norm.append({
+            "name": name,
+            "twoPiece": two_piece,
+            "fourPiece": four_piece,
+            "note": r.get("note") or "",
+            "classRestriction": r.get("classRestriction") or r.get("class_restriction") or [],
+            "teamConflict": r.get("teamConflict") or r.get("team_conflict") or [],
+            "icon": icon if isinstance(icon, str) and icon else None,
+        })
+
+    CACHE["runes_db"] = norm
+    return norm
+
+
+def rune_db_by_name() -> dict[str, dict]:
+    db = load_runes_db()
+    return {str(r.get("name")): r for r in db if isinstance(r, dict) and r.get("name")}
+
+
+
+# -------------------------
+# -------------------------
+# Rune recommendation logic — role-based objective + exhaustive 4+2 search
+# -------------------------
+
+# Keyword dictionaries (EN + KO) used for both character profiling and rune-effect tagging.
+_KW_HEAL = ["heal", "healing", "restore", "recovery", "회복", "치유", "힐"]
+_KW_SHIELD = ["shield", "barrier", "보호막", "실드"]
+_KW_DOT = ["continuous", "dot", "damage over time", "burn", "bleed", "poison", "지속", "지속 피해", "도트", "중독", "화상", "출혈"]
+_KW_EXTRA = ["extra attack", "follow-up", "추가 공격", "추격", "연속 공격", "추가타", "추가 피해"]
+_KW_TEAM = ["team", "all allies", "allied", "party", "아군", "팀", "전체", "전원"]
+_KW_BUFF = ["increase", "increased", "buff", "up", "증가", "상승", "강화", "부여"]
+_KW_DEBUFF = ["decrease", "reduced", "debuff", "down", "감소", "약화", "깎", "감쇠", "취약", "받는 피해"]
+_KW_VULN = ["vulnerability", "take more damage", "damage taken", "받는 피해", "피해 증가", "취약"]
+_KW_ENERGY = ["energy", "에너지", "gain", "regen", "회복", "획득", "충전"]
+_KW_ULT = ["ultimate", "ult", "burst", "궁극기", "필살기", "궁"]
+_KW_CRIT_DISABLE = ["cannot crit", "can't crit", "no crit", "crit disabled", "치명타 불가", "크리티컬 불가", "치명타가 발생하지"]
+
+# ---------- Character text extraction ----------
+
+def _collect_texts(x) -> list[str]:
+    out: list[str] = []
+
+    def walk(v):
+        if v is None:
+            return
+        if isinstance(v, str):
+            t = v.strip()
+            if t:
+                out.append(t)
+            return
+        if isinstance(v, (int, float, bool)):
+            return
+        if isinstance(v, list):
+            for it in v:
+                walk(it)
+            return
+        if isinstance(v, dict):
+            for vv in v.values():
+                walk(vv)
+            return
+
+    walk(x)
+    seen, uniq = set(), []
+    for s in out:
+        if s not in seen:
+            seen.add(s)
+            uniq.append(s)
+    return uniq
+
+
+def _skill_texts(detail: dict) -> list[str]:
+    if not isinstance(detail, dict):
+        return []
+    texts: list[str] = []
+
+    for key in ["skills", "skill", "skillSet", "skill_set"]:
+        if isinstance(detail.get(key), dict):
+            texts += _collect_texts(detail.get(key))
+
+    for key in ["normal", "basic", "basicAttack", "auto", "active", "ultimate", "burst", "passive", "passive1", "passive2", "skill1", "skill2", "skill3"]:
+        if isinstance(detail.get(key), (dict, list, str)):
+            texts += _collect_texts(detail.get(key))
+
+    for key in ["teamSkill", "team_skill", "team", "synergy", "combo", "comboSkill"]:
+        if isinstance(detail.get(key), (dict, list, str)):
+            texts += _collect_texts(detail.get(key))
+
+    if not texts:
+        texts = _collect_texts(detail)
+
+    return texts
+
+
+# ---------- Scaling detection (ATK / HP / DEF) ----------
+
+def _pct_hits(text: str, keys: list[str]) -> list[float]:
+    # Extract percent scaling hits that indicate "X% of <stat>" in both EN and KO forms.
+    hits: list[float] = []
+    t = text.lower()
+
+    # EN patterns
+    for k in keys:
+        k_low = k.lower()
+        # "120% ... attack"
+        for m in re.finditer(r"(\d+(?:\.\d+)?)\s*%\s*[^%\n]{0,28}\b" + re.escape(k_low) + r"\b", t):
+            try:
+                hits.append(float(m.group(1)))
+            except Exception:
+                pass
+        # "120% of attack" / "based on ATK"
+        for m in re.finditer(r"(\d+(?:\.\d+)?)\s*%\s*(?:of|based\s+on|scales\s+with)\s*[^%\n]{0,16}\b" + re.escape(k_low) + r"\b", t):
+            try:
+                hits.append(float(m.group(1)))
+            except Exception:
+                pass
+
+    # KO patterns
+    for k in keys:
+        # "공격력의 120%"
+        for m in re.finditer(re.escape(k) + r"\s*의\s*(\d+(?:\.\d+)?)\s*%", text):
+            try:
+                hits.append(float(m.group(1)))
+            except Exception:
+                pass
+        # loose fallback: "<stat> ... 120%"
+        for m in re.finditer(re.escape(k) + r"[^\d%]{0,6}(\d+(?:\.\d+)?)\s*%", text):
+            try:
+                hits.append(float(m.group(1)))
+            except Exception:
+                pass
+
+    return hits
+
+
+def _score_hits(hits: list[float]) -> float:
+    if not hits:
+        return 0.0
+    return len(hits) * 10.0 + (sum(hits) / len(hits))
+
+
+def detect_no_crit(detail: dict) -> bool:
+    # Do NOT treat critRate==0 as 'cannot crit'. Only explicit flags/text.
+    if not isinstance(detail, dict):
+        return False
+
+    for k in ["noCrit", "no_crit", "cannotCrit", "cannot_crit", "critDisabled", "crit_disabled"]:
+        if detail.get(k) is True:
+            return True
+
+    for t in _skill_texts(detail):
+        tl = t.lower()
+        if any(k in tl for k in _KW_CRIT_DISABLE):
+            return True
+
+    return False
+
+
+def _role_from_base(base: dict) -> str:
+    cls = str((base or {}).get("class") or "").strip().lower()
+    role = str((base or {}).get("role") or "").strip().lower()
+
+    if "buffer" in cls or "buffer" in role:
+        return "buffer"
+    if "debuffer" in cls or "debuffer" in role:
+        return "debuffer"
+    if "healer" in cls or "healer" in role:
+        return "healer"
+    if "guardian" in cls or "tank" in role:
+        return "tank"
+    if cls in ("warrior", "rogue", "mage") or role == "dps":
+        return "dps"
+    return "dps"
+
+
+def _infer_role_from_texts(texts: list[str], base_role: str) -> str:
+    if base_role in ("buffer", "debuffer", "healer", "tank"):
+        return base_role
+
+    team_buff = debuff = heal = 0
+    for t in texts:
+        tl = t.lower()
+        if any(k in tl for k in _KW_HEAL):
+            heal += 2
+        if any(k in tl for k in _KW_TEAM) and any(k in tl for k in _KW_BUFF):
+            team_buff += 2
+        if any(k in tl for k in _KW_DEBUFF) or any(k in tl for k in _KW_VULN):
+            debuff += 1
+
+    if heal >= max(team_buff, debuff) and heal >= 3:
+        return "healer"
+    if team_buff >= max(heal, debuff) and team_buff >= 3:
+        return "buffer"
+    if debuff >= max(heal, team_buff) and debuff >= 3:
+        return "debuffer"
+    return "dps"
+
+
+def _detect_profile(detail: dict, base: dict) -> dict:
+    texts = _skill_texts(detail or {})
+
+    atk_hits, hp_hits, def_hits = [], [], []
+    for t in texts:
+        atk_hits += _pct_hits(t, ["attack power", "atk", "attack", "공격력"])
+        hp_hits += _pct_hits(t, ["max hp", "hp", "health", "체력", "생명"])
+        def_hits += _pct_hits(t, ["defense", "def", "방어력"])
+
+    atk_s = _score_hits(atk_hits)
+    hp_s = _score_hits(hp_hits)
+    def_s = _score_hits(def_hits)
+
+    best = max(atk_s, hp_s, def_s)
+    scaling = "MIX"
+    if best > 0:
+        scaling = "ATK" if best == atk_s else ("HP" if best == hp_s else "DEF")
+
+    dot_cnt = extra_cnt = ult_cnt = 0
+    team_buff_cnt = debuff_cnt = heal_cnt = shield_cnt = 0
+
+    for t in texts:
+        tl = t.lower()
+        if any(k in tl for k in _KW_DOT):
+            dot_cnt += 1
+        # strict extra attack detection (avoid false positives like "추가 피해")
+        if ("extra attack" in tl) or ("follow-up" in tl) or ("추가 공격" in t) or ("추격" in t):
+            extra_cnt += 1
+        if any(k in tl for k in _KW_ULT):
+            ult_cnt += 1
+        if any(k in tl for k in _KW_HEAL):
+            heal_cnt += 1
+        if any(k in tl for k in _KW_SHIELD):
+            shield_cnt += 1
+        if any(k in tl for k in _KW_TEAM) and any(k in tl for k in _KW_BUFF):
+            team_buff_cnt += 1
+        if any(k in tl for k in _KW_DEBUFF) or any(k in tl for k in _KW_VULN):
+            debuff_cnt += 1
+
+    total = max(1, len(texts))
+    dot_share = dot_cnt / total
+    extra_share = extra_cnt / total
+    ult_importance = min(1.0, ult_cnt / total * 2.0)
+    team_buff_strength = min(1.0, team_buff_cnt / total * 2.0)
+    debuff_strength = min(1.0, debuff_cnt / total * 2.0)
+    heal_strength = min(1.0, heal_cnt / total * 2.0)
+    shield_strength = min(1.0, shield_cnt / total * 2.0)
+
+    base_role = _role_from_base(base or {})
+    role = _infer_role_from_texts(texts, base_role)
+
+    no_crit = detect_no_crit(detail or {})
+    healer_hybrid = bool(role == "healer" and atk_s >= 15.0 and heal_strength < 0.35)
+
+    sample_text = None
+    if scaling == "ATK":
+        sample_text = next((t for t in texts if _pct_hits(t, ["attack power", "atk", "attack", "공격력"])), None)
+    elif scaling == "HP":
+        sample_text = next((t for t in texts if _pct_hits(t, ["max hp", "hp", "health", "체력", "생명"])), None)
+    elif scaling == "DEF":
+        sample_text = next((t for t in texts if _pct_hits(t, ["defense", "def", "방어력"])), None)
+
     return {
-      order: ["PVP"],
-      data: { PVP: buildPartiesForCategory(rankMap, PARTY_COUNTS.PVP, sanitized.mustByCat.PVP) },
-      warnings: sanitized.warnings
-    };
-  }
-  if (k === "pve" || k === "new-player") {
-    return {
-      order: ["PVE"],
-      data: { PVE: buildPartiesForCategory(rankMap, PARTY_COUNTS.PVE, sanitized.mustByCat.PVE) },
-      warnings: sanitized.warnings
-    };
-  }
-  if (k === "rift" || k === "left") {
-    return {
-      order: ["Left"],
-      data: { Left: buildPartiesForCategory(rankMap, PARTY_COUNTS.Left, sanitized.mustByCat.Left) },
-      warnings: sanitized.warnings
-    };
-  }
-  if (k === "guild-raid") {
-    return {
-      order: ["Guild"],
-      data: { Guild: buildPartiesForCategory(rankMap, PARTY_COUNTS.Guild, sanitized.mustByCat.Guild) },
-      warnings: sanitized.warnings
-    };
-  }
-
-  return {
-    order: defOrder,
-    data: buildAllCategoryParties(rankMap, sanitized.mustByCat),
-    warnings: sanitized.warnings
-  };
-}
-function renderTierPartyResult(rankMap, res){
-      const box = document.getElementById("tierPartyResult");
-      if (!box) return;
-
-      if (res.warnings && res.warnings.length){
-        out += `<div class="tier-warn">${res.warnings.map(w=>`<div>• ${escapeHtml(w)}</div>`).join("")}</div>`;
-      }
-
-      if (!res.ok){
-        box.innerHTML = `<div class="tier-error">${escapeHtml(res.msg || "실패")}</div>`;
-        return;
-      }
-
-      const charsById = new Map(chars.map(c => [c.id, c]));
-
-      const renderOneParty = (party) => {
-        const cards = party.map(cid => {
-          const c = charsById.get(cid);
-
-          const img = c?.image
-            ? `<img class="tier-portrait" src="${escapeHtml(c.image)}" alt="">`
-            : `<div class="tier-portrait tier-portrait-empty"></div>`;
-
-          return `
-            <div class="tier-card">
-              <div class="tier-card-top">
-                ${img}
-                <span class="tier-name">${escapeHtml(c?.name || cid)}</span>
-              </div>
-              <div class="tier-card-sub">
-                <span class="pill pill-neutral">${escapeHtml(c?.element || "-")}</span>
-                <span class="pill pill-neutral">${escapeHtml(c?.faction || "-")}</span>
-                <span class="pill pill-neutral">${escapeHtml(c?.class || "-")}</span>
-              </div>
-            </div>
-          `;
-        }).join("");
-
-        return `<div class="tier-grid">${cards}</div>`;
-      };
-
-      const sections = res.data;
-      const order = Array.isArray(res.order) && res.order.length
-        ? res.order
-        : ["Guild", "PVE", "PVP", "Left"];
-
-      const html = order.map(cat => {
-        const parties = sections[cat] || [];
-        if (!parties.length){
-          return `
-            <div class="tier-section">
-              <div class="tier-section-head">
-                <div class="tier-section-title">${escapeHtml(cat)}</div>
-              </div>
-              <div class="tier-error" style="margin-top:8px;">${escapeHtml(cat)}: 조건을 만족하는 파티를 구성하지 못했습니다(후보 부족/조건 과다).</div>
-            </div>
-          `;
-        }
-
-        return `
-          <div class="tier-section">
-            <div class="tier-section-head">
-              <div class="tier-section-title">${escapeHtml(cat)}</div>
-              <div class="tier-section-sub">총 ${parties.length}개</div>
-            </div>
-            ${parties.map((p, idx) => `
-              <div class="tier-party-block">
-                <div class="tier-party-title">${escapeHtml(cat)} ${idx + 1}</div>
-                ${renderOneParty(p)}
-              </div>
-            `).join("")}
-          </div>
-        `;
-      }).join("");
-
-      box.innerHTML = html;
+        "role": role,
+        "scaling": scaling,
+        "atk_score": atk_s,
+        "hp_score": hp_s,
+        "def_score": def_s,
+        "dot_share": dot_share,
+        "extra_share": extra_share,
+        "ult_importance": ult_importance,
+        "team_buff_strength": team_buff_strength,
+        "debuff_strength": debuff_strength,
+        "heal_strength": heal_strength,
+        "shield_strength": shield_strength,
+        "healer_hybrid": healer_hybrid,
+        "no_crit": no_crit,
+        "sample_text": sample_text,
     }
 
-    function initTierUI(){
-      const sel = document.getElementById("tierPreset");
-      const btn = document.getElementById("btnBuildTierParty");
-      const btnAi = document.getElementById("btnAiParty");
-      // ✅ 요청사항: 구성조건/lastUpdated 안내 영역 제거(없어도 동작)
-      const info = document.getElementById("tierInfo"); // (없을 수 있음)
-      const help = document.getElementById("tierHelp"); // (없을 수 있음)
-      if (!sel || !btn || !btnAi) return;
-      if (!ALL_TIER_LISTS) return;
 
-      const keys = Object.keys(ALL_TIER_LISTS).sort((a,b) => a.localeCompare(b));
+# ---------- Rune tagging ----------
 
-      sel.innerHTML = `<option value="">등급표 선택</option>` + keys.map(k => {
-        const t = ALL_TIER_LISTS[k];
-        const nm = String(t?.name || k).trim();
-        return `<option value="${escapeHtml(k)}">${escapeHtml(nm)}</option>`;
-      }).join("");
+def _has_any(text: str, keys: list[str]) -> bool:
+    tl = (text or "").lower()
+    return any(k in tl for k in keys)
 
-      sel.disabled = false;
-      btn.disabled = false;
-      btnAi.disabled = false;
 
-      initTierClassCheckboxes();
+def _rune_tags_from_effect(effect_text: str) -> set[str]:
+    t = (effect_text or "").strip()
+    tl = t.lower()
+    tags: set[str] = set()
 
-      function renderInfo(k){
-        // ✅ 요청사항: 구성조건/lastUpdated 등의 안내 문구는 표시하지 않음
-        if (info) info.textContent = "";
-        if (help) help.innerHTML = "";
-      }
+    # base stats
+    if "attack power" in tl or "atk" in tl or "공격력" in t:
+        tags.add("ATK")
+    if "defense" in tl or "def" in tl or "방어력" in t:
+        tags.add("DEF")
+    if "hp" in tl or "health" in tl or "체력" in t or "생명" in t:
+        tags.add("HP")
 
-      sel.addEventListener("change", () => {
-        renderInfo(sel.value);
-        document.getElementById("tierPartyResult").innerHTML = "";
-        document.getElementById("aiPartyResult").innerHTML = "";
-      });
+    # crit
+    if "critical hit rate" in tl or "crit rate" in tl or "치명타 확률" in t or "치확" in t:
+        tags.add("CRIT_RATE")
+    if "critical hit damage" in tl or "crit damage" in tl or "치명타 피해" in t or "치피" in t:
+        tags.add("CRIT_DMG")
 
-      btn.addEventListener("click", () => {
-        const k = sel.value;
-        if (!k) {
-          renderTierPartyResult(new Map(), { ok:false, msg:"등급표를 먼저 선택하세요." });
-          return;
-        }
-        const tierList = ALL_TIER_LISTS[k];
-        const rankMap = buildRankMapFromTierList(tierList, chars);
+    # damage type synergies
+    if "basic attack damage" in tl or "기본 공격 피해" in t:
+        tags.add("BASIC_DMG")
+    if "extra attack" in tl or "추가 공격" in t:
+        tags.add("EXTRA_DMG")
+    if "continuous damage" in tl or "damage over time" in tl or "지속" in t:
+        tags.add("DOT_DMG")
 
-        const built = buildPartiesByPresetKey(rankMap, k);
-        renderTierPartyResult(rankMap, { ok:true, ...built });
-      });
+    # heal/shield
+    if "healing effectiveness" in tl or "치유" in t or "회복" in t:
+        tags.add("HEAL")
+    if "shield effectiveness" in tl or "보호막" in t or "실드" in t:
+        tags.add("SHIELD")
 
-      btnAi.addEventListener("click", () => {
-        requestAiParty();
-      });
+    # team damage / vulnerability
+    if ("team" in tl or "all allies" in tl or "아군" in t or "팀" in t) and ("damage" in tl or "피해" in t):
+        tags.add("TEAM_DMG")
+    if _has_any(t, _KW_VULN) or ("받는 피해" in t):
+        tags.add("VULN")
 
-      renderInfo(sel.value);
+    # energy economy
+    if ("gain 1 energy" in tl) or ("gain 1 energy immediately" in tl) or ("전투 시작" in t and "에너지" in t):
+        tags.add("START_ENERGY")
+    if ("energy gain efficiency" in tl) or ("에너지 획득 효율" in t) or ("에너지 획득효율" in t):
+        tags.add("ENERGY_EFF")
+
+    # ultimate trigger
+    if ("after ultimate" in tl) or ("after activating ultimate" in tl) or ("궁극기" in t and ("후" in t or "사용" in t or "발동" in t)):
+        tags.add("ULT_TRIGGER")
+
+    return tags
+
+
+def _rune_tag_index(rune_db: dict[str, dict]) -> dict[str, dict]:
+    idx: dict[str, dict] = {}
+    for name, r in rune_db.items():
+        two = str(r.get("twoPiece") or "")
+        four = str(r.get("fourPiece") or "")
+        idx[name] = {"tags2": _rune_tags_from_effect(two), "tags4": _rune_tags_from_effect(four)}
+    return idx
+
+
+# ---------- Scoring: objective by role ----------
+
+def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dict], tag_idx: dict[str, dict]) -> float:
+    tags = (tag_idx.get(set_name) or {}).get("tags4" if pieces == 4 else "tags2", set())
+
+    role = profile["role"]
+    scaling = profile["scaling"]
+    no_crit = profile["no_crit"]
+
+    dot = profile["dot_share"]
+    extra = profile["extra_share"]
+    ult = profile["ult_importance"]
+    debuff = profile["debuff_strength"]
+    heal = profile["heal_strength"]
+    shield = profile["shield_strength"]
+
+    score = 0.0
+
+    # scaling match (mostly for 2pc)
+    if pieces == 2:
+        if "ATK" in tags and scaling == "ATK":
+            score += 6.0
+        elif "ATK" in tags:
+            score += 2.0
+
+        if "DEF" in tags and scaling == "DEF":
+            score += 6.0
+        elif "DEF" in tags:
+            score += 2.0
+
+        if "HP" in tags and scaling == "HP":
+            score += 6.0
+        elif "HP" in tags:
+            score += 2.0
+
+        if "CRIT_RATE" in tags and not no_crit:
+            score += 6.0 if role == "dps" else (2.0 if role == "debuffer" else 1.0)
+
+    # role-specific (4pc dominates)
+    if role == "buffer":
+        if "TEAM_DMG" in tags:
+            score += 18.0 * (0.6 + 0.4 * ult)
+        if "ENERGY_EFF" in tags:
+            score += 20.0 * (0.6 + 0.4 * ult)
+        if "START_ENERGY" in tags:
+            score += 16.0 * (0.6 + 0.4 * ult)
+        if "ULT_TRIGGER" in tags:
+            score += 6.0 * ult
+        if "HP" in tags or "DEF" in tags:
+            score += 2.0
+        if "CRIT_DMG" in tags or "CRIT_RATE" in tags or "BASIC_DMG" in tags:
+            score += 0.5
+
+    elif role == "debuffer":
+        if "VULN" in tags:
+            score += 22.0 * (0.6 + 0.4 * ult) * (0.6 + 0.4 * max(debuff, 0.2))
+        if "TEAM_DMG" in tags:
+            score += 8.0 * (0.6 + 0.4 * ult)
+        if "ENERGY_EFF" in tags:
+            score += 10.0 * (0.6 + 0.4 * ult)
+        if "START_ENERGY" in tags:
+            score += 8.0 * (0.6 + 0.4 * ult)
+        if "ULT_TRIGGER" in tags:
+            score += 4.0 * ult
+        if "HP" in tags or "DEF" in tags:
+            score += 2.5
+
+    elif role == "healer":
+        if "HEAL" in tags:
+            score += 22.0 * (0.7 + 0.3 * max(heal, 0.2))
+        if "ENERGY_EFF" in tags:
+            score += 10.0 * (0.6 + 0.4 * ult)
+        if "START_ENERGY" in tags:
+            score += 10.0 * (0.6 + 0.4 * ult)
+        if "HP" in tags or "DEF" in tags:
+            score += 6.0
+        if "SHIELD" in tags:
+            score += 8.0 * (0.7 + 0.3 * shield)
+        if profile.get("healer_hybrid") and not no_crit:
+            if "CRIT_RATE" in tags or "CRIT_DMG" in tags:
+                score += 3.0
+            if "ATK" in tags and scaling == "ATK":
+                score += 4.0
+
+    elif role == "tank":
+        if "HP" in tags:
+            score += 16.0
+        if "DEF" in tags:
+            score += 16.0
+        if "SHIELD" in tags:
+            score += 14.0 * (0.7 + 0.3 * shield)
+        if "START_ENERGY" in tags:
+            score += 3.0
+        if "ENERGY_EFF" in tags:
+            score += 3.0
+
+    else:  # DPS
+        if ("CRIT_RATE" in tags or "CRIT_DMG" in tags) and not no_crit:
+            score += 16.0
+        if "BASIC_DMG" in tags:
+            score += 10.0
+        if "EXTRA_DMG" in tags:
+            score += 18.0 * (0.3 + 0.7 * min(1.0, extra * 3.0))
+        if "DOT_DMG" in tags:
+            score += 18.0 * (0.3 + 0.7 * min(1.0, dot * 3.0))
+
+        if "ATK" in tags and scaling == "ATK":
+            score += 8.0
+        if "DEF" in tags and scaling == "DEF":
+            score += 8.0
+        if "HP" in tags and scaling == "HP":
+            score += 8.0
+
+        if "ENERGY_EFF" in tags:
+            score += 4.0 * ult
+        if "START_ENERGY" in tags:
+            score += 3.0 * ult
+
+        if "TEAM_DMG" in tags:
+            score += 2.0
+
+        if "HP" in tags or "DEF" in tags:
+            score += 1.0
+
+    if no_crit and ("CRIT_RATE" in tags or "CRIT_DMG" in tags):
+        score -= 8.0
+
+    return score
+
+
+def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dict], list[str]]:
+    tag_idx = _rune_tag_index(rune_db)
+    sets = list(rune_db.keys())
+
+    best: list[tuple[float, str, str]] = []
+    for s4 in sets:
+        sc4 = _score_set(profile, s4, 4, rune_db, tag_idx)
+        if sc4 < -5:
+            continue
+        for s2 in sets:
+            # 룬 세트는 중복 장착 불가: 4세트와 2세트가 같은 세트면 제외
+            if s2 == s4:
+                continue
+            sc2 = _score_set(profile, s2, 2, rune_db, tag_idx)
+            total = sc4 + sc2
+            best.append((total, s4, s2))
+
+    best.sort(key=lambda x: x[0], reverse=True)
+    top = best[:4]
+
+    rationale: list[str] = []
+    rationale.append(f"역할 판정: {profile['role']} / 스케일링 판정: {profile['scaling']}")
+    if profile.get("sample_text"):
+        rationale.append(f"스케일링 근거 예시: '{str(profile['sample_text'])[:140]}'")
+    if profile.get("no_crit"):
+        rationale.append("치명타 불가/비활성 문구 감지 → 치명타(치확/치피) 중심 세트는 감점 처리.")
+    if profile["role"] in ("buffer", "debuffer"):
+        rationale.append("서포트 역할은 팀 기여/궁극기 가동률(에너지) 비중을 높게 두고 최적화합니다.")
+    elif profile["role"] == "dps":
+        rationale.append("딜러 역할은 본인 기대 피해(치명/특수 피해 타입) 비중을 높게 두고 최적화합니다.")
+
+    builds: list[dict] = []
+    for i, (score, s4, s2) in enumerate(top):
+        title = "추천(자동)" if i == 0 else f"대체안 {i}"
+        builds.append({
+            "title": title,
+            "_score": round(score, 2),
+            "setPlan": [{"set": s4, "pieces": 4}, {"set": s2, "pieces": 2}],
+        })
+    return builds, rationale
+
+
+# ---------- Slot plan (main stats) ----------
+
+def _element_damage_label(element: str) -> str:
+    e = normalize_element(element or "-")
+    if e in ("Storm", "Blaze", "Frost", "Holy", "Chaos"):
+        return f"{e} Attribute Damage (%)"
+    return "Element Attribute Damage (%)"
+
+
+def _slot_plan_for(profile: dict, element: str) -> dict:
+    role = profile["role"]
+    scaling = profile["scaling"]
+    no_crit = profile["no_crit"]
+
+    plan = {
+        "1": ["HP (Flat Value)"],
+        "2": ["Attack (Flat Value)"],
+        "3": ["Defense (Flat Value)"],
+        "4": [],
+        "5": [],
+        "6": [],
     }
 
-    // ===== Tier (details) collapse: 검색/필터와 동일한 (열기/닫기) UX =====
-    // - 모바일에서는 기본 접힘
-    // - 사용자가 한 번 열고/닫으면 localStorage로 기억
-    (function initTierDetailsCollapse(){
-      const d = document.getElementById("tierPanel");
-      if (!d) return;
+    scaling_pct = "Attack (%)" if scaling == "ATK" else ("HP (%)" if scaling == "HP" else ("Defense (%)" if scaling == "DEF" else "Attack (%)"))
 
-      const KEY = "tierPanelOpen";
-      const mq = window.matchMedia("(max-width: 520px)");
+    if role == "healer":
+        plan["4"] = ["Healing Effectiveness (%)", "HP (%)", "Defense (%)"]
+        plan["5"] = ["HP (%)", "Defense (%)"]
+        plan["6"] = ["HP (%)", "Defense (%)"]
+        return plan
 
-      const applyDefault = () => {
-        if (mq.matches) d.removeAttribute("open");
-        else d.setAttribute("open", "");
-      };
+    if role == "tank":
+        plan["4"] = ["Defense (%)", "HP (%)"]
+        plan["5"] = ["Defense (%)", "HP (%)"]
+        plan["6"] = ["Defense (%)", "HP (%)"]
+        return plan
 
-      const saved = localStorage.getItem(KEY);
-      if (saved === "1") d.setAttribute("open", "");
-      else if (saved === "0") d.removeAttribute("open");
-      else applyDefault();
+    if role in ("buffer", "debuffer"):
+        plan["4"] = ["Energy-related (if exists)", "HP (%)", "Defense (%)", scaling_pct]
+        plan["5"] = ["HP (%)", "Defense (%)", _element_damage_label(element)]
+        plan["6"] = ["HP (%)", "Defense (%)", scaling_pct]
+        if not no_crit:
+            plan["4"].append("Critical Rate (%) (부옵/대체)")
+        return plan
 
-      d.addEventListener("toggle", () => {
-        localStorage.setItem(KEY, d.open ? "1" : "0");
-      });
+    # DPS
+    if no_crit:
+        plan["4"] = ["Attack Penetration (%)", scaling_pct, "Attack (%)", "HP (%) (생존)"]
+        plan["5"] = [_element_damage_label(element), scaling_pct, "Attack (%)", "HP (%) (생존)"]
+        plan["6"] = [scaling_pct, "Attack (%)", "HP (%) (생존)", "Defense (%) (생존)"]
+    else:
+        plan["4"] = ["Critical Rate (%)", "Attack Penetration (%)", "Critical Damage (%)", scaling_pct]
+        plan["5"] = [_element_damage_label(element), scaling_pct, "Attack (%)", "HP (%)", "Defense (%)"]
+        plan["6"] = [scaling_pct, "Attack (%)", "HP (%)", "Defense (%)"]
 
-      mq.addEventListener?.("change", () => {
-        if (localStorage.getItem(KEY) == null) applyDefault();
-      });
-    })();
+    return plan
 
-    window.addEventListener("tierlists:loaded", () => {
-      ALL_TIER_LISTS = window.__tierLists?.ALL_TIER_LISTS || null;
 
-      if (!ALL_TIER_LISTS) {
-        const sel = document.getElementById("tierPreset");
-        const info = document.getElementById("tierInfo");
-        if (sel) {
-          sel.innerHTML = `<option value="">등급표 로딩 실패</option>`;
-          sel.disabled = true;
-        }
-        if (info) {
-          info.textContent = "tier-lists.js(tier-list.js) 모듈을 불러오지 못했습니다. 경로/파일명을 확인하세요.";
-        }
-        return;
-      }
+def _substats_for(profile: dict) -> list[str]:
+    role = profile["role"]
+    scaling = profile["scaling"]
+    no_crit = profile["no_crit"]
 
-      initTierUI();
-    });
-  </script>
+    scaling_pct = "Attack (%)" if scaling == "ATK" else ("HP (%)" if scaling == "HP" else ("Defense (%)" if scaling == "DEF" else "Attack (%)"))
 
-  <!-- ✅ tier-lists 모듈 import (파일명 혼동 대비 fallback) -->
-  <script type="module">
-    const candidates = [
-      "/data/zone-nova/tier-lists.js",
-      "/data/zone-nova/tier-list.js"
-    ];
+    if role == "healer":
+        out = ["Healing Effectiveness (%)", "HP (%)", "Defense (%)", "Flat HP / Flat DEF"]
+        if profile.get("healer_hybrid") and not no_crit:
+            out += ["Critical Rate (%)", "Critical Damage (%)", "Attack (%)"]
+        return out
 
-    let mod = null;
-    for (const p of candidates) {
-      try {
-        mod = await import(p);
-        window.__tierLists = mod;
-        window.__tierListsPath = p;
-        break;
-      } catch (e) {}
+    if role == "tank":
+        return ["HP (%)", "Defense (%)", "Flat HP / Flat DEF", "Damage Reduction / RES (존재 시)"]
+
+    if role in ("buffer", "debuffer"):
+        out = ["Energy Recovery / Energy Gain (존재 시)", "HP (%)", "Defense (%)", scaling_pct]
+        if not no_crit:
+            out += ["Critical Rate (%) (부옵/대체)"]
+        return out
+
+    if no_crit:
+        return [scaling_pct, "Attack Penetration (%)", "Element Attribute Damage (%)", "Attack (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
+
+    return ["Critical Rate (%)", "Critical Damage (%)", scaling_pct, "Attack Penetration (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
+
+
+def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
+    overrides = load_rune_overrides()
+    rune_db = rune_db_by_name()
+
+    ov = overrides.get(cid)
+    if isinstance(ov, dict) and ov.get("builds"):
+        builds = []
+        for b in ov.get("builds") or []:
+            if not isinstance(b, dict):
+                continue
+            sp = []
+            for it in b.get("setPlan") or []:
+                if not isinstance(it, dict):
+                    continue
+                sname = str(it.get("set") or "").strip()
+                r = rune_db.get(sname) or {}
+                sp.append({
+                    "set": sname,
+                    "pieces": int(it.get("pieces") or 0),
+                    "icon": r.get("icon"),
+                    "twoPiece": r.get("twoPiece", ""),
+                    "fourPiece": r.get("fourPiece", ""),
+                    "note": r.get("note", ""),
+                })
+            builds.append({
+                "title": str(b.get("title") or "Override"),
+                "setPlan": sp,
+                "slots": b.get("slots") or {},
+                "substats": b.get("substats") or [],
+                "notes": b.get("notes") or [],
+                "rationale": b.get("rationale") or ["rune_overrides.json 수동 오버라이드 적용"],
+            })
+        return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
+
+    profile = _detect_profile(detail or {}, base or {})
+    core_builds, rationale = _best_rune_builds(profile, rune_db)
+
+    builds = []
+    for b in core_builds:
+        setplan = []
+        for s in b.get("setPlan") or []:
+            nm = s.get("set")
+            r = rune_db.get(nm) or {}
+            setplan.append({
+                "set": nm,
+                "pieces": s.get("pieces"),
+                "icon": r.get("icon"),
+                "twoPiece": r.get("twoPiece", ""),
+                "fourPiece": r.get("fourPiece", ""),
+                "note": r.get("note", ""),
+            })
+
+        builds.append({
+            "title": b.get("title") or "추천(자동)",
+            "setPlan": setplan,
+            "slots": _slot_plan_for(profile, base.get("element")),
+            "substats": _substats_for(profile),
+            "notes": [],
+            "rationale": rationale + [f"조합 점수(상대 비교용): {b.get('_score')}"],
+        })
+
+    # constraint notes
+    notes = []
+    for b in builds:
+        for s in b["setPlan"]:
+            nm = s["set"]
+            r = rune_db.get(nm) or {}
+            cr = r.get("classRestriction") or []
+            if cr:
+                notes.append(f"{nm} 4세트는 클래스 제한이 있습니다: {', '.join(map(str, cr))}")
+            if r.get("note"):
+                notes.append(f"{nm}: {r.get('note')}")
+            if r.get("teamConflict"):
+                notes.append(f"{nm}: 팀 세트 상충 주의 ({', '.join(map(str, r.get('teamConflict')))} )")
+
+    uniq_notes = []
+    seen = set()
+    for n in notes:
+        if n not in seen:
+            seen.add(n)
+            uniq_notes.append(n)
+
+    for b in builds:
+        b["notes"] = uniq_notes
+
+    return {"mode": "auto", "profile": profile, "builds": builds}
+
+
+def rune_summary_for_list(cid: str, base: dict, detail: dict) -> Optional[dict]:
+    reco = recommend_runes(cid, base, detail)
+    builds = reco.get("builds") or []
+    if not builds:
+        return None
+    b0 = builds[0]
+    return {"mode": reco.get("mode"), "sets": [{"set": s.get("set"), "pieces": s.get("pieces"), "icon": s.get("icon")} for s in (b0.get("setPlan") or [])]}
+# -------------------------
+# Party recommendation (AI 추천 파티)
+# -------------------------
+
+_TIER_ALPHA = {"SS": 4.5, "S+": 4.2, "S": 4.0, "A+": 3.2, "A": 3.0, "B+": 2.2, "B": 2.0, "C": 1.0, "D": 0.0}
+
+def _tier_value(v) -> float:
+    if v is None:
+        return 0.0
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip().upper()
+    if not s:
+        return 0.0
+    # numeric-like
+    try:
+        return float(s)
+    except Exception:
+        pass
+    # letter tiers
+    if s in _TIER_ALPHA:
+        return _TIER_ALPHA[s]
+    # normalize variants like "S++"
+    s2 = re.sub(r"[^A-Z\+]", "", s)
+    if s2 in _TIER_ALPHA:
+        return _TIER_ALPHA[s2]
+    if s2.startswith("S"):
+        return 4.0
+    if s2.startswith("A"):
+        return 3.0
+    if s2.startswith("B"):
+        return 2.0
+    if s2.startswith("C"):
+        return 1.0
+    return 0.0
+
+
+def _is_dps_class(cls: str) -> bool:
+    c = (cls or "").strip().lower()
+    return c in ("warrior", "rogue", "mage")
+
+
+def _party_counts(members: list[dict]) -> dict:
+    cnt = {"tank": 0, "healer": 0, "debuffer": 0, "dps": 0}
+    for m in members:
+        a = str(m.get("archetype") or "").lower()
+        if a in cnt:
+            cnt[a] += 1
+        else:
+            cnt["dps"] += 1
+    return cnt
+
+
+def _combo_detail(members: list[dict]) -> dict:
+    elem = {}
+    fac = {}
+    for m in members:
+        e = str(m.get("element") or "").strip()
+        f = str(m.get("faction") or "").strip()
+        if e:
+            elem[e] = elem.get(e, 0) + 1
+        if f:
+            fac[f] = fac.get(f, 0) + 1
+    elem_hits = [k for k, v in elem.items() if v >= 2]
+    fac_hits = [k for k, v in fac.items() if v >= 2]
+    return {"element_hits": elem_hits, "faction_hits": fac_hits, "element_counts": elem, "faction_counts": fac}
+
+
+def _member_payload(cid: str, tier: float, base: dict, detail: dict) -> dict:
+    prof = _detect_profile(detail or {}, base or {})
+    no_crit = detect_no_crit(detail or {})
+    return {
+        "id": cid,
+        "name": base.get("name") or cid,
+        "rarity": base.get("rarity"),
+        "element": base.get("element"),
+        "faction": base.get("faction"),
+        "class": base.get("class"),
+        "role": base.get("role"),
+        "image": base.get("image"),
+        "element_icon": base.get("element_icon"),
+        "class_icon": base.get("class_icon"),
+        "archetype": prof.get("archetype") or "dps",
+        "scaling": prof.get("scaling") or "MIX",
+        "no_crit": bool(no_crit),
+        "tier": tier,
+        "score": tier,  # UI에서 member.score로 표기
     }
 
-    window.dispatchEvent(new Event("tierlists:loaded"));
-  </script>
 
-</body>
-</html>
+def _score_party(members: list[dict], require_combo: bool, required_classes: list[str]) -> tuple[float, dict]:
+    # base score: sum of tier
+    total = sum(float(m.get("tier") or 0.0) for m in members)
+
+    counts = _party_counts(members)
+
+    # composition bonus (가벼운 가중치)
+    if counts["dps"] >= 1:
+        total += 1.0
+    if counts["healer"] >= 1 or counts["tank"] >= 1:
+        total += 0.7
+    if counts["debuffer"] >= 1:
+        total += 0.4
+
+    # required class satisfaction (하드)
+    req = [str(x).strip() for x in (required_classes or []) if str(x).strip()]
+    if req:
+        present = {str(m.get("class") or "").strip() for m in members}
+        miss = [c for c in req if c not in present]
+        if miss:
+            total -= 9999.0  # invalid
+    # combo
+    combo = _combo_detail(members)
+    if require_combo:
+        if not (combo["element_hits"] or combo["faction_hits"]):
+            total -= 9999.0
+
+    meta = {"counts": counts, "combo_detail": combo}
+    return total, meta
+
+
+def recommend_best_party(
+    owned_ids: list[str],
+    required_ids: list[str],
+    required_classes: list[str],
+    rank_map: dict,
+    party_size: int = 4,
+    top_k: int = 1,
+    require_combo: bool = True,
+) -> dict:
+    load_all()
+
+    party_size = int(party_size or 4)
+    if party_size <= 0:
+        party_size = 4
+
+    top_k = int(top_k or 1)
+    if top_k <= 0:
+        top_k = 1
+
+    owned = [slug_id(x) for x in (owned_ids or []) if slug_id(x)]
+    required = [slug_id(x) for x in (required_ids or []) if slug_id(x)]
+
+    # dedupe keep order
+    def _dedupe(xs):
+        seen = set()
+        out = []
+        for x in xs:
+            if x not in seen:
+                seen.add(x)
+                out.append(x)
+        return out
+
+    owned = _dedupe(owned)
+    required = _dedupe(required)
+
+    if not owned:
+        return {"ok": False, "error": "owned(보유 캐릭터) 목록이 비어있습니다."}
+
+    # ensure required subset
+    miss_req = [x for x in required if x not in owned]
+    if miss_req:
+        return {"ok": False, "error": f"필수 캐릭터가 보유 목록에 없습니다: {', '.join(miss_req)}"}
+
+    if len(required) > party_size:
+        return {"ok": False, "error": f"필수 캐릭터 수({len(required)})가 파티 크기({party_size})를 초과합니다."}
+
+    # build quick lookup for base/detail
+    by_id = {c.get("id"): c for c in (CACHE.get("chars") or []) if isinstance(c, dict) and c.get("id")}
+    details = CACHE.get("details") or {}
+
+    # candidate pool = owned
+    cand = []
+    for cid in owned:
+        base = by_id.get(cid)
+        if not base:
+            continue
+        tier = _tier_value(rank_map.get(cid))
+        cand.append((cid, tier))
+    if not cand:
+        return {"ok": False, "error": "추천 후보 캐릭터를 찾지 못했습니다."}
+
+    # lock required members
+    req_members = []
+    req_set = set(required)
+    for cid in required:
+        base = by_id.get(cid) or {"id": cid, "name": cid}
+        det = details.get(cid) if isinstance(details, dict) else None
+        det = det if isinstance(det, dict) else {}
+        tier = _tier_value(rank_map.get(cid))
+        req_members.append(_member_payload(cid, tier, base, det))
+
+    remaining = party_size - len(req_members)
+    pool = [(cid, tier) for (cid, tier) in cand if cid not in req_set]
+
+    # reduce pool size for combinatorics (keep high tier first)
+    pool.sort(key=lambda x: x[1], reverse=True)
+    MAX_POOL = 18 if remaining >= 3 else 24
+    pool = pool[:MAX_POOL]
+
+    evaluated = 0
+    best = []
+
+    if remaining == 0:
+        score, meta = _score_party(req_members, require_combo, required_classes)
+        if score <= -9990:
+            return {"ok": False, "error": "필수 조건(클래스/콤보)을 만족하는 파티를 구성할 수 없습니다."}
+        best.append((score, req_members, meta))
+    else:
+        # try combinations
+        for comb in combinations(pool, remaining):
+            evaluated += 1
+            mems = list(req_members)
+            for cid, tier in comb:
+                base = by_id.get(cid) or {"id": cid, "name": cid}
+                det = details.get(cid) if isinstance(details, dict) else None
+                det = det if isinstance(det, dict) else {}
+                mems.append(_member_payload(cid, tier, base, det))
+
+            score, meta = _score_party(mems, require_combo, required_classes)
+            if score <= -9990:
+                continue
+            best.append((score, mems, meta))
+
+        if not best:
+            return {"ok": False, "error": "조건을 만족하는 추천 파티가 없습니다. (필수/클래스/콤보 조건을 완화해보세요)"}
+
+    # sort and slice
+    best.sort(key=lambda x: x[0], reverse=True)
+    best = best[:top_k]
+
+    parties = []
+    for score, mems, meta in best:
+        parties.append({
+            "members": mems,
+            "total_score": score,
+            "meta": meta,
+        })
+
+    return {"ok": True, "parties": parties, "evaluated": evaluated}
+
+# Load characters
+# -------------------------
+
+def load_all(force: bool = False) -> None:
+    if CACHE["chars"] and not force:
+        return
+
+    CACHE["error"] = None
+    CACHE["chars"] = []
+    CACHE["details"] = {}
+
+    try:
+        if not os.path.isdir(CHAR_KO_DIR):
+            raise RuntimeError(f"characters_ko 디렉터리 없음: {CHAR_KO_DIR}")
+
+        overrides_names, overrides_factions = load_overrides()
+        char_img_map = build_character_image_map(CHAR_IMG_DIR)
+
+        chars = []
+        details = {}
+
+        files = [fn for fn in os.listdir(CHAR_KO_DIR) if fn.lower().endswith(".json")]
+        files.sort()
+
+        for fn in files:
+            cid = slug_id(os.path.splitext(fn)[0])
+            if not cid:
+                continue
+
+            path = os.path.join(CHAR_KO_DIR, fn)
+            d = safe_load_json(path)
+            if not isinstance(d, dict):
+                continue
+
+            details[cid] = d
+
+            raw_name = normalize_char_name(d.get("name") or cid)
+            display_name = overrides_names.get(raw_name, raw_name)
+
+            rarity = (d.get("rarity") or "-").strip().upper()
+            element = normalize_element(str(d.get("element") or "-"))
+
+            raw_faction = str(d.get("faction") or "-").strip() or "-"
+            faction = overrides_factions.get(raw_faction, raw_faction)
+
+            cls = str(d.get("class") or "-").strip() or "-"
+            role = str(d.get("role") or "-").strip() or "-"
+
+            image_url = None
+            image_hint = d.get("image")
+            image_hint = image_hint.strip() if isinstance(image_hint, str) else None
+
+            for k in candidate_image_keys(cid, raw_name, display_name, image_hint):
+                real = char_img_map.get(k)
+                if real:
+                    image_url = f"/images/games/zone-nova/characters/{real}"
+                    break
+
+            base = {
+                "id": cid,
+                "name": display_name,
+                "raw_name": raw_name,
+                "rarity": rarity,
+                "element": element,
+                "faction": faction,
+                "class": cls,
+                "role": role,
+                "image": image_url,
+                "element_icon": element_icon_url(element),
+                "class_icon": class_icon_url(cls),
+            }
+
+            # 리스트용 룬 미니 요약
+            try:
+                base["runes"] = rune_summary_for_list(cid, base, d)
+            except Exception:
+                base["runes"] = None
+
+            chars.append(base)
+
+        rarity_order = {"SSR": 0, "SR": 1, "R": 2, "-": 9}
+        chars.sort(key=lambda x: (rarity_order.get(x.get("rarity", "-"), 9), (x.get("name") or "").lower()))
+
+        CACHE["chars"] = chars
+        CACHE["details"] = details
+        CACHE["last_refresh"] = now_iso()
+
+    except Exception as e:
+        CACHE["error"] = str(e)
+        CACHE["last_refresh"] = now_iso()
+
+
+# -------------------------
+# Routes
+# -------------------------
+
+@app.get("/")
+def home():
+    return redirect("/ui/select")
+
+
+@app.get("/refresh")
+def refresh():
+    load_all(force=True)
+    CACHE["runes_db"] = None
+    CACHE["rune_overrides"] = None
+    CACHE["rune_img_map"] = None
+    return redirect("/ui/select")
+
+
+@app.get("/meta")
+def meta():
+    load_all()
+    return jsonify({
+        "title": APP_TITLE,
+        "characters_cached": len(CACHE["chars"]),
+        "last_refresh": CACHE["last_refresh"],
+        "error": CACHE["error"],
+        "paths": {
+            "characters_ko": CHAR_KO_DIR,
+            "runes_js": RUNES_JS,
+            "rune_overrides": RUNE_OVERRIDES,
+        }
+    })
+
+
+@app.get("/zones/zone-nova/runes")
+def api_runes():
+    db = load_runes_db()
+    return jsonify({"count": len(db), "runes": db})
+
+
+@app.get("/zones/zone-nova/characters")
+def api_chars():
+    load_all()
+    return jsonify({
+        "count": len(CACHE["chars"]),
+        "last_refresh": CACHE["last_refresh"],
+        "error": CACHE["error"],
+        "characters": CACHE["chars"],
+    })
+
+
+@app.get("/zones/zone-nova/characters/<cid>")
+def api_char_detail(cid: str):
+    load_all()
+    cid2 = slug_id(cid)
+
+    detail = CACHE["details"].get(cid2)
+    if not isinstance(detail, dict):
+        detail_path = os.path.join(CHAR_KO_DIR, f"{cid2}.json")
+        detail = safe_load_json(detail_path)
+
+    if not isinstance(detail, dict):
+        return jsonify({"ok": False, "error": f"characters_ko json not found: {cid2}.json"}), 404
+
+    base = next((c for c in CACHE["chars"] if c.get("id") == cid2), None)
+    if not base:
+        overrides_names, overrides_factions = load_overrides()
+        raw_name = normalize_char_name(detail.get("name") or cid2)
+        display_name = overrides_names.get(raw_name, raw_name)
+        raw_faction = str(detail.get("faction") or "-").strip() or "-"
+        faction = overrides_factions.get(raw_faction, raw_faction)
+        element = normalize_element(str(detail.get("element") or "-"))
+        cls = str(detail.get("class") or "-").strip() or "-"
+        base = {
+            "id": cid2,
+            "name": display_name,
+            "raw_name": raw_name,
+            "rarity": (detail.get("rarity") or "-").strip().upper(),
+            "element": element,
+            "faction": faction,
+            "class": cls,
+            "role": str(detail.get("role") or "-").strip() or "-",
+            "image": None,
+            "element_icon": element_icon_url(element),
+            "class_icon": class_icon_url(cls),
+            "runes": None,
+        }
+
+    try:
+        rune_reco = recommend_runes(cid2, base, detail)
+    except Exception as e:
+        rune_reco = {"mode": "error", "error": str(e), "builds": []}
+
+    return jsonify({
+        "ok": True,
+        "id": cid2,
+        "character": base,
+        "detail": detail,
+        "rune_reco": rune_reco,
+        "detail_source": f"public/data/zone-nova/characters_ko/{cid2}.json",
+    })
+
+
+@app.post("/zones/zone-nova/recommend")
+def api_recommend_party():
+    """
+    파티 추천 API
+    - owned: 보유 캐릭터 id 리스트
+    - required: 필수 포함 캐릭터 id 리스트
+    - required_classes: 포함되어야 하는 클래스 리스트(최대 4)
+    - rank_map: 등급표 기반 점수 맵 (cid -> 0~4 등)
+    - party_size: 기본 4
+    - top_k: 상위 k개 결과(기본 1)
+    - require_combo: 콤보(같은 속성 2+ 또는 같은 특성 2+) 강제 여부(기본 True)
+    """
+    try:
+        payload = request.get_json(silent=True) or {}
+
+        owned = payload.get("owned") or []
+        required = payload.get("required") or []
+        required_classes = payload.get("required_classes") or []
+        rank_map = payload.get("rank_map") or {}
+        party_size = payload.get("party_size") or 4
+        top_k = payload.get("top_k") or 1
+        require_combo = payload.get("require_combo")
+        if not isinstance(require_combo, bool):
+            require_combo = True
+
+        if not isinstance(rank_map, dict):
+            rank_map = {}
+
+        res = recommend_best_party(
+            owned_ids=owned if isinstance(owned, list) else [],
+            required_ids=required if isinstance(required, list) else [],
+            required_classes=required_classes if isinstance(required_classes, list) else [],
+            rank_map=rank_map,
+            party_size=int(party_size) if str(party_size).isdigit() else 4,
+            top_k=int(top_k) if str(top_k).isdigit() else 1,
+            require_combo=bool(require_combo),
+        )
+
+        code = 200 if res.get("ok") else 400
+        return jsonify(res), code
+
+    except Exception as e:
+        # 프론트는 JSON을 기대하므로, 어떤 내부 에러도 JSON으로 반환
+        debug = os.getenv("FLASK_DEBUG") == "1"
+        err = f"server_error: {type(e).__name__}: {e}"
+        if debug:
+            import traceback
+            err = err + "\n" + traceback.format_exc()
+        return jsonify({"ok": False, "error": err}), 500
+
+
+@app.get("/ui/select")
+def ui_select():
+    load_all()
+    return render_template(
+        "select.html",
+        title=APP_TITLE,
+        cache_count=len(CACHE["chars"]),
+        last_refresh=CACHE["last_refresh"] or "N/A",
+        error=CACHE["error"],
+        chars_json=json.dumps(CACHE["chars"], ensure_ascii=False),
+    )
+
+
+@app.get("/runes")
+def runes_page():
+    return render_template(
+        "runes.html",
+        title="룬 정보",
+        last_refresh=CACHE.get("last_refresh") or "",
+    )
+
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", "10000"))
+    debug = os.getenv("FLASK_DEBUG") == "1"
+    app.run(host="0.0.0.0", port=port, debug=debug)
