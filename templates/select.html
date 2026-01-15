@@ -435,19 +435,24 @@ def _extract_js_literal(raw: str) -> Optional[str]:
 
     # export default IDENT;
     ident = token
+
     # const IDENT = <literal>;
-    m2 = re.search(rf"\bconst\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
+    # NOTE: avoid f-string with '{{' to prevent template engines mis-parsing when embedded/transported
+    pat_const = r"\bconst\s+%s\s*=\s*([\[{])" % re.escape(ident)
+    m2 = re.search(pat_const, s)
     if m2:
         start = m2.start(1)
         return _extract_balanced(s, start)
 
     # let/var IDENT = <literal>;
-    m2 = re.search(rf"\b(?:let|var)\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
+    pat_letvar = r"\b(?:let|var)\s+%s\s*=\s*([\[{])" % re.escape(ident)
+    m2 = re.search(pat_letvar, s)
     if m2:
         start = m2.start(1)
         return _extract_balanced(s, start)
 
     return None
+
 
 
 def _json_friendly(js: str) -> str:
