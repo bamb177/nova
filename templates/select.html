@@ -513,6 +513,52 @@ html, body{
       }
     }
 
+
+/* ✅ 필수(파티 지정) UI: 선택/필수/배치 드롭다운 */
+.pick-stack{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  align-items:flex-start;
+}
+.pick-line{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:12px;
+  color: rgba(255,255,255,.82);
+  user-select:none;
+}
+.pick-line input{ transform: translateY(0.5px); }
+.pick-text{ white-space:nowrap; }
+.must-slot{
+  width: 132px;
+  max-width: 132px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line2);
+  background: rgba(255,255,255,.04);
+  color: var(--txt);
+  font-size: 12px;
+  outline: none;
+}
+.must-slot:disabled{ opacity: .55; cursor: not-allowed; }
+
+.tier-warn{
+  margin:10px 0 6px;
+  padding:10px 12px;
+  border:1px solid rgba(255,210,120,.35);
+  background: rgba(255,210,120,.08);
+  border-radius: 14px;
+  color: rgba(255,255,255,.88);
+  font-size: 13px;
+}
+
+@media (max-width: 720px){
+  .must-slot{ width: 118px; max-width: 118px; }
+  .pick-line{ font-size: 11px; gap: 7px; }
+  .pick-stack{ gap: 5px; }
+}
 </style>
 </head>
 
@@ -1411,7 +1457,19 @@ const rows = filtered.map(c => {
 
         return `
           <tr>
-            <td class="col-check"><input class="chk-owned" type="checkbox" data-cid="${escapeHtml(cid)}"></td>
+            <td class="col-check">
+  <div class="pick-stack">
+    <label class="pick-line" title="보유(선택) 캐릭터로 포함">
+      <input class="chk-owned" type="checkbox" data-cid="${escapeHtml(cid)}">
+      <span class="pick-text">선택</span>
+    </label>
+    <label class="pick-line" title="추천 파티에 반드시 포함(파티 지정 가능)">
+      <input class="chk-must" type="checkbox" data-cid="${escapeHtml(cid)}">
+      <span class="pick-text">필수</span>
+    </label>
+    <select class="must-slot" data-cid="${escapeHtml(cid)}" disabled title="필수 배치(자동 또는 특정 파티 지정)"></select>
+  </div>
+</td>
             <td class="col-req"><input class="chk-required" type="checkbox" data-cid="${escapeHtml(cid)}" title="파티에 필수 포함"></td>
             <td>
               <div class="char-cell clickable" data-cid="${escapeHtml(cid)}">
@@ -1446,7 +1504,8 @@ const rows = filtered.map(c => {
       $tbody.innerHTML = rows || `<tr><td colspan="12" style="padding:18px;color:rgba(255,255,255,.70);font-weight:800;">표시할 캐릭터가 없습니다.</td></tr>`;
     
       fillStatsForVisibleRows();
-}
+      initMustControlsForVisibleRows();
+    }
 
     [$q, $rarity, $elem, $faction, $class, $role].forEach(el => {
       el.addEventListener("input", render);
@@ -1614,6 +1673,125 @@ document.addEventListener("change", (e) => {
       return out;
     }
 
+
+// -------------------------
+// 필수(파티 지정) 상태 관리
+// -------------------------
+const MUST_KEY = "nova.must.v1";
+
+function loadMustState(){
+  try{
+    const raw = localStorage.getItem(MUST_KEY);
+    const obj = raw ? JSON.parse(raw) : {};
+    return (obj && typeof obj === "object") ? obj : {};
+  }catch(e){
+    return {};
+  }
+}
+
+function saveMustState(){
+  try{ localStorage.setItem(MUST_KEY, JSON.stringify(MUST_STATE)); }catch(e){}
+}
+
+// MUST_STATE[cid] = { on: true/false, target: "" | "Guild:1" | "PVP:2" | "Left:1" }
+let MUST_STATE = loadMustState();
+
+function cssEsc(s){
+  try{
+    if (window.CSS && typeof CSS.escape === 'function') return CSS.escape(String(s));
+  }catch(e){}
+  return String(s).replace(/[^a-zA-Z0-9_\-]/g, (m)=>`\\${m}`);
+}
+
+function mustOptionHTML(){
+  const groups = [
+    { name:"Guild", n:3 },
+    { name:"PVP",   n:2 },
+    { name:"Left",  n:2 },
+  ];
+  let html = `<option value="">자동</option>`;
+  for (const g of groups){
+    html += `<optgroup label="${escapeHtml(g.name)}">`;
+    for (let i=1; i<=g.n; i++){
+      html += `<option value="${escapeHtml(g.name+":"+i)}">${escapeHtml(i+"파티")}</option>`;
+    }
+    html += `</optgroup>`;
+  }
+  return html;
+}
+
+function initMustControlsForVisibleRows(){
+  const optionHTML = mustOptionHTML();
+
+  document.querySelectorAll(".must-slot").forEach(sel => {
+    const cid = sel.dataset.cid || "";
+    if (!cid) return;
+
+    sel.innerHTML = optionHTML;
+
+    const chk = document.querySelector(`.chk-must[data-cid="${cssEsc(cid)}"]`);
+    const st = MUST_STATE[cid] || { on:false, target:"" };
+
+    if (chk){
+      chk.checked = !!st.on;
+      sel.disabled = !chk.checked;
+      sel.value = st.target || "";
+
+      if (!chk.dataset.bound){
+        chk.addEventListener("change", () => {
+          const on = chk.checked;
+          MUST_STATE[cid] = MUST_STATE[cid] || { on:false, target:"" };
+          MUST_STATE[cid].on = on;
+          if (!on) MUST_STATE[cid].target = "";
+          saveMustState();
+
+          sel.disabled = !on;
+          if (!on) sel.value = "";
+        });
+        chk.dataset.bound = "1";
+      }
+    }
+
+    if (!sel.dataset.bound){
+      sel.addEventListener("change", () => {
+        const v = String(sel.value || "");
+        MUST_STATE[cid] = MUST_STATE[cid] || { on:false, target:"" };
+        MUST_STATE[cid].on = true;
+        MUST_STATE[cid].target = v;
+        saveMustState();
+
+        const chk2 = document.querySelector(`.chk-must[data-cid="${cssEsc(cid)}"]`);
+        if (chk2) chk2.checked = true;
+        sel.disabled = false;
+      });
+      sel.dataset.bound = "1";
+    }
+  });
+}
+
+function getMustAssignments(){
+  const byCategory = { Guild:[[],[],[]], PVP:[[],[]], Left:[[],[]] };
+  const auto = [];
+
+  for (const [cid, st] of Object.entries(MUST_STATE || {})){
+    if (!st || !st.on) continue;
+
+    const target = String(st.target || "");
+    if (!target){ auto.push(cid); continue; }
+
+    const [cat, idxStr] = target.split(":");
+    const i = parseInt(idxStr, 10);
+    if (!cat || !i) { auto.push(cid); continue; }
+
+    if (byCategory[cat] && byCategory[cat][i-1]){
+      byCategory[cat][i-1].push(cid);
+    }else{
+      auto.push(cid);
+    }
+  }
+
+  return { auto, byCategory };
+}
 
 function getRequiredSelectedIds(){
   const out = [];
@@ -1934,107 +2112,322 @@ async function requestAiParty(){
      * - usedSet(카테고리 내부 중복 금지)을 반영해 후보에서 제외
      * - 조건 만족하는 4인 조합 중 점수 최고 선택
      */
-    function buildBestPartyOnce(rankMap, usedSet){
-      const owned = getOwnedSelectedIds();
-      if (owned.length < 4) return { ok:false, msg:"보유 체크가 4명 이상이어야 합니다." };
+    function buildBestPartyOnce(rankMap, usedSet, forcedIds, reservedAll){
+  const owned = getOwnedSelectedIds();
+  if (owned.length < 4) return { ok:false, msg:"보유 체크가 4명 이상이어야 합니다." };
 
-      const charsById = new Map(chars.map(c => [c.id, c]));
+  const charsById = new Map(chars.map(c => [c.id, c]));
 
-      // usedSet에 포함된 캐릭터는 제외(= 같은 카테고리 안에서 중복 금지)
-      const candidatesAll = owned
-        .filter(cid => charsById.has(cid))
-        .filter(cid => !usedSet.has(cid));
+  // 강제 포함(필수) 정리
+  const forced = (Array.isArray(forcedIds) ? forcedIds : [])
+    .filter(cid => cid && charsById.has(cid))
+    .filter((cid, i, arr) => arr.indexOf(cid) === i)
+    .filter(cid => owned.includes(cid))
+    .filter(cid => !usedSet.has(cid)); // 이미 같은 카테고리에서 사용된 캐릭터는 불가
 
-      if (candidatesAll.length < 4){
-        return { ok:false, msg:"(중복 제외 후) 후보가 부족하여 파티를 구성할 수 없습니다." };
+  if (forced.length > 4){
+    return { ok:false, msg:"필수 지정이 4명을 초과했습니다." };
+  }
+
+  const reserved = new Set();
+  if (reservedAll instanceof Set){
+    for (const cid of reservedAll) reserved.add(cid);
+  }
+  // 다른 파티에 지정된 필수 캐릭터를 미리 소비하지 않도록, (reserved - forced)는 후보에서 제외
+  for (const cid of forced) reserved.delete(cid);
+
+  // usedSet(카테고리 중복 금지) + reserved(다른 파티 필수 보호) 제외
+  const candidatesAll = owned
+    .filter(cid => charsById.has(cid))
+    .filter(cid => !usedSet.has(cid))
+    .filter(cid => !reserved.has(cid) || forced.includes(cid));
+
+  // 강제 포함이 있는 경우에도, 최소한 남은 자리가 채워질 후보가 있어야 함
+  const need = 4 - forced.length;
+  const rest = candidatesAll.filter(cid => !forced.includes(cid));
+  if (rest.length < need){
+    return { ok:false, msg:"(필수/중복 제외 후) 후보가 부족하여 파티를 구성할 수 없습니다." };
+  }
+
+  const classSet = getEnabledClassSet();
+  if (classSet && classSet.size > 4){
+    return { ok:false, msg:"선택 클래스는 최대 4개까지만 지정할 수 있습니다(4인 파티)." };
+  }
+
+  // tier 우선 정렬(없으면 0)
+  const sorted = candidatesAll.slice().sort((a,b) => (rankMap.get(b) || 0) - (rankMap.get(a) || 0));
+
+  // 탐색 풀 제한(브라우저 성능 보호)
+  const N = Math.min(28, sorted.length);
+
+  // forced는 무조건 풀에 포함, 나머지 상위 N에서 채움
+  const pool = [];
+  for (const cid of forced) pool.push(cid);
+  for (const cid of sorted){
+    if (pool.length >= N) break;
+    if (pool.includes(cid)) continue;
+    pool.push(cid);
+  }
+
+  const poolRest = pool.filter(cid => !forced.includes(cid));
+  const m = forced.length;
+
+  // 조합 탐색(강제 포함을 고정한 상태로 나머지 자리만 탐색)
+  let best = null;
+
+  function consider(party){
+    if (!passesTankHealerCap(party, charsById)) return;
+    if (!passesRequiredClasses(party, charsById, classSet)) return;
+
+    if (!hasComboSkill(party, charsById)) return;
+    if (!allMembersContributeToCombo(party, charsById)) return;
+
+    const sc = partyScore(party, rankMap, charsById);
+    if (!best || sc.score > best.score){
+      best = { party, score: sc.score, details: sc.details };
+    }
+  }
+
+  if (m === 4){
+    consider(forced.slice(0,4));
+  } else if (m === 3){
+    for (let i=0; i<poolRest.length; i++){
+      consider([forced[0], forced[1], forced[2], poolRest[i]]);
+    }
+  } else if (m === 2){
+    for (let i=0; i<poolRest.length-1; i++){
+      for (let j=i+1; j<poolRest.length; j++){
+        consider([forced[0], forced[1], poolRest[i], poolRest[j]]);
       }
-
-      const classSet = getEnabledClassSet();
-      if (classSet && classSet.size > 4){
-        return { ok:false, msg:"선택 클래스는 최대 4개까지만 지정할 수 있습니다(4인 파티)." };
+    }
+  } else if (m === 1){
+    for (let i=0; i<poolRest.length-2; i++){
+      for (let j=i+1; j<poolRest.length-1; j++){
+        for (let k=j+1; k<poolRest.length; k++){
+          consider([forced[0], poolRest[i], poolRest[j], poolRest[k]]);
+        }
       }
-
-      // tier 우선 정렬(없으면 0)
-      const candidates = candidatesAll.slice().sort((a,b) => (rankMap.get(b) || 0) - (rankMap.get(a) || 0));
-
-      // 탐색 풀 제한(브라우저 성능 보호)
-      const N = Math.min(28, candidates.length);
-      const pool = candidates.slice(0, N);
-
-      let best = null;
-      for (let i=0; i<pool.length-3; i++){
-        for (let j=i+1; j<pool.length-2; j++){
-          for (let k=j+1; k<pool.length-1; k++){
-            for (let l=k+1; l<pool.length; l++){
-              const party = [pool[i], pool[j], pool[k], pool[l]];
-
-              if (!passesTankHealerCap(party, charsById)) continue;
-              if (!passesRequiredClasses(party, charsById, classSet)) continue;
-
-              if (!hasComboSkill(party, charsById)) continue;
-              if (!allMembersContributeToCombo(party, charsById)) continue;
-
-              const sc = partyScore(party, rankMap, charsById);
-              if (!best || sc > best.score) best = { party, score: sc };
-            }
+    }
+  } else {
+    // 기존: 4-combination
+    for (let i=0; i<poolRest.length-3; i++){
+      for (let j=i+1; j<poolRest.length-2; j++){
+        for (let k=j+1; k<poolRest.length-1; k++){
+          for (let l=k+1; l<poolRest.length; l++){
+            consider([poolRest[i], poolRest[j], poolRest[k], poolRest[l]]);
           }
         }
       }
-
-      if (!best) return { ok:false, msg:"조건을 만족하는 4인 조합을 찾지 못했습니다." };
-      return { ok:true, party: best.party };
     }
+  }
+
+  if (!best){
+    return { ok:false, msg:"조건(탱/힐 제한/콤보) 때문에 파티 구성이 불가합니다. 후보를 늘리거나 클래스 포함 조건을 완화하세요." };
+  }
+
+  return { ok:true, party: best.party, score: best.score, scoreDetails: best.details };
+}
 
     /**
-     * ✅ 카테고리별로 n개 파티 만들기(카테고리 내부 중복 금지)
-     */
-    function buildPartiesForCategory(rankMap, n){
-      const used = new Set();
-      const parties = [];
+ * ✅ 카테고리별로 n개 파티 만들기(카테고리 내부 중복 금지)
+ * - mustByParty: [ [cid...], [cid...], ... ] (각 파티별 강제 포함)
+ * - 같은 카테고리 내 파티끼리 중복은 금지(usedSet)
+ * - 다른 파티에 "지정된 필수" 캐릭터를 먼저 소비하지 않도록 예약(reservedAll) 반영
+ */
+function buildPartiesForCategory(rankMap, n, mustByParty){
+  const used = new Set();
+  const parties = [];
 
-      for (let i=0; i<n; i++){
-        const res = buildBestPartyOnce(rankMap, used);
-        if (!res.ok) break;
+  const mustLists = Array.isArray(mustByParty) ? mustByParty : [];
+  const reservedAll = new Set();
+  for (const arr of mustLists){
+    if (!Array.isArray(arr)) continue;
+    for (const cid of arr) reservedAll.add(cid);
+  }
 
-        parties.push(res.party);
-        // 같은 카테고리 내 중복 금지: 선택된 4명은 used에 추가
-        for (const cid of res.party) used.add(cid);
-      }
+  for (let i=0; i<n; i++){
+    const forced = Array.isArray(mustLists[i]) ? mustLists[i] : [];
+    const res = buildBestPartyOnce(rankMap, used, forced, reservedAll);
+    if (!res.ok) break;
 
-      return parties;
+    parties.push(res.party);
+    for (const cid of res.party) used.add(cid);
+  }
+
+  return parties;
+}
+
+/**
+ * ✅ 기본 파티 수(요청사항)
+ * - Guild 3
+ * - PVP 2
+ * - Left 2
+ * - 나머지 1
+ */
+const PARTY_COUNTS = { Guild:3, PVE:1, PVP:2, Left:2 };
+
+function buildEmptyMustMap(){
+  return {
+    Guild: Array.from({length: PARTY_COUNTS.Guild}, () => []),
+    PVP:   Array.from({length: PARTY_COUNTS.PVP},   () => []),
+    Left:  Array.from({length: PARTY_COUNTS.Left},  () => []),
+    PVE:   Array.from({length: PARTY_COUNTS.PVE},   () => []),
+  };
+}
+
+// autoMust는 "현재 빌드 대상"의 첫 카테고리에 라운드로빈 분배
+function applyAutoMust(autoMust, mustByCat, primaryCat){
+  const list = (Array.isArray(autoMust) ? autoMust : []).slice();
+  if (!list.length) return;
+
+  const arr = mustByCat[primaryCat];
+  if (!Array.isArray(arr) || !arr.length) return;
+
+  let p = 0;
+  for (const cid of list){
+    // 파티당 4명 초과 방지: 다음 파티로 넘김
+    let guard = 0;
+    while (guard < arr.length && arr[p].length >= 4){
+      p = (p + 1) % arr.length;
+      guard++;
+    }
+    arr[p].push(cid);
+    p = (p + 1) % arr.length;
+  }
+}
+
+function sanitizeMustByCat(mustByCat){
+  // 1) 파티 내 중복 제거
+  // 2) 같은 카테고리 내, 여러 파티에 중복 지정된 cid는 "먼저 나온 것"만 유지
+  const warnings = [];
+  for (const cat of Object.keys(mustByCat)){
+    const arr = mustByCat[cat];
+    if (!Array.isArray(arr)) continue;
+
+    // 파티 내 중복 제거
+    for (let i=0; i<arr.length; i++){
+      const seen = new Set();
+      arr[i] = (arr[i] || []).filter(cid => {
+        if (seen.has(cid)) return false;
+        seen.add(cid);
+        return true;
+      });
     }
 
-    /**
-     * ✅ 최종 요구사항:
-     * - Guild 3 (중복 없이)
-     * - PVE 1
-     * - PVP 2 (중복 없이)
-     * - Rift 2 (중복 없이)
-     */
-    function buildAllCategoryParties(rankMap){
-      return {
-        Guild: buildPartiesForCategory(rankMap, 3),
-        PVE:   buildPartiesForCategory(rankMap, 1),
-        PVP:   buildPartiesForCategory(rankMap, 2),
-        Rift:  buildPartiesForCategory(rankMap, 2),
-      };
+    // 파티 간 중복 제거
+    const used = new Set();
+    for (let i=0; i<arr.length; i++){
+      const before = arr[i].slice();
+      arr[i] = arr[i].filter(cid => {
+        if (used.has(cid)) return false;
+        used.add(cid);
+        return true;
+      });
+      if (arr[i].length !== before.length){
+        warnings.push(`${cat}: 필수 캐릭터가 여러 파티에 중복 지정되어 일부는 첫 파티 배치만 유지했습니다.`);
+      }
     }
 
-    // ✅ 선택한 등급표(pve/pvp/rift/guild-raid/...)에 맞춰 결과 카테고리를 제한
-    function buildPartiesByPresetKey(rankMap, presetKey){
-      const k = String(presetKey || "").toLowerCase();
-
-      // 기본값: 기존과 동일(전체 카테고리)
-      const def = { order: ["Guild", "PVE", "PVP", "Rift"], data: buildAllCategoryParties(rankMap) };
-
-      if (k === "pvp") {
-        return { order: ["PVP"], data: { PVP: buildPartiesForCategory(rankMap, 2) } };
+    // 4명 초과는 뒤로 넘기되, 넘길 곳이 없으면 경고
+    for (let i=0; i<arr.length; i++){
+      while (arr[i].length > 4){
+        const moved = arr[i].pop();
+        let j = i+1;
+        while (j < arr.length && arr[j].length >= 4) j++;
+        if (j < arr.length) arr[j].push(moved);
+        else {
+          warnings.push(`${cat}: 필수 지정이 4명을 초과하여 일부는 반영되지 않을 수 있습니다.`);
+          break;
+        }
       }
+    }
+  }
+  return { mustByCat, warnings };
+}
+
+function buildAllCategoryParties(rankMap, mustByCat){
+  const must = mustByCat || buildEmptyMustMap();
+  return {
+    Guild: buildPartiesForCategory(rankMap, PARTY_COUNTS.Guild, must.Guild),
+    PVE:   buildPartiesForCategory(rankMap, PARTY_COUNTS.PVE,   must.PVE),
+    PVP:   buildPartiesForCategory(rankMap, PARTY_COUNTS.PVP,   must.PVP),
+    Left:  buildPartiesForCategory(rankMap, PARTY_COUNTS.Left,  must.Left),
+  };
+}
+
+// ✅ 선택한 등급표(pve/pvp/left/guild-raid/...)에 맞춰 결과 카테고리를 제한
+function buildPartiesByPresetKey(rankMap, presetKey){
+  const k = String(presetKey || "").toLowerCase();
+
+  const mustRaw = getMustAssignments();
+  const mustByCat = buildEmptyMustMap();
+
+  // explicit 배치 반영
+  if (mustRaw && mustRaw.byCategory){
+    for (const cat of ["Guild","PVP","Left"]){
+      const src = mustRaw.byCategory[cat];
+      if (!Array.isArray(src)) continue;
+      for (let i=0; i<mustByCat[cat].length; i++){
+        mustByCat[cat][i] = (src[i] || []).slice();
+      }
+    }
+  }
+
+  // 기본값: 전체 카테고리
+  const defOrder = ["Guild", "PVE", "PVP", "Left"];
+  const primaryCat = (
+    k === "pvp" ? "PVP" :
+    (k === "rift" || k === "left") ? "Left" :
+    (k === "guild-raid" ? "Guild" :
+     (k === "pve" || k === "new-player") ? "PVE" :
+     "Guild")
+  );
+
+  // auto must를 primaryCat에 라운드로빈 분배
+  applyAutoMust(mustRaw?.auto || [], mustByCat, primaryCat);
+
+  const sanitized = sanitizeMustByCat(mustByCat);
+
+  if (k === "pvp") {
+    return {
+      order: ["PVP"],
+      data: { PVP: buildPartiesForCategory(rankMap, PARTY_COUNTS.PVP, sanitized.mustByCat.PVP) },
+      warnings: sanitized.warnings
+    };
+  }
+  if (k === "pve" || k === "new-player") {
+    return {
+      order: ["PVE"],
+      data: { PVE: buildPartiesForCategory(rankMap, PARTY_COUNTS.PVE, sanitized.mustByCat.PVE) },
+      warnings: sanitized.warnings
+    };
+  }
+  if (k === "rift" || k === "left") {
+    return {
+      order: ["Left"],
+      data: { Left: buildPartiesForCategory(rankMap, PARTY_COUNTS.Left, sanitized.mustByCat.Left) },
+      warnings: sanitized.warnings
+    };
+  }
+  if (k === "guild-raid") {
+    return {
+      order: ["Guild"],
+      data: { Guild: buildPartiesForCategory(rankMap, PARTY_COUNTS.Guild, sanitized.mustByCat.Guild) },
+      warnings: sanitized.warnings
+    };
+  }
+
+  return {
+    order: defOrder,
+    data: buildAllCategoryParties(rankMap, sanitized.mustByCat),
+    warnings: sanitized.warnings
+  };
+}
       if (k === "pve" || k === "new-player") {
         return { order: ["PVE"], data: { PVE: buildPartiesForCategory(rankMap, 1) } };
       }
       if (k === "rift") {
-        return { order: ["Rift"], data: { Rift: buildPartiesForCategory(rankMap, 2) } };
+        return { order: ["Left"], data: { Left: buildPartiesForCategory(rankMap, 2) } };
       }
       if (k === "guild-raid") {
         return { order: ["Guild"], data: { Guild: buildPartiesForCategory(rankMap, 3) } };
@@ -2045,6 +2438,10 @@ async function requestAiParty(){
     function renderTierPartyResult(rankMap, res){
       const box = document.getElementById("tierPartyResult");
       if (!box) return;
+
+      if (res.warnings && res.warnings.length){
+        out += `<div class="tier-warn">${res.warnings.map(w=>`<div>• ${escapeHtml(w)}</div>`).join("")}</div>`;
+      }
 
       if (!res.ok){
         box.innerHTML = `<div class="tier-error">${escapeHtml(res.msg || "실패")}</div>`;
@@ -2082,7 +2479,7 @@ async function requestAiParty(){
       const sections = res.data;
       const order = Array.isArray(res.order) && res.order.length
         ? res.order
-        : ["Guild", "PVE", "PVP", "Rift"];
+        : ["Guild", "PVE", "PVP", "Left"];
 
       const html = order.map(cat => {
         const parties = sections[cat] || [];
