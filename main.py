@@ -1412,8 +1412,16 @@ def _combo_detail(members: list[dict]) -> dict:
     return {"element_hits": elem_hits, "faction_hits": fac_hits, "element_counts": elem, "faction_counts": fac}
 
 
-def _member_payload(cid: str, tier: float, base: dict, detail: dict) -> dict:
+def _member_payload(cid: str, tier: float, base: dict, detail: dict, role_override: Optional[str] = None) -> dict:
     prof = _detect_profile(detail or {}, base or {})
+
+    # effective archetype/role for party composition
+    role = (role_override or prof.get("role") or _role_from_base(base or {}) or "dps").strip().lower()
+    if role not in ("tank", "dps", "healer", "buffer", "debuffer"):
+        role = (prof.get("role") or "dps").strip().lower()
+        if role not in ("tank", "dps", "healer", "buffer", "debuffer"):
+            role = "dps"
+
     no_crit = detect_no_crit(detail or {})
     return {
         "id": cid,
@@ -1426,13 +1434,13 @@ def _member_payload(cid: str, tier: float, base: dict, detail: dict) -> dict:
         "image": base.get("image"),
         "element_icon": base.get("element_icon"),
         "class_icon": base.get("class_icon"),
-        "archetype": prof.get("archetype") or "dps",
+        # ✅ party role used by the optimizer (override-aware)
+        "archetype": role,
         "scaling": prof.get("scaling") or "MIX",
         "no_crit": bool(no_crit),
         "tier": tier,
         "score": tier,  # UI에서 member.score로 표기
     }
-
 
 def _score_party(members: list[dict], require_combo: bool, required_classes: list[str]) -> tuple[float, dict]:
     # base score: sum of tier
@@ -1473,7 +1481,7 @@ def recommend_best_party(
     party_size: int = 4,
     top_k: int = 1,
     require_combo: bool = True,
-) -> dict:
+    required_overrides: Optional[dict] = None,) -> dict:
     load_all()
 
     party_size = int(party_size or 4)
@@ -1499,6 +1507,21 @@ def recommend_best_party(
 
     owned = _dedupe(owned)
     required = _dedupe(required)
+    # role overrides: {cid: {role: "Tank"|"DPS"|...}} from UI
+    ov_map: dict[str, str] = {}
+    if isinstance(required_overrides, dict):
+        for k, v in required_overrides.items():
+            cidk = slug_id(str(k))
+            if not cidk:
+                continue
+            role = ""
+            if isinstance(v, dict):
+                role = str(v.get("role") or "").strip().lower()
+            elif isinstance(v, str):
+                role = v.strip().lower()
+            if role in ("tank", "dps", "healer", "buffer", "debuffer"):
+                ov_map[cidk] = role
+
 
     if not owned:
         return {"ok": False, "error": "owned(보유 캐릭터) 목록이 비어있습니다."}
@@ -1534,7 +1557,7 @@ def recommend_best_party(
         det = details.get(cid) if isinstance(details, dict) else None
         det = det if isinstance(det, dict) else {}
         tier = _tier_value(rank_map.get(cid))
-        req_members.append(_member_payload(cid, tier, base, det))
+        req_members.append(_member_payload(cid, tier, base, det, role_override=ov_map.get(cid)))
 
     remaining = party_size - len(req_members)
     pool = [(cid, tier) for (cid, tier) in cand if cid not in req_set]
@@ -1561,7 +1584,7 @@ def recommend_best_party(
                 base = by_id.get(cid) or {"id": cid, "name": cid}
                 det = details.get(cid) if isinstance(details, dict) else None
                 det = det if isinstance(det, dict) else {}
-                mems.append(_member_payload(cid, tier, base, det))
+                mems.append(_member_payload(cid, tier, base, det, role_override=ov_map.get(cid)))
 
             score, meta = _score_party(mems, require_combo, required_classes)
             if score <= -9990:
@@ -1797,6 +1820,7 @@ def api_recommend_party():
 
         owned = payload.get("owned") or []
         required = payload.get("required") or []
+        required_overrides = payload.get("required_overrides") or {}
         required_classes = payload.get("required_classes") or []
         rank_map = payload.get("rank_map") or {}
         party_size = payload.get("party_size") or 4
@@ -1816,6 +1840,7 @@ def api_recommend_party():
             party_size=int(party_size) if str(party_size).isdigit() else 4,
             top_k=int(top_k) if str(top_k).isdigit() else 1,
             require_combo=bool(require_combo),
+            required_overrides=required_overrides,
         )
 
         code = 200 if res.get("ok") else 400
