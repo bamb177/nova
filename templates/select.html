@@ -2257,6 +2257,86 @@ function buildPartiesForCategory(rankMap, n, mustByParty){
   return parties;
 }
 
+// ------------------------------
+// Multi-party build optimization
+// ------------------------------
+// buildPartiesForCategory()는 파티를 1→N 순서로 그리디하게 구성합니다.
+// 다파티(특히 Guild/PVP/Left)에서는 "어느 파티를 먼저 채우느냐"가 결과에 영향을 주므로,
+// n이 작을 때(<=3) 모든 순열을 시도하여 총점 합이 최대가 되는 순서를 선택합니다.
+
+function _permute(arr){
+  const out = [];
+  function rec(prefix, rest){
+    if (!rest.length){ out.push(prefix.slice()); return; }
+    for (let i=0; i<rest.length; i++){
+      const next = rest[i];
+      const r2 = rest.slice(0,i).concat(rest.slice(i+1));
+      prefix.push(next);
+      rec(prefix, r2);
+      prefix.pop();
+    }
+  }
+  rec([], arr.slice());
+  return out;
+}
+
+function buildPartiesForCategoryWithOrder(rankMap, n, mustByParty, order){
+  const used = new Set();
+  const parties = new Array(n).fill(null);
+
+  const mustLists = Array.isArray(mustByParty) ? mustByParty : [];
+  const reservedAll = new Set();
+  for (const arr of mustLists){
+    if (!Array.isArray(arr)) continue;
+    for (const cid of arr) reservedAll.add(cid);
+  }
+
+  const ord = Array.isArray(order) && order.length === n
+    ? order
+    : [...Array(n).keys()];
+
+  for (const idx of ord){
+    const forced = Array.isArray(mustLists[idx]) ? mustLists[idx] : [];
+    const res = buildBestPartyOnce(rankMap, used, forced, reservedAll);
+    if (!res.ok) return { ok:false, msg: res.msg || "파티 구성 실패", parties: [] };
+    parties[idx] = res;
+    // 중복 금지 소비
+    for (const cid of res.party) used.add(cid);
+  }
+
+  return { ok:true, parties };
+}
+
+function buildPartiesForCategoryOptimized(rankMap, n, mustByParty){
+  // n이 작을 때만 순열 최적화(요청사항: Guild 3, PVP 2, Left 2)
+  const nn = Math.max(0, Number(n||0)|0);
+  if (nn <= 1){
+    const p = buildPartiesForCategory(rankMap, nn, mustByParty);
+    return p;
+  }
+
+  const idxs = [...Array(nn).keys()];
+  const perms = _permute(idxs);
+
+  let best = null;
+  for (const ord of perms){
+    const res = buildPartiesForCategoryWithOrder(rankMap, nn, mustByParty, ord);
+    if (!res.ok) continue;
+    const sum = res.parties.reduce((a,x)=>a + (x?.score||0), 0);
+    if (!best || sum > best.sum){
+      best = { sum, parties: res.parties, order: ord };
+    }
+  }
+
+  if (!best){
+    // 기존 로직 fallback
+    return buildPartiesForCategory(rankMap, nn, mustByParty);
+  }
+
+  // buildPartiesForCategory()가 반환하는 형식과 동일하게 배열로 리턴
+  return best.parties;
+}
+
 /**
  * ✅ 기본 파티 수(요청사항)
  * - Guild 3
@@ -2275,24 +2355,74 @@ function buildEmptyMustMap(){
   };
 }
 
-// autoMust는 "현재 빌드 대상"의 첫 카테고리에 라운드로빈 분배
-function applyAutoMust(autoMust, mustByCat, primaryCat){
-  const list = (Array.isArray(autoMust) ? autoMust : []).slice();
+
+// autoMust(타겟 미지정)는 "현재 빌드 대상"의 첫 카테고리에 자동 배치합니다.
+// 기존 라운드로빈은 '모두 1파티' 문제를 완화하지만, 최적이 아닙니다.
+// ✅ 개선: 각 autoMust를 어느 파티에 넣을지 '총점 합 최대'가 되도록 자동 판단(점수 최적화).
+function applyAutoMust(autoMust, mustByCat, primaryCat, rankMap){
+  const list = (Array.isArray(autoMust) ? autoMust : []).slice().filter(Boolean);
   if (!list.length) return;
 
-  const arr = mustByCat[primaryCat];
+  const cat = String(primaryCat||"");
+  const arr = mustByCat[cat];
   if (!Array.isArray(arr) || !arr.length) return;
 
-  let p = 0;
+  const n = arr.length;
+
+  // 이미 특정 파티에 강제 지정된 필수는 건드리지 않음
+  const already = new Set();
+  for (const p of arr){
+    for (const cid of (p||[])) already.add(cid);
+  }
+
+  // autoMust 중복 제거 + 이미 지정된 항목 제거
+  const uniq = [];
+  const seen = new Set();
   for (const cid of list){
-    // 파티당 4명 초과 방지: 다음 파티로 넘김
-    let guard = 0;
-    while (guard < arr.length && arr[p].length >= 4){
-      p = (p + 1) % arr.length;
-      guard++;
+    if (already.has(cid)) continue;
+    if (seen.has(cid)) continue;
+    seen.add(cid);
+    uniq.push(cid);
+  }
+  if (!uniq.length) return;
+
+  // 그리디 최적화: 하나씩 넣어보며 "총점 합"이 가장 커지는 파티에 배치
+  // (n<=3이므로 buildPartiesForCategoryOptimized를 여러 번 호출해도 충분히 감당 가능)
+  for (const cid of uniq){
+    let bestIdx = -1;
+    let bestSum = -Infinity;
+
+    for (let i=0; i<n; i++){
+      if ((arr[i]||[]).length >= 4) continue;
+
+      // 시뮬레이션용 mustByParty 복제
+      const tmp = arr.map(x => (Array.isArray(x) ? x.slice() : []));
+      tmp[i].push(cid);
+
+      const parties = buildPartiesForCategoryOptimized(rankMap, n, tmp);
+      if (!Array.isArray(parties) || parties.length < n) continue;
+
+      // 모든 파티가 정상 구성된 경우만 평가
+      let ok = true;
+      let sum = 0;
+      for (const p of parties){
+        if (!p || p.ok === false || !Array.isArray(p.party)) { ok = false; break; }
+        sum += (p.score || 0);
+      }
+      if (!ok) continue;
+
+      if (sum > bestSum){
+        bestSum = sum;
+        bestIdx = i;
+      }
     }
-    arr[p].push(cid);
-    p = (p + 1) % arr.length;
+
+    if (bestIdx >= 0){
+      arr[bestIdx].push(cid);
+    } else {
+      // 넣을 곳이 없거나(4명 초과) 조건 때문에 실패 → 마지막에 sanitize가 경고를 찍도록 둠
+      // (여기서는 조용히 스킵)
+    }
   }
 }
 
@@ -2348,10 +2478,10 @@ function sanitizeMustByCat(mustByCat){
 function buildAllCategoryParties(rankMap, mustByCat){
   const must = mustByCat || buildEmptyMustMap();
   return {
-    Guild: buildPartiesForCategory(rankMap, PARTY_COUNTS.Guild, must.Guild),
-    PVE:   buildPartiesForCategory(rankMap, PARTY_COUNTS.PVE,   must.PVE),
-    PVP:   buildPartiesForCategory(rankMap, PARTY_COUNTS.PVP,   must.PVP),
-    Left:  buildPartiesForCategory(rankMap, PARTY_COUNTS.Left,  must.Left),
+    Guild: buildPartiesForCategoryOptimized(rankMap, PARTY_COUNTS.Guild, must.Guild),
+    PVE:   buildPartiesForCategoryOptimized(rankMap, PARTY_COUNTS.PVE,   must.PVE),
+    PVP:   buildPartiesForCategoryOptimized(rankMap, PARTY_COUNTS.PVP,   must.PVP),
+    Left:  buildPartiesForCategoryOptimized(rankMap, PARTY_COUNTS.Left,  must.Left),
   };
 }
 
@@ -2384,7 +2514,7 @@ function buildPartiesByPresetKey(rankMap, presetKey){
   );
 
   // auto must를 primaryCat에 라운드로빈 분배
-  applyAutoMust(mustRaw?.auto || [], mustByCat, primaryCat);
+  applyAutoMust(mustRaw?.auto || [], mustByCat, primaryCat, rankMap);
 
   const sanitized = sanitizeMustByCat(mustByCat);
 
@@ -2424,13 +2554,13 @@ function buildPartiesByPresetKey(rankMap, presetKey){
   };
 }
       if (k === "pve" || k === "new-player") {
-        return { order: ["PVE"], data: { PVE: buildPartiesForCategory(rankMap, 1) } };
+        return { order: ["PVE"], data: { PVE: buildPartiesForCategoryOptimized(rankMap, 1) } };
       }
       if (k === "rift") {
-        return { order: ["Left"], data: { Left: buildPartiesForCategory(rankMap, 2) } };
+        return { order: ["Left"], data: { Left: buildPartiesForCategoryOptimized(rankMap, 2) } };
       }
       if (k === "guild-raid") {
-        return { order: ["Guild"], data: { Guild: buildPartiesForCategory(rankMap, 3) } };
+        return { order: ["Guild"], data: { Guild: buildPartiesForCategoryOptimized(rankMap, 3) } };
       }
       return def;
     }
