@@ -1583,7 +1583,7 @@ const rows = filtered.map(c => {
                 <div class="char-name">${escapeHtml(nm)}</div>
               </div>
             </td>
-           <td class="col-hp" data-stat="hp" data-cid="${escapeHtml(cid)}">-</td>\
+           <td class="col-hp" data-stat="hp" data-cid="${escapeHtml(cid)}">-</td>
            <td class="col-def" data-stat="defense" data-cid="${escapeHtml(cid)}">-</td>
            <td class="col-atk" data-stat="attack" data-cid="${escapeHtml(cid)}">-</td>
            <td class="col-crit" data-stat="critRate" data-cid="${escapeHtml(cid)}">-</td>
@@ -2914,7 +2914,12 @@ function renderTierPartyResult(rankMap, res){
       renderInfo(sel.value);
     }
 
-    // ===== Tier (details) collapse: 검색/필터와 동일한 (열기/닫기) UX =====
+    
+    // ✅ 초기 캐릭터 목록 렌더 (필수)
+    // - render()가 호출되지 않으면 tbody가 비어 보입니다.
+    try { render().catch(console.error); } catch(e) { console.error(e); }
+
+// ===== Tier (details) collapse: 검색/필터와 동일한 (열기/닫기) UX =====
     // - 모바일에서는 기본 접힘
     // - 사용자가 한 번 열고/닫으면 localStorage로 기억
     (function initTierDetailsCollapse(){
