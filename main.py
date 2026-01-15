@@ -5,6 +5,7 @@ import ast
 from datetime import datetime, timezone
 from typing import Optional, Any
 
+from itertools import combinations
 from flask import Flask, jsonify, redirect, render_template, request
 from collections import Counter
 
@@ -1324,6 +1325,247 @@ def rune_summary_for_list(cid: str, base: dict, detail: dict) -> Optional[dict]:
         return None
     b0 = builds[0]
     return {"mode": reco.get("mode"), "sets": [{"set": s.get("set"), "pieces": s.get("pieces"), "icon": s.get("icon")} for s in (b0.get("setPlan") or [])]}
+# -------------------------
+# Party recommendation (AI 추천 파티)
+# -------------------------
+
+_TIER_ALPHA = {"SS": 4.5, "S+": 4.2, "S": 4.0, "A+": 3.2, "A": 3.0, "B+": 2.2, "B": 2.0, "C": 1.0, "D": 0.0}
+
+def _tier_value(v) -> float:
+    if v is None:
+        return 0.0
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip().upper()
+    if not s:
+        return 0.0
+    # numeric-like
+    try:
+        return float(s)
+    except Exception:
+        pass
+    # letter tiers
+    if s in _TIER_ALPHA:
+        return _TIER_ALPHA[s]
+    # normalize variants like "S++"
+    s2 = re.sub(r"[^A-Z\+]", "", s)
+    if s2 in _TIER_ALPHA:
+        return _TIER_ALPHA[s2]
+    if s2.startswith("S"):
+        return 4.0
+    if s2.startswith("A"):
+        return 3.0
+    if s2.startswith("B"):
+        return 2.0
+    if s2.startswith("C"):
+        return 1.0
+    return 0.0
+
+
+def _is_dps_class(cls: str) -> bool:
+    c = (cls or "").strip().lower()
+    return c in ("warrior", "rogue", "mage")
+
+
+def _party_counts(members: list[dict]) -> dict:
+    cnt = {"tank": 0, "healer": 0, "debuffer": 0, "dps": 0}
+    for m in members:
+        a = str(m.get("archetype") or "").lower()
+        if a in cnt:
+            cnt[a] += 1
+        else:
+            cnt["dps"] += 1
+    return cnt
+
+
+def _combo_detail(members: list[dict]) -> dict:
+    elem = {}
+    fac = {}
+    for m in members:
+        e = str(m.get("element") or "").strip()
+        f = str(m.get("faction") or "").strip()
+        if e:
+            elem[e] = elem.get(e, 0) + 1
+        if f:
+            fac[f] = fac.get(f, 0) + 1
+    elem_hits = [k for k, v in elem.items() if v >= 2]
+    fac_hits = [k for k, v in fac.items() if v >= 2]
+    return {"element_hits": elem_hits, "faction_hits": fac_hits, "element_counts": elem, "faction_counts": fac}
+
+
+def _member_payload(cid: str, tier: float, base: dict, detail: dict) -> dict:
+    prof = _detect_profile(detail or {}, base or {})
+    no_crit = detect_no_crit(detail or {})
+    return {
+        "id": cid,
+        "name": base.get("name") or cid,
+        "rarity": base.get("rarity"),
+        "element": base.get("element"),
+        "faction": base.get("faction"),
+        "class": base.get("class"),
+        "role": base.get("role"),
+        "image": base.get("image"),
+        "element_icon": base.get("element_icon"),
+        "class_icon": base.get("class_icon"),
+        "archetype": prof.get("archetype") or "dps",
+        "scaling": prof.get("scaling") or "MIX",
+        "no_crit": bool(no_crit),
+        "tier": tier,
+        "score": tier,  # UI에서 member.score로 표기
+    }
+
+
+def _score_party(members: list[dict], require_combo: bool, required_classes: list[str]) -> tuple[float, dict]:
+    # base score: sum of tier
+    total = sum(float(m.get("tier") or 0.0) for m in members)
+
+    counts = _party_counts(members)
+
+    # composition bonus (가벼운 가중치)
+    if counts["dps"] >= 1:
+        total += 1.0
+    if counts["healer"] >= 1 or counts["tank"] >= 1:
+        total += 0.7
+    if counts["debuffer"] >= 1:
+        total += 0.4
+
+    # required class satisfaction (하드)
+    req = [str(x).strip() for x in (required_classes or []) if str(x).strip()]
+    if req:
+        present = {str(m.get("class") or "").strip() for m in members}
+        miss = [c for c in req if c not in present]
+        if miss:
+            total -= 9999.0  # invalid
+    # combo
+    combo = _combo_detail(members)
+    if require_combo:
+        if not (combo["element_hits"] or combo["faction_hits"]):
+            total -= 9999.0
+
+    meta = {"counts": counts, "combo_detail": combo}
+    return total, meta
+
+
+def recommend_best_party(
+    owned_ids: list[str],
+    required_ids: list[str],
+    required_classes: list[str],
+    rank_map: dict,
+    party_size: int = 4,
+    top_k: int = 1,
+    require_combo: bool = True,
+) -> dict:
+    load_all()
+
+    party_size = int(party_size or 4)
+    if party_size <= 0:
+        party_size = 4
+
+    top_k = int(top_k or 1)
+    if top_k <= 0:
+        top_k = 1
+
+    owned = [slug_id(x) for x in (owned_ids or []) if slug_id(x)]
+    required = [slug_id(x) for x in (required_ids or []) if slug_id(x)]
+
+    # dedupe keep order
+    def _dedupe(xs):
+        seen = set()
+        out = []
+        for x in xs:
+            if x not in seen:
+                seen.add(x)
+                out.append(x)
+        return out
+
+    owned = _dedupe(owned)
+    required = _dedupe(required)
+
+    if not owned:
+        return {"ok": False, "error": "owned(보유 캐릭터) 목록이 비어있습니다."}
+
+    # ensure required subset
+    miss_req = [x for x in required if x not in owned]
+    if miss_req:
+        return {"ok": False, "error": f"필수 캐릭터가 보유 목록에 없습니다: {', '.join(miss_req)}"}
+
+    if len(required) > party_size:
+        return {"ok": False, "error": f"필수 캐릭터 수({len(required)})가 파티 크기({party_size})를 초과합니다."}
+
+    # build quick lookup for base/detail
+    by_id = {c.get("id"): c for c in (CACHE.get("chars") or []) if isinstance(c, dict) and c.get("id")}
+    details = CACHE.get("details") or {}
+
+    # candidate pool = owned
+    cand = []
+    for cid in owned:
+        base = by_id.get(cid)
+        if not base:
+            continue
+        tier = _tier_value(rank_map.get(cid))
+        cand.append((cid, tier))
+    if not cand:
+        return {"ok": False, "error": "추천 후보 캐릭터를 찾지 못했습니다."}
+
+    # lock required members
+    req_members = []
+    req_set = set(required)
+    for cid in required:
+        base = by_id.get(cid) or {"id": cid, "name": cid}
+        det = details.get(cid) if isinstance(details, dict) else None
+        det = det if isinstance(det, dict) else {}
+        tier = _tier_value(rank_map.get(cid))
+        req_members.append(_member_payload(cid, tier, base, det))
+
+    remaining = party_size - len(req_members)
+    pool = [(cid, tier) for (cid, tier) in cand if cid not in req_set]
+
+    # reduce pool size for combinatorics (keep high tier first)
+    pool.sort(key=lambda x: x[1], reverse=True)
+    MAX_POOL = 18 if remaining >= 3 else 24
+    pool = pool[:MAX_POOL]
+
+    evaluated = 0
+    best = []
+
+    if remaining == 0:
+        score, meta = _score_party(req_members, require_combo, required_classes)
+        if score <= -9990:
+            return {"ok": False, "error": "필수 조건(클래스/콤보)을 만족하는 파티를 구성할 수 없습니다."}
+        best.append((score, req_members, meta))
+    else:
+        # try combinations
+        for comb in combinations(pool, remaining):
+            evaluated += 1
+            mems = list(req_members)
+            for cid, tier in comb:
+                base = by_id.get(cid) or {"id": cid, "name": cid}
+                det = details.get(cid) if isinstance(details, dict) else None
+                det = det if isinstance(det, dict) else {}
+                mems.append(_member_payload(cid, tier, base, det))
+
+            score, meta = _score_party(mems, require_combo, required_classes)
+            if score <= -9990:
+                continue
+            best.append((score, mems, meta))
+
+        if not best:
+            return {"ok": False, "error": "조건을 만족하는 추천 파티가 없습니다. (필수/클래스/콤보 조건을 완화해보세요)"}
+
+    # sort and slice
+    best.sort(key=lambda x: x[0], reverse=True)
+    best = best[:top_k]
+
+    parties = []
+    for score, mems, meta in best:
+        parties.append({
+            "members": mems,
+            "total_score": score,
+            "meta": meta,
+        })
+
+    return {"ok": True, "parties": parties, "evaluated": evaluated}
+
 # Load characters
 # -------------------------
 
