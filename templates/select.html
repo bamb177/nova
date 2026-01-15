@@ -760,54 +760,6 @@ html, body{
   </div>
 
   <script>
-        // ===== JS Error Diagnostic (temporary) =====
-    (function () {
-      function ensureBanner() {
-        // 기존 배너가 있으면 그걸 사용, 없으면 임시로 생성
-        let el = document.querySelector('#jsErrorBanner, .js-error-banner, .js-error, #jsError');
-        if (!el) {
-          el = document.createElement('div');
-          el.id = 'jsErrorBanner';
-          el.style.cssText = [
-            'position:sticky','top:0','z-index:99999',
-            'background:#b00020','color:#fff',
-            'padding:10px 12px','font-weight:800',
-            'white-space:pre-wrap','word-break:break-word'
-          ].join(';');
-          document.body.prepend(el);
-        }
-        return el;
-      }
-    
-      function show(msg) {
-        try {
-          const el = ensureBanner();
-          el.textContent = msg;
-          el.style.display = 'block';
-        } catch (_) {}
-      }
-    
-      // 런타임 에러(일반 JS 에러)
-      window.addEventListener('error', function (e) {
-        const msg = [
-          'JS 오류: ' + (e?.message || e),
-          e?.filename ? `@ ${e.filename}:${e.lineno}:${e.colno}` : '',
-          e?.error?.stack ? '\n' + String(e.error.stack) : ''
-        ].filter(Boolean).join(' ');
-        show(msg);
-      });
-    
-      // Promise 에러
-      window.addEventListener('unhandledrejection', function (e) {
-        const reason = e?.reason;
-        const msg = [
-          'JS 오류: UnhandledRejection: ' + (reason?.message || String(reason)),
-          reason?.stack ? '\n' + String(reason.stack) : ''
-        ].filter(Boolean).join(' ');
-        show(msg);
-      });
-    })();
-
     const CHARS_RAW = {{ chars_json|safe }};
 
     function escapeHtml(str) {
@@ -852,6 +804,30 @@ function pick(obj, ...keys) {
         .replace(/[\s\-_]+/g, "")
         .trim();
     }
+
+
+    // -------------------------
+    // 필수(파티 지정) 상태 관리 (초기화는 render보다 먼저)
+    // -------------------------
+    // MUST_STATE[cid] = { on: true/false, target: "" | "Guild:1" | "PVP:2" | "Left:1" }
+    var MUST_STATE = {};
+    const MUST_KEY = "nova.must.v1";
+
+    function loadMustState(){
+      try{
+        const raw = localStorage.getItem(MUST_KEY);
+        const obj = raw ? JSON.parse(raw) : {};
+        return (obj && typeof obj === "object") ? obj : {};
+      }catch(e){
+        return {};
+      }
+    }
+
+    function saveMustState(){
+      try{ localStorage.setItem(MUST_KEY, JSON.stringify(MUST_STATE || {})); }catch(e){}
+    }
+
+    MUST_STATE = loadMustState();
 
     const RARITY_ORDER = { "SSR": 3, "SR": 2, "R": 1, "-": 0 };
     function rarityVal(r){
@@ -1778,32 +1754,6 @@ document.addEventListener("change", (e) => {
       return out;
     }
 
-
-// -------------------------
-// 필수(파티 지정) 상태 관리
-// -------------------------
-const MUST_KEY = "nova.must.v1";
-
-// MUST_STATE[cid] = { on: true/false, target: "" | "Guild:1" | "PVP:2" | "Left:1" }
-// ✅ TDZ(초기화 전 접근) 방지: MUST_STATE를 먼저 초기화
-var MUST_STATE = {};
-
-function loadMustState(){
-  try{
-    const raw = localStorage.getItem(MUST_KEY);
-    const obj = raw ? JSON.parse(raw) : {};
-    return (obj && typeof obj === "object") ? obj : {};
-  }catch(e){
-    return {};
-  }
-}
-
-// ✅ MUST_STATE 최종 초기화(hoist/TDZ 방지: var 사용)
-MUST_STATE = loadMustState();
-
-function saveMustState(){
-  try{ localStorage.setItem(MUST_KEY, JSON.stringify(MUST_STATE)); }catch(e){}
-}
 
 function cssEsc(s){
   try{
