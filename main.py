@@ -416,39 +416,61 @@ def _extract_balanced(s: str, start: int) -> Optional[str]:
 
 def _extract_js_literal(raw: str) -> Optional[str]:
     """
-    runes.js에서 export default <literal or identifier> 형태를 최대한 복원
+    runes.js에서 배열/객체 리터럴을 최대한 복원
+    지원:
+      - export default <literal or IDENT>
+      - export const IDENT = <literal>
+      - const/let/var IDENT = <literal> (and later export)
+      - module.exports = <literal>
+      - (fallback) 첫 번째 '[' 또는 '{' 리터럴
     """
     if not raw:
         return None
 
     s = _strip_js_comments(raw)
 
-    # export default <literal or IDENT>
+    # 1) export default <literal or IDENT>
     m = re.search(r"export\s+default\s+([A-Za-z_][A-Za-z0-9_]*|\[|\{)", s)
-    if not m:
-        return None
+    if m:
+        token = m.group(1)
+        if token in ("[", "{"):
+            start = m.start(1)
+            return _extract_balanced(s, start)
 
-    token = m.group(1)
-    if token in ("[", "{"):
-        start = m.start(1)
-        return _extract_balanced(s, start)
+        ident = token
+        # const IDENT = <literal>;
+        m2 = re.search(rf"\bconst\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
+        if m2:
+            return _extract_balanced(s, m2.start(1))
+        # let/var IDENT = <literal>;
+        m2 = re.search(rf"\b(?:let|var)\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
+        if m2:
+            return _extract_balanced(s, m2.start(1))
 
-    # export default IDENT;
-    ident = token
-    # const IDENT = <literal>;
-    m2 = re.search(rf"\bconst\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
-    if m2:
-        start = m2.start(1)
-        return _extract_balanced(s, start)
+    # 2) export const/let/var IDENT = <literal>
+    m = re.search(r"\bexport\s+(?:const|let|var)\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*(\[|\{)", s)
+    if m:
+        return _extract_balanced(s, m.start(1))
 
-    # let/var IDENT = <literal>;
-    m2 = re.search(rf"\b(?:let|var)\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
-    if m2:
-        start = m2.start(1)
+    # 3) plain const/let/var IDENT = <literal>
+    m = re.search(r"\b(?:const|let|var)\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*(\[|\{)", s)
+    if m:
+        return _extract_balanced(s, m.start(1))
+
+    # 4) module.exports = <literal>
+    m = re.search(r"\bmodule\.exports\s*=\s*(\[|\{)", s)
+    if m:
+        return _extract_balanced(s, m.start(1))
+
+    # 5) last resort: first literal
+    i1 = s.find("[")
+    i2 = s.find("{")
+    starts = [i for i in [i1, i2] if i != -1]
+    if starts:
+        start = min(starts)
         return _extract_balanced(s, start)
 
     return None
-
 
 def _json_friendly(js: str) -> str:
     # JSON 파서 친화적으로 보정(마지막 시도용)
