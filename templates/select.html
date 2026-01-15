@@ -559,6 +559,55 @@ html, body{
   .pick-line{ font-size: 11px; gap: 7px; }
   .pick-stack{ gap: 5px; }
 }
+
+
+/* ===== Subpanel (class condition) toggle ===== */
+.subpanel{
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255,255,255,.02);
+}
+.subpanel[open]{
+  background: rgba(255,255,255,.025);
+}
+.subpanel-summary{
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+.subpanel-summary::-webkit-details-marker{ display:none; }
+.subpanel-title{
+  font-weight: 700;
+  color: var(--txt);
+}
+.subpanel-toggle{
+  color: var(--muted);
+  font-size: 12px;
+}
+.subpanel:not([open]) .tier-class-inline{
+  display:none;
+}
+/* 더 촘촘한 클래스 칩 */
+.tier-classes-inline{
+  margin-top: 10px;
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 1100px){
+  .tier-classes-inline{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 720px){
+  .tier-classes-inline{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 </style>
 </head>
 
@@ -648,15 +697,23 @@ html, body{
             </div>
           </div>
 
-          <!-- ✅ 2줄: 선택 클래스 포함 조건 + 클래스(7개) -->
+          <!-- ✅ 2줄: 선택 클래스 포함 조건 (접기/펼치기) -->
           <div class="tier-row tier-classline">
-            <div class="tier-class-inline" id="tierClassInline">
-              <label class="tier-check tier-check-inline" title="체크한 클래스가 파티(4인)에 포함되도록 구성합니다. 후보를 해당 클래스로만 제한하지 않습니다.">
-                <input type="checkbox" id="useClassFilter" />
-                선택 클래스 포함 조건
-              </label>
-              <div class="tier-classes tier-classes-inline" id="tierClassBox" aria-disabled="true"></div>
-            </div>
+            <details class="subpanel" id="classCondPanel" open>
+              <summary class="subpanel-summary">
+                <span class="subpanel-title">선택 클래스 포함 조건</span>
+                <span class="subpanel-toggle">(열기/닫기)</span>
+              </summary>
+
+              <div class="tier-class-inline" id="tierClassInline">
+                <label class="tier-check tier-check-inline" title="체크한 클래스가 파티(4인)에 포함되도록 구성합니다. 후보를 해당 클래스로만 제한하지 않습니다.">
+                  <input type="checkbox" id="useClassFilter" />
+                  포함 조건 사용
+                </label>
+                <div class="tier-classes tier-classes-inline" id="tierClassBox" aria-disabled="true"></div>
+              </div>
+            </details>
+          </div>
           </div>
 <div id="tierPartyResult" class="tier-result"></div>
           <div id="aiPartyResult" class="tier-result"></div>
@@ -1679,6 +1736,10 @@ document.addEventListener("change", (e) => {
 // -------------------------
 const MUST_KEY = "nova.must.v1";
 
+// MUST_STATE[cid] = { on: true/false, target: "" | "Guild:1" | "PVP:2" | "Left:1" }
+// ✅ TDZ(초기화 전 접근) 방지: MUST_STATE를 먼저 초기화
+let MUST_STATE = loadMustState();
+
 function loadMustState(){
   try{
     const raw = localStorage.getItem(MUST_KEY);
@@ -1692,9 +1753,6 @@ function loadMustState(){
 function saveMustState(){
   try{ localStorage.setItem(MUST_KEY, JSON.stringify(MUST_STATE)); }catch(e){}
 }
-
-// MUST_STATE[cid] = { on: true/false, target: "" | "Guild:1" | "PVP:2" | "Left:1" }
-let MUST_STATE = loadMustState();
 
 function cssEsc(s){
   try{
