@@ -767,17 +767,62 @@ def _score_hits(hits: list[float]) -> float:
 
 
 def detect_no_crit(detail: dict) -> bool:
-    # Do NOT treat critRate==0 as 'cannot crit'. Only explicit flags/text.
+    """크리티컬 관련 추천 제외 판단.
+
+    기본 정책:
+    - 명시적 플래그/문구(crit disabled 등)가 있으면 True
+    - stats 내 치명타 확률(critRate 등)이 0/0%로 명시된 경우도 True로 간주 (요청 반영)
+    """
     if not isinstance(detail, dict):
         return False
 
+    # 1) explicit flags
     for k in ["noCrit", "no_crit", "cannotCrit", "cannot_crit", "critDisabled", "crit_disabled"]:
         if detail.get(k) is True:
             return True
 
+    # 2) explicit text signals
     for t in _skill_texts(detail):
         tl = t.lower()
         if any(k in tl for k in _KW_CRIT_DISABLE):
+            return True
+
+    # 3) stats-based: critRate == 0 (0 / 0% / "0%")
+    stats = detail.get("stats") or detail.get("stat") or detail.get("attributes") or detail.get("attribute")
+    cand_vals = []
+
+    def _maybe_add(k, v):
+        kk = str(k).lower()
+        if "critrate" in kk or "crit_rate" in kk or ("crit" in kk and "rate" in kk) or "치명" in kk:
+            cand_vals.append(v)
+
+    if isinstance(stats, dict):
+        for k, v in stats.items():
+            _maybe_add(k, v)
+    elif isinstance(stats, list):
+        for row in stats:
+            if isinstance(row, dict):
+                _maybe_add(row.get("name") or row.get("stat") or row.get("key") or "", row.get("value"))
+
+    def _to_num(v):
+        if v is None:
+            return None
+        if isinstance(v, (int, float)):
+            return float(v)
+        if isinstance(v, str):
+            s = v.strip().replace(",", "")
+            # "0%" or "0.0 %"
+            m = re.fullmatch(r"(-?\d+(?:\.\d+)?)\s*%?", s)
+            if m:
+                try:
+                    return float(m.group(1))
+                except Exception:
+                    return None
+        return None
+
+    for v in cand_vals:
+        num = _to_num(v)
+        if num is not None and num <= 0.0:
             return True
 
     return False
