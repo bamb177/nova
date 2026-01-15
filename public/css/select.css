@@ -1434,3 +1434,22 @@ body{
   .select{ min-width: 190px; }
 }
 
+@media (max-width: 520px){
+  .tier-classes-inline{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  .tier-class-item{
+    border-radius: 14px;
+    padding: 12px 10px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.10);
+  }
+  .tier-class-item input{
+    transform: scale(1.15);
+  }
+  .tier-class-item span{
+    font-weight: 800;
+    letter-spacing: .2px;
+  }
+}
