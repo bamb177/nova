@@ -712,6 +712,7 @@ html, body{
             </select>
             <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
             <button class="btn" id="btnAiParty" type="button" disabled>AI 추천 파티</button>
+            <button class="btn" id="btnResetParties" type="button">파티 초기화</button>
 
             <div class="tier-top-spacer" aria-hidden="true"></div>
 
@@ -1631,6 +1632,15 @@ document.querySelectorAll(".must-slot").forEach(s => { s.value = ""; s.disabled 
 document.querySelectorAll(".must-role").forEach(s => { s.value = ""; s.disabled = true; });
 });
 
+// ✅ 파티 결과만 초기화 (선택/필수 체크는 유지)
+document.getElementById("btnResetParties")?.addEventListener("click", () => {
+  const tierBox = document.getElementById("tierPartyResult");
+  const aiBox = document.getElementById("aiPartyResult");
+  if (tierBox) tierBox.innerHTML = "";
+  if (aiBox) aiBox.innerHTML = "";
+});
+
+
 
 // ✅ 보유(선택) ↔ 필수(파티 지정) 동기화
 // - 필수 체크 시: 보유도 자동 체크
@@ -2022,73 +2032,86 @@ function renderAiPartyResult(res){
     return;
   }
 
+  // ✅ multi groups format: { groups: { Guild:[party...], PVP:[...], Left:[...] }, warnings:[...] }
+  const groups = (res.groups && typeof res.groups === "object") ? res.groups : null;
+
+  const renderPartyBlock = (title, party, idx) => {
+    const mems = Array.isArray(party?.members) ? party.members : [];
+    const meta = party?.meta || {};
+    const counts = meta?.counts || {};
+    const combo = meta?.combo_detail || {};
+    const cmode = meta?.combo_mode || res.combo_mode || "";
+
+    const metaLines = [
+      `총점: <b>${escapeHtml(String(Math.round((party?.total_score||0)*10)/10))}</b>`,
+      `구성: 탱 ${escapeHtml(String(counts.tank||0))} / 힐 ${escapeHtml(String(counts.healer||0))} / 딜 ${escapeHtml(String(counts.dps||0))} / 디버퍼 ${escapeHtml(String(counts.debuffer||0))}`,
+      `콤보(${escapeHtml(String(cmode||""))}): 속성 ${escapeHtml(String((combo.element_hits||[]).join(", ")||"-"))} / 특성 ${escapeHtml(String((combo.faction_hits||[]).join(", ")||"-"))}`,
+    ].join(" · ");
+
+    const cards = mems.map(m => {
+      const img = m?.image
+        ? `<img class="tier-portrait" src="${escapeHtml(m.image)}" alt="">`
+        : `<div class="tier-portrait tier-portrait-empty"></div>`;
+
+      return `
+        <div class="tier-card">
+          <div class="tier-card-top">
+            ${img}
+            <span class="tier-name">${escapeHtml(m?.name || m?.id || "-")}</span>
+          </div>
+          <div class="tier-card-sub">
+            <span class="pill pill-neutral">${escapeHtml(m?.element || "-")}</span>
+            <span class="pill pill-neutral">${escapeHtml(m?.faction || "-")}</span>
+            <span class="pill pill-neutral">${escapeHtml(m?.class || "-")}</span>
+            <span class="pill pill-neutral">${escapeHtml(m?.archetype || m?.role || "-")}</span>
+            <span class="pill">${escapeHtml(String(m?.tier ?? "-"))}</span>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    return `
+      <div class="tier-cat">
+        <div class="tier-cat-title">${escapeHtml(title)} ${escapeHtml(String(idx))}파티</div>
+        <div class="tier-cat-meta">${metaLines}</div>
+        <div class="tier-grid">${cards}</div>
+      </div>
+    `;
+  };
+
+  let out = "";
+
+  // warnings
+  if (Array.isArray(res.warnings) && res.warnings.length){
+    out += `<div class="tier-warn">${res.warnings.map(w=>`<div>• ${escapeHtml(w)}</div>`).join("")}</div>`;
+  }
+
+  if (groups){
+    const order = ["Guild", "PVP", "Left"];
+    for (const cat of order){
+      const arr = Array.isArray(groups[cat]) ? groups[cat] : [];
+      if (!arr.length) continue;
+
+      out += `<div class="tier-section-title" style="margin:10px 0 6px;font-weight:900;letter-spacing:.2px;">${escapeHtml(cat)}</div>`;
+      arr.forEach((p, i) => { out += renderPartyBlock(cat, p, i+1); });
+    }
+
+    if (!out){
+      out = `<div class="tier-error">추천 파티 데이터가 없습니다.</div>`;
+    }
+
+    box.innerHTML = out;
+    return;
+  }
+
+  // ✅ backward compatibility (single)
   const party = (res.parties && res.parties[0]) ? res.parties[0] : null;
   if (!party){
     box.innerHTML = `<div class="tier-error">추천 파티 데이터가 없습니다.</div>`;
     return;
   }
-
-  const mems = Array.isArray(party.members) ? party.members : [];
-  const meta = party.meta || {};
-
-  const cards = mems.map(m => {
-    const img = m.image
-      ? `<img class="tier-portrait" src="${escapeHtml(m.image)}" alt="">`
-      : `<div class="tier-portrait tier-portrait-empty"></div>`;
-
-    const arch = String(m.archetype || "dps").toLowerCase();
-    const archLabel = (arch === "tank") ? "Tank" : (arch === "healer") ? "Healer" : (arch === "debuffer") ? "Debuffer" : "DPS";
-    const archPill = `<span class="pill pill-accent pill-arch-${arch}">${archLabel}</span>`;
-
-    const pills = [
-      m.element ? `<span class="pill pill-neutral">${escapeHtml(String(m.element))}</span>` : "",
-      m.faction ? `<span class="pill pill-neutral">${escapeHtml(String(m.faction))}</span>` : "",
-      archPill,
-    ].filter(Boolean).join("");
-
-    const small = [
-      (m.class ? `class: ${escapeHtml(String(m.class))}` : ""),
-      (m.role ? `role: ${escapeHtml(String(m.role))}` : ""),
-      (m.scaling ? `scaling: ${escapeHtml(String(m.scaling))}` : ""),
-      (typeof m.tier === "number" ? `tier: ${m.tier}` : ""),
-      (typeof m.score === "number" ? `score: ${m.score.toFixed(1)}` : ""),
-      (m.no_crit ? `크리불가` : ""),
-    ].filter(Boolean).join(" · ");
-
-    return `
-      <div class="tier-card">
-        <div class="tier-card-top">
-          ${img}
-          <span class="tier-name">${escapeHtml(String(m.name || m.id || "Unknown"))}</span>
-        </div>
-        <div class="tier-card-sub">${pills}</div>
-        <div class="tier-card-sub" style="opacity:.85;font-size:12px">${small}</div>
-      </div>
-    `;
-  }).join("");
-
-  const combo = meta.combo_detail || {};
-  const elemHits = Array.isArray(combo.element_hits) ? combo.element_hits : [];
-  const facHits = Array.isArray(combo.faction_hits) ? combo.faction_hits : [];
-
-  const counts = meta.counts || {};
-  const compLine = `구성: Tank ${counts.tank || 0} / Healer ${counts.healer || 0} / DPS ${counts.dps || 0} / Debuffer ${counts.debuffer || 0}`;
-
-  const metaLines = [
-    (typeof party.total_score === "number") ? `총점: ${party.total_score.toFixed(1)}` : "",
-    compLine,
-    (typeof res.evaluated === "number") ? `탐색: ${res.evaluated}조합` : "",
-    (elemHits.length ? `속성 콤보: ${escapeHtml(elemHits.join(", "))}` : ""),
-    (facHits.length ? `특성 콤보: ${escapeHtml(facHits.join(", "))}` : ""),
-  ].filter(Boolean).join(" / ");
-
-  box.innerHTML = `
-    <div class="tier-cat">
-      <div class="tier-cat-title">AI 추천 파티</div>
-      <div class="tier-cat-meta">${metaLines || ""}</div>
-      <div class="tier-grid">${cards}</div>
-    </div>
-  `;
+  box.innerHTML = renderPartyBlock("AI 추천", party, 1);
+}
 }
 
 async function requestAiParty(){
@@ -2118,11 +2141,14 @@ async function requestAiParty(){
     owned,
     required,
     required_overrides: getMustOverrides(),
+    must_assignments: getMustAssignments(), // Guild 3 / PVP 2 / Left 2 + 타겟 지정
     required_classes: requiredClasses,
     rank_map: getRankMapObjectForCurrentPreset(),
     party_size: 4,
     top_k: 1,
     require_combo: true,
+    combo_mode: "both", // 속성 2+ AND 특성 2+ (엄격)
+    multi: true,
   };
 
   const box = document.getElementById("aiPartyResult");
