@@ -1738,7 +1738,7 @@ const MUST_KEY = "nova.must.v1";
 
 // MUST_STATE[cid] = { on: true/false, target: "" | "Guild:1" | "PVP:2" | "Left:1" }
 // ✅ TDZ(초기화 전 접근) 방지: MUST_STATE를 먼저 초기화
-let MUST_STATE = loadMustState();
+var MUST_STATE = {};
 
 function loadMustState(){
   try{
@@ -1749,6 +1749,9 @@ function loadMustState(){
     return {};
   }
 }
+
+// ✅ MUST_STATE 최종 초기화(hoist/TDZ 방지: var 사용)
+MUST_STATE = loadMustState();
 
 function saveMustState(){
   try{ localStorage.setItem(MUST_KEY, JSON.stringify(MUST_STATE)); }catch(e){}
