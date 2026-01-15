@@ -2553,19 +2553,7 @@ function buildPartiesByPresetKey(rankMap, presetKey){
     warnings: sanitized.warnings
   };
 }
-      if (k === "pve" || k === "new-player") {
-        return { order: ["PVE"], data: { PVE: buildPartiesForCategoryOptimized(rankMap, 1) } };
-      }
-      if (k === "rift") {
-        return { order: ["Left"], data: { Left: buildPartiesForCategoryOptimized(rankMap, 2) } };
-      }
-      if (k === "guild-raid") {
-        return { order: ["Guild"], data: { Guild: buildPartiesForCategoryOptimized(rankMap, 3) } };
-      }
-      return def;
-    }
-
-    function renderTierPartyResult(rankMap, res){
+function renderTierPartyResult(rankMap, res){
       const box = document.getElementById("tierPartyResult");
       if (!box) return;
 
