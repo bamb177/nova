@@ -518,17 +518,60 @@ def _to_python_literal(js: str) -> str:
 
 
 def _looks_like_rune_list(x) -> bool:
-    """Heuristic: does a list look like a rune list?"""
+    """Heuristic: does a list look like a rune list?
+
+    Supports multiple schemas, e.g.
+      - {name, twoPiece, fourPiece, icon, ...}
+      - {name, pieces:{2:..., 4:...}, ...}
+      - {set/setName, effects/bonus, ...}
+    """
     if not isinstance(x, list) or not x:
         return False
-    sample = x[: min(5, len(x))]
-    ok = 0
-    for it in sample:
+
+    def is_rune_item(it: dict) -> bool:
         if not isinstance(it, dict):
-            continue
-        if "name" in it and ("twoPiece" in it or "fourPiece" in it or "two_piece" in it or "four_piece" in it):
-            ok += 1
-    return ok >= max(1, len(sample) // 2)
+            return False
+
+        # name/set identifier
+        if not any(k in it for k in ("name", "set", "setName", "set_name", "id")):
+            return False
+
+        keys = set(it.keys())
+
+        # Common direct keys
+        direct_keys = {
+            "twoPiece", "fourPiece", "two_piece", "four_piece",
+            "twoSet", "fourSet", "set2", "set4",
+            "bonus2", "bonus4", "two_bonus", "four_bonus",
+        }
+        if keys & direct_keys:
+            return True
+
+        # Some schemas use 'two'/'four'
+        if ("two" in it and isinstance(it.get("two"), (str, int, float, dict))) or ("four" in it and isinstance(it.get("four"), (str, int, float, dict))):
+            return True
+
+        # Nested structures
+        for container_key in ("pieces", "effects", "bonus", "bonuses", "setEffect", "set_effect"):
+            v = it.get(container_key)
+            if isinstance(v, dict):
+                vk = set(map(str, v.keys()))
+                if ("2" in vk) or ("4" in vk) or ("two" in vk) or ("four" in vk) or ("2set" in vk) or ("4set" in vk):
+                    return True
+
+        # API-like schema: icon + piece keys
+        if "icon" in it and any("piece" in k.lower() for k in keys):
+            return True
+
+        # Keys like '2세트'/'4세트'
+        if any(("세트" in k and ("2" in k or "4" in k)) for k in keys):
+            return True
+
+        return False
+
+    sample = x[: min(8, len(x))]
+    hits = sum(1 for it in sample if is_rune_item(it))
+    return hits >= max(1, len(sample) // 2)
 
 
 def _find_rune_list_recursive(obj):
