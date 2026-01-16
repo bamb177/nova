@@ -1,3 +1,18 @@
+
+/* =========================
+   JS error banner
+   (moved from select.html inline style)
+========================= */
+.js-error-banner{
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+  background: rgba(180,40,40,.92);
+  color: #fff;
+  padding: 10px 14px;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255,255,255,.25);
+}
 /* =========================
    Base theme / layout
 ========================= */
@@ -1452,84 +1467,4 @@ body{
     font-weight: 800;
     letter-spacing: .2px;
   }
-}
-
-
-/* =========================================================
-   Tier (Mobile layout refinement)
-   - 1) dropdown full width
-   - 2) row1: 3 buttons (equal width + fixed height)
-   - 3) row2: all/none (equal width)
-   - 4) class condition box full width
-========================================================= */
-
-/* Base (desktop/tablet): keep inline flow, allow wrap gracefully */
-#tierPanel .tier-topline{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-}
-#tierPanel .tier-btnrow{
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-/* place the select-actions row to the right when space allows */
-#tierPanel .tier-btnrow-2{ margin-left:auto; }
-
-/* Mobile: strict row layout */
-@media (max-width: 520px){
-  #tierPanel .tier-topline{
-    flex-direction:column;
-    align-items:stretch;
-    gap:10px;
-  }
-
-  #tierPanel #tierPreset{
-    width:100% !important;
-    min-width:0 !important;
-  }
-
-  #tierPanel .tier-btnrow{
-    width:100%;
-    display:grid;
-    gap:10px;
-  }
-
-  /* 1st line: 3 buttons */
-  #tierPanel .tier-btnrow-3{
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  /* 2nd line: 2 buttons */
-  #tierPanel .tier-btnrow-2{
-    margin-left:0;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  /* Equal width + fixed height + bigger touch area */
-  #tierPanel .tier-btnrow .btn{
-    width:100% !important;
-    height:44px !important;
-    padding:0 10px !important;
-    justify-content:center;
-    white-space:nowrap;
-  }
-
-  /* Long labels fit better on small screens */
-  #tierPanel .tier-btnrow-3 .btn{ font-size: 13px !important; }
-
-  /* Class condition panel: full width */
-  #tierPanel .tier-classline,
-  #tierPanel #classCondPanel,
-  #tierPanel #tierClassInline{
-    width:100% !important;
-    min-width:0 !important;
-  }
-}
-
-@media (max-width: 380px){
-  #tierPanel .tier-btnrow{ gap:8px; }
-  #tierPanel .tier-btnrow-3 .btn{ font-size: 12px !important; }
 }
