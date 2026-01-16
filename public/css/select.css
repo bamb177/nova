@@ -1,18 +1,3 @@
-
-/* =========================
-   JS error banner
-   (moved from select.html inline style)
-========================= */
-.js-error-banner{
-  position: sticky;
-  top: 0;
-  z-index: 9999;
-  background: rgba(180,40,40,.92);
-  color: #fff;
-  padding: 10px 14px;
-  font-weight: 700;
-  border-bottom: 1px solid rgba(255,255,255,.25);
-}
 /* =========================
    Base theme / layout
 ========================= */
@@ -1143,25 +1128,152 @@ body{
 }
 
 
+/* =========================
+   Character modal > "추천 룬" 탭
+   - select.html 내부 style 주입 제거 → select.css로 일원화
+   - 모바일 가독성/정렬 개선 + 이미지 과대 노출 방지
+========================= */
+.tab-panel[data-panel="runes"] .card{
+  padding: 14px;
+}
+
+.tab-panel[data-panel="runes"] .card-title{
+  margin-bottom: 8px;
+}
+
+.tab-panel[data-panel="runes"] .rune-sets{
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.tab-panel[data-panel="runes"] .rune-set{
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255,255,255,.02);
+}
+
+.tab-panel[data-panel="runes"] .rune-set-top{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tab-panel[data-panel="runes"] .rune-ico{
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex: 0 0 auto;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.tab-panel[data-panel="runes"] .rune-ico-empty{ display:inline-block; }
+
+.tab-panel[data-panel="runes"] .rune-set-title{ font-weight: 800; }
+.tab-panel[data-panel="runes"] .rune-set-pcs{ font-size: .92em; opacity: .72; margin-left: 6px; }
+
+.tab-panel[data-panel="runes"] .rune-set-body{
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.tab-panel[data-panel="runes"] .rune-eff{ line-height: 1.45; }
+
+.tab-panel[data-panel="runes"] .rune-eff-tag{
+  display: inline-block;
+  min-width: 44px;
+  padding: 3px 8px;
+  margin-right: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.04);
+  font-size: .86em;
+  opacity: .92;
+}
+
+.tab-panel[data-panel="runes"] .rune-note{ opacity: .78; }
+
+.tab-panel[data-panel="runes"] .rune-grid{
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+@media (max-width: 920px){
+  .tab-panel[data-panel="runes"] .rune-grid{ grid-template-columns: 1fr; }
+}
+
+.tab-panel[data-panel="runes"] .rune-sec-title{
+  font-weight: 800;
+  margin: 4px 0 10px;
+  opacity: .92;
+}
+
+.tab-panel[data-panel="runes"] .rune-slots{ display: grid; gap: 8px; }
+
+.tab-panel[data-panel="runes"] .slot-row{
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.tab-panel[data-panel="runes"] .slot-k{ opacity: .82; font-weight: 800; }
+.tab-panel[data-panel="runes"] .slot-v{ display: grid; gap: 6px; }
+
+.tab-panel[data-panel="runes"] .slot-item{
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+}
+
+.tab-panel[data-panel="runes"] .slot-item.muted{ opacity: .6; }
+
+.tab-panel[data-panel="runes"] .rune-list{ margin-top: 10px; }
+.tab-panel[data-panel="runes"] .rune-list-title{ font-weight: 800; opacity: .92; margin-bottom: 6px; }
+.tab-panel[data-panel="runes"] .rune-ul{ margin: 0; padding-left: 18px; display: grid; gap: 6px; line-height: 1.45; }
+
+/* ✅ 데이터/브라우저 영향으로 img가 크게 노출되는 경우 방지 ("추천 룬" 탭만) */
+.tab-panel[data-panel="runes"] img{
+  max-width: 72px;
+  max-height: 72px;
+  width: auto;
+  height: auto;
+}
+
+.tab-panel[data-panel="runes"] .rune-ico{
+  max-width: none;
+  max-height: none;
+  width: 44px;
+  height: 44px;
+}
+
+
 /* =========================================================
    FINAL SCALE (+3pt 체감) + TABLE 헤더 줄바꿈 방지 + PILL 확대
 ========================================================= */
 body{
-  font-size: 18px;     /* 기본 16px 대비 +2~3pt 체감 */
+  font-size: 16px;
   line-height: 1.45;
 }
 
 /* 상단 */
-.title-row h1{ font-size: 22px; }
+.title-row h1{ font-size: 20px; }
 .meta-inline{ font-size: 15px; }
 .refresh{ font-size: 15px; }
 
 /* 입력/버튼 */
 .input, .select, .btn{
-  font-size: 16px;
-  padding: 12px 14px;
+  font-size: 15px;
+  padding: 10px 12px;
 }
-.navbtn{ font-size: 15px; }
+.navbtn{ font-size: 14px; }
 
 /* 테이블: 한글 음절 줄바꿈(선/택) 방지 */
 .table thead th,
@@ -1171,15 +1283,15 @@ body{
 }
 
 /* 테이블 폰트 업 */
-.table thead th{ font-size: 16px; }
-.table tbody td{ font-size: 18px; }
+.table thead th{ font-size: 14px; }
+.table tbody td{ font-size: 15px; }
 
 /* 컬럼 폭(선택/필수) */
 .col-check{ width: 86px; min-width: 86px; }
 .col-req{ width: 86px; min-width: 86px; }
 
 /* 캐릭터명 */
-.char-name{ font-size: 18px; }
+.char-name{ font-size: 16px; }
 
 /* 속성/특성/클래스/역할/등급 pill 확대 */
 .pill{
@@ -1367,6 +1479,85 @@ body{
 .tier-help,
 .tier-info{
   font-size: 14px !important;
+}
+
+
+/* =========================================================
+   Mobile: Tier top controls (요청사항)
+   - 드롭다운 아래
+     1) 등급표파티 / AI파티 / 파티초기화 (동일 폭 + 동일 높이 + 터치영역 확장)
+     2) 전체 선택 / 전체 해제 (동일 폭)
+     3) 선택 클래스 포함 조건 박스: 양옆 꽉
+   - 기존 tier-topline 재배치 규칙보다 아래에 두어 최종 우선 적용
+========================================================= */
+
+/* tier-topline: 드롭다운 + 2개 행 컨테이너 구조 */
+.tier-row.tier-topline{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+}
+
+/* 3버튼 / 2버튼 행: 기본은 그리드 */
+.tier-btnrow{
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.tier-actions-row{
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+/* ✅ 3버튼 동일 폭/높이 고정 + 터치영역 확장 */
+.tier-btnrow .btn,
+.tier-actions-row .btn{
+  width: 100%;
+  justify-content: center;
+}
+
+/* 고정 높이(터치영역): 모바일/태블릿 중심 */
+@media (max-width: 980px){
+  .tier-btnrow .btn,
+  .tier-actions-row .btn{
+    height: 46px !important;
+    padding: 0 12px !important;
+    font-size: 16px !important;
+    border-radius: 16px;
+  }
+}
+
+/* 극소 화면에서도 3버튼을 무조건 1행 유지 (요청사항) */
+@media (max-width: 520px){
+  .tier-btnrow{
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .tier-btnrow .btn{
+    padding: 0 8px !important;
+    font-size: 14px !important;
+  }
+}
+
+/* 선택 클래스 포함 조건 박스: 모바일에서 양옆 꽉 + 내부 칩 2열 */
+@media (max-width: 720px){
+  #classCondPanel,
+  #classCondPanel .tier-class-inline{
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  #classCondPanel .tier-class-inline{
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  #classCondPanel .tier-classes-inline{
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
 }
 
 
