@@ -602,79 +602,45 @@ def load_runes_db(force: bool = False) -> list[dict]:
     raw = safe_read_text(RUNES_JS)
     runes = None
 
+    # 디버그 기본값
+    CACHE["runes_source"] = None
+    CACHE["runes_debug"] = {
+        "runes_js_exists": os.path.isfile(RUNES_JS),
+        "runes_js_size": os.path.getsize(RUNES_JS) if os.path.isfile(RUNES_JS) else 0,
+        "extract_ok": False,
+        "parse_ok": False,
+        "fallback_reason": None,
+    }
+
     if raw:
         lit = _extract_js_literal(raw)
         if lit:
-            # 1) pure json
+            CACHE["runes_debug"]["extract_ok"] = True
             try:
                 runes = json.loads(lit)
+                CACHE["runes_debug"]["parse_ok"] = True
             except Exception:
-                # 2) python literal eval (single quote / trailing comma robust)
                 try:
                     runes = ast.literal_eval(_to_python_literal(lit))
+                    CACHE["runes_debug"]["parse_ok"] = True
                 except Exception:
-                    # 3) json-friendly best-effort
                     try:
                         runes = json.loads(_json_friendly(lit))
+                        CACHE["runes_debug"]["parse_ok"] = True
                     except Exception:
                         runes = None
-      # ✅ 여기로 이동
-        if isinstance(runes, dict):
-            for k in ("runes", "data", "items", "list"):
-                v = runes.get(k)
-                if isinstance(v, list):
-                    runes = v
-                    break
-        # ✅ runes.js가 객체로 감싸서 export 하는 경우 대응
-    if isinstance(runes, dict):
-        for k in ("runes", "data", "items", "list"):
-            v = runes.get(k)
-            if isinstance(v, list):
-                runes = v
-                break
-    
+                        CACHE["runes_debug"]["fallback_reason"] = "parse_failed"
+        else:
+            CACHE["runes_debug"]["fallback_reason"] = "extract_failed"
+    else:
+        CACHE["runes_debug"]["fallback_reason"] = "runes_js_missing_or_unreadable"
+
     if not isinstance(runes, list):
         runes = FALLBACK_RUNES
+        CACHE["runes_source"] = "fallback"
+    else:
+        CACHE["runes_source"] = "runes.js"
 
-    rune_img_map = get_rune_img_map()
-
-    norm: list[dict] = []
-    for r in runes:
-        if not isinstance(r, dict):
-            continue
-
-        name = str(r.get("name") or r.get("title") or "").strip()
-        if not name:
-            continue
-
-        # NOTE: runes.js가 한글을 포함하면 그대로 전달(두/네 세트 효과)
-        two_piece = r.get("twoPiece") or r.get("two_piece") or r.get("2pc") or r.get("two") or r.get("twoSet") or ""
-        four_piece = r.get("fourPiece") or r.get("four_piece") or r.get("4pc") or r.get("four") or r.get("fourSet") or ""
-
-        icon = r.get("icon")
-        img = r.get("image") or r.get("img") or r.get("jpg") or r.get("file") or r.get("iconFile")
-
-        if not icon and isinstance(img, str) and img:
-            icon = f"/images/games/zone-nova/runes/{img.strip().lstrip('/')}"
-
-        if isinstance(icon, str) and icon and not icon.startswith("/"):
-            icon = f"/images/games/zone-nova/runes/{icon.strip().lstrip('/')}"
-
-        if not icon:
-            icon = resolve_rune_icon(name, rune_img_map)
-
-        norm.append({
-            "name": name,
-            "twoPiece": two_piece,
-            "fourPiece": four_piece,
-            "note": r.get("note") or "",
-            "classRestriction": r.get("classRestriction") or r.get("class_restriction") or [],
-            "teamConflict": r.get("teamConflict") or r.get("team_conflict") or [],
-            "icon": icon if isinstance(icon, str) and icon else None,
-        })
-
-    CACHE["runes_db"] = norm
-    return norm
 
 
 def rune_db_by_name() -> dict[str, dict]:
@@ -1950,7 +1916,12 @@ def meta():
             "characters_ko": CHAR_KO_DIR,
             "runes_js": RUNES_JS,
             "rune_overrides": RUNE_OVERRIDES,
-        }
+            }
+        "runes": {
+            "source": CACHE.get("runes_source"),
+            "debug": CACHE.get("runes_debug"),
+            "count": len(CACHE["runes_db"]) if isinstance(CACHE.get("runes_db"), list) else None,
+        }, 
     })
 
 
