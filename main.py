@@ -41,10 +41,11 @@ CACHE: dict[str, Any] = {
     "last_refresh": None,
     "error": None,
     "runes_db": None,
+    # runes.js parsing diagnostics
+    "runes_source": None,
+    "runes_debug": None,
     "rune_overrides": None,
     "rune_img_map": None,
-    "runes_debug": None,
-    "runes_source": None,
 }
 
 
@@ -417,75 +418,37 @@ def _extract_balanced(s: str, start: int) -> Optional[str]:
 
 
 def _extract_js_literal(raw: str) -> Optional[str]:
-    """Extract a JS array/object literal from runes.js.
-
-    Priority: try to capture the *runes list* (array) first to avoid grabbing icon maps or other objects.
-
-    Supported patterns (best-effort):
-      - export const runes = [ ... ]
-      - const runes = [ ... ] (and later export)
-      - export default [ ... ]
-      - export default IDENT; const IDENT = [ ... ]
-      - fallback to the first array/object literal if nothing else matches
+    """
+    runes.js에서 export default <literal or identifier> 형태를 최대한 복원
     """
     if not raw:
         return None
 
     s = _strip_js_comments(raw)
 
-    # 0) Prefer explicit rune list variables (ARRAY only)
-    preferred = [
-        "runes", "RUNES", "runeSets", "RUNE_SETS", "runesData", "RUNES_DATA",
-        "rune_list", "runeList", "RUNE_LIST",
-    ]
-    for ident in preferred:
-        # Only match arrays: '=' followed by '['
-        m = re.search(
-            rf"(?:export\s+)?(?:const|let|var)\s+{re.escape(ident)}\s*=\s*(\[)",
-            s,
-        )
-        if m:
-            return _extract_balanced(s, m.start(1))
-
-    # 1) export default <literal or IDENT>
+    # export default <literal or IDENT>
     m = re.search(r"export\s+default\s+([A-Za-z_][A-Za-z0-9_]*|\[|\{)", s)
-    if m:
-        token = m.group(1)
-        if token in ("[", "{"):
-            return _extract_balanced(s, m.start(1))
+    if not m:
+        return None
 
-        ident = token
-        # const IDENT = [ ... ]
-        m2 = re.search(rf"\b(?:const|let|var)\s+{re.escape(ident)}\s*=\s*(\[)", s)
-        if m2:
-            return _extract_balanced(s, m2.start(1))
-        # const IDENT = { ... }
-        m2 = re.search(rf"\b(?:const|let|var)\s+{re.escape(ident)}\s*=\s*(\{{)", s)
-        if m2:
-            return _extract_balanced(s, m2.start(1))
+    token = m.group(1)
+    if token in ("[", "{"):
+        start = m.start(1)
+        return _extract_balanced(s, start)
 
-    # 2) export const/let/var IDENT = [ ... ] (any IDENT)
-    m = re.search(r"\bexport\s+(?:const|let|var)\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*(\[)", s)
-    if m:
-        return _extract_balanced(s, m.start(1))
+    # export default IDENT;
+    ident = token
+    # const IDENT = <literal>;
+    m2 = re.search(rf"\bconst\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
+    if m2:
+        start = m2.start(1)
+        return _extract_balanced(s, start)
 
-    # 3) const/let/var IDENT = [ ... ] (any IDENT)
-    m = re.search(r"\b(?:const|let|var)\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*(\[)", s)
-    if m:
-        return _extract_balanced(s, m.start(1))
-
-    # 4) module.exports = [ ... ] or { ... }
-    m = re.search(r"\bmodule\.exports\s*=\s*(\[|\{)", s)
-    if m:
-        return _extract_balanced(s, m.start(1))
-
-    # 5) last resort: first literal (array preferred)
-    i_arr = s.find("[")
-    if i_arr != -1:
-        return _extract_balanced(s, i_arr)
-    i_obj = s.find("{")
-    if i_obj != -1:
-        return _extract_balanced(s, i_obj)
+    # let/var IDENT = <literal>;
+    m2 = re.search(rf"\b(?:let|var)\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
+    if m2:
+        start = m2.start(1)
+        return _extract_balanced(s, start)
 
     return None
 
@@ -515,84 +478,6 @@ def _to_python_literal(js: str) -> str:
     # unquoted keys -> quoted keys
     s = re.sub(r'([{\[,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*):', r'\1"\2"\3:', s)
     return s
-
-
-def _looks_like_rune_list(x) -> bool:
-    """Heuristic: does a list look like a rune list?
-
-    Supports multiple schemas, e.g.
-      - {name, twoPiece, fourPiece, icon, ...}
-      - {name, pieces:{2:..., 4:...}, ...}
-      - {set/setName, effects/bonus, ...}
-    """
-    if not isinstance(x, list) or not x:
-        return False
-
-    def is_rune_item(it: dict) -> bool:
-        if not isinstance(it, dict):
-            return False
-
-        # name/set identifier
-        if not any(k in it for k in ("name", "set", "setName", "set_name", "id")):
-            return False
-
-        keys = set(it.keys())
-
-        # Common direct keys
-        direct_keys = {
-            "twoPiece", "fourPiece", "two_piece", "four_piece",
-            "twoSet", "fourSet", "set2", "set4",
-            "bonus2", "bonus4", "two_bonus", "four_bonus",
-        }
-        if keys & direct_keys:
-            return True
-
-        # Some schemas use 'two'/'four'
-        if ("two" in it and isinstance(it.get("two"), (str, int, float, dict))) or ("four" in it and isinstance(it.get("four"), (str, int, float, dict))):
-            return True
-
-        # Nested structures
-        for container_key in ("pieces", "effects", "bonus", "bonuses", "setEffect", "set_effect"):
-            v = it.get(container_key)
-            if isinstance(v, dict):
-                vk = set(map(str, v.keys()))
-                if ("2" in vk) or ("4" in vk) or ("two" in vk) or ("four" in vk) or ("2set" in vk) or ("4set" in vk):
-                    return True
-
-        # API-like schema: icon + piece keys
-        if "icon" in it and any("piece" in k.lower() for k in keys):
-            return True
-
-        # Keys like '2세트'/'4세트'
-        if any(("세트" in k and ("2" in k or "4" in k)) for k in keys):
-            return True
-
-        return False
-
-    sample = x[: min(8, len(x))]
-    hits = sum(1 for it in sample if is_rune_item(it))
-    return hits >= max(1, len(sample) // 2)
-
-
-def _find_rune_list_recursive(obj):
-    """Walk nested dict/list and return the best candidate rune list."""
-    best = None
-
-    def walk(o):
-        nonlocal best
-        if _looks_like_rune_list(o):
-            if best is None or len(o) > len(best):
-                best = o
-            return
-        if isinstance(o, dict):
-            for v in o.values():
-                walk(v)
-        elif isinstance(o, list):
-            for v in o:
-                walk(v)
-
-    walk(obj)
-    return best
 
 
 def _norm_key(s: str) -> str:
@@ -690,21 +575,10 @@ FALLBACK_RUNES = [
 
 
 def load_runes_db(force: bool = False) -> list[dict]:
-    """Load runes from public/data/zone-nova/runes.js.
-
-    - Supports both array export: export const runes = [ ... ]
-    - And object export: export const runes = { count: N, runes: [ ... ] }
-    - Falls back to FALLBACK_RUNES (EN 8개) only if parsing truly fails.
-
-    Also populates CACHE['runes_source'] and CACHE['runes_debug'] for /meta debugging.
-    """
-    if CACHE.get("runes_db") is not None and not force:
+    if CACHE["runes_db"] is not None and not force:
         return CACHE["runes_db"]
 
-    raw = safe_read_text(RUNES_JS)
-    runes = None
-
-    # debug init
+    # --- debug init (surfaced via /meta) ---
     CACHE["runes_source"] = None
     CACHE["runes_debug"] = {
         "runes_js_exists": os.path.isfile(RUNES_JS),
@@ -715,61 +589,98 @@ def load_runes_db(force: bool = False) -> list[dict]:
         "fallback_reason": None,
     }
 
-    if not raw:
-        CACHE["runes_debug"]["fallback_reason"] = "runes_js_missing_or_unreadable"
-    else:
+    raw = safe_read_text(RUNES_JS)
+    runes_any: Any = None
+
+    if raw:
         lit = _extract_js_literal(raw)
-        if not lit:
-            CACHE["runes_debug"]["fallback_reason"] = "extract_failed"
-        else:
+        if lit:
             CACHE["runes_debug"]["extract_ok"] = True
             # 1) pure json
             try:
-                runes = json.loads(lit)
+                runes_any = json.loads(lit)
                 CACHE["runes_debug"]["parse_ok"] = True
             except Exception:
                 # 2) python literal eval (single quote / trailing comma robust)
                 try:
-                    runes = ast.literal_eval(_to_python_literal(lit))
+                    runes_any = ast.literal_eval(_to_python_literal(lit))
                     CACHE["runes_debug"]["parse_ok"] = True
                 except Exception:
                     # 3) json-friendly best-effort
                     try:
-                        runes = json.loads(_json_friendly(lit))
+                        runes_any = json.loads(_json_friendly(lit))
                         CACHE["runes_debug"]["parse_ok"] = True
                     except Exception:
-                        runes = None
+                        runes_any = None
                         CACHE["runes_debug"]["fallback_reason"] = "parse_failed"
+        else:
+            CACHE["runes_debug"]["fallback_reason"] = "extract_failed"
+    else:
+        CACHE["runes_debug"]["fallback_reason"] = "runes_js_missing_or_unreadable"
 
-    # unwrap common container shapes
-    if isinstance(runes, dict):
-        for k in ("runes", "data", "items", "list", "sets", "runeSets"):
-            v = runes.get(k)
+    # --- normalize to list[dict] ---
+    runes_list: Optional[list] = None
+
+    # A) direct list
+    if isinstance(runes_any, list):
+        runes_list = runes_any
+
+    # B) wrapper object: {runes:[...]}, {data:[...]}, ...
+    if runes_list is None and isinstance(runes_any, dict):
+        for k in ("runes", "data", "items", "list", "sets"):
+            v = runes_any.get(k)
             if isinstance(v, list):
+                runes_list = v
                 CACHE["runes_debug"]["unwrap_key"] = k
-                runes = v
                 break
 
-    # still not a list? try recursive search for a rune-like list
-    if not isinstance(runes, list):
-        cand = _find_rune_list_recursive(runes)
-        if isinstance(cand, list):
-            CACHE["runes_debug"]["unwrap_key"] = CACHE["runes_debug"].get("unwrap_key") or "recursive"
-            runes = cand
+    # C) Zone Nova runes.js pattern: export const RUNE_SETS = { Alpha:{...}, ... }
+    #    -> dict mapping key -> rune dict
+    if runes_list is None and isinstance(runes_any, dict):
+        # Heuristic: many values look like rune entries
+        vals = [v for v in runes_any.values() if isinstance(v, dict)]
+        looks = 0
+        for v in vals[:50]:
+            if ("twoPiece" in v) or ("fourPiece" in v) or ("two_piece" in v) or ("four_piece" in v):
+                looks += 1
+        if vals and looks >= max(2, len(vals) // 4):
+            runes_list = []
+            for key, v in runes_any.items():
+                if not isinstance(v, dict):
+                    continue
+                if not ("twoPiece" in v or "fourPiece" in v or "two_piece" in v or "four_piece" in v):
+                    continue
+                item = dict(v)
+                # name이 없으면 key를 사용
+                if not item.get("name"):
+                    item["name"] = str(key)
+                # 원본 키도 남겨두면 디버깅/매칭에 유용
+                item.setdefault("key", str(key))
+                runes_list.append(item)
+            CACHE["runes_debug"]["unwrap_key"] = "map_values"
 
-    # final source decision
-    if isinstance(runes, list):
-        CACHE["runes_source"] = "runes.js"
-    else:
-        runes = FALLBACK_RUNES
-        CACHE["runes_source"] = "fallback"
-        if not CACHE["runes_debug"].get("fallback_reason"):
+    if not isinstance(runes_list, list) or not runes_list:
+        # parse는 성공했는데 리스트 형태로 정규화 실패
+        if CACHE["runes_debug"]["fallback_reason"] is None:
             CACHE["runes_debug"]["fallback_reason"] = "not_a_list_after_parse"
+        runes_list = FALLBACK_RUNES
+        CACHE["runes_source"] = "fallback"
+    else:
+        CACHE["runes_source"] = "runes.js"
 
     rune_img_map = get_rune_img_map()
 
+    def _as_list(x) -> list:
+        if x is None:
+            return []
+        if isinstance(x, list):
+            return x
+        if isinstance(x, str) and x.strip():
+            return [x.strip()]
+        return []
+
     norm: list[dict] = []
-    for r in runes:
+    for r in runes_list:
         if not isinstance(r, dict):
             continue
 
@@ -798,8 +709,8 @@ def load_runes_db(force: bool = False) -> list[dict]:
             "twoPiece": two_piece,
             "fourPiece": four_piece,
             "note": r.get("note") or "",
-            "classRestriction": r.get("classRestriction") or r.get("class_restriction") or [],
-            "teamConflict": r.get("teamConflict") or r.get("team_conflict") or [],
+            "classRestriction": _as_list(r.get("classRestriction") or r.get("class_restriction")),
+            "teamConflict": _as_list(r.get("teamConflict") or r.get("team_conflict")),
             "icon": icon if isinstance(icon, str) and icon else None,
         })
 
@@ -2063,25 +1974,16 @@ def home():
 def refresh():
     load_all(force=True)
     CACHE["runes_db"] = None
+    CACHE["runes_source"] = None
+    CACHE["runes_debug"] = None
     CACHE["rune_overrides"] = None
     CACHE["rune_img_map"] = None
-    CACHE["runes_debug"] = None
-    CACHE["runes_source"] = None
     return redirect("/ui/select")
 
 
 @app.get("/meta")
 def meta():
     load_all()
-    # Ensure runes debug is populated even if /runes endpoint hasn't been hit
-    try:
-        load_runes_db()
-    except Exception as e:
-        # do not fail /meta
-        CACHE["runes_source"] = CACHE.get("runes_source") or "error"
-        CACHE["runes_debug"] = CACHE.get("runes_debug") or {}
-        CACHE["runes_debug"]["meta_error"] = f"{type(e).__name__}: {e}"
-
     return jsonify({
         "title": APP_TITLE,
         "characters_cached": len(CACHE["chars"]),
@@ -2091,12 +1993,13 @@ def meta():
             "characters_ko": CHAR_KO_DIR,
             "runes_js": RUNES_JS,
             "rune_overrides": RUNE_OVERRIDES,
-        },
+        }
+        ,
         "runes": {
+            "count": len(CACHE["runes_db"]) if isinstance(CACHE.get("runes_db"), list) else None,
             "source": CACHE.get("runes_source"),
             "debug": CACHE.get("runes_debug"),
-            "count": len(CACHE["runes_db"]) if isinstance(CACHE.get("runes_db"), list) else None,
-        },
+        }
     })
 
 
