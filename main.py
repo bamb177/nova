@@ -43,6 +43,8 @@ CACHE: dict[str, Any] = {
     "runes_db": None,
     "rune_overrides": None,
     "rune_img_map": None,
+    "runes_debug": None,
+    "runes_source": None,
 }
 
 
@@ -415,37 +417,75 @@ def _extract_balanced(s: str, start: int) -> Optional[str]:
 
 
 def _extract_js_literal(raw: str) -> Optional[str]:
-    """
-    runes.js에서 export default <literal or identifier> 형태를 최대한 복원
+    """Extract a JS array/object literal from runes.js.
+
+    Priority: try to capture the *runes list* (array) first to avoid grabbing icon maps or other objects.
+
+    Supported patterns (best-effort):
+      - export const runes = [ ... ]
+      - const runes = [ ... ] (and later export)
+      - export default [ ... ]
+      - export default IDENT; const IDENT = [ ... ]
+      - fallback to the first array/object literal if nothing else matches
     """
     if not raw:
         return None
 
     s = _strip_js_comments(raw)
 
-    # export default <literal or IDENT>
+    # 0) Prefer explicit rune list variables (ARRAY only)
+    preferred = [
+        "runes", "RUNES", "runeSets", "RUNE_SETS", "runesData", "RUNES_DATA",
+        "rune_list", "runeList", "RUNE_LIST",
+    ]
+    for ident in preferred:
+        # Only match arrays: '=' followed by '['
+        m = re.search(
+            rf"(?:export\s+)?(?:const|let|var)\s+{re.escape(ident)}\s*=\s*(\[)",
+            s,
+        )
+        if m:
+            return _extract_balanced(s, m.start(1))
+
+    # 1) export default <literal or IDENT>
     m = re.search(r"export\s+default\s+([A-Za-z_][A-Za-z0-9_]*|\[|\{)", s)
-    if not m:
-        return None
+    if m:
+        token = m.group(1)
+        if token in ("[", "{"):
+            return _extract_balanced(s, m.start(1))
 
-    token = m.group(1)
-    if token in ("[", "{"):
-        start = m.start(1)
-        return _extract_balanced(s, start)
+        ident = token
+        # const IDENT = [ ... ]
+        m2 = re.search(rf"\b(?:const|let|var)\s+{re.escape(ident)}\s*=\s*(\[)", s)
+        if m2:
+            return _extract_balanced(s, m2.start(1))
+        # const IDENT = { ... }
+        m2 = re.search(rf"\b(?:const|let|var)\s+{re.escape(ident)}\s*=\s*(\{{)", s)
+        if m2:
+            return _extract_balanced(s, m2.start(1))
 
-    # export default IDENT;
-    ident = token
-    # const IDENT = <literal>;
-    m2 = re.search(rf"\bconst\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
-    if m2:
-        start = m2.start(1)
-        return _extract_balanced(s, start)
+    # 2) export const/let/var IDENT = [ ... ] (any IDENT)
+    m = re.search(r"\bexport\s+(?:const|let|var)\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*(\[)", s)
+    if m:
+        return _extract_balanced(s, m.start(1))
 
-    # let/var IDENT = <literal>;
-    m2 = re.search(rf"\b(?:let|var)\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
-    if m2:
-        start = m2.start(1)
-        return _extract_balanced(s, start)
+    # 3) const/let/var IDENT = [ ... ] (any IDENT)
+    m = re.search(r"\b(?:const|let|var)\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*(\[)", s)
+    if m:
+        return _extract_balanced(s, m.start(1))
+
+    # 4) module.exports = [ ... ] or { ... }
+    m = re.search(r"\bmodule\.exports\s*=\s*(\[|\{)", s)
+    if m:
+        return _extract_balanced(s, m.start(1))
+
+    # 5) last resort: first literal (array preferred)
+    i_arr = s.find("[")
+    if i_arr != -1:
+        return _extract_balanced(s, i_arr)
+    i_obj = s.find("{")
+    if i_obj != -1:
+        return _extract_balanced(s, i_obj)
 
     return None
 
@@ -475,6 +515,41 @@ def _to_python_literal(js: str) -> str:
     # unquoted keys -> quoted keys
     s = re.sub(r'([{\[,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*):', r'\1"\2"\3:', s)
     return s
+
+
+def _looks_like_rune_list(x) -> bool:
+    """Heuristic: does a list look like a rune list?"""
+    if not isinstance(x, list) or not x:
+        return False
+    sample = x[: min(5, len(x))]
+    ok = 0
+    for it in sample:
+        if not isinstance(it, dict):
+            continue
+        if "name" in it and ("twoPiece" in it or "fourPiece" in it or "two_piece" in it or "four_piece" in it):
+            ok += 1
+    return ok >= max(1, len(sample) // 2)
+
+
+def _find_rune_list_recursive(obj):
+    """Walk nested dict/list and return the best candidate rune list."""
+    best = None
+
+    def walk(o):
+        nonlocal best
+        if _looks_like_rune_list(o):
+            if best is None or len(o) > len(best):
+                best = o
+            return
+        if isinstance(o, dict):
+            for v in o.values():
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+
+    walk(obj)
+    return best
 
 
 def _norm_key(s: str) -> str:
@@ -625,12 +700,19 @@ def load_runes_db(force: bool = False) -> list[dict]:
 
     # unwrap common container shapes
     if isinstance(runes, dict):
-        for k in ("runes", "data", "items", "list"):
+        for k in ("runes", "data", "items", "list", "sets", "runeSets"):
             v = runes.get(k)
             if isinstance(v, list):
                 CACHE["runes_debug"]["unwrap_key"] = k
                 runes = v
                 break
+
+    # still not a list? try recursive search for a rune-like list
+    if not isinstance(runes, list):
+        cand = _find_rune_list_recursive(runes)
+        if isinstance(cand, list):
+            CACHE["runes_debug"]["unwrap_key"] = CACHE["runes_debug"].get("unwrap_key") or "recursive"
+            runes = cand
 
     # final source decision
     if isinstance(runes, list):
