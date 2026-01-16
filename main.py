@@ -43,8 +43,6 @@ CACHE: dict[str, Any] = {
     "runes_db": None,
     "rune_overrides": None,
     "rune_img_map": None,
-    "runes_debug": None,
-    "runes_source": None,
 }
 
 
@@ -418,58 +416,36 @@ def _extract_balanced(s: str, start: int) -> Optional[str]:
 
 def _extract_js_literal(raw: str) -> Optional[str]:
     """
-    runes.js에서 'runes(룬 리스트)' 리터럴만 우선적으로 뽑는다.
-    - 파일 앞부분에 아이콘맵/상수 객체가 있어도, runes 배열을 정확히 잡기 위함.
+    runes.js에서 export default <literal or identifier> 형태를 최대한 복원
     """
     if not raw:
         return None
 
     s = _strip_js_comments(raw)
 
-    # 0) 가장 먼저 'runes' 계열 변수만 정확히 타겟팅
-    preferred = ["runes", "RUNES", "runeSets", "RUNE_SETS", "runesData", "RUNES_DATA"]
-    for ident in preferred:
-        # export const runes = [ ... ]  / const runes = { ... }
-        m = re.search(
-            rf"(?:export\s+)?(?:const|let|var)\s+{re.escape(ident)}\s*=\s*(\[|\{{)",
-            s
-        )
-        if m:
-            return _extract_balanced(s, m.start(1))
-
-    # 1) export default <literal or IDENT>
+    # export default <literal or IDENT>
     m = re.search(r"export\s+default\s+([A-Za-z_][A-Za-z0-9_]*|\[|\{)", s)
-    if m:
-        token = m.group(1)
-        if token in ("[", "{"):
-            return _extract_balanced(s, m.start(1))
+    if not m:
+        return None
 
-        ident = token
-        m2 = re.search(rf"\b(?:const|let|var)\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
-        if m2:
-            return _extract_balanced(s, m2.start(1))
+    token = m.group(1)
+    if token in ("[", "{"):
+        start = m.start(1)
+        return _extract_balanced(s, start)
 
-    # 2) export const/let/var IDENT = <literal> (일반)
-    m = re.search(r"\bexport\s+(?:const|let|var)\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*(\[|\{)", s)
-    if m:
-        return _extract_balanced(s, m.start(1))
+    # export default IDENT;
+    ident = token
+    # const IDENT = <literal>;
+    m2 = re.search(rf"\bconst\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
+    if m2:
+        start = m2.start(1)
+        return _extract_balanced(s, start)
 
-    # 3) plain const/let/var IDENT = <literal> (일반)
-    m = re.search(r"\b(?:const|let|var)\s+[A-Za-z_][A-Za-z0-9_]*\s*=\s*(\[|\{)", s)
-    if m:
-        return _extract_balanced(s, m.start(1))
-
-    # 4) module.exports = <literal>
-    m = re.search(r"\bmodule\.exports\s*=\s*(\[|\{)", s)
-    if m:
-        return _extract_balanced(s, m.start(1))
-
-    # 5) last resort
-    i1 = s.find("[")
-    i2 = s.find("{")
-    starts = [i for i in (i1, i2) if i != -1]
-    if starts:
-        return _extract_balanced(s, min(starts))
+    # let/var IDENT = <literal>;
+    m2 = re.search(rf"\b(?:let|var)\s+{re.escape(ident)}\s*=\s*(\[|\{{)", s)
+    if m2:
+        start = m2.start(1)
+        return _extract_balanced(s, start)
 
     return None
 
@@ -596,51 +572,114 @@ FALLBACK_RUNES = [
 
 
 def load_runes_db(force: bool = False) -> list[dict]:
-    if CACHE["runes_db"] is not None and not force:
+    """Load runes from public/data/zone-nova/runes.js.
+
+    - Supports both array export: export const runes = [ ... ]
+    - And object export: export const runes = { count: N, runes: [ ... ] }
+    - Falls back to FALLBACK_RUNES (EN 8개) only if parsing truly fails.
+
+    Also populates CACHE['runes_source'] and CACHE['runes_debug'] for /meta debugging.
+    """
+    if CACHE.get("runes_db") is not None and not force:
         return CACHE["runes_db"]
 
     raw = safe_read_text(RUNES_JS)
     runes = None
 
-    # 디버그 기본값
+    # debug init
     CACHE["runes_source"] = None
     CACHE["runes_debug"] = {
         "runes_js_exists": os.path.isfile(RUNES_JS),
         "runes_js_size": os.path.getsize(RUNES_JS) if os.path.isfile(RUNES_JS) else 0,
         "extract_ok": False,
         "parse_ok": False,
+        "unwrap_key": None,
         "fallback_reason": None,
     }
 
-    if raw:
+    if not raw:
+        CACHE["runes_debug"]["fallback_reason"] = "runes_js_missing_or_unreadable"
+    else:
         lit = _extract_js_literal(raw)
-        if lit:
+        if not lit:
+            CACHE["runes_debug"]["fallback_reason"] = "extract_failed"
+        else:
             CACHE["runes_debug"]["extract_ok"] = True
+            # 1) pure json
             try:
                 runes = json.loads(lit)
                 CACHE["runes_debug"]["parse_ok"] = True
             except Exception:
+                # 2) python literal eval (single quote / trailing comma robust)
                 try:
                     runes = ast.literal_eval(_to_python_literal(lit))
                     CACHE["runes_debug"]["parse_ok"] = True
                 except Exception:
+                    # 3) json-friendly best-effort
                     try:
                         runes = json.loads(_json_friendly(lit))
                         CACHE["runes_debug"]["parse_ok"] = True
                     except Exception:
                         runes = None
                         CACHE["runes_debug"]["fallback_reason"] = "parse_failed"
-        else:
-            CACHE["runes_debug"]["fallback_reason"] = "extract_failed"
-    else:
-        CACHE["runes_debug"]["fallback_reason"] = "runes_js_missing_or_unreadable"
 
-    if not isinstance(runes, list):
+    # unwrap common container shapes
+    if isinstance(runes, dict):
+        for k in ("runes", "data", "items", "list"):
+            v = runes.get(k)
+            if isinstance(v, list):
+                CACHE["runes_debug"]["unwrap_key"] = k
+                runes = v
+                break
+
+    # final source decision
+    if isinstance(runes, list):
+        CACHE["runes_source"] = "runes.js"
+    else:
         runes = FALLBACK_RUNES
         CACHE["runes_source"] = "fallback"
-    else:
-        CACHE["runes_source"] = "runes.js"
+        if not CACHE["runes_debug"].get("fallback_reason"):
+            CACHE["runes_debug"]["fallback_reason"] = "not_a_list_after_parse"
 
+    rune_img_map = get_rune_img_map()
+
+    norm: list[dict] = []
+    for r in runes:
+        if not isinstance(r, dict):
+            continue
+
+        name = str(r.get("name") or r.get("title") or "").strip()
+        if not name:
+            continue
+
+        # NOTE: runes.js가 한글을 포함하면 그대로 전달(두/네 세트 효과)
+        two_piece = r.get("twoPiece") or r.get("two_piece") or r.get("2pc") or r.get("two") or r.get("twoSet") or ""
+        four_piece = r.get("fourPiece") or r.get("four_piece") or r.get("4pc") or r.get("four") or r.get("fourSet") or ""
+
+        icon = r.get("icon")
+        img = r.get("image") or r.get("img") or r.get("jpg") or r.get("file") or r.get("iconFile")
+
+        if not icon and isinstance(img, str) and img:
+            icon = f"/images/games/zone-nova/runes/{img.strip().lstrip('/')}"
+
+        if isinstance(icon, str) and icon and not icon.startswith("/"):
+            icon = f"/images/games/zone-nova/runes/{icon.strip().lstrip('/')}"
+
+        if not icon:
+            icon = resolve_rune_icon(name, rune_img_map)
+
+        norm.append({
+            "name": name,
+            "twoPiece": two_piece,
+            "fourPiece": four_piece,
+            "note": r.get("note") or "",
+            "classRestriction": r.get("classRestriction") or r.get("class_restriction") or [],
+            "teamConflict": r.get("teamConflict") or r.get("team_conflict") or [],
+            "icon": icon if isinstance(icon, str) and icon else None,
+        })
+
+    CACHE["runes_db"] = norm
+    return norm
 
 
 def rune_db_by_name() -> dict[str, dict]:
@@ -1901,12 +1940,23 @@ def refresh():
     CACHE["runes_db"] = None
     CACHE["rune_overrides"] = None
     CACHE["rune_img_map"] = None
+    CACHE["runes_debug"] = None
+    CACHE["runes_source"] = None
     return redirect("/ui/select")
 
 
 @app.get("/meta")
 def meta():
     load_all()
+    # Ensure runes debug is populated even if /runes endpoint hasn't been hit
+    try:
+        load_runes_db()
+    except Exception as e:
+        # do not fail /meta
+        CACHE["runes_source"] = CACHE.get("runes_source") or "error"
+        CACHE["runes_debug"] = CACHE.get("runes_debug") or {}
+        CACHE["runes_debug"]["meta_error"] = f"{type(e).__name__}: {e}"
+
     return jsonify({
         "title": APP_TITLE,
         "characters_cached": len(CACHE["chars"]),
@@ -1916,12 +1966,12 @@ def meta():
             "characters_ko": CHAR_KO_DIR,
             "runes_js": RUNES_JS,
             "rune_overrides": RUNE_OVERRIDES,
-            }
+        },
         "runes": {
             "source": CACHE.get("runes_source"),
             "debug": CACHE.get("runes_debug"),
             "count": len(CACHE["runes_db"]) if isinstance(CACHE.get("runes_db"), list) else None,
-        }, 
+        },
     })
 
 
