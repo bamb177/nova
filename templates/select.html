@@ -633,6 +633,54 @@ html, body{
   .tier-classes-inline{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+
+
+    /* =========================================================
+       Tier buttons: 모바일 1행 3버튼 동일폭 + 높이 고정(터치영역 확장)
+       - select.css보다 head <style>가 우선이므로 여기에서 확정 오버라이드
+    ========================================================= */
+    @media (max-width: 520px){
+      #tierPanel .tier-row.tier-topline{
+        display:flex !important;
+        flex-direction:column !important;
+        align-items:stretch !important;
+        gap:10px !important;
+      }
+      #tierPanel #tierPreset{ width:100% !important; min-width:0 !important; }
+
+      #tierPanel .tier-btnrow{
+        width:100% !important;
+        display:grid !important;
+        gap:10px !important;
+      }
+      #tierPanel .tier-btnrow-3{
+        grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+      }
+      #tierPanel .tier-btnrow-2{
+        grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+      }
+
+      #tierPanel .tier-btnrow .btn{
+        width:100% !important;
+        height:46px !important;
+        min-height:46px !important;
+        padding:0 10px !important;
+        justify-content:center !important;
+        white-space:nowrap !important;
+      }
+      /* 3버튼 텍스트가 길어지는 것 대비 */
+      #tierPanel .tier-btnrow-3 .btn{ font-size:13px !important; }
+
+      /* 3번째 줄: 선택 클래스 포함 조건 박스 좌우 꽉 */
+      #tierPanel .tier-row.tier-classline,
+      #tierPanel #classCondPanel,
+      #tierPanel #tierClassInline{ width:100% !important; }
+    }
+
+    @media (max-width: 380px){
+      #tierPanel .tier-btnrow{ gap:8px !important; }
+      #tierPanel .tier-btnrow-3 .btn{ font-size:12px !important; }
+    }
 </style>
 </head>
 
@@ -707,17 +755,20 @@ html, body{
 
         <div class="tier-body">
           <div class="tier-row tier-topline">
+            <!-- 0) 등급표 선택(드롭다운): 항상 1줄 -->
             <select id="tierPreset" class="select" disabled>
               <option value="">tier-lists.js 로딩중...</option>
             </select>
-            <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
-            <button class="btn" id="btnAiParty" type="button" disabled>AI 추천 파티</button>
-            <button class="btn" id="btnResetParties" type="button">파티 초기화</button>
 
-            <div class="tier-top-spacer" aria-hidden="true"></div>
+            <!-- 1) 첫째줄: 등급표/AI파티/초기화 (3개 버튼) -->
+            <div class="tier-btnrow tier-btnrow-3">
+              <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
+              <button class="btn" id="btnAiParty" type="button" disabled>AI 추천 파티</button>
+              <button class="btn" id="btnResetParties" type="button">파티 초기화</button>
+            </div>
 
-            <!-- ✅ 전체선택/전체해제: 1줄 우측 -->
-            <div class="tier-actions-inline">
+            <!-- 2) 둘째줄: 전체선택/전체해제 (2개 버튼) -->
+            <div class="tier-btnrow tier-btnrow-2">
               <button class="btn" id="btnAll" type="button">전체 선택</button>
               <button class="btn" id="btnNone" type="button">전체 해제</button>
             </div>
