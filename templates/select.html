@@ -8,11 +8,637 @@
   <!-- 공통/페이지 CSS 분리 유지 -->
   <link rel="stylesheet" href="/css/select.css?v={{ last_refresh }}" />
 
+  <!-- ✅ Tier 결과 카드 이미지 + PC 폭 확장 오버라이드 -->
+  <style>
+
+    /* ✅ 선택 컬럼: 한 줄 유지(선/택 방지) */
+    .col-check{ width: 86px; min-width: 86px; text-align: center; }
+    .table th.col-check{ text-align:center; }
+
+
+    /* (2) 전체 페이지 폭 확장 (PC) */
+    @media (min-width: 1100px){
+      .wrap{ max-width: 1600px !important; }
+    }
+
+    /* (1) 등급표 파티 카드: 좌측 초상화 + 이름 */
+    .tier-card-top{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .tier-portrait{
+      width:44px;
+      height:44px;
+      border-radius:12px;
+      object-fit:cover;
+      flex:0 0 auto;
+      box-shadow: 0 8px 18px rgba(0,0,0,.25);
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .tier-portrait-empty{
+      display:block;
+    }
+
+    /* (2) 긴 특성명(예: Heikyo Castle) 2줄 방지: 1줄 유지 + 넘치면 말줄임 */
+    .tier-card-sub .pill{
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 190px;
+    }
+  
+    /* ✅ Tier 상단 버튼(전체선택/해제) 우측 정렬 */
+    .tier-topline{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .tier-topline .tier-actions-inline{
+      margin-left:auto;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:nowrap;
+    }
+    @media (min-width: 900px){
+      .tier-topline{ flex-wrap:nowrap; }
+    }
+
+  
+    /* Memory Card image (modal) — 카드열 확장 + 이미지 꽉차게 */
+    .memcard-wrap{
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+    }
+
+    /* 카드열: PC에서는 크게, 모바일에서는 과도하지 않게 */
+    .memcard-imgcell{
+      vertical-align: top;
+      padding: 10px;
+      width: clamp(240px, 30vw, 420px);
+    }
+
+    /* 이미지: 카드열을 100%로 꽉 채움 (기존 150x240 고정 제거) */
+    .memcard-img{
+      display:block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 5 / 8;
+      border-radius:16px;
+      object-fit:cover;
+      box-shadow: 0 10px 26px rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+    }
+    .memcard-img.hidden{ display:none; }
+
+    @media (max-width: 520px){
+      .memcard-imgcell{
+        width: clamp(170px, 54vw, 320px);
+        padding: 8px;
+      }
+      .memcard-img{
+        border-radius: 14px;
+      }
+    }
+
+/* Stats columns (HP/ATK/DEF/CRIT) */
+    .col-hp, .col-atk, .col-def, .col-crit { width: 108px; min-width: 108px; text-align: right; }
+    td.col-hp, td.col-atk, td.col-def, td.col-crit { font-weight: 800; color: rgba(255,255,255,.86); }
+    
+    @media (max-width: 520px){
+      .col-hp, .col-atk, .col-def, .col-crit { width: 96px; min-width: 96px; }
+    }
+  
+    /* Tier panel: move class condition row into top line (better readability) */
+    .tier-topline{
+      align-items: flex-start;
+    }
+    .tier-class-inline{
+      flex: 1 1 auto;
+      min-width: 420px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .tier-check-inline{
+      white-space: nowrap;
+      font-weight: 900;
+      color: rgba(255,255,255,.92);
+    }
+    .tier-classes-inline{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-left: 4px;
+    }
+    /* On small screens, keep layout tidy */
+    @media (max-width: 720px){
+      .tier-topline{ flex-wrap: wrap; }
+      .tier-class-inline{
+        min-width: 0;
+        width: 100%;
+        order: 3;
+      }
+      .tier-topline .tier-actions-inline{
+        order: 4;
+        width: 100%;
+        justify-content: flex-end;
+      }
+    }
+
+    /* Select dropdown readability (options contrast) */
+    select, .select{
+      color: rgba(255,255,255,.92);
+    }
+    select option{
+      background: #0b1222;
+      color: rgba(255,255,255,.90);
+    }
+    select option:disabled{
+      color: rgba(255,255,255,.58);
+    }
+
+  
+    /* ===== Readability: larger typography ===== */
+    body{ font-size: 16px; }
+    .topbar h1{ font-size: 22px; }
+    .filters-summary-title{ font-size: 18px; }
+    .filters-summary-hint{ font-size: 14px; opacity:.85; }
+    .input, .select, select, .btn{ font-size: 15px; }
+    .table th{ font-size: 14.5px; }
+    .table td{ font-size: 14.5px; }
+    .pill{ font-size: 13.5px; }
+
+    /* ===== Tier top layout: clean grid on PC ===== */
+    @media (min-width: 900px){
+      .tier-topline{
+        display: grid;
+        grid-template-columns: 280px 180px 1fr auto;
+        gap: 12px;
+        align-items: center;
+      }
+      .tier-topline #tierPreset{ width: 100%; min-width: 0; }
+      .tier-topline #btnBuildTierParty{ width: 100%; }
+      .tier-actions-inline{
+        margin-left: 0;           /* grid 모드에서는 불필요 */
+        justify-self: end;
+      }
+      .tier-actions-inline .btn{
+        min-width: 96px;
+        padding: 10px 14px;
+      }
+      .tier-class-inline{
+        min-width: 0;             /* grid에서 넘침 방지 */
+        padding: 10px 12px;
+      }
+      .tier-classes-inline{
+        flex-wrap: nowrap;        /* 2줄로 떨어지지 않게 */
+        overflow-x: auto;         /* 길면 가로 스크롤 */
+        scrollbar-width: thin;
+        padding-bottom: 2px;
+      }
+      .tier-classes-inline::-webkit-scrollbar{ height: 8px; }
+      .tier-classes-inline::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.14); border-radius: 999px; }
+      .tier-classes-inline .tier-class-item{ white-space: nowrap; }
+    }
+
+    /* Tier panel box itself a bit clearer */
+    .tier-class-inline{
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+    .tier-check-inline{
+      font-size: 15px;
+      font-weight: 950;
+    }
+
+  
+    @media (max-width: 720px){
+      .tier-actions-inline .btn{ min-width: 84px; }
+      .tier-class-inline{ padding: 10px 10px; }
+      .tier-classes-inline{ gap: 8px; }
+    }
+
+  
+    /* Sortable stat headers */
+    .th-sort{
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      padding-right: 18px;
+    }
+    .th-sort::after{
+      content: "↕";
+      position: absolute;
+      right: 6px;
+      opacity: .45;
+      font-size: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
+    .th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
+
+  
+    /* === Stats sortable headers === */
+    th.th-sort{
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      padding-right: 18px;
+    }
+    th.th-sort::after{
+      content: "↕";
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: .45;
+      font-size: 12px;
+    }
+    th.th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
+    th.th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
+
+    /* === Tier class condition: 2-column layout (no horizontal scrollbar) === */
+    .tier-class-inline{
+      display: grid;
+      grid-template-columns: 210px 1fr;
+      align-items: start;
+      gap: 12px;
+    }
+    .tier-classes-inline{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 12px;
+      overflow: visible !important;
+    }
+    @media (max-width: 720px){
+      .tier-class-inline{ grid-template-columns: 1fr; }
+      .tier-classes-inline{ grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 420px){
+      .tier-classes-inline{ grid-template-columns: 1fr; }
+    }
+
+  
+    /* ===== Mobile vertical scroll fix (character list) ===== */
+
+    /* ===== Mobile: allow vertical + horizontal scrolling INSIDE character list ===== */
+    html, body{
+      height: auto !important;
+      min-height: 100% !important;
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+    }
+
+    /* Make the list area a true scroll container on mobile */
+    .table-wrap{
+      overflow: auto !important;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+      overscroll-behavior: contain;
+      /* Use small-viewport units for mobile address-bar changes */
+      max-height: calc(100svh - 310px);
+      border-radius: 18px;
+    }
+
+    /* Ensure the table can exceed viewport width so horizontal scroll is possible */
+    .table{
+      min-width: 920px;
+    }
+
+    /* On desktop, let the page scroll normally (no forced max-height) */
+    @media (min-width: 900px){
+      .table-wrap{ max-height: none; overflow-x: auto; overflow-y: visible; }
+      .table{ min-width: 1240px; }
+    }
+
+    /* Allow gestures even on nested elements */
+    .table-wrap *{ touch-action: pan-x pan-y; }
+
+html, body{
+      height: auto !important;
+      min-height: 100% !important;
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+/* ===== Background: remove multi-radial seams, use a single fixed gradient ===== */
+    body{
+      background: linear-gradient(180deg, #070b14 0%, #0b1222 100%) fixed !important;
+    }
+    /* Panels remain consistent on the simplified background */
+    .panel, .table-wrap, .modal-card, .tier-panel, .tier-class-inline{
+      background: rgba(255,255,255,.035);
+    }
+
+  
+    /* ===== FINAL OVERRIDE: allow horizontal scroll inside character list (mobile) ===== */
+    @media (max-width: 900px){
+      .table-wrap{
+        overflow-x: auto !important;
+        overflow-y: auto !important;
+        touch-action: pan-x pan-y !important;
+      }
+      .table, .table *{
+        touch-action: pan-x pan-y !important;
+      }
+      /* Ensure content actually overflows horizontally */
+      .table{
+        min-width: 1100px !important;
+        table-layout: auto !important;
+      }
+    }
+
+  
+    /* ===== AI 추천/등급표 결과 카드 레이아웃 개선 ===== */
+    .tier-cat{
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 18px;
+      background: rgba(255,255,255,.03);
+    }
+    .tier-cat-title{
+      font-weight: 900;
+      letter-spacing: .2px;
+      margin-bottom: 8px;
+    }
+    .tier-cat-meta{
+      margin: 0 0 12px 0;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      color: rgba(255,255,255,.80);
+      line-height: 1.35;
+    }
+    .tier-grid{
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 1100px){
+      .tier-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 520px){
+      .tier-grid{ grid-template-columns: 1fr; }
+    }
+
+    .tier-card{
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 18px;
+      background: rgba(255,255,255,.04);
+      box-shadow: 0 10px 26px rgba(0,0,0,.20);
+      transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+    }
+    @media (hover:hover){
+      .tier-card:hover{
+        transform: translateY(-1px);
+        background: rgba(255,255,255,.06);
+        box-shadow: 0 14px 32px rgba(0,0,0,.26);
+      }
+    }
+    .tier-name{
+      font-weight: 900;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+    .tier-card-sub{
+      margin-top: 8px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* archetype pill */
+    .pill-accent{
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.92);
+      font-weight: 900;
+      letter-spacing: .2px;
+    }
+
+    /* =========================
+       Tier panel — PC 2줄 고정 레이아웃(공간 효율 개선)
+       1줄: 등급표선택 / 등급표 파티 / AI 파티 / (여백) / 전체선택 / 전체해제
+       2줄: 선택클래스 / Buffer..Warrior (7개)
+    ========================= */
+    .tier-row.tier-topline{
+      display:grid !important;
+      grid-template-columns: minmax(260px, 420px) minmax(220px, 280px) minmax(200px, 260px) 1fr auto;
+      align-items:center;
+      gap:12px;
+      flex-wrap: unset !important;
+    }
+    .tier-top-spacer{ min-width: 8px; }
+
+    .tier-row.tier-classline{
+      margin-top: 10px;
+    }
+    .tier-class-inline{
+      width: 100%;
+      min-width: 0 !important;
+      display:grid;
+      grid-template-columns: auto 1fr;
+      align-items:center;
+      gap: 12px;
+      padding: 10px 12px;
+    }
+    .tier-check-inline{
+      white-space: nowrap;
+    }
+
+    /* ✅ 클래스 7개: PC에서는 한 줄(7컬럼), 창이 줄어들면 4/3로 자동 */
+    .tier-classes-inline{
+      display:grid !important;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap:10px;
+      align-items:stretch;
+      margin-left: 0 !important;
+      width: 100%;
+      min-width: 0;
+    }
+    .tier-classes-inline .tier-class-item,
+    .tier-classes-inline label.tier-class-item{
+      min-width: 0 !important;
+      width: 100%;
+      padding: 10px 10px;
+      border-radius: 14px;
+      justify-content:flex-start;
+      gap: 8px;
+    }
+    .tier-classes-inline .tier-class-item span,
+    .tier-classes-inline label.tier-class-item span{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    /* 중간 폭: 4/3(2행) */
+    @media (max-width: 1100px){
+      .tier-classes-inline{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    /* 모바일: 기존처럼 wrap (가독성 우선) */
+    @media (max-width: 720px){
+      .tier-row.tier-topline{
+        grid-template-columns: 1fr;
+      }
+      .tier-actions-inline{
+        justify-content:flex-start;
+      }
+      .tier-class-inline{
+        grid-template-columns: 1fr;
+      }
+      .tier-classes-inline{
+        display:flex !important;
+        flex-wrap: wrap;
+      }
+    }
+
+
+/* ✅ 필수(파티 지정) UI: 선택/필수/배치 드롭다운 */
+.pick-stack{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  align-items:flex-start;
+}
+.pick-line{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:12px;
+  color: rgba(255,255,255,.82);
+  user-select:none;
+}
+.pick-line input{ transform: translateY(0.5px); }
+.pick-text{ white-space:nowrap; }
+.must-slot{
+  width: 132px;
+  max-width: 132px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line2);
+  background: rgba(255,255,255,.04);
+  color: var(--txt);
+  font-size: 12px;
+  outline: none;
+}
+.must-slot:disabled{ opacity: .55; cursor: not-allowed; }
+
+.must-role{
+  height: 32px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line2);
+  background: rgba(255,255,255,.04);
+  color: var(--txt);
+  font-size: 12px;
+  outline: none;
+}
+.must-role:disabled{ opacity: .55; cursor: not-allowed; }
+
+/* ✅ 11열 기준: 모바일 가로폭/스크롤 최적화(불필요한 과도 min-width 축소) */
+.col-char{ min-width: 220px; }
+.col-elem, .col-faction, .col-class, .col-role, .col-rarity{
+  width: 82px; min-width: 82px; text-align: center;
+}
+@media (min-width: 420px){
+  .col-char{ min-width: 240px; }
+  .col-elem, .col-faction, .col-class, .col-role, .col-rarity{
+    width: 90px; min-width: 90px;
+  }
+}
+
+
+.tier-warn{
+  margin:10px 0 6px;
+  padding:10px 12px;
+  border:1px solid rgba(255,210,120,.35);
+  background: rgba(255,210,120,.08);
+  border-radius: 14px;
+  color: rgba(255,255,255,.88);
+  font-size: 13px;
+}
+
+@media (max-width: 720px){
+  .must-slot{ width: 118px; max-width: 118px; }
+  .pick-line{ font-size: 11px; gap: 7px; }
+  .pick-stack{ gap: 5px; }
+}
+
+
+/* ===== Subpanel (class condition) toggle ===== */
+.subpanel{
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255,255,255,.02);
+}
+.subpanel[open]{
+  background: rgba(255,255,255,.025);
+}
+.subpanel-summary{
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+.subpanel-summary::-webkit-details-marker{ display:none; }
+.subpanel-title{
+  font-weight: 700;
+  color: var(--txt);
+}
+.subpanel-toggle{
+  color: var(--muted);
+  font-size: 12px;
+}
+.subpanel:not([open]) .tier-class-inline{
+  display:none;
+}
+/* 더 촘촘한 클래스 칩 */
+.tier-classes-inline{
+  margin-top: 10px;
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 1100px){
+  .tier-classes-inline{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 720px){
+  .tier-classes-inline{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+</style>
 </head>
 
 <body>
   
-  <div id="jsErrorBanner" class="js-error-banner" style="display:none;">
+  <div id="jsErrorBanner" style="display:none;position:sticky;top:0;z-index:9999;background:rgba(180,40,40,.92);color:#fff;padding:10px 14px;font-weight:700;border-bottom:1px solid rgba(255,255,255,.25);">
     JS 오류: <span id="jsErrorText"></span>
   </div>
 <div class="wrap">
@@ -81,17 +707,20 @@
 
         <div class="tier-body">
           <div class="tier-row tier-topline">
+            <!-- 0) 등급표 선택(드롭다운) -->
             <select id="tierPreset" class="select" disabled>
               <option value="">tier-lists.js 로딩중...</option>
             </select>
-            <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
-            <button class="btn" id="btnAiParty" type="button" disabled>AI 추천 파티</button>
-            <button class="btn" id="btnResetParties" type="button">파티 초기화</button>
 
-            <div class="tier-top-spacer" aria-hidden="true"></div>
+            <!-- 1) 첫째줄: 3버튼(동일 폭/높이) -->
+            <div class="tier-btnrow" aria-label="등급표/AI/초기화">
+              <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표파티</button>
+              <button class="btn" id="btnAiParty" type="button" disabled>AI파티</button>
+              <button class="btn" id="btnResetParties" type="button">파티초기화</button>
+            </div>
 
-            <!-- ✅ 전체선택/전체해제: 1줄 우측 -->
-            <div class="tier-actions-inline">
+            <!-- 2) 둘째줄: 전체선택/전체해제 -->
+            <div class="tier-actions-row" aria-label="전체 선택/해제">
               <button class="btn" id="btnAll" type="button">전체 선택</button>
               <button class="btn" id="btnNone" type="button">전체 해제</button>
             </div>
