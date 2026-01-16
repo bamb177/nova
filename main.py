@@ -43,6 +43,8 @@ CACHE: dict[str, Any] = {
     "runes_db": None,
     "rune_overrides": None,
     "rune_img_map": None,
+    "runes_debug": None,
+    "runes_source": None,
 }
 
 
