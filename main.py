@@ -617,6 +617,14 @@ def load_runes_db(force: bool = False) -> list[dict]:
                     except Exception:
                         runes = None
 
+        # ✅ runes.js가 객체로 감싸서 export 하는 경우 대응
+    if isinstance(runes, dict):
+        for k in ("runes", "data", "items", "list"):
+            v = runes.get(k)
+            if isinstance(v, list):
+                runes = v
+                break
+    
     if not isinstance(runes, list):
         runes = FALLBACK_RUNES
 
