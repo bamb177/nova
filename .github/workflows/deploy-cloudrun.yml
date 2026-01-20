@@ -66,3 +66,7 @@ jobs:
 
       - name: Show URL
         run: echo "Deployed to ${{ steps.deploy.outputs.url }}"
+
+concurrency:
+  group: cloudrun-deploy-${{ github.ref }}
+  cancel-in-progress: true
