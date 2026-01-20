@@ -1110,7 +1110,8 @@ function pick(obj, ...keys) {
         return `<div class="detail-empty">추천 룬 정보가 없습니다.</div>`;
       }
 
-      const builds = runeReco.builds;
+      // 정책: 메인 추천(1개)만 노출
+      const builds = runeReco.builds.slice(0, 1);
 
       function renderSetItem(s) {
         const icon = (s && s.icon) ? `<img class="rune-ico" src="${escapeHtml(String(s.icon))}" alt="" loading="lazy" />` : `<div class="rune-ico rune-ico-empty"></div>`;
