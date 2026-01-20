@@ -707,20 +707,17 @@ html, body{
 
         <div class="tier-body">
           <div class="tier-row tier-topline">
-            <!-- 0) 등급표 선택(드롭다운) -->
             <select id="tierPreset" class="select" disabled>
               <option value="">tier-lists.js 로딩중...</option>
             </select>
+            <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
+            <button class="btn" id="btnAiParty" type="button" disabled>AI 추천 파티</button>
+            <button class="btn" id="btnResetParties" type="button">파티 초기화</button>
 
-            <!-- 1) 첫째줄: 3버튼(동일 폭/높이) -->
-            <div class="tier-btnrow" aria-label="등급표/AI/초기화">
-              <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표파티</button>
-              <button class="btn" id="btnAiParty" type="button" disabled>AI파티</button>
-              <button class="btn" id="btnResetParties" type="button">파티초기화</button>
-            </div>
+            <div class="tier-top-spacer" aria-hidden="true"></div>
 
-            <!-- 2) 둘째줄: 전체선택/전체해제 -->
-            <div class="tier-actions-row" aria-label="전체 선택/해제">
+            <!-- ✅ 전체선택/전체해제: 1줄 우측 -->
+            <div class="tier-actions-inline">
               <button class="btn" id="btnAll" type="button">전체 선택</button>
               <button class="btn" id="btnNone" type="button">전체 해제</button>
             </div>
@@ -1118,9 +1115,12 @@ function pick(obj, ...keys) {
       function renderSetItem(s) {
         const icon = (s && s.icon) ? `<img class="rune-ico" src="${escapeHtml(String(s.icon))}" alt="" loading="lazy" />` : `<div class="rune-ico rune-ico-empty"></div>`;
         const name = escapeHtml(String(s.set || "-"));
-        const pcs = escapeHtml(String(s.pieces || ""));
-        const two = (s && s.twoPiece) ? `<div class="rune-eff"><span class="rune-eff-tag">2세트</span> ${formatDescText(escapeHtml(String(s.twoPiece)))}</div>` : "";
-        const four = (s && s.fourPiece) ? `<div class="rune-eff"><span class="rune-eff-tag">4세트</span> ${formatDescText(escapeHtml(String(s.fourPiece)))}</div>` : "";
+        const pcsNum = Number(s && s.pieces ? s.pieces : 0) || 0;
+        const pcs = escapeHtml(String(pcsNum || ""));
+
+        // ✅ 표시되는 효과는 '실제 장착 세트 수'에 맞게 노출 (2세트면 2세트만, 4세트면 2+4 노출)
+        const two = (pcsNum >= 2 && s && s.twoPiece) ? `<div class="rune-eff"><span class="rune-eff-tag">2세트</span> ${formatDescText(escapeHtml(String(s.twoPiece)))}</div>` : "";
+        const four = (pcsNum >= 4 && s && s.fourPiece) ? `<div class="rune-eff"><span class="rune-eff-tag">4세트</span> ${formatDescText(escapeHtml(String(s.fourPiece)))}</div>` : "";
         const note = (s && s.note) ? `<div class="rune-note">${formatDescText(escapeHtml(String(s.note)))}</div>` : "";
         return `
           <div class="rune-set">
@@ -1193,7 +1193,35 @@ function pick(obj, ...keys) {
         `;
       }).join("");
 
-      return cards;
+      const style = `
+        <style>
+          .rune-sets{ display:grid; gap:10px; margin-top:10px; }
+          .rune-set{ border:1px solid rgba(255,255,255,.10); border-radius:14px; padding:10px; background:rgba(255,255,255,.02); }
+          .rune-set-top{ display:flex; align-items:center; gap:10px; }
+          .rune-ico{ width:42px; height:42px; border-radius:12px; object-fit:cover; flex:0 0 auto; background:rgba(255,255,255,.06); }
+          .rune-ico-empty{ display:inline-block; }
+          .rune-set-title{ font-weight:700; }
+          .rune-set-pcs{ font-size:.92em; opacity:.75; margin-left:6px; }
+          .rune-set-body{ margin-top:8px; display:grid; gap:6px; }
+          .rune-eff{ line-height:1.35; }
+          .rune-eff-tag{ display:inline-block; min-width:44px; padding:2px 8px; margin-right:6px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); font-size:.86em; opacity:.9; }
+          .rune-note{ opacity:.78; font-size:.95em; }
+          .rune-grid{ display:grid; grid-template-columns: 1.05fr .95fr; gap:12px; margin-top:12px; }
+          @media (max-width: 920px){ .rune-grid{ grid-template-columns: 1fr; } }
+          .rune-sec-title{ font-weight:700; margin:4px 0 10px; opacity:.92; }
+          .rune-slots{ display:grid; gap:8px; }
+          .slot-row{ display:flex; gap:10px; }
+          .slot-k{ width:46px; opacity:.8; }
+          .slot-v{ flex:1; display:grid; gap:6px; }
+          .slot-item{ padding:6px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); }
+          .slot-item.muted{ opacity:.6; }
+          .rune-list{ margin-top:10px; }
+          .rune-list-title{ font-weight:700; opacity:.92; margin-bottom:6px; }
+          .rune-ul{ margin:0; padding-left:18px; display:grid; gap:6px; }
+        </style>
+      `;
+
+      return style + cards;
     }
 
     function renderDetailTabs(detail, runeReco) {
