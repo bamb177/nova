@@ -5,7 +5,6 @@ import ast
 from datetime import datetime, timezone
 from typing import Optional, Any
 
-from itertools import combinations
 from flask import Flask, jsonify, redirect, render_template, request
 from collections import Counter
 
@@ -1293,16 +1292,20 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dic
 
     Supports:
       - 4+2 (classic)
-      - 2+2+2 (when three 2pc bonuses outperform any 4pc, or when 4pc is irrelevant)
+
+    정책:
+      - 2+2+2 조합은 제외하고, 무조건 4+2 조합만 추천합니다.
+      - UI 혼선을 줄이기 위해 '메인 추천' 1개만 반환합니다.
 
     룬 세트는 중복 장착 불가(동일 세트 다중 채용 금지).
     """
     tag_idx = _rune_tag_index(rune_db)
     sets = list(rune_db.keys())
 
-    candidates: list[tuple[float, tuple[tuple[str,int], ...]]] = []
+    best_score: float = -1e18
+    best_plan: Optional[tuple[tuple[str, int], ...]] = None
 
-    # 4+2
+    # 4+2 only
     for s4 in sets:
         sc4 = _score_set(profile, s4, 4, rune_db, tag_idx)
         if sc4 < -5:
@@ -1314,33 +1317,9 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dic
             if sc2 < -8:
                 continue
             total = sc4 + sc2
-            plan = ((s4, 4), (s2, 2))
-            candidates.append((total, plan))
-
-    # 2+2+2
-    for a, b, c in combinations(sets, 3):
-        sca = _score_set(profile, a, 2, rune_db, tag_idx)
-        scb = _score_set(profile, b, 2, rune_db, tag_idx)
-        scc = _score_set(profile, c, 2, rune_db, tag_idx)
-        if min(sca, scb, scc) < -8:
-            continue
-        total = sca + scb + scc
-        plan = tuple(sorted(((a, 2), (b, 2), (c, 2)), key=lambda x: (-x[1], x[0])))
-        candidates.append((total, plan))
-
-    candidates.sort(key=lambda x: x[0], reverse=True)
-
-    # de-dup by plan
-    seen = set()
-    top: list[tuple[float, tuple[tuple[str,int], ...]]] = []
-    for sc, pl in candidates:
-        k = tuple(pl)
-        if k in seen:
-            continue
-        seen.add(k)
-        top.append((sc, pl))
-        if len(top) >= 4:
-            break
+            if total > best_score:
+                best_score = total
+                best_plan = ((s4, 4), (s2, 2))
 
     rationale: list[str] = []
     rationale.append(f"역할 판정: {profile['role']} / 스케일링 판정: {profile['scaling']}")
@@ -1358,16 +1337,14 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dic
     elif profile["role"] == "dps":
         rationale.append("딜러 역할은 본인 기대 피해(치명/특수 피해 타입/기본공격 전환) 비중을 높게 두고 최적화합니다.")
 
-    builds: list[dict] = []
-    for i, (score, plan) in enumerate(top):
-        kind = "2+2+2" if len(plan) == 3 else "4+2"
-        title = "추천(자동)" if i == 0 else f"대체안 {i}"
-        title = f"{title} ({kind})"
-        builds.append({
-            "title": title,
-            "_score": round(score, 2),
-            "setPlan": [{"set": s, "pieces": pcs} for s, pcs in plan],
-        })
+    if not best_plan:
+        return [], rationale
+
+    builds = [{
+        "title": "추천(자동)",
+        "_score": round(best_score, 2),
+        "setPlan": [{"set": s, "pieces": pcs} for s, pcs in best_plan],
+    }]
 
     return builds, rationale
 
@@ -1493,7 +1470,8 @@ def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
                 "notes": b.get("notes") or [],
                 "rationale": b.get("rationale") or ["rune_overrides.json 수동 오버라이드 적용"],
             })
-        return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
+        # 정책: 메인 추천만 표시
+        return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds[:1]}
 
     profile = _detect_profile(detail or {}, base or {})
     core_builds, rationale = _best_rune_builds(profile, rune_db)
