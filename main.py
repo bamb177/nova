@@ -1171,10 +1171,20 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
             score += 3.0
 
     else:  # DPS
+        # NOTE: DPS는 "역할"보다 "스케일(ATK/DEF/HP)"을 우선 반영해야 함.
+        # 예: DEF 스케일 DPS(Apep 등)에게 ATK/기본공격 피해 중심 세트가 상위로 뜨는 회귀를 방지.
+
+        # 치명 세트: ATK 스케일 DPS는 높은 가중치, DEF/HP 스케일 DPS는 보조(가중치 하향)
         if ("CRIT_RATE" in tags or "CRIT_DMG" in tags) and not no_crit:
-            score += 16.0
+            if scaling == "ATK":
+                score += 16.0
+            else:
+                score += 8.0
+
+        # 기본공격 피해: 대부분 ATK 기반(평타 비중)에서만 의미가 큼.
+        # DEF/HP 스케일 DPS에는 오추천을 유발하므로 거의 가치를 주지 않는다.
         if "BASIC_DMG" in tags:
-            score += 10.0
+            score += 10.0 if scaling == "ATK" else 0.0
         if "EXTRA_DMG" in tags:
             # Extra-attack 세트는 실제 'Extra attack/추가 공격' 기믹이 있을 때만 고가치
             if extra < 0.12:
@@ -1184,12 +1194,19 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         if "DOT_DMG" in tags:
             score += 18.0 * (0.3 + 0.7 * min(1.0, dot * 3.0))
 
-        if "ATK" in tags and scaling == "ATK":
-            score += 8.0
+        # 스케일 매칭 보상: DEF/HP 스케일은 스탯 자체 기여도가 크므로 보상을 조금 더 줌
+        if "ATK" in tags:
+            if scaling == "ATK":
+                score += 8.0
+            else:
+                # DEF/HP 스케일 DPS에게 ATK 세트가 끼어드는 것을 강하게 억제
+                # (특히 4세트 ATK/평타 세트가 1순위로 뜨는 회귀 방지)
+                if role == "dps":
+                    score -= 12.0 if pieces == 4 else 8.0
         if "DEF" in tags and scaling == "DEF":
-            score += 8.0
+            score += 14.0
         if "HP" in tags and scaling == "HP":
-            score += 8.0
+            score += 14.0
 
         if "ENERGY_EFF" in tags:
             score += 4.0 * ult
@@ -1226,7 +1243,8 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dic
             best.append((total, s4, s2))
 
     best.sort(key=lambda x: x[0], reverse=True)
-    top = best[:4]
+    # UI/요청사항: "대체안" 노출은 혼선을 유발하므로 1개만 반환
+    top = best[:1]
 
     rationale: list[str] = []
     rationale.append(f"역할 판정: {profile['role']} / 스케일링 판정: {profile['scaling']}")
@@ -1237,13 +1255,15 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dic
     if profile["role"] in ("buffer", "debuffer"):
         rationale.append("서포트 역할은 팀 기여/궁극기 가동률(에너지) 비중을 높게 두고 최적화합니다.")
     elif profile["role"] == "dps":
-        rationale.append("딜러 역할은 본인 기대 피해(치명/특수 피해 타입) 비중을 높게 두고 최적화합니다.")
+        if profile.get("scaling") in ("DEF", "HP"):
+            rationale.append("DEF/HP 스케일 DPS는 공격력/기본공격 피해 중심 세트 효율이 낮아 감점 처리하고, 스케일 스탯(DEF/HP) 중심으로 최적화합니다.")
+        else:
+            rationale.append("딜러 역할은 본인 기대 피해(치명/특수 피해 타입) 비중을 높게 두고 최적화합니다.")
 
     builds: list[dict] = []
-    for i, (score, s4, s2) in enumerate(top):
-        title = "추천(자동)" if i == 0 else f"대체안 {i}"
+    for (score, s4, s2) in top:
         builds.append({
-            "title": title,
+            "title": "추천(자동)",
             "_score": round(score, 2),
             "setPlan": [{"set": s4, "pieces": 4}, {"set": s2, "pieces": 2}],
         })
@@ -1296,20 +1316,24 @@ def _slot_plan_for(profile: dict, element: str) -> dict:
         return plan
 
     # DPS
+    # DEF/HP 스케일 DPS는 공격력/치명 템플릿을 그대로 쓰면 오추천이 발생하므로 우선순위를 재정렬한다.
     if no_crit:
         plan["4"] = ["Attack Penetration (%)", scaling_pct, "Attack (%)", "HP (%) (생존)"]
         plan["5"] = [_element_damage_label(element), scaling_pct, "Attack (%)", "HP (%) (생존)"]
         plan["6"] = [scaling_pct, "Attack (%)", "HP (%) (생존)", "Defense (%) (생존)"]
     else:
-        plan["4"] = ["Critical Rate (%)", "Attack Penetration (%)", "Critical Damage (%)", scaling_pct]
-        plan["5"] = [_element_damage_label(element), scaling_pct, "Attack (%)", "HP (%)", "Defense (%)"]
-        plan["6"] = [scaling_pct, "Attack (%)", "HP (%)", "Defense (%)"]
-
-        # DEF 스케일 DPS: 5/6번 메인스탯에서 Defense(%)를 최우선으로 제시
-        # (UI가 리스트의 첫 항목만 보여주는 경우에도 방어력 기반이 유지되도록)
         if scaling == "DEF":
-            plan["5"] = ["Defense (%)", _element_damage_label(element), "Attack Penetration (%)", "HP (%)"]
-            plan["6"] = ["Defense (%)", "Attack Penetration (%)", "HP (%)"]
+            plan["4"] = ["Defense (%)", "Critical Rate (%)", "Critical Damage (%)", "Attack Penetration (%)"]
+            plan["5"] = ["Defense (%)", _element_damage_label(element), "Attack Penetration (%)", "HP (%) (생존)"]
+            plan["6"] = ["Defense (%)", "Critical Rate (%) (대체)", "HP (%) (생존)"]
+        elif scaling == "HP":
+            plan["4"] = ["HP (%)", "Critical Rate (%)", "Critical Damage (%)", "Attack Penetration (%)"]
+            plan["5"] = ["HP (%)", _element_damage_label(element), "Attack Penetration (%)", "Defense (%) (생존)"]
+            plan["6"] = ["HP (%)", "Critical Rate (%) (대체)", "Defense (%) (생존)"]
+        else:
+            plan["4"] = ["Critical Rate (%)", "Attack Penetration (%)", "Critical Damage (%)", scaling_pct]
+            plan["5"] = [_element_damage_label(element), scaling_pct, "Attack (%)", "HP (%)", "Defense (%)"]
+            plan["6"] = [scaling_pct, "Attack (%)", "HP (%)", "Defense (%)"]
 
     return plan
 
@@ -1337,46 +1361,16 @@ def _substats_for(profile: dict) -> list[str]:
         return out
 
     if no_crit:
-        return [scaling_pct, "Attack Penetration (%)", "Element Attribute Damage (%)", "Attack (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
+        # no-crit DPS도 DEF/HP 스케일이면 스케일 스탯을 최우선으로
+        return [scaling_pct, "Attack Penetration (%)", "Element Attribute Damage (%)", "HP (%) / Defense (%) (생존)", "Attack (%) (대체)", "Flat Attack (대체)"]
+
+    # DPS substat priority
+    if scaling == "DEF":
+        return ["Defense (%)", "Critical Rate (%)", "Critical Damage (%)", "Attack Penetration (%)", "HP (%) (생존)", "Flat DEF (대체)"]
+    if scaling == "HP":
+        return ["HP (%)", "Critical Rate (%)", "Critical Damage (%)", "Attack Penetration (%)", "Defense (%) (생존)", "Flat HP (대체)"]
 
     return ["Critical Rate (%)", "Critical Damage (%)", scaling_pct, "Attack Penetration (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
-
-
-# -------------------------
-# Profile overrides (anti-regression)
-# -------------------------
-# 일부 캐릭터는 스킬 설명 텍스트에 스케일링(ATK/HP/DEF)이 명시되지 않아
-# 자동 감지(_detect_profile)가 MIX/ATK로 오판할 수 있습니다.
-# 이런 케이스는 캐릭터별로 프로파일을 잠그고(LOCK) 추천이 회귀하지 않도록 합니다.
-_LOCKED_PROFILE_OVERRIDES: dict[str, dict] = {
-    # Apep: 방어력 기반 스케일 캐릭터(유저 피드백 기반, 회귀 방지용 고정)
-    "apep": {"scaling": "DEF"},
-}
-
-
-def _apply_profile_overrides(cid: str, base: dict, detail: dict, profile: dict) -> dict:
-    """Apply per-character locked overrides to the auto-detected profile.
-
-    This is intentionally conservative: only keys explicitly provided in
-    _LOCKED_PROFILE_OVERRIDES are overwritten.
-    """
-    ckey = (cid or "").strip().lower()
-    ov = _LOCKED_PROFILE_OVERRIDES.get(ckey)
-    if not isinstance(ov, dict):
-        return profile
-
-    changed = []
-    for k, v in ov.items():
-        if v is None:
-            continue
-        if profile.get(k) != v:
-            profile[k] = v
-            changed.append(f"{k}={v}")
-
-    if changed:
-        # UI/디버깅용(템플릿에서 사용하지 않아도 무해)
-        profile["override_note"] = f"locked_override({ckey}): " + ", ".join(changed)
-    return profile
 
 
 def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
@@ -1414,7 +1408,6 @@ def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
         return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
 
     profile = _detect_profile(detail or {}, base or {})
-    profile = _apply_profile_overrides(cid, base or {}, detail or {}, profile)
     core_builds, rationale = _best_rune_builds(profile, rune_db)
 
     builds = []
@@ -1545,7 +1538,6 @@ def _combo_detail(members: list[dict]) -> dict:
 
 def _member_payload(cid: str, tier: float, base: dict, detail: dict, role_override: Optional[str] = None) -> dict:
     prof = _detect_profile(detail or {}, base or {})
-    prof = _apply_profile_overrides(cid, base or {}, detail or {}, prof)
 
     # effective archetype/role for party composition
     role = (role_override or prof.get("role") or _role_from_base(base or {}) or "dps").strip().lower()
