@@ -1110,11 +1110,13 @@ function pick(obj, ...keys) {
         return `<div class="detail-empty">추천 룬 정보가 없습니다.</div>`;
       }
 
-      // 정책: 메인 추천(1개)만 노출
-      const builds = runeReco.builds.slice(0, 1);
+      const builds = runeReco.builds;
 
       function renderSetItem(s) {
-        const icon = (s && s.icon) ? `<img class="rune-ico" src="${escapeHtml(String(s.icon))}" alt="" loading="lazy" />` : `<div class="rune-ico rune-ico-empty"></div>`;
+        // 이미지 파일 누락/이름 불일치 등으로 깨지는 경우가 있어 onerror fallback 적용
+        const icon = (s && s.icon)
+          ? `<img class="rune-ico" src="${escapeHtml(String(s.icon))}" alt="" loading="lazy" onerror="this.onerror=null;this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';this.classList.add('rune-ico-broken');" />`
+          : `<div class="rune-ico rune-ico-empty"></div>`;
         const name = escapeHtml(String(s.set || "-"));
         const pcsNum = Number(s && s.pieces ? s.pieces : 0) || 0;
         const pcs = escapeHtml(String(pcsNum || ""));
@@ -1200,6 +1202,8 @@ function pick(obj, ...keys) {
           .rune-set{ border:1px solid rgba(255,255,255,.10); border-radius:14px; padding:10px; background:rgba(255,255,255,.02); }
           .rune-set-top{ display:flex; align-items:center; gap:10px; }
           .rune-ico{ width:42px; height:42px; border-radius:12px; object-fit:cover; flex:0 0 auto; background:rgba(255,255,255,.06); }
+          /* 이미지 엑박 fallback: 1x1 transparent로 교체 후 배경으로 placeholder 노출 */
+          .rune-ico-broken{ background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.04)); }
           .rune-ico-empty{ display:inline-block; }
           .rune-set-title{ font-weight:700; }
           .rune-set-pcs{ font-size:.92em; opacity:.75; margin-left:6px; }
