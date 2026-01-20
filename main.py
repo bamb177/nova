@@ -5,6 +5,7 @@ import ast
 from datetime import datetime, timezone
 from typing import Optional, Any
 
+from itertools import combinations
 from flask import Flask, jsonify, redirect, render_template, request
 from collections import Counter
 
@@ -779,22 +780,51 @@ def _skill_texts(detail: dict) -> list[str]:
         return []
     texts: list[str] = []
 
+    # skills blob
     for key in ["skills", "skill", "skillSet", "skill_set"]:
         if isinstance(detail.get(key), dict):
             texts += _collect_texts(detail.get(key))
 
-    for key in ["normal", "basic", "basicAttack", "auto", "active", "ultimate", "burst", "passive", "passive1", "passive2", "skill1", "skill2", "skill3"]:
+    # legacy direct keys
+    for key in [
+        "normal", "basic", "basicAttack", "auto", "active", "ultimate", "burst",
+        "passive", "passive1", "passive2", "skill1", "skill2", "skill3",
+    ]:
         if isinstance(detail.get(key), (dict, list, str)):
             texts += _collect_texts(detail.get(key))
 
+    # team/combo
     for key in ["teamSkill", "team_skill", "team", "synergy", "combo", "comboSkill"]:
+        if isinstance(detail.get(key), (dict, list, str)):
+            texts += _collect_texts(detail.get(key))
+
+    # ✅ memory card
+    for key in ["memoryCard", "memory_card", "memory", "memCard", "card"]:
+        if isinstance(detail.get(key), (dict, list, str)):
+            texts += _collect_texts(detail.get(key))
+
+    # ✅ awakenings / limit break
+    for key in ["awakenings", "awakening", "limitBreak", "limit_break", "dupe", "constellation"]:
         if isinstance(detail.get(key), (dict, list, str)):
             texts += _collect_texts(detail.get(key))
 
     if not texts:
         texts = _collect_texts(detail)
 
-    return texts
+    # light cleaning (오탐 감소)
+    cleaned: list[str] = []
+    for t in texts:
+        if not isinstance(t, str):
+            continue
+        s = t.strip()
+        if len(s) < 4:
+            continue
+        # 숫자/기호만으로 구성된 조각 제거
+        if all(ch.isdigit() or ch in "%.,:+-()/ []" for ch in s):
+            continue
+        cleaned.append(s)
+
+    return cleaned
 
 
 # ---------- Scaling detection (ATK / HP / DEF) ----------
@@ -861,68 +891,128 @@ def detect_no_crit(detail: dict) -> bool:
     return False
 
 
+# ---------- Deeper intent signals (used for "AI-like" weighting) ----------
+
+_RE_CRIT_WORD = re.compile(r"(critical\s*(?:hit)?|crit(?:ical)?|치명타|크리티컬|치확|치피)", re.I)
+_RE_HEAL_WORD = re.compile(r"(heal|healing|restore|recovery|치유|회복|힐)", re.I)
+
+# 1) "치확(치명타) ↔ 힐" 연동: 정량 문구(마다/per)와 트리거(치명타 적중 시)를 우선
+_RE_QUANT_CRIT_HEAL = re.compile(
+    r"(?:"
+    r"치명타\s*확률\s*\d+(?:\.\d+)?%\s*마다\s*(?:치유|회복)\s*(?:효율|량)|"
+    r"치명타\s*확률\s*\d+(?:\.\d+)?%\s*마다\s*(?:치유|회복)\s*효율|"
+    r"crit(?:ical)?\s*(?:hit\s*)?rate\s*\d+(?:\.\d+)?%\s*(?:per|each)\s*(?:healing|heal)\s*(?:effectiveness|amount)|"
+    r"per\s*\d+(?:\.\d+)?%\s*crit(?:ical)?\s*(?:hit\s*)?rate\s*(?:healing|heal)"
+    r")",
+    re.I,
+)
+_RE_CRIT_HEAL_TRIGGER = re.compile(
+    r"(?:"
+    r"치명타\s*(?:적중|명중)\s*시\s*(?:치유|회복)\s*(?:량|효율)\s*증가|"
+    r"(?:치유|회복).*치명타\s*(?:적중|명중)\s*시|"
+    r"critical\s*(?:hit)?\s*(?:on\s*)?hit\s*.*(?:healing|heal)\s*(?:increases|increase)|"
+    r"when\s*(?:a\s*)?critical\s*(?:hit)?\s*.*(?:healing|heal)"
+    r")",
+    re.I,
+)
+_RE_LINK_WORD = re.compile(r"(마다|per|each|every|비례|연동|따라)", re.I)
+
+_RE_BASIC = re.compile(r"(basic\s*attack|normal\s*attack|기본\s*공격|평타)", re.I)
+_RE_BASIC_CONSIDERED = re.compile(
+    r"(기본\s*공격\s*피해로\s*(?:간주|취급)|기본\s*공격\s*피해\s*로\s*(?:간주|취급)|"
+    r"considered\s+as\s+basic\s+attack\s+damage|treated\s+as\s+basic\s+attack\s+damage|"
+    r"this\s+damage\s+is\s+considered\s+as\s+basic\s+attack)",
+    re.I,
+)
+
+_RE_ATK_SPD = re.compile(r"(attack\s*speed|atk\s*speed|공격\s*속도|공속)", re.I)
+_RE_BASIC_ATK_SPD = re.compile(r"(기본\s*공격\s*속도|basic\s*attack\s*speed)", re.I)
 
 
-def detect_crit_heal_synergy(detail: dict) -> int:
-    """Detect 'crit rate / crit hit' -> healing scaling synergy.
-
-    Returns an integer strength (number of matched evidences). Designed to be strict
-    enough to reduce false positives, but to not miss obvious linkages such as:
-      - '치명타 확률 1%마다 치유 효율 증가'
-      - '치명타 적중 시 치유량 증가'
-      - 'Crit rate ... increases healing' (EN)
-    """
-    if not isinstance(detail, dict):
-        return 0
-
-    texts = _skill_texts(detail)
+def detect_basic_importance(texts: list[str]) -> float:
+    """0.0~1.0: 기본공격(평타) 비중 추정. '기본공격 피해로 간주/취급' 문구를 강하게 반영."""
     if not texts:
-        return 0
-
-    patterns = [
-        # KO: crit rate per/each -> healing
-        re.compile(r"(치명타\s*확률|치확)[^\n]{0,60}(?:마다|당|per|each)[^\n]{0,60}(치유\s*효율|치유량|치유|회복량|회복)", re.I),
-        # KO: crit rate -> healing increase (without '마다')
-        re.compile(r"(치명타\s*확률|치확)[^\n]{0,60}(치유\s*효율|치유량|치유|회복량|회복)[^\n]{0,60}(증가|상승|늘어|up|increase)", re.I),
-        # KO/EN: on critical hit -> healing
-        re.compile(r"(치명타\s*적중|크리티컬\s*적중|critical\s*hit)[^\n]{0,60}(치유\s*효율|치유량|치유|회복량|회복|healing|heal)", re.I),
-        # EN: crit rate/chance -> healing
-        re.compile(r"(crit(?:ical)?\s*(?:rate|chance))[^\n]{0,80}(healing|heal)[^\n]{0,40}(increase|up)", re.I),
-    ]
-
-    hits = 0
+        return 0.0
+    strong = mid = 0
+    clauses = 0
     for t in texts:
-        if not t:
-            continue
-        for p in patterns:
-            if p.search(t):
-                hits += 1
-                break
+        parts = re.split(r"[。\.\!\?\n\r]+|[;·•]", t or "")
+        for c in parts:
+            c = (c or "").strip()
+            if len(c) < 6:
+                continue
+            clauses += 1
+            if _RE_BASIC_CONSIDERED.search(c):
+                strong += 2
+                continue
+            if _RE_BASIC.search(c):
+                mid += 1
+    if clauses == 0:
+        return 0.0
+    raw = strong * 1.0 + mid * 0.35
+    denom = max(3.0, clauses * 0.35)
+    return float(min(1.0, raw / denom))
 
-    return hits
 
-
-def detect_basic_attack_conversion(detail: dict) -> int:
-    """Detect skills that explicitly say damage is treated/considered as basic attack damage."""
-    if not isinstance(detail, dict):
-        return 0
-    texts = _skill_texts(detail)
+def detect_atk_speed_importance(texts: list[str]) -> float:
+    """0.0~1.0: 공격속도/평타속도 기믹 추정."""
     if not texts:
-        return 0
-
-    ko_keys = ["기본 공격 피해로 간주", "기본 공격 피해로 취급", "기본공격 피해로 간주", "기본공격 피해로 취급"]
-    hits = 0
+        return 0.0
+    strong = hit = 0
+    clauses = 0
     for t in texts:
-        if not t:
-            continue
-        tl = t.lower()
-        if any(k in t for k in ko_keys):
-            hits += 1
-            continue
-        # EN strict: must contain 'basic attack damage' and also treated/considered
-        if "basic attack damage" in tl and ("consider" in tl or "treated" in tl or "regarded" in tl):
-            hits += 1
-    return hits
+        parts = re.split(r"[。\.\!\?\n\r]+|[;·•]", t or "")
+        for c in parts:
+            c = (c or "").strip()
+            if len(c) < 6:
+                continue
+            clauses += 1
+            if _RE_BASIC_ATK_SPD.search(c):
+                strong += 1
+            elif _RE_ATK_SPD.search(c):
+                hit += 1
+    if clauses == 0:
+        return 0.0
+    raw = strong * 1.0 + hit * 0.5
+    denom = max(3.0, clauses * 0.35)
+    return float(min(1.0, raw / denom))
+
+
+def detect_crit_heal_synergy(texts: list[str]) -> float:
+    """0.0~1.0: '치확-힐 연동'을 정량화(정량/트리거 우선, 오탐 최소화)."""
+    if not texts:
+        return 0.0
+    strong = weak = 0
+    clauses = 0
+    for t in texts:
+        parts = re.split(r"[。\.\!\?\n\r]+|[;·•]", t or "")
+        for c in parts:
+            c = (c or "").strip()
+            if len(c) < 6:
+                continue
+            clauses += 1
+
+            # strongest patterns
+            if _RE_QUANT_CRIT_HEAL.search(c) or _RE_CRIT_HEAL_TRIGGER.search(c):
+                strong += 2
+                continue
+
+            has_c = bool(_RE_CRIT_WORD.search(c))
+            has_h = bool(_RE_HEAL_WORD.search(c))
+            if has_c and has_h:
+                # linked wording: "마다/per/each" improves confidence
+                if _RE_LINK_WORD.search(c):
+                    strong += 1
+                else:
+                    weak += 1
+
+    if clauses == 0:
+        return 0.0
+    raw = strong * 1.0 + weak * 0.25
+    denom = max(3.0, clauses * 0.35)
+    return float(min(1.0, raw / denom))
+
+
 def _role_from_base(base: dict) -> str:
     cls = str((base or {}).get("class") or "").strip().lower()
     role = str((base or {}).get("role") or "").strip().lower()
@@ -982,14 +1072,10 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         scaling = "ATK" if best == atk_s else ("HP" if best == hp_s else "DEF")
 
     dot_cnt = extra_cnt = ult_cnt = 0
-    basic_conv_cnt = 0
     team_buff_cnt = debuff_cnt = heal_cnt = shield_cnt = 0
 
     for t in texts:
         tl = t.lower()
-        # explicit 'treated as basic attack damage' markers (Freya 등)
-        if ("기본 공격 피해로 간주" in t) or ("기본 공격 피해로 취급" in t) or ("기본공격 피해로 간주" in t) or ("기본공격 피해로 취급" in t) or ("basic attack damage" in tl and ("consider" in tl or "treated" in tl or "regarded" in tl)):
-            basic_conv_cnt += 1
         if any(k in tl for k in _KW_DOT):
             dot_cnt += 1
         # strict extra attack detection (avoid false positives like "추가 피해")
@@ -1009,9 +1095,6 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     total = max(1, len(texts))
     dot_share = dot_cnt / total
     extra_share = extra_cnt / total
-    basic_share = min(1.0, basic_conv_cnt / total * 2.0)
-    crit_heal_hits = detect_crit_heal_synergy(detail or {})
-    crit_heal_synergy = crit_heal_hits > 0
     ult_importance = min(1.0, ult_cnt / total * 2.0)
     team_buff_strength = min(1.0, team_buff_cnt / total * 2.0)
     debuff_strength = min(1.0, debuff_cnt / total * 2.0)
@@ -1024,6 +1107,11 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     no_crit = detect_no_crit(detail or {})
     healer_hybrid = bool(role == "healer" and atk_s >= 15.0 and heal_strength < 0.35)
 
+    # deeper intent signals
+    basic_importance = detect_basic_importance(texts)
+    atk_speed_importance = detect_atk_speed_importance(texts)
+    crit_heal_synergy = detect_crit_heal_synergy(texts)
+
     sample_text = None
     if scaling == "ATK":
         sample_text = next((t for t in texts if _pct_hits(t, ["attack power", "atk", "attack", "공격력"])), None)
@@ -1034,6 +1122,7 @@ def _detect_profile(detail: dict, base: dict) -> dict:
 
     return {
         "role": role,
+        "class": str((base or {}).get("class") or "").strip().lower(),
         "scaling": scaling,
         "atk_score": atk_s,
         "hp_score": hp_s,
@@ -1047,9 +1136,9 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         "shield_strength": shield_strength,
         "healer_hybrid": healer_hybrid,
         "no_crit": no_crit,
-        "basic_share": basic_share,
+        "basic_importance": basic_importance,
+        "atk_speed_importance": atk_speed_importance,
         "crit_heal_synergy": crit_heal_synergy,
-        "crit_heal_hits": crit_heal_hits,
         "sample_text": sample_text,
     }
 
@@ -1085,8 +1174,15 @@ def _rune_tags_from_effect(effect_text: str) -> set[str]:
         tags.add("BASIC_DMG")
     if "extra attack" in tl or "추가 공격" in t:
         tags.add("EXTRA_DMG")
+    # trigger-dependent extra attack clause (prevents Freya-style 오탐)
+    if ("after" in tl and "extra attack" in tl) or ("추가 공격" in t and ("가한 후" in t or "이후" in t or "후" in t)):
+        tags.add("TRIG_EXTRA")
     if "continuous damage" in tl or "damage over time" in tl or "지속" in t:
         tags.add("DOT_DMG")
+
+    # attack speed
+    if "attack speed" in tl or "atk speed" in tl or "공격 속도" in t or "공속" in t:
+        tags.add("ATK_SPEED")
 
     # heal/shield
     if "healing effectiveness" in tl or "치유" in t or "회복" in t:
@@ -1099,6 +1195,14 @@ def _rune_tags_from_effect(effect_text: str) -> set[str]:
         tags.add("TEAM_DMG")
     if _has_any(t, _KW_VULN) or ("받는 피해" in t):
         tags.add("VULN")
+
+    # class-gated sets (common in runes.js descriptions)
+    if ("디버퍼" in t) and ("경우" in t or "일 경우" in t or "인 경우" in t):
+        tags.add("REQ_DEBUFFER")
+
+    # acquisition constraint
+    if ("길드" in t and "레이드" in t) or ("guild" in tl and "raid" in tl):
+        tags.add("GUILD_ONLY")
 
     # energy economy
     if ("gain 1 energy" in tl) or ("gain 1 energy immediately" in tl) or ("전투 시작" in t and "에너지" in t):
@@ -1137,6 +1241,9 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
     debuff = profile["debuff_strength"]
     heal = profile["heal_strength"]
     shield = profile["shield_strength"]
+    basic_imp = float(profile.get("basic_importance") or 0.0)
+    aspd_imp = float(profile.get("atk_speed_importance") or 0.0)
+    crit_heal = float(profile.get("crit_heal_synergy") or 0.0)
 
     score = 0.0
 
@@ -1162,17 +1269,10 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
                 score += 6.0
             elif role == "debuffer":
                 score += 2.0
-            elif role == "healer":
-                # 치확-힐 연동(예: 치확 1%마다 치유 효율 증가 / 치명타 적중 시 치유량 증가)인 경우 치확 2세트 가치가 급상승
-                if profile.get("crit_heal_synergy"):
-                    score += 5.0
-                elif profile.get("healer_hybrid"):
-                    score += 2.0
-                else:
-                    score += 0.0
             elif profile.get("healer_hybrid"):
                 score += 2.0
             else:
+                # 힐러/탱커/버퍼는 기본적으로 치확 2세트 효율이 낮음(하이브리드 예외)
                 score += 0.0
 
     # role-specific (4pc dominates)
@@ -1221,18 +1321,21 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
                     score -= 6.0
             else:
                 score += 10.0 * min(1.0, shield)
-        # 치확-힐 연동이 있는 힐러는 치확/치피 세트도 실질적인 '치유량 증가'로 환산되므로 가점
-        if profile.get("crit_heal_synergy") and not no_crit:
-            if "CRIT_RATE" in tags:
-                score += 10.0 if pieces == 4 else 6.0
-            if "CRIT_DMG" in tags:
-                score += 4.0 if pieces == 4 else 2.0
-
         if profile.get("healer_hybrid") and not no_crit:
             if "CRIT_RATE" in tags or "CRIT_DMG" in tags:
                 score += 3.0
             if "ATK" in tags and scaling == "ATK":
                 score += 4.0
+
+        # ✅ 치확-힐 연동(라비니아 류): '치확/치피'의 가치가 급상승
+        if (not no_crit) and crit_heal >= 0.15:
+            if "CRIT_RATE" in tags:
+                score += 10.0 * min(1.0, crit_heal * 1.4)
+            if "CRIT_DMG" in tags:
+                score += 6.0 * min(1.0, crit_heal * 1.2)
+            # 힐러가 치확을 챙기려면 생존도 같이 필요
+            if "HP" in tags or "DEF" in tags:
+                score += 1.0
 
     elif role == "tank":
         if "HP" in tags:
@@ -1255,13 +1358,15 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         if ("CRIT_RATE" in tags or "CRIT_DMG" in tags) and not no_crit:
             score += 16.0
         if "BASIC_DMG" in tags:
-            # 기본 공격 피해로 간주/취급되는 스킬이 많을수록(예: Freya) 기본공격 세트 가치가 급상승
-            bs = float(profile.get("basic_share") or 0.0)
-            score += 8.0 + 6.0 * min(1.0, max(0.0, bs))
+            # Freya처럼 "기본 공격 피해로 간주"가 많을수록 가치를 대폭 상향
+            score += 10.0 + 22.0 * basic_imp
+        if "ATK_SPEED" in tags:
+            score += 10.0 * aspd_imp
         if "EXTRA_DMG" in tags:
-            score += 18.0 * (0.3 + 0.7 * min(1.0, extra * 3.0))
+            # extra 공격 기믹이 없으면 0점(기존 baseline 0.3 제거)
+            score += 20.0 * min(1.0, extra * 3.0)
         if "DOT_DMG" in tags:
-            score += 18.0 * (0.3 + 0.7 * min(1.0, dot * 3.0))
+            score += 20.0 * min(1.0, dot * 3.0)
 
         if "ATK" in tags and scaling == "ATK":
             score += 8.0
@@ -1281,6 +1386,19 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         if "HP" in tags or "DEF" in tags:
             score += 1.0
 
+    # ---------- universal constraints / penalties ----------
+    # 4세트가 특정 클래스(디버퍼 등) 전용인 경우: 역할이 다르면 강하게 감점
+    if (pieces == 4) and ("REQ_DEBUFFER" in tags) and (role != "debuffer"):
+        score -= 50.0
+
+    # extra 공격을 "가한 후" 같은 트리거가 있는 세트는 extra 기믹이 없으면 감점
+    if (pieces == 4) and ("TRIG_EXTRA" in tags) and (extra < 0.12):
+        score -= 18.0
+
+    # 획득 제한(길드 레이드 전용)은 기본적으로 가산점이 아니라 감점
+    if "GUILD_ONLY" in tags:
+        score -= 8.0
+
     if no_crit and ("CRIT_RATE" in tags or "CRIT_DMG" in tags):
         score -= 8.0
 
@@ -1288,38 +1406,25 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
 
 
 def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dict], list[str]]:
-    """Select best rune set combinations.
-
-    Supports:
-      - 4+2 (classic)
-
-    정책:
-      - 2+2+2 조합은 제외하고, 무조건 4+2 조합만 추천합니다.
-      - UI 혼선을 줄이기 위해 '메인 추천' 1개만 반환합니다.
-
-    룬 세트는 중복 장착 불가(동일 세트 다중 채용 금지).
-    """
     tag_idx = _rune_tag_index(rune_db)
     sets = list(rune_db.keys())
 
-    best_score: float = -1e18
-    best_plan: Optional[tuple[tuple[str, int], ...]] = None
-
-    # 4+2 only
+    best: list[tuple[float, str, str]] = []
     for s4 in sets:
         sc4 = _score_set(profile, s4, 4, rune_db, tag_idx)
         if sc4 < -5:
             continue
         for s2 in sets:
+            # 룬 세트는 중복 장착 불가: 4세트와 2세트가 같은 세트면 제외
             if s2 == s4:
                 continue
             sc2 = _score_set(profile, s2, 2, rune_db, tag_idx)
-            if sc2 < -8:
-                continue
             total = sc4 + sc2
-            if total > best_score:
-                best_score = total
-                best_plan = ((s4, 4), (s2, 2))
+            best.append((total, s4, s2))
+
+    best.sort(key=lambda x: x[0], reverse=True)
+    # 사용자 요구: 2+2+2 제외(4+2만) + "대체안" 비노출 → 1개만 반환
+    top = best[:1]
 
     rationale: list[str] = []
     rationale.append(f"역할 판정: {profile['role']} / 스케일링 판정: {profile['scaling']}")
@@ -1327,25 +1432,29 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dic
         rationale.append(f"스케일링 근거 예시: '{str(profile['sample_text'])[:140]}'")
     if profile.get("no_crit"):
         rationale.append("치명타 불가/비활성 문구 감지 → 치명타(치확/치피) 중심 세트는 감점 처리.")
-    if profile.get("crit_heal_synergy"):
-        rationale.append("치확-힐 연동 문구 감지 → 힐러의 치확/치피 세트도 가점 처리(오탐 최소화 로직 적용).")
-    if float(profile.get("basic_share") or 0.0) >= 0.35:
-        rationale.append("기본 공격 피해로 '간주/취급'되는 스킬 감지 → 기본공격 피해 세트 가중치 상승.")
-
     if profile["role"] in ("buffer", "debuffer"):
         rationale.append("서포트 역할은 팀 기여/궁극기 가동률(에너지) 비중을 높게 두고 최적화합니다.")
     elif profile["role"] == "dps":
         rationale.append("딜러 역할은 본인 기대 피해(치명/특수 피해 타입/기본공격 전환) 비중을 높게 두고 최적화합니다.")
+        bi = float(profile.get("basic_importance") or 0.0)
+        ai = float(profile.get("atk_speed_importance") or 0.0)
+        if bi >= 0.12:
+            rationale.append(f"기본공격 비중 감지: {round(bi, 2)} → 기본공격 피해 세트 가중치 상향")
+        if ai >= 0.12:
+            rationale.append(f"공격속도/평타속도 기믹 감지: {round(ai, 2)}")
+    elif profile["role"] == "healer":
+        ch = float(profile.get("crit_heal_synergy") or 0.0)
+        if ch >= 0.15:
+            rationale.append(f"치확-힐 연동 감지: {round(ch, 2)} → 치확/치피 세트 가중치 상향")
 
-    if not best_plan:
-        return [], rationale
-
-    builds = [{
-        "title": "추천(자동)",
-        "_score": round(best_score, 2),
-        "setPlan": [{"set": s, "pieces": pcs} for s, pcs in best_plan],
-    }]
-
+    builds: list[dict] = []
+    if top:
+        score, s4, s2 = top[0]
+        builds.append({
+            "title": "추천(자동)",
+            "_score": round(score, 2),
+            "setPlan": [{"set": s4, "pieces": 4}, {"set": s2, "pieces": 2}],
+        })
     return builds, rationale
 
 
@@ -1416,11 +1525,8 @@ def _substats_for(profile: dict) -> list[str]:
 
     if role == "healer":
         out = ["Healing Effectiveness (%)", "HP (%)", "Defense (%)", "Flat HP / Flat DEF"]
-        # 치확-힐 연동(예: '치확 1%마다 치유 효율 증가')이 있는 힐러는 치확/치피 부옵 가치가 상승
-        if (profile.get("healer_hybrid") or profile.get("crit_heal_synergy")) and not no_crit:
-            out += ["Critical Rate (%)", "Critical Damage (%)"]
-            if profile.get("healer_hybrid"):
-                out += ["Attack (%)"]
+        if profile.get("healer_hybrid") and not no_crit:
+            out += ["Critical Rate (%)", "Critical Damage (%)", "Attack (%)"]
         return out
 
     if role == "tank":
@@ -1470,8 +1576,7 @@ def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
                 "notes": b.get("notes") or [],
                 "rationale": b.get("rationale") or ["rune_overrides.json 수동 오버라이드 적용"],
             })
-        # 정책: 메인 추천만 표시
-        return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds[:1]}
+        return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
 
     profile = _detect_profile(detail or {}, base or {})
     core_builds, rationale = _best_rune_builds(profile, rune_db)
