@@ -45,6 +45,7 @@ export const PVE_TIER_LIST = {
       { name: 'Gaia' },
       { name: 'Nina' },
       { name: 'Morgan Le Fay' },
+      { name: 'Tamamo-no-mae' },
     ],
     SS: [
       { name: 'Yuis' },
@@ -124,6 +125,7 @@ export const PVP_TIER_LIST = {
       { name: 'Hela' },
       { name: 'Sigurd' },
       { name: 'Jorogumo' },
+      { name: 'Tamamo-no-mae' },
     ],
     S: [
       { name: 'Arthur' },
@@ -173,6 +175,7 @@ export const RIFT_TIER_LIST = {
       { name: 'Nina' },
       { name: 'Morgan Le Fay' },
       { name: 'Sigurd' },
+      { name: 'Tamamo-no-mae' },
     ],
     SS: [
       { name: 'Freye' },
@@ -238,6 +241,7 @@ export const GUILD_RAID_TIER_LIST = {
       { name: 'Hela' },
       { name: 'Nina' },
       { name: 'Morgan Le Fay' },
+      { name: 'Tamamo-no-mae' },
     ],
     SS: [
       { name: 'Freye' },
