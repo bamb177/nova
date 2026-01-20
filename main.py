@@ -297,6 +297,12 @@ def parse_rune_effect_text(text: str) -> dict:
         if p is not None and ("defense" in tl or "방어력" in t):
             out["mods"]["def_pct"] = out["mods"].get("def_pct", 0.0) + p
 
+    # Attack Speed +X%
+    if "attack speed" in tl or "공격 속도" in t or "공속" in t:
+        p = _pct_from_text(t)
+        if p is not None:
+            out["mods"]["atk_spd"] = out["mods"].get("atk_spd", 0.0) + p
+
     # Crit rate +6%
     if "critical hit rate" in tl or "crit rate" in tl or "치명타 확률" in t or "치명률" in t or "크리" in t:
         p = _pct_from_text(t)
@@ -742,6 +748,120 @@ _KW_ENERGY = ["energy", "에너지", "gain", "regen", "회복", "획득", "충�
 _KW_ULT = ["ultimate", "ult", "burst", "궁극기", "필살기", "궁"]
 _KW_CRIT_DISABLE = ["cannot crit", "can't crit", "no crit", "crit disabled", "치명타 불가", "크리티컬 불가", "치명타가 발생하지"]
 
+# ---------- Pattern helpers (AI-like text understanding, low false positives) ----------
+
+# basic attack
+_RE_BASIC_ENUM = re.compile(r"(기본\s*공격\s*/\s*스킬\s*/\s*궁극기|기본\s*공격\s*/\s*스킬|basic\s*attack\s*/\s*skill\s*/\s*ultimate)", re.IGNORECASE)
+_RE_BASIC_CONSIDERED = re.compile(r"(기본\s*공격\s*피해로\s*(?:간주|취급)|considered\s+as\s+basic\s+attack\s+damage|treated\s+as\s+basic\s+attack\s+damage)", re.IGNORECASE)
+_RE_BASIC_DMG_STRONG = re.compile(r"(기본\s*공격\s*피해|일반\s*공격\s*피해|basic\s*attack\s*damage|normal\s*attack\s*damage)", re.IGNORECASE)
+_RE_BASIC_TRIGGER = re.compile(r"(기본\s*공격.*?(시|으로|적중\s*시|명중\s*시)|일반\s*공격.*?(시|으로|적중\s*시|명중\s*시)|on\s+(?:a\s+)?(?:basic|normal)\s+attack)", re.IGNORECASE)
+
+# attack speed
+_RE_ATK_SPD = re.compile(r"(공격\s*속도|공속|attack\s*speed)", re.IGNORECASE)
+_RE_BASIC_ATK_SPD = re.compile(r"(기본\s*공격\s*속도|basic\s+attack\s+speed)", re.IGNORECASE)
+
+# crit-heal synergy (e.g., Lavinia)
+_RE_CRIT = re.compile(r"(치명타\s*확률|치확|크리(?:티컬)?\s*확률|치명타|크리(?:티컬)?|crit\s*rate|critical\s+hit\s+rate|crit\s+chance|critical\s+chance)", re.IGNORECASE)
+_RE_HEAL2 = re.compile(r"(치유(?:량)?|치유\s*효율|회복|힐|heal(?:ing)?|recovery|restore|recover)", re.IGNORECASE)
+_RE_LINK2 = re.compile(r"(마다|당|에\s*따라|에\s*비례|기반(?:으로)?|연동|per\s+\d|based\s+on|scales?\s+with|depending\s+on)", re.IGNORECASE)
+_RE_QUANT_CRIT_HEAL = re.compile(
+    r"치명타\s*확률\s*\d+(?:\.\d+)?\s*%?\s*(?:마다|당).{0,24}?(치유\s*효율|치유량).{0,24}?(증가|상승)|"
+    r"(치유\s*효율|치유량).{0,24}?치명타\s*확률\s*\d+(?:\.\d+)?\s*%?\s*(?:마다|당).{0,24}?(증가|상승)",
+    re.IGNORECASE
+)
+_RE_CRIT_HEAL_TRIGGER = re.compile(
+    r"(치명타\s*적중\s*시|치명타.*?(적중|발생|명중)\s*시).{0,24}?(치유(?:량)?|치유\s*효율).{0,24}?(증가|상승)",
+    re.IGNORECASE
+)
+
+
+def detect_basic_importance(texts: list[str]) -> float:
+    """0.0~1.0: basic/normal attack 중심 여부를 정량화(나열문 오탐 억제)"""
+    if not texts:
+        return 0.0
+    strong = mid = weak = 0
+    clauses = 0
+    for t in texts:
+        parts = re.split(r"[。\.\!\?\n\r]+|[;·•]|(?:\s{2,})", t or "")
+        for c in parts:
+            c = (c or "").strip()
+            if len(c) < 6:
+                continue
+            clauses += 1
+            if _RE_BASIC_ENUM.search(c):
+                continue
+            if _RE_BASIC_CONSIDERED.search(c):
+                strong += 2
+                continue
+            if _RE_BASIC_DMG_STRONG.search(c):
+                strong += 1
+                continue
+            if _RE_BASIC_TRIGGER.search(c):
+                mid += 1
+                continue
+            if ("기본 공격" in c) or ("일반 공격" in c) or ("basic attack" in c.lower()) or ("normal attack" in c.lower()):
+                weak += 1
+    if clauses == 0:
+        return 0.0
+    raw = strong * 1.0 + mid * 0.6 + weak * 0.2
+    denom = max(3.0, clauses * 0.35)
+    return float(min(1.0, raw / denom))
+
+
+def detect_atk_speed_importance(texts: list[str]) -> float:
+    """0.0~1.0: 공격속도(특히 기본공격 속도) 중요도"""
+    if not texts:
+        return 0.0
+    hit = strong = 0
+    clauses = 0
+    for t in texts:
+        parts = re.split(r"[。\.\!\?\n\r]+|[;·•]|(?:\s{2,})", t or "")
+        for c in parts:
+            c = (c or "").strip()
+            if len(c) < 6:
+                continue
+            clauses += 1
+            if _RE_BASIC_ATK_SPD.search(c):
+                strong += 1
+            elif _RE_ATK_SPD.search(c):
+                hit += 1
+    if clauses == 0:
+        return 0.0
+    raw = strong * 1.0 + hit * 0.5
+    denom = max(2.5, clauses * 0.35)
+    return float(min(1.0, raw / denom))
+
+
+def detect_crit_heal_synergy(texts: list[str]) -> float:
+    """0.0~1.0: '치확-힐 연동'을 정량화(정량/트리거 우선)"""
+    if not texts:
+        return 0.0
+    strong = weak = 0
+    clauses = 0
+    for t in texts:
+        parts = re.split(r"[。\.\!\?\n\r]+|[;·•]|(?:\s{2,})", t or "")
+        for c in parts:
+            c = (c or "").strip()
+            if len(c) < 6:
+                continue
+            clauses += 1
+            if _RE_QUANT_CRIT_HEAL.search(c) or _RE_CRIT_HEAL_TRIGGER.search(c):
+                strong += 2
+                continue
+            has_c = bool(_RE_CRIT.search(c))
+            has_h = bool(_RE_HEAL2.search(c))
+            if has_c and has_h:
+                if _RE_LINK2.search(c):
+                    strong += 1
+                else:
+                    weak += 1
+    if clauses == 0:
+        return 0.0
+    raw = strong * 1.0 + weak * 0.25
+    denom = max(3.0, clauses * 0.35)
+    return float(min(1.0, raw / denom))
+
+
 # ---------- Character text extraction ----------
 
 def _collect_texts(x) -> list[str]:
@@ -780,22 +900,48 @@ def _skill_texts(detail: dict) -> list[str]:
         return []
     texts: list[str] = []
 
+    # skills blob
     for key in ["skills", "skill", "skillSet", "skill_set"]:
         if isinstance(detail.get(key), dict):
             texts += _collect_texts(detail.get(key))
 
+    # legacy direct keys
     for key in ["normal", "basic", "basicAttack", "auto", "active", "ultimate", "burst", "passive", "passive1", "passive2", "skill1", "skill2", "skill3"]:
         if isinstance(detail.get(key), (dict, list, str)):
             texts += _collect_texts(detail.get(key))
 
+    # team/combo
     for key in ["teamSkill", "team_skill", "team", "synergy", "combo", "comboSkill"]:
         if isinstance(detail.get(key), (dict, list, str)):
             texts += _collect_texts(detail.get(key))
 
+    # ✅ memory card
+    for key in ["memoryCard", "memory_card", "memory", "memCard", "card"]:
+        if isinstance(detail.get(key), (dict, list, str)):
+            texts += _collect_texts(detail.get(key))
+
+    # ✅ awakenings / limit break
+    for key in ["awakenings", "awakening", "limitBreak", "limit_break", "dupe", "constellation"]:
+        if isinstance(detail.get(key), (dict, list, str)):
+            texts += _collect_texts(detail.get(key))
+
+    # fallback only if nothing captured
     if not texts:
         texts = _collect_texts(detail)
 
-    return texts
+    # light cleaning (오탐 감소)
+    cleaned: list[str] = []
+    for t in texts:
+        if not isinstance(t, str):
+            continue
+        s = t.strip()
+        if len(s) < 4:
+            continue
+        if all(ch.isdigit() or ch in "%.,:+-()/ []" for ch in s):
+            continue
+        cleaned.append(s)
+
+    return cleaned
 
 
 # ---------- Scaling detection (ATK / HP / DEF) ----------
@@ -905,6 +1051,11 @@ def _infer_role_from_texts(texts: list[str], base_role: str) -> str:
 def _detect_profile(detail: dict, base: dict) -> dict:
     texts = _skill_texts(detail or {})
 
+    # AI-like importance signals from actual skill wording
+    basic_importance = detect_basic_importance(texts)
+    atk_speed_importance = detect_atk_speed_importance(texts)
+    crit_heal_synergy = detect_crit_heal_synergy(texts)
+
     atk_hits, hp_hits, def_hits = [], [], []
     for t in texts:
         atk_hits += _pct_hits(t, ["attack power", "atk", "attack", "공격력"])
@@ -979,6 +1130,9 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         "shield_strength": shield_strength,
         "healer_hybrid": healer_hybrid,
         "no_crit": no_crit,
+        "basic_importance": basic_importance,
+        "atk_speed_importance": atk_speed_importance,
+        "crit_heal_synergy": crit_heal_synergy,
         "sample_text": sample_text,
     }
 
@@ -1010,12 +1164,16 @@ def _rune_tags_from_effect(effect_text: str) -> set[str]:
         tags.add("CRIT_DMG")
 
     # damage type synergies
-    if "basic attack damage" in tl or "기본 공격 피해" in t:
+    if "basic attack damage" in tl or "normal attack damage" in tl or "기본 공격 피해" in t or "일반 공격 피해" in t:
         tags.add("BASIC_DMG")
     if "extra attack" in tl or "추가 공격" in t:
         tags.add("EXTRA_DMG")
     if "continuous damage" in tl or "damage over time" in tl or "지속" in t:
         tags.add("DOT_DMG")
+
+    # attack speed
+    if "attack speed" in tl or "공격 속도" in t or "공속" in t:
+        tags.add("ATK_SPEED")
 
     # heal/shield
     if "healing effectiveness" in tl or "치유" in t or "회복" in t:
@@ -1085,16 +1243,19 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
             score += 6.0
         elif "HP" in tags:
             score += 2.0
-
         if "CRIT_RATE" in tags and not no_crit:
+            cr_sy = float(profile.get("crit_heal_synergy") or 0.0)
             if role == "dps":
                 score += 6.0
             elif role == "debuffer":
                 score += 2.0
+            elif role == "healer" and cr_sy >= 0.35:
+                # Lavinia-type: crit rate -> healing linkage
+                score += 4.0 * min(1.0, cr_sy * 1.2)
             elif profile.get("healer_hybrid"):
                 score += 2.0
             else:
-                # 힐러/탱커/버퍼는 기본적으로 치확 2세트 효율이 낮음(하이브리드 예외)
+                # 힐러/탱커/버퍼는 기본적으로 치확 2세트 효율이 낮음(하이브리드/연동 예외)
                 score += 0.0
 
     # role-specific (4pc dominates)
@@ -1149,6 +1310,11 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
             if "ATK" in tags and scaling == "ATK":
                 score += 4.0
 
+        # crit-heal synergy (e.g., Lavinia): allow crit sets even for healer when explicitly linked
+        cr_sy = float(profile.get("crit_heal_synergy") or 0.0)
+        if (not no_crit) and cr_sy >= 0.35 and ("CRIT_RATE" in tags or "CRIT_DMG" in tags):
+            score += 6.0 * min(1.0, cr_sy)
+
     elif role == "tank":
         if "HP" in tags:
             score += 16.0
@@ -1169,8 +1335,13 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
     else:  # DPS
         if ("CRIT_RATE" in tags or "CRIT_DMG" in tags) and not no_crit:
             score += 16.0
+        basic_imp = float(profile.get("basic_importance") or 0.0)
+        atk_spd_imp = float(profile.get("atk_speed_importance") or 0.0)
+
         if "BASIC_DMG" in tags:
-            score += 10.0
+            score += 18.0 * (0.25 + 0.75 * min(1.0, basic_imp * 1.4))
+        if "ATK_SPEED" in tags:
+            score += 14.0 * (0.25 + 0.75 * min(1.0, max(atk_spd_imp, basic_imp) * 1.3))
         if "EXTRA_DMG" in tags:
             score += 18.0 * (0.3 + 0.7 * min(1.0, extra * 3.0))
         if "DOT_DMG" in tags:
@@ -1200,25 +1371,49 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
     return score
 
 
-def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dict], list[str]]:
+def _best_rune_builds(profile: dict, rune_db: dict[str, dict], base_class: str = "") -> tuple[list[dict], list[str]]:
     tag_idx = _rune_tag_index(rune_db)
     sets = list(rune_db.keys())
 
-    best: list[tuple[float, str, str]] = []
+    def _class_ok(set_name: str, pieces: int) -> bool:
+        if pieces != 4:
+            return True
+        r = rune_db.get(set_name) or {}
+        cr = r.get("classRestriction") or []
+        if not cr:
+            return True
+        bc = (base_class or "").strip().lower()
+        cr2 = [str(x).strip().lower() for x in cr]
+        return bc in cr2
+
+    scored: list[tuple[float, list[dict]]] = []
+
+    # A) 4+2
     for s4 in sets:
+        if not _class_ok(s4, 4):
+            continue
         sc4 = _score_set(profile, s4, 4, rune_db, tag_idx)
         if sc4 < -5:
             continue
         for s2 in sets:
-            # 룬 세트는 중복 장착 불가: 4세트와 2세트가 같은 세트면 제외
             if s2 == s4:
                 continue
             sc2 = _score_set(profile, s2, 2, rune_db, tag_idx)
-            total = sc4 + sc2
-            best.append((total, s4, s2))
+            scored.append((sc4 + sc2, [{"set": s4, "pieces": 4}, {"set": s2, "pieces": 2}]))
 
-    best.sort(key=lambda x: x[0], reverse=True)
-    top = best[:4]
+    # B) 2+2+2 (세트 중복 금지)
+    for a in sets:
+        for b in sets:
+            if b == a:
+                continue
+            for c in sets:
+                if c == a or c == b:
+                    continue
+                sc = _score_set(profile, a, 2, rune_db, tag_idx) + _score_set(profile, b, 2, rune_db, tag_idx) + _score_set(profile, c, 2, rune_db, tag_idx)
+                scored.append((sc, [{"set": a, "pieces": 2}, {"set": b, "pieces": 2}, {"set": c, "pieces": 2}]))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    top = scored[:4]
 
     rationale: list[str] = []
     rationale.append(f"역할 판정: {profile['role']} / 스케일링 판정: {profile['scaling']}")
@@ -1226,19 +1421,25 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dic
         rationale.append(f"스케일링 근거 예시: '{str(profile['sample_text'])[:140]}'")
     if profile.get("no_crit"):
         rationale.append("치명타 불가/비활성 문구 감지 → 치명타(치확/치피) 중심 세트는 감점 처리.")
+
+    # explain new signals
+    if float(profile.get("crit_heal_synergy") or 0.0) > 0:
+        rationale.append(f"치확-치유 연동 강도: {round(float(profile.get('crit_heal_synergy') or 0.0), 2)}")
+    if float(profile.get("basic_importance") or 0.0) > 0:
+        rationale.append(f"기본공격 중요도: {round(float(profile.get('basic_importance') or 0.0), 2)}")
+    if float(profile.get("atk_speed_importance") or 0.0) > 0:
+        rationale.append(f"공격속도 중요도: {round(float(profile.get('atk_speed_importance') or 0.0), 2)}")
+
     if profile["role"] in ("buffer", "debuffer"):
         rationale.append("서포트 역할은 팀 기여/궁극기 가동률(에너지) 비중을 높게 두고 최적화합니다.")
     elif profile["role"] == "dps":
-        rationale.append("딜러 역할은 본인 기대 피해(치명/특수 피해 타입) 비중을 높게 두고 최적화합니다.")
+        rationale.append("딜러 역할은 본인 기대 피해(치명/특수 피해 타입/기본공격/공속) 비중을 높게 두고 최적화합니다.")
 
     builds: list[dict] = []
-    for i, (score, s4, s2) in enumerate(top):
+    for i, (score, plan) in enumerate(top):
         title = "추천(자동)" if i == 0 else f"대체안 {i}"
-        builds.append({
-            "title": title,
-            "_score": round(score, 2),
-            "setPlan": [{"set": s4, "pieces": 4}, {"set": s2, "pieces": 2}],
-        })
+        builds.append({"title": title, "_score": round(score, 2), "setPlan": plan})
+
     return builds, rationale
 
 
@@ -1271,6 +1472,9 @@ def _slot_plan_for(profile: dict, element: str) -> dict:
         plan["4"] = ["Healing Effectiveness (%)", "HP (%)", "Defense (%)"]
         plan["5"] = ["HP (%)", "Defense (%)"]
         plan["6"] = ["HP (%)", "Defense (%)"]
+        # Lavinia-type: crit rate can directly scale healing
+        if (not no_crit) and float(profile.get("crit_heal_synergy") or 0.0) >= 0.35:
+            plan["4"].append("Critical Rate (%) (치유 연동 시)")
         return plan
 
     if role == "tank":
@@ -1309,6 +1513,8 @@ def _substats_for(profile: dict) -> list[str]:
 
     if role == "healer":
         out = ["Healing Effectiveness (%)", "HP (%)", "Defense (%)", "Flat HP / Flat DEF"]
+        if (not no_crit) and float(profile.get("crit_heal_synergy") or 0.0) >= 0.35:
+            out += ["Critical Rate (%) (치유 연동 시)"]
         if profile.get("healer_hybrid") and not no_crit:
             out += ["Critical Rate (%)", "Critical Damage (%)", "Attack (%)"]
         return out
@@ -1363,7 +1569,7 @@ def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
         return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
 
     profile = _detect_profile(detail or {}, base or {})
-    core_builds, rationale = _best_rune_builds(profile, rune_db)
+    core_builds, rationale = _best_rune_builds(profile, rune_db, base.get("class") or "")
 
     builds = []
     for b in core_builds:
