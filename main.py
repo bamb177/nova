@@ -1305,6 +1305,12 @@ def _slot_plan_for(profile: dict, element: str) -> dict:
         plan["5"] = [_element_damage_label(element), scaling_pct, "Attack (%)", "HP (%)", "Defense (%)"]
         plan["6"] = [scaling_pct, "Attack (%)", "HP (%)", "Defense (%)"]
 
+        # DEF 스케일 DPS: 5/6번 메인스탯에서 Defense(%)를 최우선으로 제시
+        # (UI가 리스트의 첫 항목만 보여주는 경우에도 방어력 기반이 유지되도록)
+        if scaling == "DEF":
+            plan["5"] = ["Defense (%)", _element_damage_label(element), "Attack Penetration (%)", "HP (%)"]
+            plan["6"] = ["Defense (%)", "Attack Penetration (%)", "HP (%)"]
+
     return plan
 
 
@@ -1334,6 +1340,43 @@ def _substats_for(profile: dict) -> list[str]:
         return [scaling_pct, "Attack Penetration (%)", "Element Attribute Damage (%)", "Attack (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
 
     return ["Critical Rate (%)", "Critical Damage (%)", scaling_pct, "Attack Penetration (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
+
+
+# -------------------------
+# Profile overrides (anti-regression)
+# -------------------------
+# 일부 캐릭터는 스킬 설명 텍스트에 스케일링(ATK/HP/DEF)이 명시되지 않아
+# 자동 감지(_detect_profile)가 MIX/ATK로 오판할 수 있습니다.
+# 이런 케이스는 캐릭터별로 프로파일을 잠그고(LOCK) 추천이 회귀하지 않도록 합니다.
+_LOCKED_PROFILE_OVERRIDES: dict[str, dict] = {
+    # Apep: 방어력 기반 스케일 캐릭터(유저 피드백 기반, 회귀 방지용 고정)
+    "apep": {"scaling": "DEF"},
+}
+
+
+def _apply_profile_overrides(cid: str, base: dict, detail: dict, profile: dict) -> dict:
+    """Apply per-character locked overrides to the auto-detected profile.
+
+    This is intentionally conservative: only keys explicitly provided in
+    _LOCKED_PROFILE_OVERRIDES are overwritten.
+    """
+    ckey = (cid or "").strip().lower()
+    ov = _LOCKED_PROFILE_OVERRIDES.get(ckey)
+    if not isinstance(ov, dict):
+        return profile
+
+    changed = []
+    for k, v in ov.items():
+        if v is None:
+            continue
+        if profile.get(k) != v:
+            profile[k] = v
+            changed.append(f"{k}={v}")
+
+    if changed:
+        # UI/디버깅용(템플릿에서 사용하지 않아도 무해)
+        profile["override_note"] = f"locked_override({ckey}): " + ", ".join(changed)
+    return profile
 
 
 def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
@@ -1371,6 +1414,7 @@ def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
         return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
 
     profile = _detect_profile(detail or {}, base or {})
+    profile = _apply_profile_overrides(cid, base or {}, detail or {}, profile)
     core_builds, rationale = _best_rune_builds(profile, rune_db)
 
     builds = []
@@ -1501,6 +1545,7 @@ def _combo_detail(members: list[dict]) -> dict:
 
 def _member_payload(cid: str, tier: float, base: dict, detail: dict, role_override: Optional[str] = None) -> dict:
     prof = _detect_profile(detail or {}, base or {})
+    prof = _apply_profile_overrides(cid, base or {}, detail or {}, prof)
 
     # effective archetype/role for party composition
     role = (role_override or prof.get("role") or _role_from_base(base or {}) or "dps").strip().lower()
