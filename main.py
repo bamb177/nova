@@ -531,29 +531,16 @@ def resolve_rune_icon(set_name: str, rune_map: dict[str, str]) -> Optional[str]:
     if not set_name:
         return None
 
-    # Normalize variants like "Tide [Energy]" -> "Tide" for icon filename matching
-    base = re.sub(r"\s*\[.*?\]\s*", "", set_name).strip()
-    base = re.sub(r"\s*\(.*?\)\s*", "", base).strip()
-
     candidates = [
         set_name,
-        base,
         set_name.lower(),
-        base.lower(),
         _norm_key(set_name),
-        _norm_key(base),
         re.sub(r"\d+", "", set_name.lower()),
-        re.sub(r"\d+", "", base.lower()),
         _norm_key(re.sub(r"\d+", "", set_name)),
-        _norm_key(re.sub(r"\d+", "", base)),
         f"{set_name} rune",
         f"rune {set_name}",
-        f"{base} rune",
-        f"rune {base}",
         _norm_key(f"{set_name} rune"),
         _norm_key(f"rune {set_name}"),
-        _norm_key(f"{base} rune"),
-        _norm_key(f"rune {base}"),
     ]
 
     for c in candidates:
@@ -744,16 +731,9 @@ def rune_db_by_name() -> dict[str, dict]:
 
 # Keyword dictionaries (EN + KO) used for both character profiling and rune-effect tagging.
 _KW_HEAL = ["heal", "healing", "restore", "recovery", "회복", "치유", "힐"]
-# Self-sustain/lifesteal keywords (do NOT imply healer role)
-_KW_SELF_HEAL = [
-    "흡혈", "흡수", "hp 흡수", "hp를 흡수", "hp를 흡수한다",
-    "drain", "lifesteal", "leech",
-]
-# Ally/party markers for true healing support
-_KW_ALLY = ["아군", "동료", "팀", "파티", "전체", "전원", "allies", "ally", "team", "party", "allied"]
 _KW_SHIELD = ["shield", "barrier", "보호막", "실드"]
 _KW_DOT = ["continuous", "dot", "damage over time", "burn", "bleed", "poison", "지속", "지속 피해", "도트", "중독", "화상", "출혈"]
-_KW_EXTRA = ["extra attack", "follow-up", "추가 공격", "추격", "연속 공격", "추가타", "추가 피해"]
+_KW_EXTRA = ["extra attack", "follow-up", "추가 공격", "추격", "추가타", "[extra attack]"]  # NOTE: '추가 피해'는 범용 추가데미지로 오탐이 많아 제외
 _KW_TEAM = ["team", "all allies", "allied", "party", "아군", "팀", "전체", "전원"]
 _KW_BUFF = ["increase", "increased", "buff", "up", "증가", "상승", "강화", "부여"]
 _KW_DEBUFF = ["decrease", "reduced", "debuff", "down", "감소", "약화", "깎", "감쇠", "취약", "받는 피해"]
@@ -761,6 +741,10 @@ _KW_VULN = ["vulnerability", "take more damage", "damage taken", "받는 피해"
 _KW_ENERGY = ["energy", "에너지", "gain", "regen", "회복", "획득", "충전"]
 _KW_ULT = ["ultimate", "ult", "burst", "궁극기", "필살기", "궁"]
 _KW_CRIT_DISABLE = ["cannot crit", "can't crit", "no crit", "crit disabled", "치명타 불가", "크리티컬 불가", "치명타가 발생하지"]
+
+# Extra-attack strict matcher: 실제 '추가 공격(Extra attack)' 타입만 인정(범용 '추가 피해' 제외)
+_RE_EXTRA_ATTACK_STRICT = re.compile(r"(\[\s*extra\s*attack\s*\]|extra\s*attack|follow-?up|추가\s*공격|추격)", re.IGNORECASE)
+
 
 # ---------- Character text extraction ----------
 
@@ -903,21 +887,21 @@ def _infer_role_from_texts(texts: list[str], base_role: str) -> str:
     if base_role in ("buffer", "debuffer", "healer", "tank"):
         return base_role
 
-    team_buff = debuff = ally_heal = 0
+    team_buff = debuff = heal = 0
     for t in texts:
         tl = t.lower()
-        if _is_ally_heal_text(t):
-            ally_heal += 2
+        if any(k in tl for k in _KW_HEAL):
+            heal += 2
         if any(k in tl for k in _KW_TEAM) and any(k in tl for k in _KW_BUFF):
             team_buff += 2
         if any(k in tl for k in _KW_DEBUFF) or any(k in tl for k in _KW_VULN):
             debuff += 1
 
-    if ally_heal >= max(team_buff, debuff) and ally_heal >= 3:
+    if heal >= max(team_buff, debuff) and heal >= 3:
         return "healer"
-    if team_buff >= max(ally_heal, debuff) and team_buff >= 3:
+    if team_buff >= max(heal, debuff) and team_buff >= 3:
         return "buffer"
-    if debuff >= max(ally_heal, team_buff) and debuff >= 3:
+    if debuff >= max(heal, team_buff) and debuff >= 3:
         return "debuffer"
     return "dps"
 
@@ -941,7 +925,7 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         scaling = "ATK" if best == atk_s else ("HP" if best == hp_s else "DEF")
 
     dot_cnt = extra_cnt = ult_cnt = 0
-    team_buff_cnt = debuff_cnt = ally_heal_cnt = sustain_cnt = shield_cnt = 0
+    team_buff_cnt = debuff_cnt = heal_cnt = shield_cnt = 0
 
     for t in texts:
         tl = t.lower()
@@ -952,11 +936,8 @@ def _detect_profile(detail: dict, base: dict) -> dict:
             extra_cnt += 1
         if any(k in tl for k in _KW_ULT):
             ult_cnt += 1
-        # ally heal vs self-sustain: avoid misclassifying DPS with lifesteal as "healer"
-        if _is_ally_heal_text(t):
-            ally_heal_cnt += 1
-        elif any(k in tl for k in _KW_SELF_HEAL) or (any(k in tl for k in _KW_HEAL) and ("자신" in t or "self" in tl or "own" in tl)):
-            sustain_cnt += 1
+        if any(k in tl for k in _KW_HEAL):
+            heal_cnt += 1
         if any(k in tl for k in _KW_SHIELD):
             shield_cnt += 1
         if any(k in tl for k in _KW_TEAM) and any(k in tl for k in _KW_BUFF):
@@ -970,8 +951,7 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     ult_importance = min(1.0, ult_cnt / total * 2.0)
     team_buff_strength = min(1.0, team_buff_cnt / total * 2.0)
     debuff_strength = min(1.0, debuff_cnt / total * 2.0)
-    heal_strength = min(1.0, ally_heal_cnt / total * 2.0)
-    sustain_strength = min(1.0, sustain_cnt / total * 2.0)
+    heal_strength = min(1.0, heal_cnt / total * 2.0)
     shield_strength = min(1.0, shield_cnt / total * 2.0)
 
     base_role = _role_from_base(base or {})
@@ -1000,7 +980,6 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         "team_buff_strength": team_buff_strength,
         "debuff_strength": debuff_strength,
         "heal_strength": heal_strength,
-        "sustain_strength": sustain_strength,
         "shield_strength": shield_strength,
         "healer_hybrid": healer_hybrid,
         "no_crit": no_crit,
@@ -1013,32 +992,6 @@ def _detect_profile(detail: dict, base: dict) -> dict:
 def _has_any(text: str, keys: list[str]) -> bool:
     tl = (text or "").lower()
     return any(k in tl for k in keys)
-
-
-def _is_ally_heal_text(t: str) -> bool:
-    """Return True if the text indicates healing for allies/party (not self-sustain).
-
-    Healer role inference and HEAL synergy should be driven by ally heals.
-    Self HP drain/lifesteal/sustain should not flip the role to healer.
-    """
-    if not isinstance(t, str) or not t.strip():
-        return False
-    tl = t.lower()
-
-    # must mention heal-ish words
-    if not (any(k in tl for k in _KW_HEAL) or any(k in t for k in _KW_HEAL)):
-        return False
-
-    # explicit self-sustain/drain/lifesteal keywords → not ally heal
-    if any(k in tl for k in _KW_SELF_HEAL) or any(k in t for k in _KW_SELF_HEAL):
-        return False
-
-    # if ally/party marker exists, treat as ally heal
-    if any(k in tl for k in _KW_ALLY) or any(k in t for k in _KW_ALLY):
-        return True
-
-    # Korean explicit: "아군" absent but "대상" + "치유" could be ally; keep conservative to avoid 오탐
-    return False
 
 
 def _rune_tags_from_effect(effect_text: str) -> set[str]:
@@ -1148,14 +1101,6 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
                 # 힐러/탱커/버퍼는 기본적으로 치확 2세트 효율이 낮음(하이브리드 예외)
                 score += 0.0
 
-        # Healing 2pc should mostly be reserved for true healers.
-        if "HEAL" in tags:
-            if role == "healer":
-                score += 6.0 * (0.7 + 0.3 * max(heal, 0.2))
-            else:
-                # Prevent DPS mis-picks (e.g., self-sustain keywords) from choosing Daleth 2pc.
-                score -= 3.0
-
     # role-specific (4pc dominates)
     if role == "buffer":
         if "TEAM_DMG" in tags:
@@ -1231,7 +1176,11 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         if "BASIC_DMG" in tags:
             score += 10.0
         if "EXTRA_DMG" in tags:
-            score += 18.0 * (0.3 + 0.7 * min(1.0, extra * 3.0))
+            # Extra-attack 세트는 실제 'Extra attack/추가 공격' 기믹이 있을 때만 고가치
+            if extra < 0.12:
+                score -= 8.0  # 오탐 억제
+            else:
+                score += 18.0 * (0.3 + 0.7 * min(1.0, extra * 3.0))
         if "DOT_DMG" in tags:
             score += 18.0 * (0.3 + 0.7 * min(1.0, dot * 3.0))
 
@@ -1242,15 +1191,10 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         if "HP" in tags and scaling == "HP":
             score += 8.0
 
-        # Energy economy can matter for ult-centric DPS, but should not beat core damage sets by default.
         if "ENERGY_EFF" in tags:
-            score += 2.5 * ult
-            if ult < 0.6:
-                score -= 3.0
+            score += 4.0 * ult
         if "START_ENERGY" in tags:
-            score += 2.0 * ult
-            if ult < 0.6:
-                score -= 2.0
+            score += 3.0 * ult
 
         if "TEAM_DMG" in tags:
             score += 2.0
@@ -1282,8 +1226,7 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dic
             best.append((total, s4, s2))
 
     best.sort(key=lambda x: x[0], reverse=True)
-    # UI 정책: 2+2+2는 제외(검색 자체가 4+2) + 대체안 비노출 → 1개만 반환
-    top = best[:1]
+    top = best[:4]
 
     rationale: list[str] = []
     rationale.append(f"역할 판정: {profile['role']} / 스케일링 판정: {profile['scaling']}")
@@ -1297,9 +1240,10 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dic
         rationale.append("딜러 역할은 본인 기대 피해(치명/특수 피해 타입) 비중을 높게 두고 최적화합니다.")
 
     builds: list[dict] = []
-    for score, s4, s2 in top:
+    for i, (score, s4, s2) in enumerate(top):
+        title = "추천(자동)" if i == 0 else f"대체안 {i}"
         builds.append({
-            "title": "추천(자동)",
+            "title": title,
             "_score": round(score, 2),
             "setPlan": [{"set": s4, "pieces": 4}, {"set": s2, "pieces": 2}],
         })
