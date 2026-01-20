@@ -1,0 +1,110 @@
+{
+  "name": "Tamamo-no-Mae",
+  "image": "Tamamo-no-mae",
+  "rarity": "SSR",
+  "element": "Fire",
+  "class": "Buffer",
+  "role": "Buffer",
+  "faction": "Pingjing City",
+  "stats": {
+    "hp": "9,180",
+    "attack": "1,004",
+    "defense": "729",
+    "energyRecovery": "0.25/s",
+    "critRate": 0,
+    "critDamage": 50
+  },
+  "skills": {
+    "normal": {
+      "name": "Crimson Blade Dance",
+      "cooldown": "2.0s",
+      "description": "지정된 적 1명에게 공격력 120%만큼 화염 피해를 입힙니다."
+    },
+    "auto": {
+      "name": "Bewitching Fire",
+      "cooldown": "5.0s",
+      "description": "지정된 적 1명에게 공격력 141.5%만큼 화염 피해를 입히고 [Fox Flame] 1중첩을 획득합니다(최대 9중첩).\n스킬을 2회 사용할 때마다 에너지 1을 회복합니다.",
+      "buffs": [
+        {
+          "name": "Fox Flame",
+          "description": "중첩당 자신의 에너지 회복 속도가 3% 증가하고, 모든 아군이 받는 피해가 3.8% 감소합니다.\n최대 9중첩."
+        }
+      ]
+    },
+    "ultimate": {
+      "name": "Authority: Myriad Brilliance",
+      "energyCost": "4",
+      "cooldown": "12.0s",
+      "description": "잠시 후 에너지 3을 즉시 회복합니다.\n5초 동안 모든 아군의 궁극기 피해가 29.3% 증가하고 화염 저항 40.5%를 무시합니다(중첩 불가).\n모든 [Fox Flame]을 소모합니다.\n소모한 [Fox Flame] 1중첩마다 궁극기 피해 증가량과 저항 무시 수치가 각각 5.6% 증가하고, 지속 시간이 1초 연장됩니다.\n또한 소모한 중첩마다 무작위 적 1명에게 공격력 58.6%만큼 화염 피해를 입히고 [Jade Fox Mark]를 부여합니다(5초).\n[Fox Flame]을 9중첩 소모했을 경우, 추가로 [Hyakki Kitan]을 10초간 전개합니다.\n해당 지속시간 동안 아군이 궁극기 사용 시 에너지 1을 회복합니다(0.1초당 최대 1회).",
+      "buffs": [
+        {
+          "name": "Jade Fox Mark",
+          "description": "아군의 궁극기가 해당 대상에 적중 시 방어 관통이 103.8% 증가합니다.\n발동 후 효과가 소모됩니다."
+        }
+      ]
+    },
+    "passive": {
+      "name": "Hyakki Kitan",
+      "description": "다른 아군이 궁극기를 사용할 때마다 [Fox Flame] 1중첩을 획득합니다(최대 9중첩).\n[Fox Flame] 중첩 효과는 동일하게 적용됩니다.\n[Hyakki Kitan] 지속 중, 궁극기에 피격된 적에게 [Ten Ghost Mark] 2중첩을 부여합니다.\n[Ten Ghost Mark]: 10중첩 도달 시 중첩을 소모하여 대상 후방 부채꼴 범위에 공격력 214.4%만큼 화염 피해를 입히고 [Jade Fox Mark]를 부여합니다(5초).\n[Hyakki Kitan] 종료 시 모든 [Ten Ghost Mark]는 제거됩니다.\n[Jade Fox Mark]: 아군의 궁극기 적중 시 방어 관통 +103.8%, 발동 후 소모."
+    }
+  },
+  "teamSkill": {
+    "name": "Combination Skill",
+    "description": "전투 시작 시 모든 아군의 피해가 10% 증가합니다.\n공격력 500마다 모든 아군의 궁극기 피해가 7.5% 증가합니다(최대 6중첩).",
+    "requirements": {
+      "faction": "Pingjing City",
+      "element": "Fire",
+      "alternativeRequirement": "2 Pingjing City OR 2 Fire characters"
+    }
+  },
+  "awakenings": [
+    {
+      "level": 1,
+      "effect": "전투 시작 시 즉시 [Fox Flame] 9중첩을 획득합니다."
+    },
+    {
+      "level": 2,
+      "effect": "[Hyakki Kitan] 종료 시, 누적된 [Ten Ghost Mark] 10중첩마다 [Fox Flame] 2중첩을 회복합니다(최대 6중첩)."
+    },
+    {
+      "level": 3,
+      "effect": "[Normal Attack], [Skill], [ULT], [Passive]의 레벨 및 최대 레벨이 +2 증가합니다."
+    },
+    {
+      "level": 4,
+      "effect": "[Hyakki Kitan] 지속 중, 아군이 받는 비(非)화염 피해 저항이 56.5% 증가합니다."
+    },
+    {
+      "level": 5,
+      "effect": "[Normal Attack], [Skill], [ULT], [Passive]의 레벨 및 최대 레벨이 +2 증가합니다."
+    },
+    {
+      "level": 6,
+      "effect": "[Hyakki Kitan] 지속 중, 아군의 궁극기가 적에게 적중할 때마다 [Ten Ghost Mark] 1중첩을 추가로 부여합니다.\n또한 [Fox Flame] 1중첩마다 모든 아군의 방어력이 5% 증가합니다."
+    }
+  ],
+  "memoryCard": {
+    "name": "Hot Spring & Her",
+    "image": "Tamamo-no-maecard",
+    "stats": {
+      "hp": "6,000",
+      "attack": "600",
+      "defense": "600"
+    },
+    "effects": [
+      "기본 능력치 강화: 공격력이 40% 증가합니다.",
+      "아군의 궁극기가 피해를 입힌 후, 자신의 에너지 회복 속도가 200% 증가합니다(4초) 및 [Brilliance] 1중첩을 획득합니다(5초, 최대 50중첩).",
+      "[Brilliance] 5중첩마다 모든 아군의 피해가 9% 증가합니다."
+    ],
+    "restriction": "This memory card is restricted to Supporter class characters only."
+  },
+  "tags": [
+    "Ranged",
+    "Buff",
+    "Energy Recovery",
+    "Ultimate Damage Amp",
+    "Defense Penetration",
+    "Damage Reduction",
+    "Fire Damage"
+  ]
+}
