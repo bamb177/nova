@@ -1468,219 +1468,186 @@ body{
   }
 }
 
+
 /* =========================================================
-   FINAL Responsive Layout (PC + Mobile)
-   - 목표:
-     1) PC: 창 크기와 무관하게 필터/콤보가 남는 여백 없이 자연스럽게 확장
-     2) PC: 등급표 상단 컨트롤은 2줄 고정
-        - 1줄: 등급표선택 / 등급표로파티구성 / AI추천파티 / 파티초기화
-        - 2줄: 선택클래스포함조건 / 전체선택 / 전체해제
-     3) Mobile: 동일 요소들이 자연스럽게 줄바꿈(2열 그리드 기반)
-   - select.html의 head inline <style> 의존 제거 전제(또는 본 규칙이 우선하도록 !important 사용)
+   Layout overrides (PC + Mobile) — single source of truth
+   목표
+   1) PC: 창 크기와 무관하게 필터 콤보/입력이 남는 폭을 모두 사용
+   2) PC: 등급표 상단 2줄 고정(요청 레이아웃)
+      - 1줄: 등급표선택 / 등급표로 파티 구성 / AI 추천 파티 / 파티 초기화
+      - 2줄: 선택 클래스 포함 조건 / 전체 선택 / 전체 해제
+   3) Mobile: 동일 컨셉 + 자연스러운 줄바꿈
 ========================================================= */
 
-/* -------------------------
-   Wide container (PC)
-   ------------------------- */
+/* 공통: grid/flex 내부에서 아이템이 줄어들 수 있게 */
+.filters > *,
+.tier-row > *{
+  min-width: 0;
+}
+
+/* ====== Wrap: PC에서 폭 여유 확대 ====== */
 @media (min-width: 1100px){
   .wrap{ max-width: 1600px; }
 }
-@media (min-width: 1601px){
-  .wrap{ max-width: 100%; } /* 울트라 와이드에서도 좌우 여백 최소화 */
-}
 
-/* -------------------------
-   Filters: fill the row
-   ------------------------- */
+/* =========================================================
+   Filters (검색/필터) — PC는 한 줄, 폭은 꽉 채움
+========================================================= */
+
+/* 기본(PC/태블릿): grid로 폭을 자동 분배해서 우측 여백 최소화 */
 .filters{
-  width: 100%;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 10px;
   align-items: stretch;
+  grid-template-columns: minmax(260px, 2fr) repeat(5, minmax(160px, 1fr));
 }
 .filters .input,
 .filters .select{
   width: 100%;
-  min-width: 0;
-}
-.filters #q{
-  grid-column: 1 / -1;
 }
 
-@media (min-width: 1100px){
-  /* PC에서는 1줄로 "꽉" 차게 */
+/* 노트북/창 축소: 2열로 자연스럽게 줄바꿈 */
+@media (max-width: 1100px){
   .filters{
-    grid-template-columns: minmax(280px, 2.2fr) repeat(5, minmax(140px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .filters #q{ grid-column: auto; }
+  .filters #q{ grid-column: 1 / -1; }
 }
 
-/* -------------------------
-   Tier: controls 2-row layout
-   HTML 구조(select.html):
-     .tier-body
-       .tier-row.tier-topline  (tierPreset + 3 buttons + reset + spacer + actions-inline)
-       .tier-row.tier-classline (class condition details)
-       #tierPartyResult / #aiPartyResult
-   ------------------------- */
+/* 모바일: 기존 컨셉 유지(검색+클래스 1행, 이후 2열) */
+@media (max-width: 520px){
+  .filters{
+    grid-template-columns: 2fr 1fr;
+    gap: 8px;
+  }
+  .filters #q{ grid-column: 1 / 2; grid-row: 1; }
+  .filters #classFilter{ grid-column: 2 / 3; grid-row: 1; }
+}
 
-/* 공통: tier 상단의 불필요 spacer는 항상 숨김 */
-.tier-top-spacer{ display:none !important; }
+/* =========================================================
+   Tier (등급표) — PC/모바일 최적화
+========================================================= */
 
-/* ✅ PC(>=901px): 요구한 2줄 고정 */
+/* (A) PC: 1줄 4칸 + (B) 2줄 3칸(조건 + 버튼2개) */
 @media (min-width: 901px){
-
-  .tier-body{
+  .tier-row.tier-topline{
     display: grid !important;
-    grid-template-columns: minmax(240px, 1.25fr) 1fr 1fr 1fr;
-    grid-auto-rows: auto;
-    gap: 12px !important;
-    align-items: start;
+    grid-template-columns: minmax(260px, 1.35fr) repeat(3, minmax(180px, 1fr));
+    gap: 12px;
+    align-items: stretch;
+  }
+  .tier-row.tier-topline #tierPreset,
+  .tier-row.tier-topline .btn{
+    width: 100%;
+    height: 52px;
   }
 
-  /* tier-topline의 자식들을 .tier-body grid 아이템으로 승격 */
-  .tier-row.tier-topline{ display: contents !important; }
-
-  /* 1줄 */
-  #tierPreset{
-    grid-column: 1 !important;
-    grid-row: 1 !important;
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-  #btnBuildTierParty{
-    grid-column: 2 !important;
-    grid-row: 1 !important;
-  }
-  #btnAiParty{
-    grid-column: 3 !important;
-    grid-row: 1 !important;
-  }
-  /* 실제 id는 select.html 기준: btnResetParties */
-  #btnResetParties{
-    grid-column: 4 !important;
-    grid-row: 1 !important;
-  }
-
-  /* 2줄: class condition */
-  .tier-row.tier-classline{
-    grid-column: 1 / 4 !important;
-    grid-row: 2 !important;
-    margin: 0 !important;
-  }
-
-  /* class condition 내부가 압착되지 않게 */
-  #tierClassInline,
-  .tier-row.tier-classline .tier-class-inline{
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  /* 2줄: 전체선택/전체해제 (PC에서는 classline 오른쪽 칸) */
-  .tier-actions-inline{
-    grid-column: 4 !important;
-    grid-row: 2 !important;
-
-    margin-left: 0 !important;
-    width: 100% !important;
-
+  .tier-row.tier-secondline{
     display: grid !important;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 160px 160px;
+    gap: 12px;
+    align-items: stretch;
+    margin-top: 10px;
+  }
+  .tier-row.tier-secondline #classCondPanel{
+    width: 100%;
+  }
+  .tier-row.tier-secondline .btn{
+    width: 100%;
+    height: 52px;
+    justify-content: center;
+  }
+}
+
+/* 태블릿/모바일: 자연스러운 줄바꿈 */
+@media (max-width: 900px){
+  .tier-row.tier-topline{
+    display: grid !important;
+    grid-template-columns: 1fr;
     gap: 10px;
     align-items: stretch;
   }
-
-  /* 컨트롤 높이/정렬 통일 */
-  .tier-body .select,
-  .tier-body .btn,
-  .tier-body button{
-    height: 52px;
+  .tier-row.tier-topline #tierPreset,
+  .tier-row.tier-topline .btn{
     width: 100%;
-    min-width: 0;
-    justify-content: center;
-    white-space: nowrap;
   }
 
-  /* classline details는 버튼과 달라 높이 고정하면 어색 → 내부만 정리 */
-  .tier-row.tier-classline .subpanel{
-    margin-top: 0;
-  }
-  .tier-row.tier-classline .subpanel-summary{
-    padding: 10px 12px;
-  }
-}
-
-/* ✅ Mobile/Tablet(<=900px): 자연스러운 줄바꿈(2열 그리드) */
-@media (max-width: 900px){
-
-  .tier-body{
+  .tier-row.tier-secondline{
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px !important;
-    align-items: start;
-  }
-
-  .tier-row.tier-topline{ display: contents !important; }
-
-  /* 1행: 등급표 선택(풀폭) */
-  #tierPreset{
-    grid-column: 1 / -1 !important;
-    grid-row: 1 !important;
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  /* 2행: 파티구성/AI 추천 (2등분) */
-  #btnBuildTierParty{ grid-column: 1 !important; grid-row: 2 !important; width: 100% !important; }
-  #btnAiParty{        grid-column: 2 !important; grid-row: 2 !important; width: 100% !important; }
-
-  /* 3행: 파티 초기화(풀폭) */
-  #btnResetParties{
-    grid-column: 1 / -1 !important;
-    grid-row: 3 !important;
-    width: 100% !important;
-  }
-
-  /* 4행: 선택 클래스 포함 조건(풀폭) */
-  .tier-row.tier-classline{
-    grid-column: 1 / -1 !important;
-    grid-row: 4 !important;
-    margin: 0 !important;
-  }
-  #tierClassInline,
-  .tier-row.tier-classline .tier-class-inline{
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  /* 5행: 전체선택/전체해제(2등분) */
-  .tier-actions-inline{
-    grid-column: 1 / -1 !important;
-    grid-row: 5 !important;
-    width: 100% !important;
-    margin-left: 0 !important;
-
-    display: grid !important;
-    grid-template-columns: 1fr 1fr;
     gap: 10px;
     align-items: stretch;
+    margin-top: 10px;
   }
-
-  .tier-body .btn,
-  .tier-body button,
-  .tier-body .select{
-    height: 46px !important;
-    width: 100% !important;
-    min-width: 0 !important;
+  .tier-row.tier-secondline #classCondPanel{
+    grid-column: 1 / -1;
+  }
+  .tier-row.tier-secondline .btn{
+    width: 100%;
     justify-content: center;
-    white-space: nowrap;
   }
 }
 
-/* -------------------------
-   Tier result cards (moved from inline style)
-   ------------------------- */
+/* =========================================================
+   Subpanel (선택 클래스 포함 조건) — select.css 단일화
+========================================================= */
+
+.subpanel{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 10px 12px;
+}
+.subpanel-summary{
+  list-style: none;
+  cursor: pointer;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  font-weight: 950;
+  color: rgba(255,255,255,.90);
+}
+.subpanel-summary::-webkit-details-marker{ display:none; }
+.subpanel-title{ font-weight: 950; }
+.subpanel-toggle{
+  font-size: 12px;
+  font-weight: 850;
+  color: rgba(255,255,255,.65);
+  white-space: nowrap;
+}
+
+/* class 조건 내부 박스 */
+.tier-class-inline{
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+.tier-check-inline{
+  white-space: nowrap;
+  font-weight: 900;
+  color: rgba(255,255,255,.92);
+}
+.tier-classes-inline{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+/* =========================================================
+   Tier 카드 이미지/가독성(기존 인라인 스타일 이관)
+========================================================= */
+
 .tier-card-top{
   display:flex;
   align-items:center;
@@ -1696,9 +1663,8 @@ body{
   background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.10);
 }
-.tier-portrait-empty{ display:block; }
 
-/* 긴 특성명 1줄 말줄임 */
+/* 긴 pill은 1줄 + 말줄임 */
 .tier-card-sub .pill{
   white-space: nowrap;
   overflow: hidden;
@@ -1706,10 +1672,8 @@ body{
   max-width: 190px;
 }
 
-/* -------------------------
-   Safety overrides: 기존 min-width 강제(PC에서 여백 유발) 제거
-   ------------------------- */
-@media (min-width: 1100px){
-  .input{ min-width: 0 !important; }
-  .select{ min-width: 0 !important; }
+/* Stats columns (HP/ATK/DEF/CRIT) */
+.col-hp, .col-atk, .col-def, .col-crit{ width:108px; min-width:108px; text-align:right; }
+@media (max-width: 520px){
+  .col-hp, .col-atk, .col-def, .col-crit{ width:96px; min-width:96px; }
 }
