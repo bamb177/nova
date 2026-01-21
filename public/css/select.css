@@ -1739,3 +1739,108 @@ body{
     letter-spacing: .2px;
   }
 }
+
+/* =========================================================
+   PC(데스크톱) 등급표 상단 컨트롤 레이아웃 “깨짐” 보정
+   - HTML 수정 없이(#tierPreset이 있는 줄을 :has()로 탐지)
+   - 모바일(max-width:720 이하)에는 영향 없음
+========================================================= */
+
+/* 공통: tier-actions가 flex가 아니면 버튼들이 세로로 떨어질 수 있음 */
+.tier-actions{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 클래스 조건 박스가 PC에서 쓸데없이 좁아지거나 min-width에 막히는 케이스 방지 */
+#tierClassInline,
+.tier-class-inline{
+  min-width: 0 !important;
+  width: 100%;
+}
+
+/* “전체 선택/전체 해제” 라인도 PC에서 항상 정렬되게 */
+.tier-actions-inline{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* 버튼이 PC에서 무한히 늘어나거나(100% 폭) 줄바꿈으로 깨지는 것 방지 */
+#btnBuildTierParty,
+#btnAiParty{
+  width: auto;
+  min-width: 200px;
+  max-width: 280px;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+/* 파티 초기화 버튼 id가 프로젝트마다 달라질 수 있어 후보를 넉넉히 커버 */
+#btnResetParty,
+#btnPartyReset,
+#btnReset,
+#btnClearParty,
+#btnPartyClear{
+  width: 100%;
+  max-width: none;
+  justify-content: flex-start;
+}
+
+/* ✅ PC 와이드에서: 프리셋 / 버튼 / 클래스조건 을 3열 그리드로 강제 정렬
+   - tier-topline 클래스가 없어도 “#tierPreset이 있는 그 줄”만 정확히 적용됨 */
+@media (min-width: 1101px){
+  .tier-panel .tier-row:has(#tierPreset){
+    display: grid !important;
+    grid-template-columns: minmax(260px, 380px) minmax(420px, 1fr) minmax(360px, 460px);
+    gap: 12px;
+    align-items: start;
+  }
+
+  /* 1열: 프리셋 */
+  .tier-panel .tier-row:has(#tierPreset) #tierPreset{
+    grid-column: 1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* 2열: 버튼 묶음 */
+  .tier-panel .tier-row:has(#tierPreset) .tier-actions{
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+
+  /* 3열: 클래스 포함 조건 */
+  .tier-panel .tier-row:has(#tierPreset) #tierClassInline{
+    grid-column: 3;
+    justify-self: end;
+    width: 100%;
+  }
+}
+
+/* 중간 폭(노트북/창 반쪽)에서도 버튼이 한 줄에 너무 우겨넣다 깨지지 않게 */
+@media (min-width: 721px) and (max-width: 1100px){
+  .tier-panel .tier-row:has(#tierPreset){
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: start;
+  }
+
+  .tier-panel .tier-row:has(#tierPreset) #tierPreset{
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .tier-panel .tier-row:has(#tierPreset) .tier-actions{
+    grid-column: 1 / -1;
+  }
+
+  .tier-panel .tier-row:has(#tierPreset) #tierClassInline{
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
