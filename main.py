@@ -1039,6 +1039,18 @@ def _rune_tags_from_effect(effect_text: str) -> set[str]:
     if ("energy gain efficiency" in tl) or ("에너지 획득 효율" in t) or ("에너지 획득효율" in t):
         tags.add("ENERGY_EFF")
 
+    # early / opener-limited effects (예: 전투 시작 후 10초, 첫 10초 등) — PVP에서 가치 상승
+    if (
+        ("first 10" in tl and ("second" in tl or "sec" in tl or "s" in tl))
+        or ("first 10s" in tl)
+        or ("for 10s" in tl and "start" in tl)
+        or ("battle start" in tl and ("10s" in tl or "10 s" in tl or "10sec" in tl))
+        or ("전투 시작" in t and "10초" in t)
+        or ("첫 10초" in t)
+        or ("초반" in t and "10초" in t)
+    ):
+        tags.add("EARLY_10S")
+
     # ultimate trigger
     if ("after ultimate" in tl) or ("after activating ultimate" in tl) or ("궁극기" in t and ("후" in t or "사용" in t or "발동" in t)):
         tags.add("ULT_TRIGGER")
@@ -1057,7 +1069,7 @@ def _rune_tag_index(rune_db: dict[str, dict]) -> dict[str, dict]:
 
 # ---------- Scoring: objective by role ----------
 
-def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dict], tag_idx: dict[str, dict]) -> float:
+def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dict], tag_idx: dict[str, dict], battle: str = "pve") -> float:
     tags = (tag_idx.get(set_name) or {}).get("tags4" if pieces == 4 else "tags2", set())
 
     role = profile["role"]
@@ -1072,6 +1084,10 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
     shield = profile["shield_strength"]
 
     score = 0.0
+
+    b = (battle or "pve").strip().lower()
+    is_pvp = b in ("pvp", "arena", "duel", "short")
+
 
     # scaling match (mostly for 2pc)
     if pieces == 2:
@@ -1108,7 +1124,7 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         if "ENERGY_EFF" in tags:
             score += 20.0 * (0.6 + 0.4 * ult)
         if "START_ENERGY" in tags:
-            score += 16.0 * (0.6 + 0.4 * ult)
+            score += 16.0 * (0.6 + 0.4 * ult) * (1.25 if is_pvp else 1.0)
         if "ULT_TRIGGER" in tags:
             score += 6.0 * ult
         if "HP" in tags or "DEF" in tags:
@@ -1124,7 +1140,7 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         if "ENERGY_EFF" in tags:
             score += 10.0 * (0.6 + 0.4 * ult)
         if "START_ENERGY" in tags:
-            score += 8.0 * (0.6 + 0.4 * ult)
+            score += 8.0 * (0.6 + 0.4 * ult) * (1.25 if is_pvp else 1.0)
         if "ULT_TRIGGER" in tags:
             score += 4.0 * ult
         if "HP" in tags or "DEF" in tags:
@@ -1136,7 +1152,7 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         if "ENERGY_EFF" in tags:
             score += 10.0 * (0.6 + 0.4 * ult)
         if "START_ENERGY" in tags:
-            score += 10.0 * (0.6 + 0.4 * ult)
+            score += 10.0 * (0.6 + 0.4 * ult) * (1.25 if is_pvp else 1.0)
         if "HP" in tags or "DEF" in tags:
             score += 6.0
         if "SHIELD" in tags:
@@ -1166,7 +1182,7 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
             else:
                 score += 14.0 * min(1.0, shield)
         if "START_ENERGY" in tags:
-            score += 3.0
+            score += 3.0 * (1.15 if is_pvp else 1.0)
         if "ENERGY_EFF" in tags:
             score += 3.0
 
@@ -1192,7 +1208,8 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
             else:
                 score += 18.0 * (0.3 + 0.7 * min(1.0, extra * 3.0))
         if "DOT_DMG" in tags:
-            score += 18.0 * (0.3 + 0.7 * min(1.0, dot * 3.0))
+            # DOT은 누적 시간이 필요하므로 PVP(짧은 전투)에서는 가치가 하락
+            score += 18.0 * (0.3 + 0.7 * min(1.0, dot * 3.0)) * (0.65 if is_pvp else 1.0)
 
         # 스케일 매칭 보상: DEF/HP 스케일은 스탯 자체 기여도가 크므로 보상을 조금 더 줌
         if "ATK" in tags:
@@ -1211,7 +1228,8 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         if "ENERGY_EFF" in tags:
             score += 4.0 * ult
         if "START_ENERGY" in tags:
-            score += 3.0 * ult
+            # 선에너지는 짧은 전투(PVP)에서 체감이 커서 가중치 소폭 상향
+            score += 3.0 * ult * (1.25 if is_pvp else 1.0)
 
         if "TEAM_DMG" in tags:
             score += 2.0
@@ -1219,26 +1237,33 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         if "HP" in tags or "DEF" in tags:
             score += 1.0
 
+    # opener-limited effects (예: 첫 10초) — PVP에서 가치 상승, PVE에서는 지속 효율이 낮아 감점
+    if "EARLY_10S" in tags:
+        if is_pvp:
+            score += (8.0 if pieces == 4 else 2.5)
+        else:
+            score -= (5.0 if pieces == 4 else 1.5)
+
     if no_crit and ("CRIT_RATE" in tags or "CRIT_DMG" in tags):
         score -= 8.0
 
     return score
 
 
-def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dict], list[str]]:
+def _best_rune_builds(profile: dict, rune_db: dict[str, dict], battle: str = "pve") -> tuple[list[dict], list[str]]:
     tag_idx = _rune_tag_index(rune_db)
     sets = list(rune_db.keys())
 
     best: list[tuple[float, str, str]] = []
     for s4 in sets:
-        sc4 = _score_set(profile, s4, 4, rune_db, tag_idx)
+        sc4 = _score_set(profile, s4, 4, rune_db, tag_idx, battle=battle)
         if sc4 < -5:
             continue
         for s2 in sets:
             # 룬 세트는 중복 장착 불가: 4세트와 2세트가 같은 세트면 제외
             if s2 == s4:
                 continue
-            sc2 = _score_set(profile, s2, 2, rune_db, tag_idx)
+            sc2 = _score_set(profile, s2, 2, rune_db, tag_idx, battle=battle)
             total = sc4 + sc2
             best.append((total, s4, s2))
 
@@ -1373,7 +1398,7 @@ def _substats_for(profile: dict) -> list[str]:
     return ["Critical Rate (%)", "Critical Damage (%)", scaling_pct, "Attack Penetration (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
 
 
-def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
+def recommend_runes(cid: str, base: dict, detail: dict, battle: str = "pve") -> dict:
     overrides = load_rune_overrides()
     rune_db = rune_db_by_name()
 
@@ -1408,7 +1433,7 @@ def recommend_runes(cid: str, base: dict, detail: dict) -> dict:
         return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
 
     profile = _detect_profile(detail or {}, base or {})
-    core_builds, rationale = _best_rune_builds(profile, rune_db)
+    core_builds, rationale = _best_rune_builds(profile, rune_db, battle=battle)
 
     builds = []
     for b in core_builds:
@@ -2102,10 +2127,19 @@ def api_char_detail(cid: str):
             "runes": None,
         }
 
+    # PVE/PVP 분리 추천 (PVP는 전투가 짧아 오프너/선에너지/초반 버프 계열의 가치가 상승)
     try:
-        rune_reco = recommend_runes(cid2, base, detail)
+        rune_reco_pve = recommend_runes(cid2, base, detail, battle="pve")
     except Exception as e:
-        rune_reco = {"mode": "error", "error": str(e), "builds": []}
+        rune_reco_pve = {"mode": "error", "error": str(e), "builds": []}
+
+    try:
+        rune_reco_pvp = recommend_runes(cid2, base, detail, battle="pvp")
+    except Exception as e:
+        rune_reco_pvp = {"mode": "error", "error": str(e), "builds": []}
+
+    # 하위호환: 기존 키(rune_reco)는 PVE로 유지
+    rune_reco = rune_reco_pve
 
     return jsonify({
         "ok": True,
@@ -2113,6 +2147,8 @@ def api_char_detail(cid: str):
         "character": base,
         "detail": detail,
         "rune_reco": rune_reco,
+        "rune_reco_pve": rune_reco_pve,
+        "rune_reco_pvp": rune_reco_pvp,
         "detail_source": f"public/data/zone-nova/characters_ko/{cid2}.json",
     })
 
