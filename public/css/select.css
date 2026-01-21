@@ -208,20 +208,6 @@ body{
   align-items:center;
 }
 
-/* ✅ PC/모바일 공통: 필터 컨트롤은 남는 폭을 전부 사용(양옆 공백 최소화)
-   - flex-grow로 각 콤보/검색창이 줄에서 꽉 차게 확장
-   - min-width:0으로 좁은 창에서 자연스럽게 줄바꿈
-*/
-.filters .input,
-.filters .select{
-  min-width: 0;
-  width: auto;
-  flex: 1 1 180px;
-}
-.filters #q{
-  flex: 2 1 360px;
-}
-
 .input, .select{
   border: 1px solid var(--line2);
   background: rgba(0,0,0,.18);
@@ -1427,14 +1413,14 @@ body{
 
 /* =========================================================
    Memory Card tab (표 구조 유지)
-   - 카드(좌측) 열을 확대
-   - 이미지는 셀 폭을 100%로 채우고 비율 유지
+   - 카드(좌측) 열만 크게
+   - 이미지가 좌측 셀을 100%로 꽉 채우게
 ========================================================= */
 .memcard-table{ table-layout: fixed; }
 
 .memcard-table .memcard-th,
 .memcard-table td.memcard-imgcell{
-  width: clamp(240px, 30vw, 420px);
+  width: clamp(180px, 26vw, 340px);
 }
 
 .memcard-table td.memcard-imgcell{
@@ -1444,11 +1430,9 @@ body{
 
 .memcard-table td.memcard-imgcell .memcard-img{
   display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 5 / 8;
-  object-fit: cover;
-  max-width: none;
+  width: 100% !important;
+  height: auto !important;
+  max-width: none !important;
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,.12);
   box-shadow: 0 10px 26px rgba(0,0,0,.35);
@@ -1458,263 +1442,245 @@ body{
 @media (max-width: 520px){
   .memcard-table .memcard-th,
   .memcard-table td.memcard-imgcell{
-    width: clamp(170px, 54vw, 320px);
+    width: clamp(150px, 44vw, 260px);
   }
   .memcard-table td.memcard-imgcell{ padding: 8px; }
-  .memcard-table td.memcard-imgcell .memcard-img{ border-radius: 14px; }
 }
-
-/* =========================================================
-   Tablet / Narrow desktop (창 반으로 줄였을 때) 레이아웃 안정화
-   - tier 상단 라인: 버튼 세로 깨짐 방지
-   - class 조건 박스(min-width:420)로 인한 압착 제거
-   - filters: 2열 그리드로 정렬
-   - 폰트 크기 일관성 향상
-========================================================= */
-
-/* 버튼 글자 쪼개짐 방지 */
-.btn{ white-space: nowrap; }
-
-/* filters: 중간 폭에서는 2열 그리드 */
-@media (max-width: 980px){
-  .filters{
-    display:grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-    align-items: stretch !important;
-  }
-  .filters #q{ grid-column: 1 / -1 !important; }
-  .filters .input, .filters .select, .filters .btn{
-    width: 100% !important;
-    min-width: 0 !important;
-    font-size: 16px !important;
-    height: 42px !important;
-    padding: 0 12px !important;
-  }
-}
-
-
-/* 텍스트 크기 “너무 작은 것들”만 상향 (전체 동일 체감) */
-.filters-summary-hint,
-.tier-summary-hint,
-.tier-help,
-.tier-info{
-  font-size: 14px !important;
-}
-
-
-
 
 
 /* =========================================================
-   Tier Topline (Mobile/Tablet)
-   - 현재 select.html 구조(셀렉트 + 3버튼 + 전체선택/해제)에 맞춰
-     화면이 좁을 때 2줄 이상으로 자연스럽게 정렬
+   Memory Card (force): select.html 인라인 스타일보다 우선 적용
 ========================================================= */
-@media (max-width: 900px){
-  .tier-row.tier-topline{
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  .tier-actions-inline{
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    margin-left: 0;
-  }
-  .tier-row.tier-topline .btn,
-  .tier-row.tier-topline .select{
-    width: 100%;
-    height: 46px;
-    padding: 0 12px;
-    border-radius: 16px;
-    font-size: 16px;
-  }
+.memcard-table td.memcard-imgcell{
+  width: clamp(240px, 30vw, 420px) !important;
+  padding: 10px !important;
+}
+.memcard-table td.memcard-imgcell .memcard-img{
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 5 / 8;
+  object-fit: cover;
 }
 @media (max-width: 520px){
-  .tier-row.tier-topline .btn,
-  .tier-row.tier-topline .select{
-    height: 44px;
-    padding: 0 10px;
-    font-size: 14px;
+  .memcard-table td.memcard-imgcell{
+    width: clamp(170px, 54vw, 320px) !important;
+    padding: 8px !important;
   }
 }
+
 /* =========================================================
-   Wide desktop (전체창/와이드) 레이아웃 개선
-   - 등급표 상단 줄: 좌측(프리셋+버튼) / 우측(클래스 조건) 균형
-   - 버튼 폭 과도하게 늘어나는 현상 방지
-   - 패널 내부 여백/정렬 통일
+   FINAL Responsive Layout (PC + Mobile)
+   - 목표:
+     1) PC: 창 크기와 무관하게 필터/콤보가 남는 여백 없이 자연스럽게 확장
+     2) PC: 등급표 상단 컨트롤은 2줄 고정
+        - 1줄: 등급표선택 / 등급표로파티구성 / AI추천파티 / 파티초기화
+        - 2줄: 선택클래스포함조건 / 전체선택 / 전체해제
+     3) Mobile: 동일 요소들이 자연스럽게 줄바꿈(2열 그리드 기반)
+   - select.html의 head inline <style> 의존 제거 전제(또는 본 규칙이 우선하도록 !important 사용)
 ========================================================= */
 
-/* wide에서 카드/섹션 내부 여백 조금 여유 있게 */
+/* -------------------------
+   Wide container (PC)
+   ------------------------- */
 @media (min-width: 1100px){
-  .panel{ padding: 16px; }
-  .tier-panel{ padding: 14px; }
-  .filters-box{ padding: 12px 14px; }
+  .wrap{ max-width: 1600px; }
+}
+@media (min-width: 1601px){
+  .wrap{ max-width: 100%; } /* 울트라 와이드에서도 좌우 여백 최소화 */
 }
 
-/* 검색/필터 바도 전체창에서 한 줄 유지 도움 */
+/* -------------------------
+   Filters: fill the row
+   ------------------------- */
+.filters{
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+.filters .input,
+.filters .select{
+  width: 100%;
+  min-width: 0;
+}
+.filters #q{
+  grid-column: 1 / -1;
+}
+
 @media (min-width: 1100px){
+  /* PC에서는 1줄로 "꽉" 차게 */
   .filters{
-    gap: 12px;
+    grid-template-columns: minmax(280px, 2.2fr) repeat(5, minmax(140px, 1fr));
   }
-  .input{ min-width: 320px; }
-  .select{ min-width: 190px; }
+  .filters #q{ grid-column: auto; }
 }
 
-@media (max-width: 520px){
-  .tier-classes-inline{
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 10px !important;
-  }
-  .tier-class-item{
-    border-radius: 14px;
-    padding: 12px 10px;
-    background: rgba(255,255,255,.04);
-    border: 1px solid rgba(255,255,255,.10);
-  }
-  .tier-class-item input{
-    transform: scale(1.15);
-  }
-  .tier-class-item span{
-    font-weight: 800;
-    letter-spacing: .2px;
-  }
-}
+/* -------------------------
+   Tier: controls 2-row layout
+   HTML 구조(select.html):
+     .tier-body
+       .tier-row.tier-topline  (tierPreset + 3 buttons + reset + spacer + actions-inline)
+       .tier-row.tier-classline (class condition details)
+       #tierPartyResult / #aiPartyResult
+   ------------------------- */
 
-/* =========================================================
-   PC(데스크톱) 등급표 상단 컨트롤 레이아웃 (요구사항 반영)
-   1줄: 등급표 선택 / 등급표로 파티 구성 / AI 추천 파티 / 파티 초기화
-   2줄: 선택 클래스 포함 조건 / 전체 선택 / 전체 해제
-   - 모바일/태블릿 레이아웃에는 영향 없음
-========================================================= */
+/* 공통: tier 상단의 불필요 spacer는 항상 숨김 */
+.tier-top-spacer{ display:none !important; }
 
+/* ✅ PC(>=901px): 요구한 2줄 고정 */
 @media (min-width: 901px){
-  /* ✅ PC(창 크기 변화 포함)에서 항상 '2줄 각잡' 레이아웃을 유지
-     1줄: 등급표선택 / 등급표로파티구성 / AI추천파티 / 파티초기화
-     2줄: 선택클래스포함조건 / 전체선택 / 전체해제
-     - 버튼/콤보는 남는 폭을 채우며, 좁아지면 최소폭 기준으로만 줄어듦
-  */
-  .tier-panel .tier-body{
+
+  .tier-body{
     display: grid !important;
-    grid-template-columns:
-      minmax(260px, 2.2fr)
-      minmax(220px, 1fr)
-      minmax(220px, 1fr)
-      minmax(190px, .9fr)
-      minmax(190px, .9fr);
+    grid-template-columns: minmax(240px, 1.25fr) 1fr 1fr 1fr;
+    grid-auto-rows: auto;
     gap: 12px !important;
-    align-items: start !important;
+    align-items: start;
   }
 
-  /* 기존 래퍼(.tier-topline/.tier-classline)는 배치용만 → 자식들을 그리드 아이템으로 승격 */
-  .tier-panel .tier-body .tier-row.tier-topline,
-  .tier-panel .tier-body .tier-row.tier-classline{
-    display: contents !important;
-  }
+  /* tier-topline의 자식들을 .tier-body grid 아이템으로 승격 */
+  .tier-row.tier-topline{ display: contents !important; }
 
-  /* spacer 제거 */
-  .tier-panel .tier-body .tier-top-spacer{ display: none !important; }
-
-  /* 전체선택/해제 래퍼는 버튼만 그리드 아이템으로 */
-  .tier-panel .tier-body .tier-actions-inline{ display: contents !important; }
-
-  /* 1줄 배치 (좌측 2칸을 tierPreset이 먹고, 나머지 버튼 3개) */
+  /* 1줄 */
   #tierPreset{
-    grid-column: 1 / 3;
-    grid-row: 1;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
     width: 100% !important;
     min-width: 0 !important;
   }
-  #btnBuildTierParty{ grid-column: 3; grid-row: 1; }
-  #btnAiParty{ grid-column: 4; grid-row: 1; }
-  #btnResetParties{ grid-column: 5; grid-row: 1; }
+  #btnBuildTierParty{
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+  #btnAiParty{
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+  }
+  /* 실제 id는 select.html 기준: btnResetParties */
+  #btnResetParties{
+    grid-column: 4 !important;
+    grid-row: 1 !important;
+  }
 
-  /* 2줄 배치 (class 조건은 넓게, 전체선택/해제는 우측 고정) */
-  #classCondPanel{
-    grid-column: 1 / 4;
-    grid-row: 2;
+  /* 2줄: class condition */
+  .tier-row.tier-classline{
+    grid-column: 1 / 4 !important;
+    grid-row: 2 !important;
+    margin: 0 !important;
+  }
+
+  /* class condition 내부가 압착되지 않게 */
+  #tierClassInline,
+  .tier-row.tier-classline .tier-class-inline{
     width: 100% !important;
     min-width: 0 !important;
   }
-  #btnAll{ grid-column: 4; grid-row: 2; }
-  #btnNone{ grid-column: 5; grid-row: 2; }
 
-  /* 결과 영역은 다음 줄에서 전체 폭 사용 */
-  #tierPartyResult{ grid-column: 1 / -1; grid-row: 3; }
-  #aiPartyResult{ grid-column: 1 / -1; grid-row: 4; }
+  /* 2줄: 전체선택/전체해제 (PC에서는 classline 오른쪽 칸) */
+  .tier-actions-inline{
+    grid-column: 4 !important;
+    grid-row: 2 !important;
 
-  /* 높이/정렬 통일 (상단 컨트롤만) */
-  .tier-panel .tier-body > select,
-  .tier-panel .tier-body > button.btn,
-  .tier-panel .tier-body > button{
-    height: 52px !important;
+    margin-left: 0 !important;
+    width: 100% !important;
+
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  /* 컨트롤 높이/정렬 통일 */
+  .tier-body .select,
+  .tier-body .btn,
+  .tier-body button{
+    height: 52px;
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    white-space: nowrap;
+  }
+
+  /* classline details는 버튼과 달라 높이 고정하면 어색 → 내부만 정리 */
+  .tier-row.tier-classline .subpanel{
+    margin-top: 0;
+  }
+  .tier-row.tier-classline .subpanel-summary{
+    padding: 10px 12px;
+  }
+}
+
+/* ✅ Mobile/Tablet(<=900px): 자연스러운 줄바꿈(2열 그리드) */
+@media (max-width: 900px){
+
+  .tier-body{
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px !important;
+    align-items: start;
+  }
+
+  .tier-row.tier-topline{ display: contents !important; }
+
+  /* 1행: 등급표 선택(풀폭) */
+  #tierPreset{
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* 2행: 파티구성/AI 추천 (2등분) */
+  #btnBuildTierParty{ grid-column: 1 !important; grid-row: 2 !important; width: 100% !important; }
+  #btnAiParty{        grid-column: 2 !important; grid-row: 2 !important; width: 100% !important; }
+
+  /* 3행: 파티 초기화(풀폭) */
+  #btnResetParties{
+    grid-column: 1 / -1 !important;
+    grid-row: 3 !important;
+    width: 100% !important;
+  }
+
+  /* 4행: 선택 클래스 포함 조건(풀폭) */
+  .tier-row.tier-classline{
+    grid-column: 1 / -1 !important;
+    grid-row: 4 !important;
+    margin: 0 !important;
+  }
+  #tierClassInline,
+  .tier-row.tier-classline .tier-class-inline{
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* 5행: 전체선택/전체해제(2등분) */
+  .tier-actions-inline{
+    grid-column: 1 / -1 !important;
+    grid-row: 5 !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .tier-body .btn,
+  .tier-body button,
+  .tier-body .select{
+    height: 46px !important;
     width: 100% !important;
     min-width: 0 !important;
     justify-content: center;
     white-space: nowrap;
   }
-
-  /* class panel은 summary만 52px, 내부는 내용에 맞게 */
-  #classCondPanel > summary{
-    height: 52px;
-    display: flex;
-    align-items: center;
-  }
-
-  /* class 조건 박스는 PC에서도 늘어남/넘침 없이 */
-  #tierClassInline,
-  .tier-class-inline{
-    min-width: 0 !important;
-    width: 100%;
-  }
 }
 
-
-/* === SELECT PAGE OVERRIDES (auto-generated) === */
-/* Wide desktop: use more horizontal space */
-@media (min-width: 1100px){
-  .wrap{ max-width: 1600px; }
-}
-
-/* Sortable stat headers */
-.th-sort{
-  cursor: pointer;
-  user-select: none;
-  position: relative;
-  padding-right: 18px;
-}
-.th-sort::after{
-  content: "↕";
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: .45;
-  font-size: 12px;
-}
-.th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
-.th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
-
-/* Stats columns */
-.col-hp, .col-atk, .col-def, .col-crit{
-  width: 108px;
-  min-width: 108px;
-  text-align: right;
-}
-td.col-hp, td.col-atk, td.col-def, td.col-crit{
-  font-weight: 800;
-  color: rgba(255,255,255,.86);
-}
-@media (max-width: 520px){
-  .col-hp, .col-atk, .col-def, .col-crit{
-    width: 96px;
-    min-width: 96px;
-  }
-}
-
-/* Tier result card: portrait + name */
+/* -------------------------
+   Tier result cards (moved from inline style)
+   ------------------------- */
 .tier-card-top{
   display:flex;
   align-items:center;
@@ -1732,7 +1698,7 @@ td.col-hp, td.col-atk, td.col-def, td.col-crit{
 }
 .tier-portrait-empty{ display:block; }
 
-/* 긴 특성명 1줄 유지 + 말줄임 */
+/* 긴 특성명 1줄 말줄임 */
 .tier-card-sub .pill{
   white-space: nowrap;
   overflow: hidden;
@@ -1740,147 +1706,10 @@ td.col-hp, td.col-atk, td.col-def, td.col-crit{
   max-width: 190px;
 }
 
-/* Select dropdown readability (options contrast) */
-select, .select{ color: rgba(255,255,255,.92); }
-select option{
-  background: #0b1222;
-  color: rgba(255,255,255,.90);
-}
-select option:disabled{ color: rgba(255,255,255,.58); }
-
-/* ===== Tier: Subpanel (class condition) ===== */
-.subpanel{
-  margin-top: 8px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: rgba(255,255,255,.02);
-}
-.subpanel[open]{ background: rgba(255,255,255,.025); }
-.subpanel-summary{
-  list-style: none;
-  cursor: pointer;
-  user-select: none;
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 14px;
-}
-.subpanel-summary::-webkit-details-marker{ display:none; }
-.subpanel-title{ font-weight: 900; color: var(--txt); }
-.subpanel-toggle{ color: var(--muted); font-size: 12px; }
-.subpanel:not([open]) .tier-class-inline{ display:none; }
-
-/* Tier: "선택 클래스 포함 조건" 내부 레이아웃 */
-.tier-class-inline{
-  width: 100%;
-  min-width: 0;
-  display:grid;
-  grid-template-columns: auto 1fr;
-  align-items:center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.04);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
-}
-.tier-check-inline{
-  white-space: nowrap;
-  font-weight: 950;
-  color: rgba(255,255,255,.92);
-}
-
-/* 클래스 7개: PC 1줄(7컬럼) → 중간폭 4컬럼 → 모바일 2컬럼 */
-.tier-classes-inline{
-  margin-top: 10px;
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 10px;
-}
-@media (max-width: 1100px){
-  .tier-classes-inline{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-@media (max-width: 720px){
-  .tier-class-inline{ grid-template-columns: 1fr; align-items: start; }
-  .tier-classes-inline{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-/* Tier warning box */
-.tier-warn{
-  margin:10px 0 6px;
-  padding:10px 12px;
-  border:1px solid rgba(255,210,120,.35);
-  background: rgba(255,210,120,.08);
-  border-radius: 14px;
-  color: rgba(255,255,255,.88);
-  font-size: 13px;
-  font-weight: 850;
-}
-
-/* Mandatory pick UI (선택/필수/배치) */
-.pick-stack{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  align-items:flex-start;
-}
-.pick-line{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  font-size:12px;
-  color: rgba(255,255,255,.82);
-  user-select:none;
-}
-.pick-line input{ transform: translateY(0.5px); }
-.pick-text{ white-space:nowrap; }
-
-.must-slot{
-  width: 132px;
-  max-width: 132px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--line2);
-  background: rgba(255,255,255,.04);
-  color: var(--txt);
-  font-size: 12px;
-  outline: none;
-}
-.must-slot:disabled{ opacity: .55; cursor: not-allowed; }
-
-.must-role{
-  height: 32px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--line2);
-  background: rgba(255,255,255,.04);
-  color: var(--txt);
-  font-size: 12px;
-  outline: none;
-}
-.must-role:disabled{ opacity: .55; cursor: not-allowed; }
-
-@media (max-width: 720px){
-  .must-slot{ width: 118px; max-width: 118px; }
-  .pick-line{ font-size: 11px; gap: 7px; }
-  .pick-stack{ gap: 5px; }
-}
-
-/* (중복 PC 패치 제거)
-   - PC 레이아웃은 위 @media (min-width:901px) 블록에서 tier-body 기준으로 일원화 */
-
-
-/* Mobile: keep the table area as a scroll container (현재 동작 유지) */
-@media (max-width: 900px){
-  .table-wrap{
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x pan-y;
-    overscroll-behavior: contain;
-    max-height: calc(100svh - 310px);
-  }
-  .table{ min-width: 1100px; table-layout: auto; }
-  .table-wrap *{ touch-action: pan-x pan-y; }
+/* -------------------------
+   Safety overrides: 기존 min-width 강제(PC에서 여백 유발) 제거
+   ------------------------- */
+@media (min-width: 1100px){
+  .input{ min-width: 0 !important; }
+  .select{ min-width: 0 !important; }
 }
