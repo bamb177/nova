@@ -633,37 +633,7 @@ html, body{
   .tier-classes-inline{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-
-        /* PVE/PVP subtabs */
-        .subtabs{ margin-top: 4px; }
-        .subtab-bar{
-          display:flex;
-          gap:8px;
-          margin: 0 0 10px 0;
-          padding: 6px;
-          border-radius: 12px;
-          border: 1px solid rgba(255,255,255,.10);
-          background: rgba(255,255,255,.03);
-          width: fit-content;
-        }
-        .subtab-btn{
-          appearance:none;
-          border:1px solid rgba(255,255,255,.12);
-          background: rgba(255,255,255,.02);
-          color: rgba(255,255,255,.88);
-          padding: 8px 12px;
-          border-radius: 10px;
-          font-weight: 700;
-          cursor: pointer;
-        }
-        .subtab-btn.active{
-          border-color: rgba(255,255,255,.22);
-          background: rgba(255,255,255,.08);
-        }
-        .subtab-panel{ display:none; }
-        .subtab-panel.active{ display:block; }
-
-      </style>
+</style>
 </head>
 
 <body>
@@ -1135,50 +1105,44 @@ function pick(obj, ...keys) {
       return `<div class="tab-panel ${active ? "active" : ""}" data-panel="${escapeHtml(id)}">${html}</div>`;
     }
 
-    function renderRecommendedRunesSingle(runeReco, includeStyle=true) {
-      if (!runeReco || !Array.isArray(runeReco.builds) || runeReco.builds.length === 0) {
-        return `<div class="detail-empty">추천 룬 정보가 없습니다.</div>`;
-      }
+    
+    function renderRecommendedRunes(runeReco) {
+      // Backward compatibility:
+      // - old: {mode, builds:[...]}
+      // - new: {mode:"both", pve:{...}, pvp:{...}}
+      const isBoth = runeReco && runeReco.mode === "both" && runeReco.pve && runeReco.pvp;
 
-      const builds = runeReco.builds;
+      function pickBuilds(obj){
+        if (!obj || !Array.isArray(obj.builds) || obj.builds.length === 0) return null;
+        return obj.builds;
+      }
 
       function renderSetItem(s) {
-        // 이미지 파일 누락/이름 불일치 등으로 깨지는 경우가 있어 onerror fallback 적용
         const icon = (s && s.icon)
-          ? `<img class="rune-ico" src="${escapeHtml(String(s.icon))}" alt="" loading="lazy" onerror="this.onerror=null;this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';this.classList.add('rune-ico-broken');" />`
+          ? `<img class="rune-ico" src="${escapeHtml(String(s.icon))}" alt="" loading="lazy"
+               onerror="this.onerror=null;this.src='data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';this.classList.add('rune-ico-broken');" />`
           : `<div class="rune-ico rune-ico-empty"></div>`;
-        const name = escapeHtml(String(s.set || "-"));
+        const name = escapeHtml(String(s && s.set ? s.set : "-"));
         const pcsNum = Number(s && s.pieces ? s.pieces : 0) || 0;
-        const pcs = escapeHtml(String(pcsNum || ""));
-
-        // ✅ 표시되는 효과는 '실제 장착 세트 수'에 맞게 노출 (2세트면 2세트만, 4세트면 2+4 노출)
-        const two = (pcsNum >= 2 && s && s.twoPiece) ? `<div class="rune-eff"><span class="rune-eff-tag">2세트</span> ${formatDescText(escapeHtml(String(s.twoPiece)))}</div>` : "";
-        const four = (pcsNum >= 4 && s && s.fourPiece) ? `<div class="rune-eff"><span class="rune-eff-tag">4세트</span> ${formatDescText(escapeHtml(String(s.fourPiece)))}</div>` : "";
-        const note = (s && s.note) ? `<div class="rune-note">${formatDescText(escapeHtml(String(s.note)))}</div>` : "";
-        return `
-          <div class="rune-set">
-            <div class="rune-set-top">
-              ${icon}
-              <div class="rune-set-name">
-                <div class="rune-set-title">${name} <span class="rune-set-pcs">${pcs}세트</span></div>
-              </div>
-            </div>
-            <div class="rune-set-body">
-              ${two}
-              ${four}
-              ${note}
-            </div>
+        const pcs = pcsNum ? `${pcsNum}세트` : "";
+        return `<div class="rune-set">
+          ${icon}
+          <div class="rune-set-meta">
+            <div class="rune-set-name">${name}</div>
+            <div class="rune-set-pcs muted">${escapeHtml(pcs)}</div>
           </div>
-        `;
+        </div>`;
       }
 
-      function renderSlots(slots) {
+      function renderSlots(slots){
         if (!slots || typeof slots !== "object") return "";
-        const rows = ["1","2","3","4","5","6"].map(k => {
+        const keys = Object.keys(slots).sort((a,b)=>Number(a)-Number(b));
+        const rows = keys.map(k=>{
           const v = slots[k];
           const list = Array.isArray(v) ? v : (typeof v === "string" ? [v] : []);
-          const html = list.length ? list.map(x => `<div class="slot-item">${escapeHtml(String(x))}</div>`).join("") : `<div class="slot-item muted">-</div>`;
-          return `<div class="slot-row"><div class="slot-k">${k}번</div><div class="slot-v">${html}</div></div>`;
+          const html = list.length ? list.map(x => `<div class="slot-item">${formatDescText(escapeHtml(String(x)))}</div>`).join("")
+                                   : `<div class="slot-item muted">-</div>`;
+          return `<div class="slot-row"><div class="slot-k">${escapeHtml(String(k))}번</div><div class="slot-v">${html}</div></div>`;
         }).join("");
         return `<div class="rune-slots">${rows}</div>`;
       }
@@ -1191,98 +1155,74 @@ function pick(obj, ...keys) {
             <ul class="rune-ul">
               ${arr.map(x => `<li>${formatDescText(escapeHtml(String(x)))}</li>`).join("")}
             </ul>
+          </div>`;
+      }
+
+      function renderBuildCard(b){
+        const sets = (b && Array.isArray(b.setPlan)) ? b.setPlan : [];
+        const title = escapeHtml(String(b && b.title ? b.title : "추천"));
+        const score = (b && (b.score !== undefined && b.score !== null)) ? `<span class="rune-score muted">score: ${escapeHtml(String(b.score))}</span>` : "";
+        const notes = Array.isArray(b && b.notes) ? b.notes : [];
+        const rationale = Array.isArray(b && b.rationale) ? b.rationale : [];
+        const slots = (b && b.slots) ? b.slots : null;
+        const substats = Array.isArray(b && b.substats) ? b.substats : [];
+
+        return `
+          <div class="rune-build-card">
+            <div class="rune-build-head">
+              <div class="rune-build-title">${title}</div>
+              ${score}
+            </div>
+
+            <div class="rune-set-grid">
+              ${sets.map(renderSetItem).join("")}
+            </div>
+
+            ${substats.length ? `<div class="rune-substats">
+              <div class="rune-list-title">우선 부옵션</div>
+              <div class="rune-chip-row">${substats.map(x=>`<span class="chip">${escapeHtml(String(x))}</span>`).join("")}</div>
+            </div>` : ""}
+
+            ${slots ? `<div class="rune-list-title" style="margin-top:10px">메인 옵션</div>${renderSlots(slots)}` : ""}
+
+            ${renderList("참고/주의", notes)}
+            ${renderList("추천 근거", rationale)}
           </div>
         `;
       }
 
-      const cards = builds.map((b) => {
-        const title = escapeHtml(String(b.title || "추천"));
-        const setPlan = Array.isArray(b.setPlan) ? b.setPlan : [];
-        const rationale = Array.isArray(b.rationale) ? b.rationale : [];
-        const notes = Array.isArray(b.notes) ? b.notes : [];
-        const substats = Array.isArray(b.substats) ? b.substats : [];
-        const slots = b.slots || {};
+      function renderBuilds(builds){
+        if (!builds) return `<div class="detail-empty">추천 룬 정보가 없습니다.</div>`;
+        return `<div class="rune-builds">${builds.map(renderBuildCard).join("")}</div>`;
+      }
 
-        return `
-          <div class="card">
-            <div class="card-title"><span>${title}</span></div>
+      if (!runeReco) return `<div class="detail-empty">추천 룬 정보가 없습니다.</div>`;
 
-            <div class="rune-sets">
-              ${setPlan.map(renderSetItem).join("")}
-            </div>
+      if (!isBoth) {
+        const builds = pickBuilds(runeReco);
+        return renderBuilds(builds);
+      }
 
-            <div class="rune-grid">
-              <div class="rune-grid-col">
-                <div class="rune-sec-title">슬롯별 메인 스탯</div>
-                ${renderSlots(slots)}
-              </div>
-              <div class="rune-grid-col">
-                ${renderList("부옵 우선순위", substats)}
-                ${renderList("추천 근거", rationale)}
-                ${renderList("주의/제약", notes)}
-              </div>
-            </div>
+      // both: show PVE/PVP toggle
+      const pveBuilds = pickBuilds(runeReco.pve);
+      const pvpBuilds = pickBuilds(runeReco.pvp);
+
+      // default tab: PVE
+      return `
+        <div class="rune-mode-wrap" data-rune-mode="pve">
+          <div class="seg">
+            <button type="button" class="seg-btn is-active" data-mode="pve">PVE</button>
+            <button type="button" class="seg-btn" data-mode="pvp">PVP</button>
           </div>
-        `;
-      }).join("");
 
-      const style = `
-        <style>
-          .rune-sets{ display:grid; gap:10px; margin-top:10px; }
-          .rune-set{ border:1px solid rgba(255,255,255,.10); border-radius:14px; padding:10px; background:rgba(255,255,255,.02); }
-          .rune-set-top{ display:flex; align-items:center; gap:10px; }
-          .rune-ico{ width:42px; height:42px; border-radius:12px; object-fit:cover; flex:0 0 auto; background:rgba(255,255,255,.06); }
-          /* 이미지 엑박 fallback: 1x1 transparent로 교체 후 배경으로 placeholder 노출 */
-          .rune-ico-broken{ background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.04)); }
-          .rune-ico-empty{ display:inline-block; }
-          .rune-set-title{ font-weight:700; }
-          .rune-set-pcs{ font-size:.92em; opacity:.75; margin-left:6px; }
-          .rune-set-body{ margin-top:8px; display:grid; gap:6px; }
-          .rune-eff{ line-height:1.35; }
-          .rune-eff-tag{ display:inline-block; min-width:44px; padding:2px 8px; margin-right:6px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); font-size:.86em; opacity:.9; }
-          .rune-note{ opacity:.78; font-size:.95em; }
-          .rune-grid{ display:grid; grid-template-columns: 1.05fr .95fr; gap:12px; margin-top:12px; }
-          @media (max-width: 920px){ .rune-grid{ grid-template-columns: 1fr; } }
-          .rune-sec-title{ font-weight:700; margin:4px 0 10px; opacity:.92; }
-          .rune-slots{ display:grid; gap:8px; }
-          .slot-row{ display:flex; gap:10px; }
-          .slot-k{ width:46px; opacity:.8; }
-          .slot-v{ flex:1; display:grid; gap:6px; }
-          .slot-item{ padding:6px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); }
-          .slot-item.muted{ opacity:.6; }
-          .rune-list{ margin-top:10px; }
-          .rune-list-title{ font-weight:700; opacity:.92; margin-bottom:6px; }
-          .rune-ul{ margin:0; padding-left:18px; display:grid; gap:6px; }
-        </style>
+          <div class="rune-mode-panel" data-panel="pve">
+            ${renderBuilds(pveBuilds)}
+          </div>
+          <div class="rune-mode-panel" data-panel="pvp" style="display:none">
+            ${renderBuilds(pvpBuilds)}
+          </div>
+        </div>
       `;
-
-      return includeStyle ? (style + cards) : cards;
-    }
-
-    // PVE/PVP 분리 추천 표시
-    function renderRecommendedRunes(runeRecoModes) {
-      if (runeRecoModes && (runeRecoModes.pve || runeRecoModes.pvp)) {
-        const pve = runeRecoModes.pve || null;
-        const pvp = runeRecoModes.pvp || null;
-
-        // 스타일은 1회만 포함
-        const pveHtml = renderRecommendedRunesSingle(pve, true);
-        const pvpHtml = pvp ? renderRecommendedRunesSingle(pvp, false) : `<div class="detail-empty">PVP 추천 룬 정보가 없습니다.</div>`;
-
-        return `
-          <div class="subtabs" data-subtab-group="runes">
-            <div class="subtab-bar">
-              <button type="button" class="subtab-btn active" data-subtab="pve">PVE</button>
-              <button type="button" class="subtab-btn" data-subtab="pvp">PVP</button>
-            </div>
-            <div class="subtab-panels">
-              <div class="subtab-panel active" data-subpanel="pve">${pveHtml}</div>
-              <div class="subtab-panel" data-subpanel="pvp">${pvpHtml}</div>
-            </div>
-          </div>
-        `;
-      }
-      return renderRecommendedRunesSingle(runeRecoModes, true);
     }
 
 
@@ -1309,32 +1249,39 @@ function pick(obj, ...keys) {
       `;
     }
 
+    
     function bindTabEvents() {
       const root = document.getElementById("modalBody");
       if (!root) return;
       root.onclick = (e) => {
-        // 1) subtab (PVE/PVP)
-        const sub = e.target.closest(".subtab-btn");
-        if (sub) {
-          const key = sub.dataset.subtab;
-          const group = sub.closest("[data-subtab-group]");
-          if (!key || !group) return;
-
-          group.querySelectorAll(".subtab-btn").forEach(b => b.classList.toggle("active", b.dataset.subtab === key));
-          group.querySelectorAll(".subtab-panel").forEach(p => p.classList.toggle("active", p.dataset.subpanel === key));
+        // detail tabs
+        const tabBtn = e.target.closest(".tab-btn");
+        if (tabBtn) {
+          const tab = tabBtn.dataset.tab;
+          if (!tab) return;
+          root.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+          root.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === tab));
           return;
         }
 
-        // 2) top-level tabs
-        const btn = e.target.closest(".tab-btn");
-        if (!btn) return;
-        const tab = btn.dataset.tab;
-        if (!tab) return;
+        // rune mode (PVE/PVP) toggle inside "추천 룬" tab
+        const segBtn = e.target.closest(".seg-btn");
+        if (segBtn) {
+          const mode = segBtn.dataset.mode;
+          const wrap = segBtn.closest(".rune-mode-wrap");
+          if (!wrap || !mode) return;
 
-        root.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-        root.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === tab));
+          wrap.dataset.runeMode = mode;
+          wrap.querySelectorAll(".seg-btn").forEach(b => b.classList.toggle("is-active", b.dataset.mode === mode));
+          wrap.querySelectorAll(".rune-mode-panel").forEach(p => {
+            const isOn = p.dataset.panel === mode;
+            p.style.display = isOn ? "" : "none";
+          });
+          return;
+        }
       };
     }
+
 
     // ===== Modal open/close =====
     const backdrop = document.getElementById("modalBackdrop");
@@ -1377,10 +1324,7 @@ function pick(obj, ...keys) {
         const cn = pick(detail, "chineseName", "chinesename", "chinessname", "cnName", "cn_name");
 
         setModalTitle(name, cn);
-        const runeReco = {
-          pve: j.rune_reco_pve || j.rune_reco || null,
-          pvp: j.rune_reco_pvp || null,
-        };
+        const runeReco = j.rune_reco || null;
         modalBody.innerHTML = renderDetailTabs(detail, runeReco);
         bindTabEvents();
       } catch (e) {
