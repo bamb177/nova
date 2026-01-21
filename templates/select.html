@@ -633,6 +633,121 @@ html, body{
   .tier-classes-inline{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+
+
+    /* =========================
+       Rune PVE/PVP Segmented UI
+       ========================= */
+    .rune-mode-wrap{ margin-top: 6px; }
+    .seg{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04);
+      box-shadow: 0 10px 26px rgba(0,0,0,.18);
+      margin: 8px 0 12px;
+    }
+    .seg-btn{
+      appearance:none;
+      border: 0;
+      background: transparent;
+      color: rgba(255,255,255,.92);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-weight: 900;
+      letter-spacing: .2px;
+      cursor: pointer;
+      line-height: 1;
+      user-select: none;
+    }
+    .seg-btn.is-active{
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.18);
+    }
+    @media (max-width: 520px){
+      .seg{ width: 100%; justify-content: space-between; }
+      .seg-btn{ flex:1; text-align:center; padding: 9px 10px; }
+    }
+
+    /* =========================
+       Rune build card layout
+       ========================= */
+    .rune-builds{ display:grid; gap:12px; }
+    .rune-build-card{
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(255,255,255,.03);
+      box-shadow: 0 14px 34px rgba(0,0,0,.22);
+    }
+    .rune-build-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+    .rune-build-title{ font-weight: 950; font-size: 1.05rem; }
+    .rune-score{ font-size: .92rem; }
+
+    .rune-set-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:10px;
+      margin-top:10px;
+    }
+    @media (max-width: 520px){
+      .rune-set-grid{ grid-template-columns: 1fr; }
+    }
+    .rune-set{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.02);
+      min-width: 0;
+    }
+    .rune-ico{ width:44px; height:44px; border-radius: 14px; object-fit: cover; flex: 0 0 auto; background: rgba(255,255,255,.06); }
+    .rune-set-meta{ min-width:0; }
+    .rune-set-name{ font-weight: 900; white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
+    .muted{ opacity: .75; }
+
+    .rune-substats{ margin-top: 12px; }
+    .rune-chip-row{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      font-weight: 800;
+      font-size: .92rem;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+
+    .rune-slots{ display:grid; gap: 10px; margin-top: 10px; }
+    .slot-row{ display:flex; gap:10px; align-items:flex-start; }
+    .slot-k{ width:48px; flex: 0 0 auto; font-weight: 900; opacity: .85; }
+    .slot-v{ flex:1; display:flex; flex-wrap:wrap; gap:8px; min-width:0; }
+    .slot-item{
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .rune-list{ margin-top: 12px; }
+    .rune-list-title{ font-weight: 950; margin-bottom: 8px; }
+    .rune-ul{ margin: 0; padding-left: 18px; display:grid; gap: 6px; }
+
 </style>
 </head>
 
