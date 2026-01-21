@@ -5,6 +5,58 @@
     "overrides": "public/data/zone-nova/rune_overrides.json"
   },
   "items": {
+    "Tamamo-no-mae": {
+      "key": "Tamamo-no-mae",
+      "archetype": "healer",
+      "scaling": {
+        "weights": {
+          "atk": 0.0,
+          "hp": 0.0,
+          "def": 0.0
+        },
+        "dominant": "atk"
+      },
+      "builds": [
+        {
+          "id": "default",
+          "title": "추천(기본)",
+          "sets": {
+            "primary": {
+              "name": "Daleth",
+              "pieces": 4,
+              "icon": "Daleth.jpg",
+              "effect2": null,
+              "effect4": null
+            },
+            "secondary": {
+              "name": "Zahn",
+              "pieces": 2,
+              "icon": "Zahn.jpg",
+              "effect2": null,
+              "effect4": null
+            }
+          },
+          "main_stats": {
+            "1": "HP (Flat)",
+            "2": "Attack (Flat)",
+            "3": "Defense (Flat)",
+            "4": "Healing Effectiveness %",
+            "5": "HP %",
+            "6": "HP %"
+          },
+          "substats_priority": [
+            "Healing Effectiveness %",
+            "HP %",
+            "Defense %",
+            "Energy-related (if exists)"
+          ],
+          "notes": [
+            "Slot 5는 딜러 계열에서 캐릭터 속성과 동일한 속성 피해 %를 우선.",
+            "세트 제한(길드레이드 전용/클래스 제한)이 있으면 UI에서 경고 표시 권장."
+          ]
+        }
+      ]
+    },
     "afrodite": {
       "key": "afrodite",
       "archetype": "healer",
