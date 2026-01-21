@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="/css/select.css?v={{ last_refresh }}" />
 
   <!-- ✅ Tier 결과 카드 이미지 + PC 폭 확장 오버라이드 -->
-  
 </head>
 
 <body>
@@ -82,6 +81,7 @@
         </summary>
 
         <div class="tier-body">
+          <!-- 1줄: 등급표선택 / 등급표로파티구성 / AI추천파티 / 파티초기화 -->
           <div class="tier-row tier-topline">
             <select id="tierPreset" class="select" disabled>
               <option value="">tier-lists.js 로딩중...</option>
@@ -89,18 +89,10 @@
             <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표로 파티 구성</button>
             <button class="btn" id="btnAiParty" type="button" disabled>AI 추천 파티</button>
             <button class="btn" id="btnResetParties" type="button">파티 초기화</button>
-
-            <div class="tier-top-spacer" aria-hidden="true"></div>
-
-            <!-- ✅ 전체선택/전체해제: 1줄 우측 -->
-            <div class="tier-actions-inline">
-              <button class="btn" id="btnAll" type="button">전체 선택</button>
-              <button class="btn" id="btnNone" type="button">전체 해제</button>
-            </div>
           </div>
 
-          <!-- ✅ 2줄: 선택 클래스 포함 조건 (접기/펼치기) -->
-          <div class="tier-row tier-classline">
+          <!-- 2줄: 선택클래스포함조건 / 전체선택 / 전체해제 -->
+          <div class="tier-row tier-secondline">
             <details class="subpanel" id="classCondPanel" open>
               <summary class="subpanel-summary">
                 <span class="subpanel-title">선택 클래스 포함 조건</span>
@@ -115,14 +107,16 @@
                 <div class="tier-classes tier-classes-inline" id="tierClassBox" aria-disabled="true"></div>
               </div>
             </details>
+            <button class="btn" id="btnAll" type="button">전체 선택</button>
+            <button class="btn" id="btnNone" type="button">전체 해제</button>
           </div>
-          
+
           <div id="tierPartyResult" class="tier-result"></div>
           <div id="aiPartyResult" class="tier-result"></div>
         </div>
       </details>
 
-      <!-- ===== Characters list ===== -->
+<!-- ===== Characters list ===== -->
       <div class="table-wrap">
         <table class="table">
           <thead>
