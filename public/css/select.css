@@ -1844,3 +1844,82 @@ body{
     width: 100%;
   }
 }
+
+/* ===========================
+   PC 전용: 빨간 박스(등급표 상단 컨트롤) 2줄 레이아웃
+   - 1줄: 등급표 선택 콤보박스(풀폭)
+   - 2줄: (좌) 3개 버튼 균등 / (우) 전체선택·해제 2개 균등
+   =========================== */
+@media (min-width: 1101px){
+
+  /* #tierPreset(등급표 선택)이 포함된 "그 줄"만 타겟팅 */
+  .tier-panel .tier-row:has(#tierPreset),
+  .tier-panel .tier-topline{
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr 0.7fr 0.7fr; /* 좌 3칸 + 우 2칸 */
+    grid-template-rows: auto auto;                 /* 2줄 */
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  /* 1줄: 콤보박스는 전체 폭 */
+  .tier-panel .tier-row:has(#tierPreset) #tierPreset,
+  .tier-panel .tier-topline #tierPreset{
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* 2줄: 좌측 3개 버튼 영역 (tier-actions 안에 버튼들이 있다고 가정) */
+  .tier-panel .tier-row:has(#tierPreset) .tier-actions,
+  .tier-panel .tier-topline .tier-actions{
+    grid-column: 1 / 4;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  /* 좌측 3개 버튼: 꽉 차게 */
+  #btnBuildTierParty,
+  #btnAiParty,
+  #btnResetParty,
+  #btnPartyReset,
+  #btnReset,
+  #btnClearParty,
+  #btnPartyClear{
+    width: 100%;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  /* 2줄: 우측 전체선택/해제 (tier-actions-inline 또는 해당 버튼들이 들어있는 래퍼) */
+  .tier-panel .tier-row:has(#tierPreset) .tier-actions-inline,
+  .tier-panel .tier-topline .tier-actions-inline{
+    grid-column: 4 / -1;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: stretch;
+    justify-items: stretch;
+  }
+
+  /* 우측 2개 버튼 후보 id들: 꽉 차게 */
+  #btnSelectAll,
+  #btnDeselectAll,
+  #btnUnselectAll,
+  #btnClearAll{
+    width: 100%;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  /* 혹시 특정 버튼들이 flex 영향으로 찌그러지면 기본값 보정 */
+  .tier-actions button,
+  .tier-actions-inline button{
+    height: 48px;
+  }
+}
