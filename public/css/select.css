@@ -208,6 +208,20 @@ body{
   align-items:center;
 }
 
+/* ✅ PC/모바일 공통: 필터 컨트롤은 남는 폭을 전부 사용(양옆 공백 최소화)
+   - flex-grow로 각 콤보/검색창이 줄에서 꽉 차게 확장
+   - min-width:0으로 좁은 창에서 자연스럽게 줄바꿈
+*/
+.filters .input,
+.filters .select{
+  min-width: 0;
+  width: auto;
+  flex: 1 1 180px;
+}
+.filters #q{
+  flex: 2 1 360px;
+}
+
 .input, .select{
   border: 1px solid var(--line2);
   background: rgba(0,0,0,.18);
@@ -1533,12 +1547,6 @@ body{
    - 패널 내부 여백/정렬 통일
 ========================================================= */
 
-/* PC 전체창에서 컨테이너 폭 확장(콘텐츠 밀도 개선) */
-@media (min-width: 1200px){
-  .wrap{ max-width: 1520px; }
-}
-
-
 /* wide에서 카드/섹션 내부 여백 조금 여유 있게 */
 @media (min-width: 1100px){
   .panel{ padding: 16px; }
@@ -1582,48 +1590,65 @@ body{
    - 모바일/태블릿 레이아웃에는 영향 없음
 ========================================================= */
 
-@media (min-width: 1101px){
-  /* 2줄 그리드 베이스: HTML 변경 없이 배치( display: contents 활용 ) */
+@media (min-width: 901px){
+  /* ✅ PC(창 크기 변화 포함)에서 항상 '2줄 각잡' 레이아웃을 유지
+     1줄: 등급표선택 / 등급표로파티구성 / AI추천파티 / 파티초기화
+     2줄: 선택클래스포함조건 / 전체선택 / 전체해제
+     - 버튼/콤보는 남는 폭을 채우며, 좁아지면 최소폭 기준으로만 줄어듦
+  */
   .tier-panel .tier-body{
     display: grid !important;
     grid-template-columns:
-      minmax(320px, 1.7fr)
+      minmax(260px, 2.2fr)
       minmax(220px, 1fr)
       minmax(220px, 1fr)
-      minmax(220px, 1fr);
+      minmax(190px, .9fr)
+      minmax(190px, .9fr);
     gap: 12px !important;
     align-items: start !important;
   }
 
-  /* 기존 tier-row(tier-topline/classline) 래퍼는 배치용만 → 자식들을 그리드 아이템으로 승격 */
+  /* 기존 래퍼(.tier-topline/.tier-classline)는 배치용만 → 자식들을 그리드 아이템으로 승격 */
   .tier-panel .tier-body .tier-row.tier-topline,
   .tier-panel .tier-body .tier-row.tier-classline{
     display: contents !important;
   }
 
-  /* PC 배치에선 spacer 불필요 */
+  /* spacer 제거 */
   .tier-panel .tier-body .tier-top-spacer{ display: none !important; }
 
-  /* “전체 선택/전체 해제” 래퍼는 버튼만 그리드 아이템으로 */
+  /* 전체선택/해제 래퍼는 버튼만 그리드 아이템으로 */
   .tier-panel .tier-body .tier-actions-inline{ display: contents !important; }
 
-  /* 1줄 배치 */
-  #tierPreset{ grid-column: 1; grid-row: 1; width: 100% !important; min-width: 0 !important; }
-  #btnBuildTierParty{ grid-column: 2; grid-row: 1; }
-  #btnAiParty{ grid-column: 3; grid-row: 1; }
-  #btnResetParties{ grid-column: 4; grid-row: 1; }
+  /* 1줄 배치 (좌측 2칸을 tierPreset이 먹고, 나머지 버튼 3개) */
+  #tierPreset{
+    grid-column: 1 / 3;
+    grid-row: 1;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  #btnBuildTierParty{ grid-column: 3; grid-row: 1; }
+  #btnAiParty{ grid-column: 4; grid-row: 1; }
+  #btnResetParties{ grid-column: 5; grid-row: 1; }
 
-  /* 2줄 배치 */
-  #classCondPanel{ grid-column: 1 / 3; grid-row: 2; width: 100% !important; min-width: 0 !important; }
-  #btnAll{ grid-column: 3; grid-row: 2; }
-  #btnNone{ grid-column: 4; grid-row: 2; }
+  /* 2줄 배치 (class 조건은 넓게, 전체선택/해제는 우측 고정) */
+  #classCondPanel{
+    grid-column: 1 / 4;
+    grid-row: 2;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  #btnAll{ grid-column: 4; grid-row: 2; }
+  #btnNone{ grid-column: 5; grid-row: 2; }
+
+  /* 결과 영역은 다음 줄에서 전체 폭 사용 */
+  #tierPartyResult{ grid-column: 1 / -1; grid-row: 3; }
+  #aiPartyResult{ grid-column: 1 / -1; grid-row: 4; }
 
   /* 높이/정렬 통일 (상단 컨트롤만) */
   .tier-panel .tier-body > select,
   .tier-panel .tier-body > button.btn,
-  .tier-panel .tier-body > button,
-  .tier-panel .tier-body #btnAll,
-  .tier-panel .tier-body #btnNone{
+  .tier-panel .tier-body > button{
     height: 52px !important;
     width: 100% !important;
     min-width: 0 !important;
@@ -1631,7 +1656,7 @@ body{
     white-space: nowrap;
   }
 
-  /* class panel(summary만 52px; 내부는 자연스러운 높이) */
+  /* class panel은 summary만 52px, 내부는 내용에 맞게 */
   #classCondPanel > summary{
     height: 52px;
     display: flex;
@@ -1843,44 +1868,8 @@ select option:disabled{ color: rgba(255,255,255,.58); }
   .pick-stack{ gap: 5px; }
 }
 
-/* =========================================================
-   ✅ Tier Topline (PC only) — 2줄 "각잡힌" 배치
-   1줄: [등급표 선택] [등급표로 파티 구성] [AI 추천 파티]
-   2줄: [파티 초기화] [전체 선택] [전체 해제]
-   - 모바일/태블릿은 기존(flex wrap) 유지
-========================================================= */
-@media (min-width: 900px){
-  .tier-row.tier-topline{
-    display:grid !important;
-    grid-template-columns: 1fr minmax(200px, 240px) minmax(200px, 240px) !important;
-    grid-template-areas:
-      "preset build ai"
-      "reset  all   none" !important;
-    gap: 12px !important;
-    align-items: stretch !important;
-  }
-
-  #tierPreset{ grid-area: preset !important; width: 100% !important; min-width: 0 !important; }
-  #btnBuildTierParty{ grid-area: build !important; }
-  #btnAiParty{ grid-area: ai !important; }
-  #btnResetParties{ grid-area: reset !important; }
-
-  .tier-top-spacer{ display:none !important; }
-
-  /* actions wrapper는 레이아웃 박스만 제거하고, 버튼은 grid 아이템으로 사용 */
-  .tier-actions-inline{ display: contents !important; }
-  #btnAll{ grid-area: all !important; }
-  #btnNone{ grid-area: none !important; }
-
-  /* 동일 높이/폭 + 터치영역 확장 */
-  .tier-row.tier-topline .btn,
-  .tier-row.tier-topline .select{
-    width: 100% !important;
-    height: 44px !important;
-    padding: 0 14px !important;
-    border-radius: 14px !important;
-  }
-}
+/* (중복 PC 패치 제거)
+   - PC 레이아웃은 위 @media (min-width:901px) 블록에서 tier-body 기준으로 일원화 */
 
 
 /* Mobile: keep the table area as a scroll container (현재 동작 유지) */
