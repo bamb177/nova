@@ -1255,6 +1255,86 @@ body{
 }
 
 
+
+
+/* =========================
+   Rune PVE/PVP Segmented UI (추천 룬 탭 내부)
+   - select.html 인라인 스타일 제거를 위한 CSS 일원화
+   - 모바일에서 버튼 과대/줄바꿈/간격 붕괴 방지
+========================= */
+.tab-panel[data-panel="runes"] .rune-mode-wrap{ margin-top: 6px; }
+
+.tab-panel[data-panel="runes"] .seg{
+  display:inline-flex;
+  align-items:center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.16);
+  width: max-content;
+}
+
+.tab-panel[data-panel="runes"] .seg-btn{
+  appearance:none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(255,255,255,.86);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 900;
+  letter-spacing: .2px;
+  cursor: pointer;
+  line-height: 1;
+  user-select:none;
+}
+.tab-panel[data-panel="runes"] .seg-btn:hover{
+  background: rgba(255,255,255,.06);
+}
+.tab-panel[data-panel="runes"] .seg-btn.is-active{
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.18);
+  color: rgba(255,255,255,.95);
+}
+
+/* 모바일: 세그먼트를 가로로 꽉, 2버튼 동일 폭 */
+@media (max-width: 520px){
+  .tab-panel[data-panel="runes"] .seg{
+    width: 100%;
+    justify-content: space-between;
+  }
+  .tab-panel[data-panel="runes"] .seg-btn{
+    flex: 1 1 0;
+    justify-content: center;
+    text-align:center;
+  }
+}
+
+/* =========================
+   Rune Substats Chips (추천 룬 탭 내부)
+   - "Defense(%)Critical Rate(%)..." 붙어 보이는 현상 방지
+========================= */
+.tab-panel[data-panel="runes"] .rune-substats{ margin-top: 12px; }
+
+.tab-panel[data-panel="runes"] .rune-chip-row{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tab-panel[data-panel="runes"] .chip{
+  display:inline-flex;
+  align-items:center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
 /* =========================================================
    FINAL SCALE (+3pt 체감) + TABLE 헤더 줄바꿈 방지 + PILL 확대
 ========================================================= */
