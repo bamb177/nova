@@ -780,29 +780,55 @@ def _collect_texts(x) -> list[str]:
 
 
 def _skill_texts(detail: dict) -> list[str]:
+    """
+    Collect textual fields used for profiling (scaling/role/kit hints).
+    Includes skills + team skills + memory card effects, because many supports express
+    their value primarily through memory cards.
+    """
     if not isinstance(detail, dict):
         return []
     texts: list[str] = []
 
+    # common containers
     for key in ["skills", "skill", "skillSet", "skill_set"]:
         if isinstance(detail.get(key), dict):
             texts += _collect_texts(detail.get(key))
 
-    for key in ["normal", "basic", "basicAttack", "auto", "active", "ultimate", "burst", "passive", "passive1", "passive2", "skill1", "skill2", "skill3"]:
+    # individual skill-like keys (varies by source)
+    for key in [
+        "normal", "basic", "basicAttack", "auto", "ultimate", "ult", "burst",
+        "passive", "passive1", "passive2",
+        "skill1", "skill2", "skill3", "skill4",
+        "s1", "s2", "s3", "s4",
+    ]:
         if isinstance(detail.get(key), (dict, list, str)):
             texts += _collect_texts(detail.get(key))
 
-    for key in ["teamSkill", "team_skill", "team", "synergy", "combo", "comboSkill"]:
+    # team / combo / synergy
+    for key in ["teamSkill", "team_skill", "team", "synergy", "combo", "comboSkill", "combo_skill"]:
+        if isinstance(detail.get(key), (dict, list, str)):
+            texts += _collect_texts(detail.get(key))
+
+    # memory cards
+    for key in ["memory", "memoryCard", "memoryCards", "memories", "cards", "memory_card", "memory_cards"]:
         if isinstance(detail.get(key), (dict, list, str)):
             texts += _collect_texts(detail.get(key))
 
     if not texts:
         texts = _collect_texts(detail)
 
-    return texts
-
-
-# ---------- Scaling detection (ATK / HP / DEF) ----------
+    # normalize: drop empties, dedupe while keeping order
+    out = []
+    seen = set()
+    for t in texts:
+        s = str(t or "").strip()
+        if not s:
+            continue
+        if s in seen:
+            continue
+        seen.add(s)
+        out.append(s)
+    return out
 
 def _pct_hits(text: str, keys: list[str]) -> list[float]:
     # Extract percent scaling hits that indicate "X% of <stat>" in both EN and KO forms.
@@ -995,6 +1021,13 @@ def _has_any(text: str, keys: list[str]) -> bool:
 
 
 def _rune_tags_from_effect(effect_text: str) -> set[str]:
+    """
+    Convert rune set effect text (2pc / 4pc) into coarse tags used by the recommender.
+
+    This is intentionally keyword-based (EN + KO). Keep it conservative:
+    - Prefer false negatives over false positives for high-impact tags.
+    - EARLY_10S is used to down-weight "opener only" effects in PVE while keeping them viable in PVP.
+    """
     t = (effect_text or "").strip()
     tl = t.lower()
     tags: set[str] = set()
@@ -1034,29 +1067,28 @@ def _rune_tags_from_effect(effect_text: str) -> set[str]:
         tags.add("VULN")
 
     # energy economy
-    if ("gain 1 energy" in tl) or ("gain 1 energy immediately" in tl) or ("전투 시작" in t and "에너지" in t):
-        tags.add("START_ENERGY")
-    if ("energy gain efficiency" in tl) or ("에너지 획득 효율" in t) or ("에너지 획득효율" in t):
+    if ("energy recovery" in tl or "energy regeneration" in tl or "에너지 회복" in t or "에너지 재생" in t):
         tags.add("ENERGY_EFF")
+    if ("start" in tl or "전투 시작" in t) and ("energy" in tl or "에너지" in t):
+        tags.add("START_ENERGY")
 
-    # early / opener-limited effects (예: 전투 시작 후 10초, 첫 10초 등) — PVP에서 가치 상승
+    # opener-only effects (first 10 seconds)
+    # Be permissive in matching, but require both start/first + 10s pattern.
     if (
-        ("first 10" in tl and ("second" in tl or "sec" in tl or "s" in tl))
-        or ("first 10s" in tl)
-        or ("for 10s" in tl and "start" in tl)
-        or ("battle start" in tl and ("10s" in tl or "10 s" in tl or "10sec" in tl))
-        or ("전투 시작" in t and "10초" in t)
-        or ("첫 10초" in t)
-        or ("초반" in t and "10초" in t)
+        ("first" in tl or "start" in tl or "전투 시작" in t or "전투 개시" in t or "초반" in t)
+        and ("10s" in tl or "10 s" in tl or "10sec" in tl or "10 sec" in tl or "10 seconds" in tl or "10초" in t)
     ):
         tags.add("EARLY_10S")
 
-    # ultimate trigger
-    if ("after ultimate" in tl) or ("after activating ultimate" in tl) or ("궁극기" in t and ("후" in t or "사용" in t or "발동" in t)):
+    # ultimate triggers
+    if _has_any(t, _KW_ULT) or ("궁극" in t):
         tags.add("ULT_TRIGGER")
 
-    return tags
+    # speed / turn meter (if exists in text)
+    if ("speed" in tl or "spd" in tl or "속도" in t):
+        tags.add("SPEED")
 
+    return tags
 
 def _rune_tag_index(rune_db: dict[str, dict]) -> dict[str, dict]:
     idx: dict[str, dict] = {}
@@ -1069,80 +1101,114 @@ def _rune_tag_index(rune_db: dict[str, dict]) -> dict[str, dict]:
 
 # ---------- Scoring: objective by role ----------
 
-def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dict], tag_idx: dict[str, dict], battle: str = "pve") -> float:
+def _score_set(
+    profile: dict,
+    set_name: str,
+    pieces: int,
+    rune_db: dict[str, dict],
+    tag_idx: dict[str, dict],
+    mode: str = "pve",
+) -> float:
+    """
+    Score a rune set for a character profile.
+    mode:
+      - "pve": long fight / sustained value
+      - "pvp": short fight / opener tempo
+
+    This is intentionally heuristic. The main goal is to prevent "one-size-fits-all"
+    (e.g., Tide 4pc) from dominating supports in both modes.
+    """
+    mode = (mode or "pve").strip().lower()
+    if mode not in ("pve", "pvp"):
+        mode = "pve"
+
     tags = (tag_idx.get(set_name) or {}).get("tags4" if pieces == 4 else "tags2", set())
 
-    role = profile["role"]
-    scaling = profile["scaling"]
-    no_crit = profile["no_crit"]
+    role = (profile.get("role") or "dps").lower()
+    scaling = profile.get("scaling") or "ATK"
+    no_crit = bool(profile.get("no_crit"))
 
-    dot = profile["dot_share"]
-    extra = profile["extra_share"]
-    ult = profile["ult_importance"]
-    debuff = profile["debuff_strength"]
-    heal = profile["heal_strength"]
-    shield = profile["shield_strength"]
+    dot = float(profile.get("dot_share") or 0.0)
+    extra = float(profile.get("extra_share") or 0.0)
+    ult = float(profile.get("ult_importance") or 0.0)
+    debuff = float(profile.get("debuff_strength") or 0.0)
+    heal = float(profile.get("heal_strength") or 0.0)
+    shield = float(profile.get("shield_strength") or 0.0)
 
     score = 0.0
 
-    b = (battle or "pve").strip().lower()
-    is_pvp = b in ("pvp", "arena", "duel", "short")
+    # -------------------------
+    # Mode-specific dampening / boosting
+    # -------------------------
+    if "EARLY_10S" in tags:
+        # "first 10s only" is usually a PVE trap (diluted over time),
+        # but can be very valuable in PVP opener.
+        if mode == "pve":
+            score -= 14.0 if pieces == 4 else 6.0
+        else:  # pvp
+            score += 9.0 if pieces == 4 else 3.5
 
+    if mode == "pvp":
+        # DoT is often weaker in short fights.
+        if "DOT_DMG" in tags and pieces == 4:
+            score -= 6.0
+        if "SPEED" in tags:
+            score += 5.0 if pieces == 4 else 2.0
 
-    # scaling match (mostly for 2pc)
+    # -------------------------
+    # 2pc: scaling alignment + generic stats
+    # -------------------------
     if pieces == 2:
-        if "ATK" in tags and scaling == "ATK":
-            score += 6.0
-        elif "ATK" in tags:
-            score += 2.0
+        # scaling match (kept moderate so 4pc dominates)
+        if "ATK" in tags:
+            score += 6.0 if scaling == "ATK" else 2.0
+        if "DEF" in tags:
+            score += 6.0 if scaling == "DEF" else 2.0
+        if "HP" in tags:
+            score += 6.0 if scaling == "HP" else 2.0
 
-        if "DEF" in tags and scaling == "DEF":
-            score += 6.0
-        elif "DEF" in tags:
-            score += 2.0
+        if not no_crit:
+            if "CRIT_RATE" in tags:
+                # DPS > others
+                score += 6.5 if role == "dps" else (1.0 if role in ("tank", "healer") else 2.0)
+            if "CRIT_DMG" in tags:
+                score += 5.5 if role == "dps" else (0.5 if role in ("tank", "healer") else 1.5)
 
-        if "HP" in tags and scaling == "HP":
-            score += 6.0
-        elif "HP" in tags:
-            score += 2.0
+        if "ENERGY_EFF" in tags:
+            score += 2.5 if role in ("buffer", "debuffer", "healer") else 1.0
 
-        if "CRIT_RATE" in tags and not no_crit:
-            if role == "dps":
-                score += 6.0
-            elif role == "debuffer":
-                score += 2.0
-            elif profile.get("healer_hybrid"):
-                score += 2.0
-            else:
-                # 힐러/탱커/버퍼는 기본적으로 치확 2세트 효율이 낮음(하이브리드 예외)
-                score += 0.0
+        return score
 
-    # role-specific (4pc dominates)
+    # -------------------------
+    # 4pc: role objective (dominant)
+    # -------------------------
     if role == "buffer":
         if "TEAM_DMG" in tags:
-            score += 18.0 * (0.6 + 0.4 * ult)
+            score += 20.0 * (0.55 + 0.45 * max(ult, 0.25))
         if "ENERGY_EFF" in tags:
-            score += 20.0 * (0.6 + 0.4 * ult)
+            score += 18.0 * (0.55 + 0.45 * max(ult, 0.25))
         if "START_ENERGY" in tags:
-            score += 16.0 * (0.6 + 0.4 * ult) * (1.25 if is_pvp else 1.0)
+            # START_ENERGY is great only if the kit actually cares about early ult cycle.
+            score += 10.0 * (0.4 + 0.6 * ult) if mode == "pvp" else 7.0 * (0.4 + 0.6 * ult)
         if "ULT_TRIGGER" in tags:
             score += 6.0 * ult
-        if "HP" in tags or "DEF" in tags:
-            score += 2.0
-        if "CRIT_DMG" in tags or "CRIT_RATE" in tags or "BASIC_DMG" in tags:
-            score += 0.5
+
+        # "shield-only" sets should not dominate buffers without shields
+        if "SHIELD" in tags:
+            score += 8.0 * min(1.0, shield) if shield > 0.05 else (-6.0)
 
     elif role == "debuffer":
         if "VULN" in tags:
-            score += 22.0 * (0.6 + 0.4 * ult) * (0.6 + 0.4 * max(debuff, 0.2))
+            score += 22.0 * (0.55 + 0.45 * max(ult, 0.25)) * (0.6 + 0.4 * max(debuff, 0.2))
         if "TEAM_DMG" in tags:
-            score += 8.0 * (0.6 + 0.4 * ult)
+            score += 9.0 * (0.55 + 0.45 * max(ult, 0.25))
         if "ENERGY_EFF" in tags:
-            score += 10.0 * (0.6 + 0.4 * ult)
+            score += 12.0 * (0.55 + 0.45 * max(ult, 0.25))
         if "START_ENERGY" in tags:
-            score += 8.0 * (0.6 + 0.4 * ult) * (1.25 if is_pvp else 1.0)
+            score += 8.0 * (0.45 + 0.55 * ult) if mode == "pvp" else 5.0 * (0.45 + 0.55 * ult)
         if "ULT_TRIGGER" in tags:
-            score += 4.0 * ult
+            score += 5.0 * ult
+
         if "HP" in tags or "DEF" in tags:
             score += 2.5
 
@@ -1150,24 +1216,22 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         if "HEAL" in tags:
             score += 22.0 * (0.7 + 0.3 * max(heal, 0.2))
         if "ENERGY_EFF" in tags:
-            score += 10.0 * (0.6 + 0.4 * ult)
+            score += 12.0 * (0.55 + 0.45 * max(ult, 0.25))
         if "START_ENERGY" in tags:
-            score += 10.0 * (0.6 + 0.4 * ult) * (1.25 if is_pvp else 1.0)
-        if "HP" in tags or "DEF" in tags:
+            score += 7.0 * (0.45 + 0.55 * ult) if mode == "pvp" else 4.0 * (0.45 + 0.55 * ult)
+        if "HP" in tags:
+            score += 8.0
+        if "DEF" in tags:
             score += 6.0
         if "SHIELD" in tags:
-            # 보호막 세트는 "보호막/실드" 기믹이 실제로 존재할 때만 유효
-            if shield <= 0.05:
-                # 보호막 스킬이 사실상 없으면 4세트 채용을 억제
-                if pieces == 4:
-                    score -= 6.0
-            else:
-                score += 10.0 * min(1.0, shield)
+            score += 10.0 * min(1.0, shield) if shield > 0.05 else (-6.0)
+
+        # healer hybrid exception
         if profile.get("healer_hybrid") and not no_crit:
             if "CRIT_RATE" in tags or "CRIT_DMG" in tags:
-                score += 3.0
+                score += 2.5
             if "ATK" in tags and scaling == "ATK":
-                score += 4.0
+                score += 3.5
 
     elif role == "tank":
         if "HP" in tags:
@@ -1175,127 +1239,112 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         if "DEF" in tags:
             score += 16.0
         if "SHIELD" in tags:
-            # 보호막 세트는 보호막 기믹이 있을 때만 가치가 큼
-            if shield <= 0.05:
-                if pieces == 4:
-                    score -= 6.0
-            else:
-                score += 14.0 * min(1.0, shield)
-        if "START_ENERGY" in tags:
-            score += 3.0 * (1.15 if is_pvp else 1.0)
+            score += 14.0 * min(1.0, shield) if shield > 0.05 else (-6.0)
         if "ENERGY_EFF" in tags:
             score += 3.0
-
-    else:  # DPS
-        # NOTE: DPS는 "역할"보다 "스케일(ATK/DEF/HP)"을 우선 반영해야 함.
-        # 예: DEF 스케일 DPS(Apep 등)에게 ATK/기본공격 피해 중심 세트가 상위로 뜨는 회귀를 방지.
-
-        # 치명 세트: ATK 스케일 DPS는 높은 가중치, DEF/HP 스케일 DPS는 보조(가중치 하향)
-        if ("CRIT_RATE" in tags or "CRIT_DMG" in tags) and not no_crit:
-            if scaling == "ATK":
-                score += 16.0
-            else:
-                score += 8.0
-
-        # 기본공격 피해: 대부분 ATK 기반(평타 비중)에서만 의미가 큼.
-        # DEF/HP 스케일 DPS에는 오추천을 유발하므로 거의 가치를 주지 않는다.
-        if "BASIC_DMG" in tags:
-            score += 10.0 if scaling == "ATK" else 0.0
-        if "EXTRA_DMG" in tags:
-            # Extra-attack 세트는 실제 'Extra attack/추가 공격' 기믹이 있을 때만 고가치
-            if extra < 0.12:
-                score -= 8.0  # 오탐 억제
-            else:
-                score += 18.0 * (0.3 + 0.7 * min(1.0, extra * 3.0))
-        if "DOT_DMG" in tags:
-            # DOT은 누적 시간이 필요하므로 PVP(짧은 전투)에서는 가치가 하락
-            score += 18.0 * (0.3 + 0.7 * min(1.0, dot * 3.0)) * (0.65 if is_pvp else 1.0)
-
-        # 스케일 매칭 보상: DEF/HP 스케일은 스탯 자체 기여도가 크므로 보상을 조금 더 줌
-        if "ATK" in tags:
-            if scaling == "ATK":
-                score += 8.0
-            else:
-                # DEF/HP 스케일 DPS에게 ATK 세트가 끼어드는 것을 강하게 억제
-                # (특히 4세트 ATK/평타 세트가 1순위로 뜨는 회귀 방지)
-                if role == "dps":
-                    score -= 12.0 if pieces == 4 else 8.0
-        if "DEF" in tags and scaling == "DEF":
-            score += 14.0
-        if "HP" in tags and scaling == "HP":
-            score += 14.0
-
-        if "ENERGY_EFF" in tags:
-            score += 4.0 * ult
         if "START_ENERGY" in tags:
-            # 선에너지는 짧은 전투(PVP)에서 체감이 커서 가중치 소폭 상향
-            score += 3.0 * ult * (1.25 if is_pvp else 1.0)
-
-        if "TEAM_DMG" in tags:
             score += 2.0
 
-        if "HP" in tags or "DEF" in tags:
-            score += 1.0
+    else:  # DPS
+        # scaling alignment (DEF/HP DPS must not be baited into ATK-only sets)
+        if "ATK" in tags:
+            score += 14.0 if scaling == "ATK" else (-4.0 if scaling in ("DEF", "HP") else 6.0)
+        if "DEF" in tags:
+            score += 14.0 if scaling == "DEF" else (2.0 if scaling == "MIX" else 0.0)
+        if "HP" in tags:
+            score += 14.0 if scaling == "HP" else (2.0 if scaling == "MIX" else 0.0)
 
-    # opener-limited effects (예: 첫 10초) — PVP에서 가치 상승, PVE에서는 지속 효율이 낮아 감점
-    if "EARLY_10S" in tags:
-        if is_pvp:
-            score += (8.0 if pieces == 4 else 2.5)
-        else:
-            score -= (5.0 if pieces == 4 else 1.5)
+        if not no_crit:
+            if "CRIT_RATE" in tags:
+                score += 12.0 if scaling == "ATK" else 5.0
+            if "CRIT_DMG" in tags:
+                score += 10.0 if scaling == "ATK" else 4.0
 
-    if no_crit and ("CRIT_RATE" in tags or "CRIT_DMG" in tags):
-        score -= 8.0
+        if "BASIC_DMG" in tags:
+            score += 10.0
+        if "EXTRA_DMG" in tags:
+            score += 10.0 * (0.6 + 0.4 * max(extra, 0.2))
+        if "DOT_DMG" in tags:
+            score += 10.0 * (0.6 + 0.4 * max(dot, 0.2))
+
+        # energy sets are usually not main DPS value, but can help ult-centric kits
+        if "ENERGY_EFF" in tags:
+            score += 2.5 * (0.5 + 0.5 * ult)
 
     return score
 
+def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve") -> tuple[list[dict], list[str]]:
+    """
+    Exhaustive 4pc + 2pc search over all rune sets, using mode-aware scoring.
+    Returns:
+      - builds: list[{title,setPlan,substats,slots,notes,rationale}]
+      - rationale: global explanation strings
+    """
+    mode = (mode or "pve").strip().lower()
+    if mode not in ("pve", "pvp"):
+        mode = "pve"
 
-def _best_rune_builds(profile: dict, rune_db: dict[str, dict], battle: str = "pve") -> tuple[list[dict], list[str]]:
     tag_idx = _rune_tag_index(rune_db)
     sets = list(rune_db.keys())
 
     best: list[tuple[float, str, str]] = []
     for s4 in sets:
-        sc4 = _score_set(profile, s4, 4, rune_db, tag_idx, battle=battle)
-        if sc4 < -5:
+        sc4 = _score_set(profile, s4, 4, rune_db, tag_idx, mode=mode)
+        if sc4 < -8:
             continue
         for s2 in sets:
-            # 룬 세트는 중복 장착 불가: 4세트와 2세트가 같은 세트면 제외
             if s2 == s4:
                 continue
-            sc2 = _score_set(profile, s2, 2, rune_db, tag_idx, battle=battle)
+            sc2 = _score_set(profile, s2, 2, rune_db, tag_idx, mode=mode)
             total = sc4 + sc2
             best.append((total, s4, s2))
 
     best.sort(key=lambda x: x[0], reverse=True)
-    # UI/요청사항: "대체안" 노출은 혼선을 유발하므로 1개만 반환
-    top = best[:1]
+    top = best[:3]
+
+    # Build output structures
+    builds: list[dict] = []
+    for rank, (total, s4, s2) in enumerate(top, start=1):
+        b = {
+            "title": f"{mode.upper()} 추천 {rank}",
+            "setPlan": [{"set": s4, "pieces": 4}, {"set": s2, "pieces": 2}],
+            "substats": _substats_for(profile),
+            "slots": _slot_plan_for(profile, str(profile.get("element") or "-")),
+            "notes": [],
+            "rationale": [],
+            "score": round(float(total), 2),
+        }
+        builds.append(b)
 
     rationale: list[str] = []
-    rationale.append(f"역할 판정: {profile['role']} / 스케일링 판정: {profile['scaling']}")
-    if profile.get("sample_text"):
-        rationale.append(f"스케일링 근거 예시: '{str(profile['sample_text'])[:140]}'")
+    rationale.append(f"추천 모드: {mode.upper()} (PVE=장기전 평균 효율 / PVP=초반 10~20초 템포 우선)")
+    rationale.append(f"역할 판정: {profile.get('role')} / 스케일링 판정: {profile.get('scaling')}")
     if profile.get("no_crit"):
-        rationale.append("치명타 불가/비활성 문구 감지 → 치명타(치확/치피) 중심 세트는 감점 처리.")
-    if profile["role"] in ("buffer", "debuffer"):
-        rationale.append("서포트 역할은 팀 기여/궁극기 가동률(에너지) 비중을 높게 두고 최적화합니다.")
-    elif profile["role"] == "dps":
-        if profile.get("scaling") in ("DEF", "HP"):
-            rationale.append("DEF/HP 스케일 DPS는 공격력/기본공격 피해 중심 세트 효율이 낮아 감점 처리하고, 스케일 스탯(DEF/HP) 중심으로 최적화합니다.")
-        else:
-            rationale.append("딜러 역할은 본인 기대 피해(치명/특수 피해 타입) 비중을 높게 두고 최적화합니다.")
+        rationale.append("치명타 불가/비활성 문구 감지 → 치확/치피 중심 세트는 감점 처리")
+    if mode == "pve":
+        rationale.append("PVE 모드는 '첫 10초 한정(EARLY_10S)' 효과를 강하게 감점하여 장기전 회귀를 방지합니다.")
+    else:
+        rationale.append("PVP 모드는 '첫 10초 한정(EARLY_10S)' 효과와 속도(SPEED) 가치를 상향하여 오프닝 성능을 반영합니다.")
 
-    builds: list[dict] = []
-    for (score, s4, s2) in top:
-        builds.append({
-            "title": "추천(자동)",
-            "_score": round(score, 2),
-            "setPlan": [{"set": s4, "pieces": 4}, {"set": s2, "pieces": 2}],
-        })
+    # Per-build notes (class restrictions / conflicts / set notes)
+    for b in builds:
+        notes = []
+        for s in b["setPlan"]:
+            nm = s["set"]
+            r = rune_db.get(nm) or {}
+            cr = r.get("classRestriction") or []
+            if cr:
+                notes.append(f"{nm} 4세트는 클래스 제한이 있습니다: {', '.join(map(str, cr))}")
+            if r.get("note"):
+                notes.append(f"{nm}: {r.get('note')}")
+            if r.get("teamConflict"):
+                notes.append(f"{nm}: 팀 세트 상충 주의 ({', '.join(map(str, r.get('teamConflict')))} )")
+        # dedupe keep order
+        seen = set()
+        b["notes"] = [n for n in notes if not (n in seen or seen.add(n))]
+        b["rationale"] = rationale
+
     return builds, rationale
-
-
-# ---------- Slot plan (main stats) ----------
 
 def _element_damage_label(element: str) -> str:
     e = normalize_element(element or "-")
@@ -1364,44 +1413,38 @@ def _slot_plan_for(profile: dict, element: str) -> dict:
 
 
 def _substats_for(profile: dict) -> list[str]:
-    role = profile["role"]
-    scaling = profile["scaling"]
-    no_crit = profile["no_crit"]
+    role = (profile.get("role") or "dps").lower()
+    scaling = profile.get("scaling") or "ATK"
+    no_crit = bool(profile.get("no_crit"))
 
     scaling_pct = "Attack (%)" if scaling == "ATK" else ("HP (%)" if scaling == "HP" else ("Defense (%)" if scaling == "DEF" else "Attack (%)"))
 
-    if role == "healer":
-        out = ["Healing Effectiveness (%)", "HP (%)", "Defense (%)", "Flat HP / Flat DEF"]
-        if profile.get("healer_hybrid") and not no_crit:
-            out += ["Critical Rate (%)", "Critical Damage (%)", "Attack (%)"]
-        return out
-
-    if role == "tank":
-        return ["HP (%)", "Defense (%)", "Flat HP / Flat DEF", "Damage Reduction / RES (존재 시)"]
-
     if role in ("buffer", "debuffer"):
-        out = ["Energy Recovery / Energy Gain (존재 시)", "HP (%)", "Defense (%)", scaling_pct]
-        if not no_crit:
-            out += ["Critical Rate (%) (부옵/대체)"]
-        return out
+        # 서포트: 궁/사이클 기반이 많아 에너지/속도/생존 우선
+        return ["Energy Recovery", "Speed", scaling_pct, "HP (%)", "Defense (%)"]
+    if role == "healer":
+        return ["Energy Recovery", "HP (%)", "Defense (%)", scaling_pct] if scaling != "ATK" else ["Energy Recovery", "HP (%)", "Defense (%)", "Attack (%)"]
+    if role == "tank":
+        return ["HP (%)", "Defense (%)", "Damage Reduction", "Energy Recovery"]
 
+    # DPS
     if no_crit:
-        # no-crit DPS도 DEF/HP 스케일이면 스케일 스탯을 최우선으로
-        return [scaling_pct, "Attack Penetration (%)", "Element Attribute Damage (%)", "HP (%) / Defense (%) (생존)", "Attack (%) (대체)", "Flat Attack (대체)"]
+        return [scaling_pct, "Attack Penetration (%)", "Speed", "HP (%) / Defense (%) (생존)"]
+    else:
+        return ["Critical Rate (%)", "Critical Damage (%)", scaling_pct, "Attack Penetration (%)", "Speed"]
 
-    # DPS substat priority
-    if scaling == "DEF":
-        return ["Defense (%)", "Critical Rate (%)", "Critical Damage (%)", "Attack Penetration (%)", "HP (%) (생존)", "Flat DEF (대체)"]
-    if scaling == "HP":
-        return ["HP (%)", "Critical Rate (%)", "Critical Damage (%)", "Attack Penetration (%)", "Defense (%) (생존)", "Flat HP (대체)"]
-
-    return ["Critical Rate (%)", "Critical Damage (%)", scaling_pct, "Attack Penetration (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
-
-
-def recommend_runes(cid: str, base: dict, detail: dict, battle: str = "pve") -> dict:
+def recommend_runes(cid: str, base: dict, detail: dict, mode: Optional[str] = None) -> dict:
+    """
+    Rune recommendation.
+    - If rune_overrides.json provides builds for cid, return override builds.
+    - Otherwise returns:
+        * mode is None or "both": {"mode":"both","pve":{...},"pvp":{...}}
+        * mode in {"pve","pvp"}: {"mode":mode,"profile":..., "builds":[...]}
+    """
     overrides = load_rune_overrides()
     rune_db = rune_db_by_name()
 
+    # 1) Manual override always wins
     ov = overrides.get(cid)
     if isinstance(ov, dict) and ov.get("builds"):
         builds = []
@@ -1432,72 +1475,68 @@ def recommend_runes(cid: str, base: dict, detail: dict, battle: str = "pve") -> 
             })
         return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
 
+    # 2) Auto mode: profile + exhaustive search (mode-aware)
     profile = _detect_profile(detail or {}, base or {})
-    core_builds, rationale = _best_rune_builds(profile, rune_db, battle=battle)
+    profile["element"] = (base or {}).get("element") or (detail or {}).get("element") or "-"
 
-    builds = []
-    for b in core_builds:
-        setplan = []
-        for s in b.get("setPlan") or []:
-            nm = s.get("set")
-            r = rune_db.get(nm) or {}
-            setplan.append({
-                "set": nm,
-                "pieces": s.get("pieces"),
-                "icon": r.get("icon"),
-                "twoPiece": r.get("twoPiece", ""),
-                "fourPiece": r.get("fourPiece", ""),
-                "note": r.get("note", ""),
+    want = (mode or "both").strip().lower()
+    if want not in ("pve", "pvp", "both"):
+        want = "both"
+
+    def _build_payload(mode2: str) -> dict:
+        core_builds, _rationale = _best_rune_builds(profile, rune_db, mode=mode2)
+
+        builds = []
+        for b in core_builds:
+            setplan = []
+            for s in b.get("setPlan") or []:
+                nm = s.get("set")
+                r = rune_db.get(nm) or {}
+                setplan.append({
+                    "set": nm,
+                    "pieces": s.get("pieces"),
+                    "icon": r.get("icon"),
+                    "twoPiece": r.get("twoPiece", ""),
+                    "fourPiece": r.get("fourPiece", ""),
+                    "note": r.get("note", ""),
+                })
+            builds.append({
+                "title": b.get("title"),
+                "setPlan": setplan,
+                "slots": _slot_plan_for(profile, str(profile.get("element") or "-")),
+                "substats": _substats_for(profile),
+                "notes": b.get("notes") or [],
+                "rationale": b.get("rationale") or [],
+                "score": b.get("score"),
             })
 
-        builds.append({
-            "title": b.get("title") or "추천(자동)",
-            "setPlan": setplan,
-            "slots": _slot_plan_for(profile, base.get("element")),
-            "substats": _substats_for(profile),
-            "notes": [],
-            "rationale": rationale + [f"조합 점수(상대 비교용): {b.get('_score')}"],
-        })
+        return {"mode": mode2, "profile": profile, "builds": builds}
 
-    # constraint notes
-    notes = []
-    for b in builds:
-        for s in b["setPlan"]:
-            nm = s["set"]
-            r = rune_db.get(nm) or {}
-            cr = r.get("classRestriction") or []
-            if cr:
-                notes.append(f"{nm} 4세트는 클래스 제한이 있습니다: {', '.join(map(str, cr))}")
-            if r.get("note"):
-                notes.append(f"{nm}: {r.get('note')}")
-            if r.get("teamConflict"):
-                notes.append(f"{nm}: 팀 세트 상충 주의 ({', '.join(map(str, r.get('teamConflict')))} )")
-
-    uniq_notes = []
-    seen = set()
-    for n in notes:
-        if n not in seen:
-            seen.add(n)
-            uniq_notes.append(n)
-
-    for b in builds:
-        b["notes"] = uniq_notes
-
-    return {"mode": "auto", "profile": profile, "builds": builds}
-
+    if want == "both":
+        return {"mode": "both", "profile": profile, "pve": _build_payload("pve"), "pvp": _build_payload("pvp")}
+    else:
+        return _build_payload(want)
 
 def rune_summary_for_list(cid: str, base: dict, detail: dict) -> Optional[dict]:
+    """
+    Lightweight summary for list view.
+    Prefer PVE build (more generally useful) when recommend_runes returns both.
+    """
     reco = recommend_runes(cid, base, detail)
+    if not isinstance(reco, dict):
+        return None
+
+    if reco.get("mode") == "both":
+        reco = reco.get("pve") or {}
+
     builds = reco.get("builds") or []
     if not builds:
         return None
     b0 = builds[0]
-    return {"mode": reco.get("mode"), "sets": [{"set": s.get("set"), "pieces": s.get("pieces"), "icon": s.get("icon")} for s in (b0.get("setPlan") or [])]}
-# -------------------------
-# Party recommendation (AI 추천 파티)
-# -------------------------
-
-_TIER_ALPHA = {"SS": 4.5, "S+": 4.2, "S": 4.0, "A+": 3.2, "A": 3.0, "B+": 2.2, "B": 2.0, "C": 1.0, "D": 0.0}
+    return {
+        "mode": reco.get("mode"),
+        "sets": [{"set": s.get("set"), "pieces": s.get("pieces"), "icon": s.get("icon")} for s in (b0.get("setPlan") or [])],
+    }
 
 def _tier_value(v) -> float:
     if v is None:
@@ -2127,19 +2166,10 @@ def api_char_detail(cid: str):
             "runes": None,
         }
 
-    # PVE/PVP 분리 추천 (PVP는 전투가 짧아 오프너/선에너지/초반 버프 계열의 가치가 상승)
     try:
-        rune_reco_pve = recommend_runes(cid2, base, detail, battle="pve")
+        rune_reco = recommend_runes(cid2, base, detail, mode=request.args.get('mode'))
     except Exception as e:
-        rune_reco_pve = {"mode": "error", "error": str(e), "builds": []}
-
-    try:
-        rune_reco_pvp = recommend_runes(cid2, base, detail, battle="pvp")
-    except Exception as e:
-        rune_reco_pvp = {"mode": "error", "error": str(e), "builds": []}
-
-    # 하위호환: 기존 키(rune_reco)는 PVE로 유지
-    rune_reco = rune_reco_pve
+        rune_reco = {"mode": "error", "error": str(e), "builds": []}
 
     return jsonify({
         "ok": True,
@@ -2147,8 +2177,6 @@ def api_char_detail(cid: str):
         "character": base,
         "detail": detail,
         "rune_reco": rune_reco,
-        "rune_reco_pve": rune_reco_pve,
-        "rune_reco_pvp": rune_reco_pvp,
         "detail_source": f"public/data/zone-nova/characters_ko/{cid2}.json",
     })
 
