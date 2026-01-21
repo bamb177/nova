@@ -633,7 +633,37 @@ html, body{
   .tier-classes-inline{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-</style>
+
+        /* PVE/PVP subtabs */
+        .subtabs{ margin-top: 4px; }
+        .subtab-bar{
+          display:flex;
+          gap:8px;
+          margin: 0 0 10px 0;
+          padding: 6px;
+          border-radius: 12px;
+          border: 1px solid rgba(255,255,255,.10);
+          background: rgba(255,255,255,.03);
+          width: fit-content;
+        }
+        .subtab-btn{
+          appearance:none;
+          border:1px solid rgba(255,255,255,.12);
+          background: rgba(255,255,255,.02);
+          color: rgba(255,255,255,.88);
+          padding: 8px 12px;
+          border-radius: 10px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .subtab-btn.active{
+          border-color: rgba(255,255,255,.22);
+          background: rgba(255,255,255,.08);
+        }
+        .subtab-panel{ display:none; }
+        .subtab-panel.active{ display:block; }
+
+      </style>
 </head>
 
 <body>
@@ -1105,7 +1135,7 @@ function pick(obj, ...keys) {
       return `<div class="tab-panel ${active ? "active" : ""}" data-panel="${escapeHtml(id)}">${html}</div>`;
     }
 
-    function renderRecommendedRunes(runeReco) {
+    function renderRecommendedRunesSingle(runeReco, includeStyle=true) {
       if (!runeReco || !Array.isArray(runeReco.builds) || runeReco.builds.length === 0) {
         return `<div class="detail-empty">추천 룬 정보가 없습니다.</div>`;
       }
@@ -1226,8 +1256,35 @@ function pick(obj, ...keys) {
         </style>
       `;
 
-      return style + cards;
+      return includeStyle ? (style + cards) : cards;
     }
+
+    // PVE/PVP 분리 추천 표시
+    function renderRecommendedRunes(runeRecoModes) {
+      if (runeRecoModes && (runeRecoModes.pve || runeRecoModes.pvp)) {
+        const pve = runeRecoModes.pve || null;
+        const pvp = runeRecoModes.pvp || null;
+
+        // 스타일은 1회만 포함
+        const pveHtml = renderRecommendedRunesSingle(pve, true);
+        const pvpHtml = pvp ? renderRecommendedRunesSingle(pvp, false) : `<div class="detail-empty">PVP 추천 룬 정보가 없습니다.</div>`;
+
+        return `
+          <div class="subtabs" data-subtab-group="runes">
+            <div class="subtab-bar">
+              <button type="button" class="subtab-btn active" data-subtab="pve">PVE</button>
+              <button type="button" class="subtab-btn" data-subtab="pvp">PVP</button>
+            </div>
+            <div class="subtab-panels">
+              <div class="subtab-panel active" data-subpanel="pve">${pveHtml}</div>
+              <div class="subtab-panel" data-subpanel="pvp">${pvpHtml}</div>
+            </div>
+          </div>
+        `;
+      }
+      return renderRecommendedRunesSingle(runeRecoModes, true);
+    }
+
 
     function renderDetailTabs(detail, runeReco) {
       const tabs = [
@@ -1256,6 +1313,19 @@ function pick(obj, ...keys) {
       const root = document.getElementById("modalBody");
       if (!root) return;
       root.onclick = (e) => {
+        // 1) subtab (PVE/PVP)
+        const sub = e.target.closest(".subtab-btn");
+        if (sub) {
+          const key = sub.dataset.subtab;
+          const group = sub.closest("[data-subtab-group]");
+          if (!key || !group) return;
+
+          group.querySelectorAll(".subtab-btn").forEach(b => b.classList.toggle("active", b.dataset.subtab === key));
+          group.querySelectorAll(".subtab-panel").forEach(p => p.classList.toggle("active", p.dataset.subpanel === key));
+          return;
+        }
+
+        // 2) top-level tabs
         const btn = e.target.closest(".tab-btn");
         if (!btn) return;
         const tab = btn.dataset.tab;
@@ -1307,7 +1377,10 @@ function pick(obj, ...keys) {
         const cn = pick(detail, "chineseName", "chinesename", "chinessname", "cnName", "cn_name");
 
         setModalTitle(name, cn);
-        const runeReco = j.rune_reco || null;
+        const runeReco = {
+          pve: j.rune_reco_pve || j.rune_reco || null,
+          pvp: j.rune_reco_pvp || null,
+        };
         modalBody.innerHTML = renderDetailTabs(detail, runeReco);
         bindTabEvents();
       } catch (e) {
