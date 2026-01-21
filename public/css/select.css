@@ -1468,13 +1468,10 @@ body{
   }
 }
 
-
 /* =========================================================
    Tablet / Narrow desktop (창 반으로 줄였을 때) 레이아웃 안정화
-   - tier 상단 라인: 버튼 세로 깨짐 방지
-   - class 조건 박스(min-width:420)로 인한 압착 제거
    - filters: 2열 그리드로 정렬
-   - 폰트 크기 일관성 향상
+   - Tier 상단 컨트롤: 구간별(모바일/태블릿/PC) 정렬 일원화
 ========================================================= */
 
 /* 버튼 글자 쪼개짐 방지 */
@@ -1498,62 +1495,7 @@ body{
   }
 }
 
-/* tier 상단: flex 압착 대신 grid로 재배치 */
-@media (max-width: 1100px){
-  .tier-row.tier-topline{
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-    align-items: start !important;
-  }
-
-  /* 1행: preset */
-  #tierPreset{ grid-column: 1 / -1 !important; width: 100% !important; min-width: 0 !important; }
-
-  /* 2행: 두 버튼 */
-  #btnBuildTierParty{ grid-column: 1 / 2 !important; width: 100% !important; justify-content: center; }
-  #btnAiParty{ grid-column: 2 / 3 !important; width: 100% !important; justify-content: center; }
-
-  /* 3행: 클래스 포함 조건 박스 */
-  #tierClassInline{
-    grid-column: 1 / -1 !important;
-    min-width: 0 !important;           /* 인라인(min-width:420) 무력화 */
-    width: 100% !important;
-  }
-  /* 인라인에서 min-width가 강하게 걸려 있으므로 important로 제거 */
-  .tier-class-inline{ min-width: 0 !important; flex: 1 1 auto !important; }
-
-  /* 4행: 전체선택/해제 */
-  .tier-actions-inline{
-    grid-column: 1 / -1 !important;
-    margin-left: 0 !important;
-    justify-content: flex-end !important;
-    flex-wrap: wrap !important;
-  }
-  .tier-actions-inline .btn{
-    min-width: 160px;
-  }
-}
-
-/* 더 좁아지면(모바일에 가까운 폭): 한 열 스택 */
-@media (max-width: 720px){
-  .tier-row.tier-topline{
-    grid-template-columns: 1fr !important;
-  }
-  #btnBuildTierParty, #btnAiParty{
-    grid-column: 1 / -1 !important;
-  }
-  .tier-actions-inline{
-    justify-content: space-between !important;
-  }
-  .tier-actions-inline .btn{
-    width: calc(50% - 6px);
-    min-width: 0;
-    justify-content: center;
-  }
-}
-
-/* 텍스트 크기 “너무 작은 것들”만 상향 (전체 동일 체감) */
+/* 힌트/보조 텍스트 크기 상향(가독성) */
 .filters-summary-hint,
 .tier-summary-hint,
 .tier-help,
@@ -1561,165 +1503,164 @@ body{
   font-size: 14px !important;
 }
 
-
 /* =========================================================
-   Mobile: Tier top controls (요청사항)
-   - 드롭다운 아래
-     1) 등급표파티 / AI파티 / 파티초기화 (동일 폭 + 동일 높이 + 터치영역 확장)
-     2) 전체 선택 / 전체 해제 (동일 폭)
-     3) 선택 클래스 포함 조건 박스: 양옆 꽉
-   - 기존 tier-topline 재배치 규칙보다 아래에 두어 최종 우선 적용
+   Tier top controls (PC/모바일) 정렬
+   목표(PC): 2줄로 "각" 잡기
+   - 1줄: 등급표 선택(풀폭)
+   - 2줄: [파티구성][AI파티][파티초기화][전체선택][전체해제] 5등분
+   모바일/태블릿: 기존(3버튼 + 2버튼) UX 유지
 ========================================================= */
 
-/* tier-topline: 드롭다운 + 2개 행 컨테이너 구조 */
-.tier-row.tier-topline{
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 10px !important;
+/* ✅ PC/데스크톱(1101px~): 2줄 + 5등분으로 꽉 차게 */
+@media (min-width: 1101px){
+
+  /* #tierPreset이 포함된 줄만 타겟팅(HTML class 의존 제거) */
+  .tier-panel .tier-row:has(#tierPreset){
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: auto auto;
+    gap: 12px !important;
+    align-items: stretch;
+  }
+
+  /* 1줄: 드롭다운 */
+  .tier-panel .tier-row:has(#tierPreset) #tierPreset{
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* wrapper가 있더라도 버튼들을 그리드 아이템으로 "펼쳐" 배치 */
+  .tier-panel .tier-row:has(#tierPreset) .tier-actions,
+  .tier-panel .tier-row:has(#tierPreset) .tier-actions-inline{
+    display: contents !important;
+  }
+
+  /* 2줄: 버튼 5개 위치(프로젝트별 id 후보 포함) */
+  #btnBuildTierParty{ grid-column: 1 !important; grid-row: 2 !important; }
+  #btnAiParty{        grid-column: 2 !important; grid-row: 2 !important; }
+
+  #btnResetParty,
+  #btnPartyReset,
+  #btnReset,
+  #btnClearParty,
+  #btnPartyClear{
+    grid-column: 3 !important;
+    grid-row: 2 !important;
+  }
+
+  /* 전체 선택 */
+  #btnSelectAll,
+  #btnTierSelectAll,
+  #btnAllTier{
+    grid-column: 4 !important;
+    grid-row: 2 !important;
+  }
+
+  /* 전체 해제 */
+  #btnDeselectAll,
+  #btnUnselectAll,
+  #btnClearAll{
+    grid-column: 5 !important;
+    grid-row: 2 !important;
+  }
+
+  /* 공통: 높이/정렬/폭 통일 */
+  .tier-panel .tier-row:has(#tierPreset) select,
+  .tier-panel .tier-row:has(#tierPreset) .btn,
+  .tier-panel .tier-row:has(#tierPreset) button{
+    height: 52px;
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    white-space: nowrap;
+  }
 }
 
-/* 3버튼 / 2버튼 행: 기본은 그리드 */
-.tier-btnrow{
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 10px !important;
-}
-
-.tier-actions-row{
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 10px !important;
-}
-
-/* ✅ 3버튼 동일 폭/높이 고정 + 터치영역 확장 */
-.tier-btnrow .btn,
-.tier-actions-row .btn{
-  width: 100%;
-  justify-content: center;
-}
-
-/* 고정 높이(터치영역): 모바일/태블릿 중심 */
+/* ✅ 모바일/태블릿(<=980px): 현재 UX(3버튼/2버튼) 유지 — PC에 영향 없게 격리 */
 @media (max-width: 980px){
+
+  /* 드롭다운 아래에 버튼 행을 두는 구조(기존 모바일 요구사항) */
+  .tier-row.tier-topline{
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .tier-btnrow{
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .tier-actions-row{
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
   .tier-btnrow .btn,
   .tier-actions-row .btn{
+    width: 100%;
+    justify-content: center;
     height: 46px !important;
     padding: 0 12px !important;
     font-size: 16px !important;
     border-radius: 16px;
   }
-}
 
-/* 극소 화면에서도 3버튼을 무조건 1행 유지 (요청사항) */
-@media (max-width: 520px){
-  .tier-btnrow{
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* 극소 화면(폰): 3버튼 1행 유지 */
+  @media (max-width: 520px){
+    .tier-btnrow .btn{
+      padding: 0 8px !important;
+      font-size: 14px !important;
+    }
   }
-  .tier-btnrow .btn{
-    padding: 0 8px !important;
-    font-size: 14px !important;
-  }
-}
 
-/* 선택 클래스 포함 조건 박스: 모바일에서 양옆 꽉 + 내부 칩 2열 */
-@media (max-width: 720px){
+  /* 선택 클래스 포함 조건 박스: 모바일에서 양옆 꽉 + 내부 칩 2열 */
   #classCondPanel,
   #classCondPanel .tier-class-inline{
     width: 100% !important;
     min-width: 0 !important;
   }
-  #classCondPanel .tier-class-inline{
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
-  }
-  #classCondPanel .tier-classes-inline{
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 10px !important;
-    width: 100% !important;
+
+  @media (max-width: 720px){
+    #classCondPanel .tier-class-inline{
+      display: grid !important;
+      grid-template-columns: 1fr !important;
+      gap: 10px !important;
+    }
+    #classCondPanel .tier-classes-inline{
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 10px !important;
+      width: 100% !important;
+    }
   }
 }
 
-
-
 /* =========================================================
-   Wide desktop (전체창/와이드) 레이아웃 개선
-   - 등급표 상단 줄: 좌측(프리셋+버튼) / 우측(클래스 조건) 균형
-   - 버튼 폭 과도하게 늘어나는 현상 방지
-   - 패널 내부 여백/정렬 통일
+   Wide desktop (전체창/와이드) 보정
+   - 컨테이너 폭 확장
+   - 검색/필터 바 최소 폭 상향
 ========================================================= */
-
-/* PC 전체창에서 컨테이너 폭 확장(콘텐츠 밀도 개선) */
 @media (min-width: 1200px){
   .wrap{ max-width: 1520px; }
 }
 
-/* tier 상단 라인을 와이드에서 "좌/우"로 보기 좋게 */
-@media (min-width: 1101px){
-  .tier-row.tier-topline{
-    display: grid;
-    grid-template-columns: minmax(260px, 380px) minmax(420px, 1fr) minmax(360px, 460px);
-    gap: 12px;
-    align-items: start;
-  }
-
-  /* 프리셋 */
-  #tierPreset{
-    width: 100%;
-    min-width: 0;
-  }
-
-  /* 버튼 묶음: 너무 길게 늘어나는 걸 방지하고 균형 배치 */
-  .tier-actions{
-    display: flex;
-    gap: 10px;
-    justify-content: flex-start;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  #btnBuildTierParty,
-  #btnAiParty{
-    flex: 0 0 auto;
-    min-width: 200px;
-    max-width: 260px;
-    width: auto;
-    justify-content: center;
-  }
-
-  /* 클래스 조건 박스: 우측 고정 폭 느낌으로 안정 */
-  #tierClassInline{
-    width: 100%;
-    min-width: 0 !important;
-    justify-self: end;
-  }
-  .tier-class-inline{
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  /* 하단 전체선택/해제는 오른쪽 정렬 */
-  .tier-actions-inline{
-    justify-content: flex-end !important;
-    gap: 10px;
-  }
-}
-
-/* wide에서 카드/섹션 내부 여백 조금 여유 있게 */
 @media (min-width: 1100px){
+  .filters{ gap: 12px; }
+  .input{ min-width: 320px; }
+  .select{ min-width: 190px; }
+
+  /* wide에서 카드/섹션 내부 여백 조금 여유 있게 */
   .panel{ padding: 16px; }
   .tier-panel{ padding: 14px; }
   .filters-box{ padding: 12px 14px; }
 }
 
-/* 검색/필터 바도 전체창에서 한 줄 유지 도움 */
-@media (min-width: 1100px){
-  .filters{
-    gap: 12px;
-  }
-  .input{ min-width: 320px; }
-  .select{ min-width: 190px; }
-}
-
+/* 모바일에서 클래스 칩 터치/가독성 소폭 개선(기존 유지) */
 @media (max-width: 520px){
   .tier-classes-inline{
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -1740,186 +1681,3 @@ body{
   }
 }
 
-/* =========================================================
-   PC(데스크톱) 등급표 상단 컨트롤 레이아웃 “깨짐” 보정
-   - HTML 수정 없이(#tierPreset이 있는 줄을 :has()로 탐지)
-   - 모바일(max-width:720 이하)에는 영향 없음
-========================================================= */
-
-/* 공통: tier-actions가 flex가 아니면 버튼들이 세로로 떨어질 수 있음 */
-.tier-actions{
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-/* 클래스 조건 박스가 PC에서 쓸데없이 좁아지거나 min-width에 막히는 케이스 방지 */
-#tierClassInline,
-.tier-class-inline{
-  min-width: 0 !important;
-  width: 100%;
-}
-
-/* “전체 선택/전체 해제” 라인도 PC에서 항상 정렬되게 */
-.tier-actions-inline{
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-/* 버튼이 PC에서 무한히 늘어나거나(100% 폭) 줄바꿈으로 깨지는 것 방지 */
-#btnBuildTierParty,
-#btnAiParty{
-  width: auto;
-  min-width: 200px;
-  max-width: 280px;
-  justify-content: center;
-  white-space: nowrap;
-}
-
-/* 파티 초기화 버튼 id가 프로젝트마다 달라질 수 있어 후보를 넉넉히 커버 */
-#btnResetParty,
-#btnPartyReset,
-#btnReset,
-#btnClearParty,
-#btnPartyClear{
-  width: 100%;
-  max-width: none;
-  justify-content: flex-start;
-}
-
-/* ✅ PC 와이드에서: 프리셋 / 버튼 / 클래스조건 을 3열 그리드로 강제 정렬
-   - tier-topline 클래스가 없어도 “#tierPreset이 있는 그 줄”만 정확히 적용됨 */
-@media (min-width: 1101px){
-  .tier-panel .tier-row:has(#tierPreset){
-    display: grid !important;
-    grid-template-columns: minmax(260px, 380px) minmax(420px, 1fr) minmax(360px, 460px);
-    gap: 12px;
-    align-items: start;
-  }
-
-  /* 1열: 프리셋 */
-  .tier-panel .tier-row:has(#tierPreset) #tierPreset{
-    grid-column: 1;
-    width: 100%;
-    min-width: 0;
-  }
-
-  /* 2열: 버튼 묶음 */
-  .tier-panel .tier-row:has(#tierPreset) .tier-actions{
-    grid-column: 2;
-    justify-content: flex-start;
-  }
-
-  /* 3열: 클래스 포함 조건 */
-  .tier-panel .tier-row:has(#tierPreset) #tierClassInline{
-    grid-column: 3;
-    justify-self: end;
-    width: 100%;
-  }
-}
-
-/* 중간 폭(노트북/창 반쪽)에서도 버튼이 한 줄에 너무 우겨넣다 깨지지 않게 */
-@media (min-width: 721px) and (max-width: 1100px){
-  .tier-panel .tier-row:has(#tierPreset){
-    display: grid !important;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    align-items: start;
-  }
-
-  .tier-panel .tier-row:has(#tierPreset) #tierPreset{
-    grid-column: 1 / -1;
-    width: 100%;
-  }
-
-  .tier-panel .tier-row:has(#tierPreset) .tier-actions{
-    grid-column: 1 / -1;
-  }
-
-  .tier-panel .tier-row:has(#tierPreset) #tierClassInline{
-    grid-column: 1 / -1;
-    width: 100%;
-  }
-}
-
-/* ===========================
-   PC 전용: 빨간 박스(등급표 상단 컨트롤) 2줄 레이아웃
-   - 1줄: 등급표 선택 콤보박스(풀폭)
-   - 2줄: (좌) 3개 버튼 균등 / (우) 전체선택·해제 2개 균등
-   =========================== */
-@media (min-width: 1101px){
-
-  /* #tierPreset(등급표 선택)이 포함된 "그 줄"만 타겟팅 */
-  .tier-panel .tier-row:has(#tierPreset),
-  .tier-panel .tier-topline{
-    display: grid !important;
-    grid-template-columns: 1fr 1fr 1fr 0.7fr 0.7fr; /* 좌 3칸 + 우 2칸 */
-    grid-template-rows: auto auto;                 /* 2줄 */
-    gap: 12px;
-    align-items: stretch;
-  }
-
-  /* 1줄: 콤보박스는 전체 폭 */
-  .tier-panel .tier-row:has(#tierPreset) #tierPreset,
-  .tier-panel .tier-topline #tierPreset{
-    grid-column: 1 / -1;
-    grid-row: 1;
-    width: 100%;
-    min-width: 0;
-  }
-
-  /* 2줄: 좌측 3개 버튼 영역 (tier-actions 안에 버튼들이 있다고 가정) */
-  .tier-panel .tier-row:has(#tierPreset) .tier-actions,
-  .tier-panel .tier-topline .tier-actions{
-    grid-column: 1 / 4;
-    grid-row: 2;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 12px;
-    align-items: stretch;
-  }
-
-  /* 좌측 3개 버튼: 꽉 차게 */
-  #btnBuildTierParty,
-  #btnAiParty,
-  #btnResetParty,
-  #btnPartyReset,
-  #btnReset,
-  #btnClearParty,
-  #btnPartyClear{
-    width: 100%;
-    min-width: 0;
-    white-space: nowrap;
-  }
-
-  /* 2줄: 우측 전체선택/해제 (tier-actions-inline 또는 해당 버튼들이 들어있는 래퍼) */
-  .tier-panel .tier-row:has(#tierPreset) .tier-actions-inline,
-  .tier-panel .tier-topline .tier-actions-inline{
-    grid-column: 4 / -1;
-    grid-row: 2;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    align-items: stretch;
-    justify-items: stretch;
-  }
-
-  /* 우측 2개 버튼 후보 id들: 꽉 차게 */
-  #btnSelectAll,
-  #btnDeselectAll,
-  #btnUnselectAll,
-  #btnClearAll{
-    width: 100%;
-    min-width: 0;
-    white-space: nowrap;
-  }
-
-  /* 혹시 특정 버튼들이 flex 영향으로 찌그러지면 기본값 보정 */
-  .tier-actions button,
-  .tier-actions-inline button{
-    height: 48px;
-  }
-}
