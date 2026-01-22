@@ -1367,7 +1367,7 @@ body{
 .table tbody td{ font-size: 15px; }
 
 /* 컬럼 폭(선택/필수) */
-.col-check{ width: 86px; min-width: 86px; }
+.col-check{ width: clamp(220px, 18vw, 300px); min-width: 220px; }
 .col-req{ width: 86px; min-width: 86px; }
 
 /* 캐릭터명 */
@@ -1676,4 +1676,66 @@ body{
 .col-hp, .col-atk, .col-def, .col-crit{ width:108px; min-width:108px; text-align:right; }
 @media (max-width: 520px){
   .col-hp, .col-atk, .col-def, .col-crit{ width:96px; min-width:96px; }
+}
+/* =========================
+   필수(파티 지정) UI: 선택/필수 + 자동/자동 (2줄 2열)
+   - 1열: 선택/필수 체크박스
+   - 2열: 자동(배치)/자동(역할) 드롭다운
+   - 모바일: 자연스럽게 1열로 줄바꿈
+========================= */
+.col-check{ vertical-align: middle; }
+.col-check .pick-stack{
+  display: grid;
+  grid-template-columns: max-content minmax(140px, 1fr);
+  grid-template-areas:
+    "owned slot"
+    "must  role";
+  column-gap: 10px;
+  row-gap: 8px;
+  align-items: center;
+  justify-items: start;
+  width: 100%;
+}
+
+.col-check .pick-stack > label.pick-line{ display:flex; align-items:center; gap:8px; white-space: nowrap; }
+.col-check .pick-stack > label.pick-line input{ margin:0; }
+.col-check .pick-stack > label.pick-line:nth-of-type(1){ grid-area: owned; }
+.col-check .pick-stack > label.pick-line:nth-of-type(2){ grid-area: must; }
+
+.col-check .pick-stack > select.must-slot{ grid-area: slot; }
+.col-check .pick-stack > select.must-role{ grid-area: role; }
+
+.col-check select.must-slot,
+.col-check select.must-role{
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.92);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.col-check select.must-slot:disabled,
+.col-check select.must-role:disabled{
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px){
+  .col-check{ width: 170px; min-width: 170px; }
+  .col-check .pick-stack{
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "owned"
+      "slot"
+      "must"
+      "role";
+    justify-items: stretch;
+  }
+  .col-check select.must-slot,
+  .col-check select.must-role{ width: 100%; }
 }
