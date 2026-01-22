@@ -1367,7 +1367,7 @@ body{
 .table tbody td{ font-size: 15px; }
 
 /* 컬럼 폭(선택/필수) */
-.col-check{ width: 86px; min-width: 86px; }
+.col-check{ width: clamp(220px, 18vw, 300px); min-width: 220px; }
 .col-req{ width: 86px; min-width: 86px; }
 
 /* 캐릭터명 */
@@ -1470,473 +1470,468 @@ body{
 
 
 /* =========================================================
-   Tablet / Narrow desktop (창 반으로 줄였을 때) 레이아웃 안정화
-   - tier 상단 라인: 버튼 세로 깨짐 방지
-   - class 조건 박스(min-width:420)로 인한 압착 제거
-   - filters: 2열 그리드로 정렬
-   - 폰트 크기 일관성 향상
+   Layout overrides (PC + Mobile) — single source of truth
+   목표
+   1) PC: 창 크기와 무관하게 필터 콤보/입력이 남는 폭을 모두 사용
+   2) PC: 등급표 상단 2줄 고정(요청 레이아웃)
+      - 1줄: 등급표선택 / 등급표로 파티 구성 / AI 추천 파티 / 파티 초기화
+      - 2줄: 선택 클래스 포함 조건 / 전체 선택 / 전체 해제
+   3) Mobile: 동일 컨셉 + 자연스러운 줄바꿈
 ========================================================= */
 
-/* 버튼 글자 쪼개짐 방지 */
-.btn{ white-space: nowrap; }
-
-/* filters: 중간 폭에서는 2열 그리드 */
-@media (max-width: 980px){
-  .filters{
-    display:grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-    align-items: stretch !important;
-  }
-  .filters #q{ grid-column: 1 / -1 !important; }
-  .filters .input, .filters .select, .filters .btn{
-    width: 100% !important;
-    min-width: 0 !important;
-    font-size: 16px !important;
-    height: 42px !important;
-    padding: 0 12px !important;
-  }
+/* 공통: grid/flex 내부에서 아이템이 줄어들 수 있게 */
+.filters > *,
+.tier-row > *{
+  min-width: 0;
 }
 
-/* tier 상단: flex 압착 대신 grid로 재배치 */
+/* ====== Wrap: PC에서 폭 여유 확대 ====== */
+@media (min-width: 1100px){
+  .wrap{ max-width: 1600px; }
+}
+
+/* =========================================================
+   Filters (검색/필터) — PC는 한 줄, 폭은 꽉 채움
+========================================================= */
+
+/* 기본(PC/태블릿): grid로 폭을 자동 분배해서 우측 여백 최소화 */
+.filters{
+  display: grid;
+  gap: 10px;
+  align-items: stretch;
+  grid-template-columns: minmax(260px, 2fr) repeat(5, minmax(160px, 1fr));
+}
+.filters .input,
+.filters .select{
+  width: 100%;
+}
+
+/* 노트북/창 축소: 2열로 자연스럽게 줄바꿈 */
 @media (max-width: 1100px){
-  .tier-row.tier-topline{
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-    align-items: start !important;
-  }
-
-  /* 1행: preset */
-  #tierPreset{ grid-column: 1 / -1 !important; width: 100% !important; min-width: 0 !important; }
-
-  /* 2행: 두 버튼 */
-  #btnBuildTierParty{ grid-column: 1 / 2 !important; width: 100% !important; justify-content: center; }
-  #btnAiParty{ grid-column: 2 / 3 !important; width: 100% !important; justify-content: center; }
-
-  /* 3행: 클래스 포함 조건 박스 */
-  #tierClassInline{
-    grid-column: 1 / -1 !important;
-    min-width: 0 !important;           /* 인라인(min-width:420) 무력화 */
-    width: 100% !important;
-  }
-  /* 인라인에서 min-width가 강하게 걸려 있으므로 important로 제거 */
-  .tier-class-inline{ min-width: 0 !important; flex: 1 1 auto !important; }
-
-  /* 4행: 전체선택/해제 */
-  .tier-actions-inline{
-    grid-column: 1 / -1 !important;
-    margin-left: 0 !important;
-    justify-content: flex-end !important;
-    flex-wrap: wrap !important;
-  }
-  .tier-actions-inline .btn{
-    min-width: 160px;
-  }
-}
-
-/* 더 좁아지면(모바일에 가까운 폭): 한 열 스택 */
-@media (max-width: 720px){
-  .tier-row.tier-topline{
-    grid-template-columns: 1fr !important;
-  }
-  #btnBuildTierParty, #btnAiParty{
-    grid-column: 1 / -1 !important;
-  }
-  .tier-actions-inline{
-    justify-content: space-between !important;
-  }
-  .tier-actions-inline .btn{
-    width: calc(50% - 6px);
-    min-width: 0;
-    justify-content: center;
-  }
-}
-
-/* 텍스트 크기 “너무 작은 것들”만 상향 (전체 동일 체감) */
-.filters-summary-hint,
-.tier-summary-hint,
-.tier-help,
-.tier-info{
-  font-size: 14px !important;
-}
-
-
-/* =========================================================
-   Mobile: Tier top controls (요청사항)
-   - 드롭다운 아래
-     1) 등급표파티 / AI파티 / 파티초기화 (동일 폭 + 동일 높이 + 터치영역 확장)
-     2) 전체 선택 / 전체 해제 (동일 폭)
-     3) 선택 클래스 포함 조건 박스: 양옆 꽉
-   - 기존 tier-topline 재배치 규칙보다 아래에 두어 최종 우선 적용
-========================================================= */
-
-/* tier-topline: 드롭다운 + 2개 행 컨테이너 구조 */
-.tier-row.tier-topline{
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 10px !important;
-}
-
-/* 3버튼 / 2버튼 행: 기본은 그리드 */
-.tier-btnrow{
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 10px !important;
-}
-
-.tier-actions-row{
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 10px !important;
-}
-
-/* ✅ 3버튼 동일 폭/높이 고정 + 터치영역 확장 */
-.tier-btnrow .btn,
-.tier-actions-row .btn{
-  width: 100%;
-  justify-content: center;
-}
-
-/* 고정 높이(터치영역): 모바일/태블릿 중심 */
-@media (max-width: 980px){
-  .tier-btnrow .btn,
-  .tier-actions-row .btn{
-    height: 46px !important;
-    padding: 0 12px !important;
-    font-size: 16px !important;
-    border-radius: 16px;
-  }
-}
-
-/* 극소 화면에서도 3버튼을 무조건 1행 유지 (요청사항) */
-@media (max-width: 520px){
-  .tier-btnrow{
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .tier-btnrow .btn{
-    padding: 0 8px !important;
-    font-size: 14px !important;
-  }
-}
-
-/* 선택 클래스 포함 조건 박스: 모바일에서 양옆 꽉 + 내부 칩 2열 */
-@media (max-width: 720px){
-  #classCondPanel,
-  #classCondPanel .tier-class-inline{
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-  #classCondPanel .tier-class-inline{
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
-  }
-  #classCondPanel .tier-classes-inline{
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 10px !important;
-    width: 100% !important;
-  }
-}
-
-
-
-/* =========================================================
-   Wide desktop (전체창/와이드) 레이아웃 개선
-   - 등급표 상단 줄: 좌측(프리셋+버튼) / 우측(클래스 조건) 균형
-   - 버튼 폭 과도하게 늘어나는 현상 방지
-   - 패널 내부 여백/정렬 통일
-========================================================= */
-
-/* PC 전체창에서 컨테이너 폭 확장(콘텐츠 밀도 개선) */
-@media (min-width: 1200px){
-  .wrap{ max-width: 1520px; }
-}
-
-/* tier 상단 라인을 와이드에서 "좌/우"로 보기 좋게 */
-@media (min-width: 1101px){
-  .tier-row.tier-topline{
-    display: grid;
-    grid-template-columns: minmax(260px, 380px) minmax(420px, 1fr) minmax(360px, 460px);
-    gap: 12px;
-    align-items: start;
-  }
-
-  /* 프리셋 */
-  #tierPreset{
-    width: 100%;
-    min-width: 0;
-  }
-
-  /* 버튼 묶음: 너무 길게 늘어나는 걸 방지하고 균형 배치 */
-  .tier-actions{
-    display: flex;
-    gap: 10px;
-    justify-content: flex-start;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  #btnBuildTierParty,
-  #btnAiParty{
-    flex: 0 0 auto;
-    min-width: 200px;
-    max-width: 260px;
-    width: auto;
-    justify-content: center;
-  }
-
-  /* 클래스 조건 박스: 우측 고정 폭 느낌으로 안정 */
-  #tierClassInline{
-    width: 100%;
-    min-width: 0 !important;
-    justify-self: end;
-  }
-  .tier-class-inline{
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  /* 하단 전체선택/해제는 오른쪽 정렬 */
-  .tier-actions-inline{
-    justify-content: flex-end !important;
-    gap: 10px;
-  }
-}
-
-/* wide에서 카드/섹션 내부 여백 조금 여유 있게 */
-@media (min-width: 1100px){
-  .panel{ padding: 16px; }
-  .tier-panel{ padding: 14px; }
-  .filters-box{ padding: 12px 14px; }
-}
-
-/* 검색/필터 바도 전체창에서 한 줄 유지 도움 */
-@media (min-width: 1100px){
   .filters{
-    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .input{ min-width: 320px; }
-  .select{ min-width: 190px; }
+  .filters #q{ grid-column: 1 / -1; }
 }
 
+/* 모바일: 기존 컨셉 유지(검색+클래스 1행, 이후 2열) */
 @media (max-width: 520px){
-  .tier-classes-inline{
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 10px !important;
+  .filters{
+    grid-template-columns: 2fr 1fr;
+    gap: 8px;
   }
-  .tier-class-item{
-    border-radius: 14px;
-    padding: 12px 10px;
-    background: rgba(255,255,255,.04);
-    border: 1px solid rgba(255,255,255,.10);
+  .filters #q{ grid-column: 1 / 2; grid-row: 1; }
+  .filters #classFilter{ grid-column: 2 / 3; grid-row: 1; }
+}
+
+/* =========================================================
+   Tier (등급표) — PC/모바일 최적화
+========================================================= */
+
+/* (A) PC: 1줄 4칸 + (B) 2줄 3칸(조건 + 버튼2개) */
+@media (min-width: 901px){
+  .tier-row.tier-topline{
+    display: grid !important;
+    grid-template-columns: minmax(260px, 1.35fr) repeat(3, minmax(180px, 1fr));
+    gap: 12px;
+    align-items: stretch;
   }
-  .tier-class-item input{
-    transform: scale(1.15);
+  .tier-row.tier-topline #tierPreset,
+  .tier-row.tier-topline .btn{
+    width: 100%;
+    height: 52px;
   }
-  .tier-class-item span{
-    font-weight: 800;
-    letter-spacing: .2px;
+
+  .tier-row.tier-secondline{
+    display: grid !important;
+    grid-template-columns: 1fr 160px 160px;
+    gap: 12px;
+    align-items: stretch;
+    margin-top: 10px;
+  }
+  .tier-row.tier-secondline #classCondPanel{
+    width: 100%;
+  }
+  .tier-row.tier-secondline .btn{
+    width: 100%;
+    height: 52px;
+    justify-content: center;
+  }
+}
+
+/* 태블릿/모바일: 자연스러운 줄바꿈 */
+@media (max-width: 900px){
+  .tier-row.tier-topline{
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: stretch;
+  }
+  .tier-row.tier-topline #tierPreset,
+  .tier-row.tier-topline .btn{
+    width: 100%;
+  }
+
+  .tier-row.tier-secondline{
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    align-items: stretch;
+    margin-top: 10px;
+  }
+  .tier-row.tier-secondline #classCondPanel{
+    grid-column: 1 / -1;
+  }
+  .tier-row.tier-secondline .btn{
+    width: 100%;
+    justify-content: center;
   }
 }
 
 /* =========================================================
-   PC(데스크톱) 등급표 상단 컨트롤 레이아웃 “깨짐” 보정
-   - HTML 수정 없이(#tierPreset이 있는 줄을 :has()로 탐지)
-   - 모바일(max-width:720 이하)에는 영향 없음
+   Subpanel (선택 클래스 포함 조건) — select.css 단일화
 ========================================================= */
 
-/* 공통: tier-actions가 flex가 아니면 버튼들이 세로로 떨어질 수 있음 */
-.tier-actions{
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+.subpanel{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 10px 12px;
+}
+.subpanel-summary{
+  list-style: none;
+  cursor: pointer;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
   gap: 10px;
+  font-weight: 950;
+  color: rgba(255,255,255,.90);
 }
-
-/* 클래스 조건 박스가 PC에서 쓸데없이 좁아지거나 min-width에 막히는 케이스 방지 */
-#tierClassInline,
-.tier-class-inline{
-  min-width: 0 !important;
-  width: 100%;
-}
-
-/* “전체 선택/전체 해제” 라인도 PC에서 항상 정렬되게 */
-.tier-actions-inline{
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-/* 버튼이 PC에서 무한히 늘어나거나(100% 폭) 줄바꿈으로 깨지는 것 방지 */
-#btnBuildTierParty,
-#btnAiParty{
-  width: auto;
-  min-width: 200px;
-  max-width: 280px;
-  justify-content: center;
+.subpanel-summary::-webkit-details-marker{ display:none; }
+.subpanel-title{ font-weight: 950; }
+.subpanel-toggle{
+  font-size: 12px;
+  font-weight: 850;
+  color: rgba(255,255,255,.65);
   white-space: nowrap;
 }
 
-/* 파티 초기화 버튼 id가 프로젝트마다 달라질 수 있어 후보를 넉넉히 커버 */
-#btnResetParty,
-#btnPartyReset,
-#btnReset,
-#btnClearParty,
-#btnPartyClear{
+/* class 조건 내부 박스 */
+.tier-class-inline{
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+.tier-check-inline{
+  white-space: nowrap;
+  font-weight: 900;
+  color: rgba(255,255,255,.92);
+}
+.tier-classes-inline{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+/* =========================================================
+   Tier 카드 이미지/가독성(기존 인라인 스타일 이관)
+========================================================= */
+
+.tier-card-top{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.tier-portrait{
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  object-fit:cover;
+  flex:0 0 auto;
+  box-shadow: 0 8px 18px rgba(0,0,0,.25);
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+/* 긴 pill은 1줄 + 말줄임 */
+.tier-card-sub .pill{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 190px;
+}
+
+/* Stats columns (HP/ATK/DEF/CRIT) */
+.col-hp, .col-atk, .col-def, .col-crit{ width:108px; min-width:108px; text-align:right; }
+@media (max-width: 520px){
+  .col-hp, .col-atk, .col-def, .col-crit{ width:96px; min-width:96px; }
+}
+/* =========================
+   필수(파티 지정) UI: 선택/필수 + 자동/자동 (2줄 2열)
+   - 1열: 선택/필수 체크박스
+   - 2열: 자동(배치)/자동(역할) 드롭다운
+   - 모바일: 자연스럽게 1열로 줄바꿈
+========================= */
+.col-check{ vertical-align: middle; }
+.col-check .pick-stack{
+  display: grid;
+  grid-template-columns: max-content minmax(140px, 1fr);
+  grid-template-areas:
+    "owned slot"
+    "must  role";
+  column-gap: 10px;
+  row-gap: 8px;
+  align-items: center;
+  justify-items: start;
   width: 100%;
-  max-width: none;
-  justify-content: flex-start;
 }
 
-/* ✅ PC 와이드에서: 프리셋 / 버튼 / 클래스조건 을 3열 그리드로 강제 정렬
-   - tier-topline 클래스가 없어도 “#tierPreset이 있는 그 줄”만 정확히 적용됨 */
-@media (min-width: 1101px){
-  .tier-panel .tier-row:has(#tierPreset){
-    display: grid !important;
-    grid-template-columns: minmax(260px, 380px) minmax(420px, 1fr) minmax(360px, 460px);
-    gap: 12px;
-    align-items: start;
-  }
+.col-check .pick-stack > label.pick-line{ display:flex; align-items:center; gap:8px; white-space: nowrap; }
+.col-check .pick-stack > label.pick-line input{ margin:0; }
+.col-check .pick-stack > label.pick-line:nth-of-type(1){ grid-area: owned; }
+.col-check .pick-stack > label.pick-line:nth-of-type(2){ grid-area: must; }
 
-  /* 1열: 프리셋 */
-  .tier-panel .tier-row:has(#tierPreset) #tierPreset{
-    grid-column: 1;
-    width: 100%;
-    min-width: 0;
-  }
+.col-check .pick-stack > select.must-slot{ grid-area: slot; }
+.col-check .pick-stack > select.must-role{ grid-area: role; }
 
-  /* 2열: 버튼 묶음 */
-  .tier-panel .tier-row:has(#tierPreset) .tier-actions{
-    grid-column: 2;
-    justify-content: flex-start;
-  }
-
-  /* 3열: 클래스 포함 조건 */
-  .tier-panel .tier-row:has(#tierPreset) #tierClassInline{
-    grid-column: 3;
-    justify-self: end;
-    width: 100%;
-  }
+.col-check select.must-slot,
+.col-check select.must-role{
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.92);
+  outline: none;
+  box-sizing: border-box;
 }
 
-/* 중간 폭(노트북/창 반쪽)에서도 버튼이 한 줄에 너무 우겨넣다 깨지지 않게 */
-@media (min-width: 721px) and (max-width: 1100px){
-  .tier-panel .tier-row:has(#tierPreset){
-    display: grid !important;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    align-items: start;
-  }
-
-  .tier-panel .tier-row:has(#tierPreset) #tierPreset{
-    grid-column: 1 / -1;
-    width: 100%;
-  }
-
-  .tier-panel .tier-row:has(#tierPreset) .tier-actions{
-    grid-column: 1 / -1;
-  }
-
-  .tier-panel .tier-row:has(#tierPreset) #tierClassInline{
-    grid-column: 1 / -1;
-    width: 100%;
-  }
+.col-check select.must-slot:disabled,
+.col-check select.must-role:disabled{
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
-/* ===========================
-   PC 전용: 빨간 박스(등급표 상단 컨트롤) 2줄 레이아웃
-   - 1줄: 등급표 선택 콤보박스(풀폭)
-   - 2줄: (좌) 3개 버튼 균등 / (우) 전체선택·해제 2개 균등
-   =========================== */
-@media (min-width: 1101px){
-
-  /* #tierPreset(등급표 선택)이 포함된 "그 줄"만 타겟팅 */
-  .tier-panel .tier-row:has(#tierPreset),
-  .tier-panel .tier-topline{
-    display: grid !important;
-    grid-template-columns: 1fr 1fr 1fr 0.7fr 0.7fr; /* 좌 3칸 + 우 2칸 */
-    grid-template-rows: auto auto;                 /* 2줄 */
-    gap: 12px;
-    align-items: stretch;
-  }
-
-  /* 1줄: 콤보박스는 전체 폭 */
-  .tier-panel .tier-row:has(#tierPreset) #tierPreset,
-  .tier-panel .tier-topline #tierPreset{
-    grid-column: 1 / -1;
-    grid-row: 1;
-    width: 100%;
-    min-width: 0;
-  }
-
-  /* 2줄: 좌측 3개 버튼 영역 (tier-actions 안에 버튼들이 있다고 가정) */
-  .tier-panel .tier-row:has(#tierPreset) .tier-actions,
-  .tier-panel .tier-topline .tier-actions{
-    grid-column: 1 / 4;
-    grid-row: 2;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 12px;
-    align-items: stretch;
-  }
-
-  /* 좌측 3개 버튼: 꽉 차게 */
-  #btnBuildTierParty,
-  #btnAiParty,
-  #btnResetParty,
-  #btnPartyReset,
-  #btnReset,
-  #btnClearParty,
-  #btnPartyClear{
-    width: 100%;
-    min-width: 0;
-    white-space: nowrap;
-  }
-
-  /* 2줄: 우측 전체선택/해제 (tier-actions-inline 또는 해당 버튼들이 들어있는 래퍼) */
-  .tier-panel .tier-row:has(#tierPreset) .tier-actions-inline,
-  .tier-panel .tier-topline .tier-actions-inline{
-    grid-column: 4 / -1;
-    grid-row: 2;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    align-items: stretch;
+@media (max-width: 720px){
+  .col-check{ width: 170px; min-width: 170px; }
+  .col-check .pick-stack{
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "owned"
+      "slot"
+      "must"
+      "role";
     justify-items: stretch;
   }
+  .col-check select.must-slot,
+  .col-check select.must-role{ width: 100%; }
+}
 
-  /* 우측 2개 버튼 후보 id들: 꽉 차게 */
-  #btnSelectAll,
-  #btnDeselectAll,
-  #btnUnselectAll,
-  #btnClearAll{
+/* =========================================================
+   PC / 모바일(데스크탑모드) : 한 화면에 전체 열 노출 (11열)
+   ========================================================= */
+@media (min-width: 760px){
+  /* (1) 데스크탑에서는 폭을 최대한 활용 */
+  body .wrap{
+    max-width: 100% !important; /* select.html inline의 max-width !important도 이김 */
+  }
+
+  /* (2) 가로 스크롤 없애고, 테이블을 압축 가능하게 */
+  .table-wrap{ overflow-x: hidden; }
+  .table{
+    min-width: 0 !important;    /* 기존 min-width(920px 등) 제거 */
+    table-layout: fixed;        /* 열 폭을 강제로 고정(압축/말줄임 가능) */
+  }
+
+  /* (3) 패딩/폰트 줄여서 11열이 안정적으로 들어오게 */
+  .table thead th{
+    padding: 10px 8px !important;
+    font-size: 12px !important;
+    text-align: center !important;
+  }
+  .table tbody td{
+    padding: 10px 8px !important;
+    font-size: 13px !important;
+  }
+
+  /* (4) 셀 내용이 폭을 밀어내지 못하게(말줄임) */
+  .table thead th,
+  .table tbody td{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* (5) 11열 폭(%) 배분: 합계 ≈ 100% */
+  .col-check{
+    width: 6% !important;
+    min-width: 0 !important;
+    text-align: center !important;
+  }
+
+  .col-char{
+    width: 16% !important;
+    min-width: 0 !important;
+  }
+
+  /* 스탯 4열 */
+  .col-hp, .col-def, .col-atk, .col-crit{
+    width: 8% !important;
+    min-width: 0 !important;
+    text-align: right !important;
+  }
+
+  /* 속성/특성/클래스/역할/등급 5열 */
+  .col-elem, .col-faction, .col-class, .col-role, .col-rarity{
+    width: 9.2% !important;
+    min-width: 0 !important;
+    text-align: center !important;
+  }
+
+  /* (6) 캐릭터명: 이미지 아래 배치(폭 절약) */
+  .col-char .char-cell{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .col-char .char-img{
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+  .col-char .char-name{
     width: 100%;
-    min-width: 0;
+    text-align: center;
+    font-size: 12.5px;
+    line-height: 1.15;
+    font-weight: 900;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  /* 혹시 특정 버튼들이 flex 영향으로 찌그러지면 기본값 보정 */
-  .tier-actions button,
-  .tier-actions-inline button{
-    height: 48px;
+  /* (7) pill이 폭을 밀지 않게 축소 + 말줄임 */
+  .pill{
+    max-width: 100%;
+    min-width: 0;
+    justify-content: center;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .pill-with-icon{ max-width: 100%; min-width: 0; }
+  .pill-with-icon .pill-text{ overflow: hidden; text-overflow: ellipsis; }
+  .pill img, .pill-with-icon .mini-icon{
+    width: 14px;
+    height: 14px;
   }
 }
 
-/* =========================
-   Mobile: character name under portrait
-   - Stack image + name vertically on small screens
-========================= */
-@media (max-width: 520px){
-  .char-cell{
+/* =========================================================
+   FIX: 선택(자동/자동) 콤보 잘림 + 본문 중앙정렬 통일 (Desktop)
+   ========================================================= */
+@media (min-width: 760px){
+
+  /* 1) 열 폭 재배분: 선택 열 넓히고, 캐릭터/스탯을 예쁘게 조정 (합계 ≈ 100%) */
+  .col-check{
+    width: 9% !important;
+    min-width: 0 !important;
+    text-align: center !important;
+  }
+  .col-char{
+    width: 15% !important;
+    min-width: 0 !important;
+    text-align: center !important;
+  }
+
+  .col-hp, .col-def, .col-atk, .col-crit{
+    width: 7.5% !important;
+    min-width: 0 !important;
+    text-align: center !important; /* 기존 right 정렬 제거 */
+  }
+
+  .col-elem, .col-faction, .col-class, .col-role, .col-rarity{
+    width: 9.2% !important;
+    min-width: 0 !important;
+    text-align: center !important;
+  }
+
+  /* 2) 본문(열 내용) 중앙정렬 통일 */
+  .table tbody td{
+    text-align: center !important;
+  }
+
+  /* pill도 가운데로 오게(내용이 폭을 밀지 않도록) */
+  .pill,
+  .pill-with-icon{
+    margin: 0 auto;
+    justify-content: center;
+  }
+
+  /* 3) 선택 열 내부 2행 2열 레이아웃: (선택/필수) | (자동/자동) */
+  /*    - 콤보폭을 ‘너무 작지 않게’ 고정(잘림 방지) */
+  .col-check .pick-stack{
+    display: grid !important;
+    grid-template-columns: 1fr 120px; /* 오른쪽 콤보 영역 확보 */
+    grid-auto-rows: minmax(34px, auto);
+    column-gap: 10px;
+    row-gap: 8px;
+    align-items: center;
+    justify-items: center;
+    width: 100%;
+  }
+
+  /* 왼쪽(선택/필수) 영역도 중앙 정렬 */
+  .col-check .pick-stack label{
+    justify-self: center;
+  }
+
+  /* 오른쪽(자동/자동) 콤보: 잘리지 않게 폭/패딩 조정 */
+  .col-check .pick-stack select,
+  .col-check .must-slot,
+  .col-check .must-role{
+    width: 120px !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  /* 캐릭터명 아래 배치(이미 적용 중이면 유지) */
+  .col-char .char-cell{
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 6px;
+  }
+  .col-char .char-name{
     text-align: center;
   }
-  .char-name{
-    font-size: 13px;
-    line-height: 1.15;
+}
+
+/* 모바일(진짜 작은 화면)에서는 콤보가 100%로 자연 확장 */
+@media (max-width: 520px){
+  .col-check .pick-stack{
+    grid-template-columns: 1fr 1fr;
+  }
+  .col-check .pick-stack select,
+  .col-check .must-slot,
+  .col-check .must-role{
+    width: 100% !important;
   }
 }
