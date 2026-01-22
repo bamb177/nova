@@ -767,19 +767,29 @@ function pick(obj, ...keys) {
         return renderBuilds(builds);
       }
 
-      // both: show PVE/PVP toggle
+      // both: show BOTH / PVE / PVP mode segment
       const pveBuilds = pickBuilds(runeReco.pve);
       const pvpBuilds = pickBuilds(runeReco.pvp);
 
-      // default tab: PVE
+      // default mode: BOTH (요청사항: 기본 both)
       return `
-        <div class="rune-mode-wrap" data-rune-mode="pve">
-          <div class="seg">
-            <button type="button" class="seg-btn is-active" data-mode="pve">PVE</button>
-            <button type="button" class="seg-btn" data-mode="pvp">PVP</button>
+        <div class="rune-reco" data-rune-mode="both">
+          <div class="rune-seg">
+            <button type="button" class="rune-seg-btn active" data-mode="both">BOTH</button>
+            <button type="button" class="rune-seg-btn" data-mode="pve">PVE</button>
+            <button type="button" class="rune-seg-btn" data-mode="pvp">PVP</button>
           </div>
 
-          <div class="rune-mode-panel" data-panel="pve">
+          <div class="rune-mode-panel active" data-panel="both">
+            <div class="rune-grid-col">
+              <div class="rune-sec-title">PVE</div>
+              ${renderBuilds(pveBuilds)}
+              <div class="rune-sec-title" style="margin-top:14px;">PVP</div>
+              ${renderBuilds(pvpBuilds)}
+            </div>
+          </div>
+
+          <div class="rune-mode-panel" data-panel="pve" style="display:none">
             ${renderBuilds(pveBuilds)}
           </div>
           <div class="rune-mode-panel" data-panel="pvp" style="display:none">
@@ -828,19 +838,30 @@ function pick(obj, ...keys) {
           return;
         }
 
-        // rune mode (PVE/PVP) toggle inside "추천 룬" tab
-        const segBtn = e.target.closest(".seg-btn");
+        // rune mode segment (BOTH / PVE / PVP) inside "추천 룬" tab
+        // - supports both new(.rune-seg-btn/.rune-reco/.active) and legacy(.seg-btn/.rune-mode-wrap/.is-active)
+        const segBtn = e.target.closest(".rune-seg-btn, .seg-btn");
         if (segBtn) {
           const mode = segBtn.dataset.mode;
-          const wrap = segBtn.closest(".rune-mode-wrap");
+          const wrap = segBtn.closest(".rune-reco, .rune-mode-wrap");
           if (!wrap || !mode) return;
 
           wrap.dataset.runeMode = mode;
-          wrap.querySelectorAll(".seg-btn").forEach(b => b.classList.toggle("is-active", b.dataset.mode === mode));
+
+          // 버튼 활성화
+          wrap.querySelectorAll(".rune-seg-btn, .seg-btn").forEach(b => {
+            const on = b.dataset.mode === mode;
+            b.classList.toggle("active", on);
+            b.classList.toggle("is-active", on);
+          });
+
+          // 패널 표시
           wrap.querySelectorAll(".rune-mode-panel").forEach(p => {
             const isOn = p.dataset.panel === mode;
-            p.style.display = isOn ? "" : "none";
+            p.classList.toggle("active", isOn);
+            p.style.display = isOn ? "" : "none"; // inline wins for legacy; empty lets CSS(.active) show
           });
+
           return;
         }
       };
