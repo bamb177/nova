@@ -1197,7 +1197,47 @@ body{
 
 .tab-panel[data-panel="runes"] .rune-note{ opacity: .78; }
 
-.tab-panel[data-panel="runes"] .rune-grid{
+
+/* ===== Rune recommendation mode segment (BOTH / PVE / PVP) ===== */
+.rune-reco{ display: grid; gap: 12px; }
+
+.rune-seg{
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.rune-seg-btn{
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(255,255,255,.86);
+  font-weight: 800;
+  letter-spacing: .4px;
+  padding: 10px 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.rune-seg-btn.active{
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.18);
+  color: rgba(255,255,255,.98);
+  box-shadow: 0 10px 22px rgba(0,0,0,.22);
+}
+
+.rune-mode-panel{ display: none; }
+.rune-mode-panel.active{ display: block; }
+
+.rune-grid-col{ display: grid; gap: 12px; }
+
+.rune-grid{
   display: grid;
   grid-template-columns: 1.05fr .95fr;
   gap: 12px;
@@ -1255,86 +1295,6 @@ body{
 }
 
 
-
-
-/* =========================
-   Rune PVE/PVP Segmented UI (추천 룬 탭 내부)
-   - select.html 인라인 스타일 제거를 위한 CSS 일원화
-   - 모바일에서 버튼 과대/줄바꿈/간격 붕괴 방지
-========================= */
-.tab-panel[data-panel="runes"] .rune-mode-wrap{ margin-top: 6px; }
-
-.tab-panel[data-panel="runes"] .seg{
-  display:inline-flex;
-  align-items:center;
-  gap: 6px;
-  padding: 4px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(0,0,0,.16);
-  width: max-content;
-}
-
-.tab-panel[data-panel="runes"] .seg-btn{
-  appearance:none;
-  border: 1px solid transparent;
-  background: transparent;
-  color: rgba(255,255,255,.86);
-  padding: 8px 14px;
-  border-radius: 999px;
-  font-weight: 900;
-  letter-spacing: .2px;
-  cursor: pointer;
-  line-height: 1;
-  user-select:none;
-}
-.tab-panel[data-panel="runes"] .seg-btn:hover{
-  background: rgba(255,255,255,.06);
-}
-.tab-panel[data-panel="runes"] .seg-btn.is-active{
-  background: rgba(255,255,255,.12);
-  border-color: rgba(255,255,255,.18);
-  color: rgba(255,255,255,.95);
-}
-
-/* 모바일: 세그먼트를 가로로 꽉, 2버튼 동일 폭 */
-@media (max-width: 520px){
-  .tab-panel[data-panel="runes"] .seg{
-    width: 100%;
-    justify-content: space-between;
-  }
-  .tab-panel[data-panel="runes"] .seg-btn{
-    flex: 1 1 0;
-    justify-content: center;
-    text-align:center;
-  }
-}
-
-/* =========================
-   Rune Substats Chips (추천 룬 탭 내부)
-   - "Defense(%)Critical Rate(%)..." 붙어 보이는 현상 방지
-========================= */
-.tab-panel[data-panel="runes"] .rune-substats{ margin-top: 12px; }
-
-.tab-panel[data-panel="runes"] .rune-chip-row{
-  display:flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.tab-panel[data-panel="runes"] .chip{
-  display:inline-flex;
-  align-items:center;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.04);
-  font-weight: 800;
-  font-size: 13px;
-  line-height: 1.1;
-  white-space: nowrap;
-}
 /* =========================================================
    FINAL SCALE (+3pt 체감) + TABLE 헤더 줄바꿈 방지 + PILL 확대
 ========================================================= */
@@ -1468,508 +1428,373 @@ body{
   }
 }
 
-/* ✅ 선택 컬럼: 한 줄 유지(선/택 방지) */
-    .col-check{ width: 86px; min-width: 86px; text-align: center; }
-    .table th.col-check{ text-align:center; }
+
+/* =========================================================
+   Tablet / Narrow desktop (창 반으로 줄였을 때) 레이아웃 안정화
+   - tier 상단 라인: 버튼 세로 깨짐 방지
+   - class 조건 박스(min-width:420)로 인한 압착 제거
+   - filters: 2열 그리드로 정렬
+   - 폰트 크기 일관성 향상
+========================================================= */
+
+/* 버튼 글자 쪼개짐 방지 */
+.btn{ white-space: nowrap; }
+
+/* filters: 중간 폭에서는 2열 그리드 */
+@media (max-width: 980px){
+  .filters{
+    display:grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+  }
+  .filters #q{ grid-column: 1 / -1 !important; }
+  .filters .input, .filters .select, .filters .btn{
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 16px !important;
+    height: 42px !important;
+    padding: 0 12px !important;
+  }
+}
+
+/* tier 상단: flex 압착 대신 grid로 재배치 */
+@media (max-width: 1100px){
+  .tier-row.tier-topline{
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    align-items: start !important;
+  }
+
+  /* 1행: preset */
+  #tierPreset{ grid-column: 1 / -1 !important; width: 100% !important; min-width: 0 !important; }
+
+  /* 2행: 두 버튼 */
+  #btnBuildTierParty{ grid-column: 1 / 2 !important; width: 100% !important; justify-content: center; }
+  #btnAiParty{ grid-column: 2 / 3 !important; width: 100% !important; justify-content: center; }
+
+  /* 3행: 클래스 포함 조건 박스 */
+  #tierClassInline{
+    grid-column: 1 / -1 !important;
+    min-width: 0 !important;           /* 인라인(min-width:420) 무력화 */
+    width: 100% !important;
+  }
+  /* 인라인에서 min-width가 강하게 걸려 있으므로 important로 제거 */
+  .tier-class-inline{ min-width: 0 !important; flex: 1 1 auto !important; }
+
+  /* 4행: 전체선택/해제 */
+  .tier-actions-inline{
+    grid-column: 1 / -1 !important;
+    margin-left: 0 !important;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+  }
+  .tier-actions-inline .btn{
+    min-width: 160px;
+  }
+}
+
+/* 더 좁아지면(모바일에 가까운 폭): 한 열 스택 */
+@media (max-width: 720px){
+  .tier-row.tier-topline{
+    grid-template-columns: 1fr !important;
+  }
+  #btnBuildTierParty, #btnAiParty{
+    grid-column: 1 / -1 !important;
+  }
+  .tier-actions-inline{
+    justify-content: space-between !important;
+  }
+  .tier-actions-inline .btn{
+    width: calc(50% - 6px);
+    min-width: 0;
+    justify-content: center;
+  }
+}
+
+/* 텍스트 크기 “너무 작은 것들”만 상향 (전체 동일 체감) */
+.filters-summary-hint,
+.tier-summary-hint,
+.tier-help,
+.tier-info{
+  font-size: 14px !important;
+}
 
 
-    /* (2) 전체 페이지 폭 확장 (PC) */
-    @media (min-width: 980px){
-      .wrap{ max-width: 1600px !important; }
-    }
+/* =========================================================
+   Mobile: Tier top controls (요청사항)
+   - 드롭다운 아래
+     1) 등급표파티 / AI파티 / 파티초기화 (동일 폭 + 동일 높이 + 터치영역 확장)
+     2) 전체 선택 / 전체 해제 (동일 폭)
+     3) 선택 클래스 포함 조건 박스: 양옆 꽉
+   - 기존 tier-topline 재배치 규칙보다 아래에 두어 최종 우선 적용
+========================================================= */
 
-    /* (1) 등급표 파티 카드: 좌측 초상화 + 이름 */
-    .tier-card-top{
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-    .tier-portrait{
-      width:44px;
-      height:44px;
-      border-radius:12px;
-      object-fit:cover;
-      flex:0 0 auto;
-      box-shadow: 0 8px 18px rgba(0,0,0,.25);
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.10);
-    }
-    .tier-portrait-empty{
-      display:block;
-    }
+/* tier-topline: 드롭다운 + 2개 행 컨테이너 구조 */
+.tier-row.tier-topline{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+}
 
-    /* (2) 긴 특성명(예: Heikyo Castle) 2줄 방지: 1줄 유지 + 넘치면 말줄임 */
-    .tier-card-sub .pill{
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 190px;
-    }
-  
-    /* ✅ Tier 상단 버튼(전체선택/해제) 우측 정렬 */
-    .tier-topline{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .tier-topline .tier-actions-inline{
-      margin-left:auto;
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:nowrap;
-    }
-    @media (min-width: 900px){
-      .tier-topline{ flex-wrap:nowrap; }
-    }
+/* 3버튼 / 2버튼 행: 기본은 그리드 */
+.tier-btnrow{
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
 
-  
-    /* Memory Card image (modal) — 카드열 확장 + 이미지 꽉차게 */
-    .memcard-wrap{
-      display:flex;
-      gap:14px;
-      align-items:flex-start;
-      flex-wrap:wrap;
-    }
+.tier-actions-row{
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
 
-    /* 카드열: PC에서는 크게, 모바일에서는 과도하지 않게 */
-    .memcard-imgcell{
-      vertical-align: top;
-      padding: 10px;
-      width: clamp(240px, 30vw, 420px);
-    }
+/* ✅ 3버튼 동일 폭/높이 고정 + 터치영역 확장 */
+.tier-btnrow .btn,
+.tier-actions-row .btn{
+  width: 100%;
+  justify-content: center;
+}
 
-    /* 이미지: 카드열을 100%로 꽉 채움 (기존 150x240 고정 제거) */
-    .memcard-img{
-      display:block;
-      width: 100%;
-      height: auto;
-      aspect-ratio: 5 / 8;
-      border-radius:16px;
-      object-fit:cover;
-      box-shadow: 0 10px 26px rgba(0,0,0,.35);
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-    }
-    .memcard-img.hidden{ display:none; }
+/* 고정 높이(터치영역): 모바일/태블릿 중심 */
+@media (max-width: 980px){
+  .tier-btnrow .btn,
+  .tier-actions-row .btn{
+    height: 46px !important;
+    padding: 0 12px !important;
+    font-size: 16px !important;
+    border-radius: 16px;
+  }
+}
 
-    @media (max-width: 520px){
-      .memcard-imgcell{
-        width: clamp(170px, 54vw, 320px);
-        padding: 8px;
-      }
-      .memcard-img{
-        border-radius: 14px;
-      }
-    }
+/* 극소 화면에서도 3버튼을 무조건 1행 유지 (요청사항) */
+@media (max-width: 520px){
+  .tier-btnrow{
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .tier-btnrow .btn{
+    padding: 0 8px !important;
+    font-size: 14px !important;
+  }
+}
 
-/* Stats columns (HP/ATK/DEF/CRIT) */
-    .col-hp, .col-atk, .col-def, .col-crit { width: 108px; min-width: 108px; text-align: right; }
-    td.col-hp, td.col-atk, td.col-def, td.col-crit { font-weight: 800; color: rgba(255,255,255,.86); }
-    
-    @media (max-width: 520px){
-      .col-hp, .col-atk, .col-def, .col-crit { width: 96px; min-width: 96px; }
-    }
-  
-    /* Tier panel: move class condition row into top line (better readability) */
-    .tier-topline{
-      align-items: flex-start;
-    }
-    .tier-class-inline{
-      flex: 1 1 auto;
-      min-width: 420px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
-    }
-    .tier-check-inline{
-      white-space: nowrap;
-      font-weight: 900;
-      color: rgba(255,255,255,.92);
-    }
-    .tier-classes-inline{
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      margin-left: 4px;
-    }
-    /* On small screens, keep layout tidy */
-    @media (max-width: 720px){
-      .tier-topline{ flex-wrap: wrap; }
-      .tier-class-inline{
-        min-width: 0;
-        width: 100%;
-        order: 3;
-      }
-      .tier-topline .tier-actions-inline{
-        order: 4;
-        width: 100%;
-        justify-content: flex-end;
-      }
-    }
+/* 선택 클래스 포함 조건 박스: 모바일에서 양옆 꽉 + 내부 칩 2열 */
+@media (max-width: 720px){
+  #classCondPanel,
+  #classCondPanel .tier-class-inline{
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  #classCondPanel .tier-class-inline{
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  #classCondPanel .tier-classes-inline{
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+}
 
-    /* Select dropdown readability (options contrast) */
-    select, .select{
-      color: rgba(255,255,255,.92);
-    }
-    select option{
-      background: #0b1222;
-      color: rgba(255,255,255,.90);
-    }
-    select option:disabled{
-      color: rgba(255,255,255,.58);
-    }
 
-  
-    /* ===== Readability: larger typography ===== */
-    body{ font-size: 16px; }
-    .topbar h1{ font-size: 22px; }
-    .filters-summary-title{ font-size: 18px; }
-    .filters-summary-hint{ font-size: 14px; opacity:.85; }
-    .input, .select, select, .btn{ font-size: 15px; }
-    .table th{ font-size: 14.5px; }
-    .table td{ font-size: 14.5px; }
-    .pill{ font-size: 13.5px; }
 
-    /* ===== Tier top layout: clean grid on PC ===== */
-    @media (min-width: 900px){
-      .tier-topline{
-        display: grid;
-        grid-template-columns: 280px 180px 1fr auto;
-        gap: 12px;
-        align-items: center;
-      }
-      .tier-topline #tierPreset{ width: 100%; min-width: 0; }
-      .tier-topline #btnBuildTierParty{ width: 100%; }
-      .tier-actions-inline{
-        margin-left: 0;           /* grid 모드에서는 불필요 */
-        justify-self: end;
-      }
-      .tier-actions-inline .btn{
-        min-width: 96px;
-        padding: 10px 14px;
-      }
-      .tier-class-inline{
-        min-width: 0;             /* grid에서 넘침 방지 */
-        padding: 10px 12px;
-      }
-      .tier-classes-inline{
-        flex-wrap: nowrap;        /* 2줄로 떨어지지 않게 */
-        overflow-x: auto;         /* 길면 가로 스크롤 */
-        scrollbar-width: thin;
-        padding-bottom: 2px;
-      }
-      .tier-classes-inline::-webkit-scrollbar{ height: 8px; }
-      .tier-classes-inline::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.14); border-radius: 999px; }
-      .tier-classes-inline .tier-class-item{ white-space: nowrap; }
-    }
+/* =========================================================
+   Wide desktop (전체창/와이드) 레이아웃 개선
+   - 등급표 상단 줄: 좌측(프리셋+버튼) / 우측(클래스 조건) 균형
+   - 버튼 폭 과도하게 늘어나는 현상 방지
+   - 패널 내부 여백/정렬 통일
+========================================================= */
 
-    /* Tier panel box itself a bit clearer */
-    .tier-class-inline{
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.12);
-    }
-    .tier-check-inline{
-      font-size: 15px;
-      font-weight: 950;
-    }
+/* PC 전체창에서 컨테이너 폭 확장(콘텐츠 밀도 개선) */
+@media (min-width: 1200px){
+  .wrap{ max-width: 1520px; }
+}
 
-  
-    @media (max-width: 720px){
-      .tier-actions-inline .btn{ min-width: 84px; }
-      .tier-class-inline{ padding: 10px 10px; }
-      .tier-classes-inline{ gap: 8px; }
-    }
+/* tier 상단 라인을 와이드에서 "좌/우"로 보기 좋게 */
+@media (min-width: 1101px){
+  .tier-row.tier-topline{
+    display: grid;
+    grid-template-columns: minmax(260px, 380px) minmax(420px, 1fr) minmax(360px, 460px);
+    gap: 12px;
+    align-items: start;
+  }
 
-  
-    /* Sortable stat headers */
-    .th-sort{
-      cursor: pointer;
-      user-select: none;
-      position: relative;
-      padding-right: 18px;
-    }
-    .th-sort::after{
-      content: "↕";
-      position: absolute;
-      right: 6px;
-      opacity: .45;
-      font-size: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-    .th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
-    .th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
+  /* 프리셋 */
+  #tierPreset{
+    width: 100%;
+    min-width: 0;
+  }
 
-  
-    /* === Stats sortable headers === */
-    th.th-sort{
-      cursor: pointer;
-      user-select: none;
-      position: relative;
-      padding-right: 18px;
-    }
-    th.th-sort::after{
-      content: "↕";
-      position: absolute;
-      right: 6px;
-      top: 50%;
-      transform: translateY(-50%);
-      opacity: .45;
-      font-size: 12px;
-    }
-    th.th-sort.sort-asc::after{ content: "↑"; opacity: .9; }
-    th.th-sort.sort-desc::after{ content: "↓"; opacity: .9; }
+  /* 버튼 묶음: 너무 길게 늘어나는 걸 방지하고 균형 배치 */
+  .tier-actions{
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  #btnBuildTierParty,
+  #btnAiParty{
+    flex: 0 0 auto;
+    min-width: 200px;
+    max-width: 260px;
+    width: auto;
+    justify-content: center;
+  }
 
-    /* === Tier class condition: 2-column layout (no horizontal scrollbar) === */
-    .tier-class-inline{
-      display: grid;
-      grid-template-columns: 210px 1fr;
-      align-items: start;
-      gap: 12px;
-    }
-    .tier-classes-inline{
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px 12px;
-      overflow: visible !important;
-    }
-    @media (max-width: 720px){
-      .tier-class-inline{ grid-template-columns: 1fr; }
-      .tier-classes-inline{ grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 420px){
-      .tier-classes-inline{ grid-template-columns: 1fr; }
-    }
+  /* 클래스 조건 박스: 우측 고정 폭 느낌으로 안정 */
+  #tierClassInline{
+    width: 100%;
+    min-width: 0 !important;
+    justify-self: end;
+  }
+  .tier-class-inline{
+    width: 100% !important;
+    min-width: 0 !important;
+  }
 
-  
-    /* ===== Mobile vertical scroll fix (character list) ===== */
+  /* 하단 전체선택/해제는 오른쪽 정렬 */
+  .tier-actions-inline{
+    justify-content: flex-end !important;
+    gap: 10px;
+  }
+}
 
-    /* ===== Mobile: allow vertical + horizontal scrolling INSIDE character list ===== */
-    html, body{
-      height: auto !important;
-      min-height: 100% !important;
-      overflow-x: hidden !important;
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-x pan-y;
-    }
+/* wide에서 카드/섹션 내부 여백 조금 여유 있게 */
+@media (min-width: 1100px){
+  .panel{ padding: 16px; }
+  .tier-panel{ padding: 14px; }
+  .filters-box{ padding: 12px 14px; }
+}
 
-    /* Make the list area a true scroll container on mobile */
-    .table-wrap{
-      overflow: auto !important;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-x pan-y;
-      overscroll-behavior: contain;
-      /* Use small-viewport units for mobile address-bar changes */
-      max-height: calc(100svh - 310px);
-      border-radius: 18px;
-    }
+/* 검색/필터 바도 전체창에서 한 줄 유지 도움 */
+@media (min-width: 1100px){
+  .filters{
+    gap: 12px;
+  }
+  .input{ min-width: 320px; }
+  .select{ min-width: 190px; }
+}
 
-    /* Ensure the table can exceed viewport width so horizontal scroll is possible */
-    .table{
-      min-width: 920px;
-    }
+@media (max-width: 520px){
+  .tier-classes-inline{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  .tier-class-item{
+    border-radius: 14px;
+    padding: 12px 10px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.10);
+  }
+  .tier-class-item input{
+    transform: scale(1.15);
+  }
+  .tier-class-item span{
+    font-weight: 800;
+    letter-spacing: .2px;
+  }
+}
 
-    /* On desktop, let the page scroll normally (no forced max-height) */
-    @media (min-width: 900px){
-      .table-wrap{ max-height: none; overflow-x: auto; overflow-y: visible; }
-      .table{ min-width: 1240px; }
-    }
 
-    /* Allow gestures even on nested elements */
-    .table-wrap *{ touch-action: pan-x pan-y; }
 
-html, body{
-      height: auto !important;
-      min-height: 100% !important;
-      overflow-x: hidden !important;
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch;
-    }
-/* ===== Background: remove multi-radial seams, use a single fixed gradient ===== */
-    body{
-      background: linear-gradient(180deg, #070b14 0%, #0b1222 100%) fixed !important;
-    }
-    /* Panels remain consistent on the simplified background */
-    .panel, .table-wrap, .modal-card, .tier-panel, .tier-class-inline{
-      background: rgba(255,255,255,.035);
-    }
 
-  
-    /* ===== FINAL OVERRIDE: allow horizontal scroll inside character list (mobile) ===== */
-    @media (max-width: 900px){
-      .table-wrap{
-        overflow-x: auto !important;
-        overflow-y: auto !important;
-        touch-action: pan-x pan-y !important;
-      }
-      .table, .table *{
-        touch-action: pan-x pan-y !important;
-      }
-      /* Ensure content actually overflows horizontally */
-      .table{
-        min-width: 980px !important;
-        table-layout: fixed !important;
-      }
-    }
+/* =========================================================
+   Tier / AI 추천 결과 카드 (초상화 + 메타) — Clean merged
+========================================================= */
+.tier-portrait{
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  object-fit:cover;
+  flex:0 0 auto;
+  box-shadow: 0 8px 18px rgba(0,0,0,.25);
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+}
+.tier-portrait-empty{
+  background: rgba(255,255,255,.04);
+}
 
-  
-    /* ===== AI 추천/등급표 결과 카드 레이아웃 개선 ===== */
-    .tier-cat{
-      margin-top: 14px;
-      padding: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 18px;
-      background: rgba(255,255,255,.03);
-    }
-    .tier-cat-title{
-      font-weight: 900;
-      letter-spacing: .2px;
-      margin-bottom: 8px;
-    }
-    .tier-cat-meta{
-      margin: 0 0 12px 0;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
-      color: rgba(255,255,255,.80);
-      line-height: 1.35;
-    }
-    .tier-grid{
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-    }
-    @media (max-width: 1100px){
-      .tier-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (max-width: 520px){
-      .tier-grid{ grid-template-columns: 1fr; }
-    }
+/* 카테고리 블록(파티 묶음) */
+.tier-cat{
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+  background: rgba(255,255,255,.03);
+}
+.tier-cat-title{
+  font-weight: 900;
+  letter-spacing: .2px;
+  margin-bottom: 8px;
+}
+.tier-cat-meta{
+  margin: 0 0 12px 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.18);
+  color: rgba(255,255,255,.82);
+  line-height: 1.35;
+}
 
-    .tier-card{
-      padding: 12px;
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 18px;
-      background: rgba(255,255,255,.04);
-      box-shadow: 0 10px 26px rgba(0,0,0,.20);
-      transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
-    }
-    @media (hover:hover){
-      .tier-card:hover{
-        transform: translateY(-1px);
-        background: rgba(255,255,255,.06);
-        box-shadow: 0 14px 32px rgba(0,0,0,.26);
-      }
-    }
-    .tier-name{
-      font-weight: 900;
-      font-size: 16px;
-      line-height: 1.2;
-    }
-    .tier-card-sub{
-      margin-top: 8px;
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
+.tier-section-title{
+  margin: 10px 0 6px;
+  font-weight: 900;
+  letter-spacing: .2px;
+}
 
-    /* archetype pill */
-    .pill-accent{
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.08);
-      color: rgba(255,255,255,.92);
-      font-weight: 900;
-      letter-spacing: .2px;
-    }
+/* archetype pill 강조 */
+.pill-accent{
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.92);
+  font-weight: 900;
+  letter-spacing: .2px;
+}
 
-    /* =========================
-       Tier panel — PC 2줄 고정 레이아웃(공간 효율 개선)
-       1줄: 등급표선택 / 등급표 파티 / AI 파티 / (여백) / 전체선택 / 전체해제
-       2줄: 선택클래스 / Buffer..Warrior (7개)
-    ========================= */
-    .tier-row.tier-topline{
-      display:grid !important;
-      grid-template-columns: minmax(260px, 420px) minmax(220px, 280px) minmax(200px, 260px) 1fr auto;
-      align-items:center;
-      gap:12px;
-      flex-wrap: unset !important;
-    }
-    .tier-top-spacer{ min-width: 8px; }
+/* 긴 특성명/속성명 말줄임 */
+.tier-card-sub .pill{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 190px;
+}
 
-    .tier-row.tier-classline{
-      margin-top: 10px;
-    }
-    .tier-class-inline{
-      width: 100%;
-      min-width: 0 !important;
-      display:grid;
-      grid-template-columns: auto 1fr;
-      align-items:center;
-      gap: 12px;
-      padding: 10px 12px;
-    }
-    .tier-check-inline{
-      white-space: nowrap;
-    }
+/* Tier 상단 컨트롤(드롭다운 + 3버튼 / 클래스조건 + 2버튼) */
+.tier-row.tier-topline{
+  display:grid;
+  grid-template-columns: minmax(220px, 380px) 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.tier-btnrow{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.tier-actions-row{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
 
-    /* ✅ 클래스 7개: PC에서는 한 줄(7컬럼), 창이 줄어들면 4/3로 자동 */
-    .tier-classes-inline{
-      display:grid !important;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap:10px;
-      align-items:stretch;
-      margin-left: 0 !important;
-      width: 100%;
-      min-width: 0;
-    }
-    .tier-classes-inline .tier-class-item,
-    .tier-classes-inline label.tier-class-item{
-      min-width: 0 !important;
-      width: 100%;
-      padding: 10px 10px;
-      border-radius: 14px;
-      justify-content:flex-start;
-      gap: 8px;
-    }
-    .tier-classes-inline .tier-class-item span,
-    .tier-classes-inline label.tier-class-item span{
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-    }
+.tier-btnrow .btn,
+.tier-actions-row .btn{ width: 100%; justify-content:center; }
 
-    /* 중간 폭: 4/3(2행) */
-    @media (max-width: 1100px){
-      .tier-classes-inline{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    }
-    /* 모바일: 기존처럼 wrap (가독성 우선) */
-    @media (max-width: 720px){
-      .tier-row.tier-topline{
-        grid-template-columns: 1fr;
-      }
-      .tier-actions-inline{
-        justify-content:flex-start;
-      }
-      .tier-class-inline{
-        grid-template-columns: 1fr;
-      }
-      .tier-classes-inline{
-        display:flex !important;
-        flex-wrap: wrap;
-      }
-    }
+@media (max-width: 720px){
+  .tier-row.tier-topline{ grid-template-columns: 1fr; }
+}
 
+@media (max-width: 520px){
+  .tier-btnrow .btn{ padding: 0 8px !important; font-size: 14px !important; height: 46px !important; }
+  .tier-actions-row .btn{ height: 46px !important; }
+}
 
 /* ✅ 필수(파티 지정) UI: 선택/필수/배치 드롭다운 */
 .pick-stack{
@@ -2090,280 +1915,125 @@ html, body{
   .tier-classes-inline{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-
-
-    /* =========================
-       Rune PVE/PVP Segmented UI
-       ========================= */
-    .rune-mode-wrap{ margin-top: 6px; }
-    .seg{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:4px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.04);
-      box-shadow: 0 10px 26px rgba(0,0,0,.18);
-      margin: 8px 0 12px;
-    }
-    .seg-btn{
-      appearance:none;
-      border: 0;
-      background: transparent;
-      color: rgba(255,255,255,.92);
-      padding: 8px 14px;
-      border-radius: 999px;
-      font-weight: 900;
-      letter-spacing: .2px;
-      cursor: pointer;
-      line-height: 1;
-      user-select: none;
-    }
-    .seg-btn.is-active{
-      background: rgba(255,255,255,.12);
-      border: 1px solid rgba(255,255,255,.18);
-    }
-    @media (max-width: 520px){
-      .seg{ width: 100%; justify-content: space-between; }
-      .seg-btn{ flex:1; text-align:center; padding: 9px 10px; }
-    }
-
-    /* =========================
-       Rune build card layout
-       ========================= */
-    .rune-builds{ display:grid; gap:12px; }
-    .rune-build-card{
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 16px;
-      padding: 12px;
-      background: rgba(255,255,255,.03);
-      box-shadow: 0 14px 34px rgba(0,0,0,.22);
-    }
-    .rune-build-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
-    .rune-build-title{ font-weight: 950; font-size: 1.05rem; }
-    .rune-score{ font-size: .92rem; }
-
-    .rune-set-grid{
-      display:grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap:10px;
-      margin-top:10px;
-    }
-    @media (max-width: 520px){
-      .rune-set-grid{ grid-template-columns: 1fr; }
-    }
-    .rune-set{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:10px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.02);
-      min-width: 0;
-    }
-    .rune-ico{ width:44px; height:44px; border-radius: 14px; object-fit: cover; flex: 0 0 auto; background: rgba(255,255,255,.06); }
-    .rune-set-meta{ min-width:0; }
-    .rune-set-name{ font-weight: 900; white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
-    .muted{ opacity: .75; }
-
-    .rune-substats{ margin-top: 12px; }
-    .rune-chip-row{
-      display:flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    .chip{
-      display:inline-flex;
-      align-items:center;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.04);
-      font-weight: 800;
-      font-size: .92rem;
-      line-height: 1.1;
-      white-space: nowrap;
-    }
-
-    .rune-slots{ display:grid; gap: 10px; margin-top: 10px; }
-    .slot-row{ display:flex; gap:10px; align-items:flex-start; }
-    .slot-k{ width:48px; flex: 0 0 auto; font-weight: 900; opacity: .85; }
-    .slot-v{ flex:1; display:flex; flex-wrap:wrap; gap:8px; min-width:0; }
-    .slot-item{
-      padding: 7px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.03);
-      font-weight: 800;
-      white-space: nowrap;
-    }
-
-    .rune-list{ margin-top: 12px; }
-    .rune-list-title{ font-weight: 950; margin-bottom: 8px; }
-    .rune-ul{ margin: 0; padding-left: 18px; display:grid; gap: 6px; }
-
-/* =========================================================
-   FINAL OVERRIDES (PC 레이아웃 복구 + 반응형 정리)
-   - 등급표 상단(선택/버튼) : PC 1줄, 좁아지면 2열로 자연스럽게
-   - 선택열(선택/필수 + 자동/자동) : 2행×2열, 자동 콤보 폭 축소
-   - 캐릭터 이미지 소폭 확대, 모바일에서 이름은 이미지 하단
-   - 표 열 간격 균일/가운데 정렬(특성~클래스 간격 과다 방지)
-========================================================= */
-
-/* 0) 원칙: 표는 고정 레이아웃(열 폭이 내용 때문에 흔들리지 않게) */
-.table{
-  table-layout: fixed !important;
-  width: 100%;
+/* =========================
+   JS Error Banner
+========================= */
+.js-error-banner{
+  display:none;
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+  background: rgba(180,40,40,.92);
+  color: #fff;
+  padding: 10px 14px;
+  font-weight: 800;
+  border-bottom: 1px solid rgba(255,255,255,.25);
 }
 
-/* 1) PC에서 답답함 완화(기존 리듬 유지 범위에서만) */
-@media (min-width: 1100px){
-  .wrap{ max-width: 1600px !important; }
+/* =========================
+   Modal > 추천 룬 (Build cards)
+========================= */
+.tab-panel[data-panel="runes"] .rune-builds{ display:grid; gap:12px; }
+
+.tab-panel[data-panel="runes"] .rune-build-card{
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(255,255,255,.03);
+  box-shadow: 0 14px 34px rgba(0,0,0,.22);
 }
 
-/* 2) 등급표 상단(등급표 선택/등급표 파티/AI 추천/파티 초기화 + 전체선택/해제) */
-.tier-actions{
+.tab-panel[data-panel="runes"] .rune-build-head{
   display:flex;
-  gap: 10px;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.tab-panel[data-panel="runes"] .rune-build-title{
+  font-weight: 950;
+  font-size: 15px;
+}
+
+.tab-panel[data-panel="runes"] .rune-score{ font-size: 13px; }
+
+.tab-panel[data-panel="runes"] .rune-set-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:10px;
+  margin-top:10px;
+}
+@media (max-width: 520px){
+  .tab-panel[data-panel="runes"] .rune-set-grid{ grid-template-columns: 1fr; }
+}
+
+.tab-panel[data-panel="runes"] .rune-set{
+  display:flex;
   align-items:center;
-}
-
-.tier-row.tier-topline{
-  display:flex !important;
-  align-items:center;
-  gap: 10px;
-  flex-wrap: nowrap;
-}
-
-#tierPreset{
-  flex: 1 1 340px;
-  min-width: 260px;
-}
-
-#btnBuildTierParty,
-#btnAiParty,
-#btnResetParties{
-  flex: 0 0 auto;
-  min-width: 170px;
-}
-
-.tier-top-spacer{
-  flex: 1 1 auto;
+  gap:10px;
+  padding:10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.02);
   min-width: 0;
 }
 
-.tier-actions-inline{
-  display:flex !important;
-  gap: 10px;
-  justify-content:flex-end;
+.tab-panel[data-panel="runes"] .rune-ico{
+  width:44px;
+  height:44px;
+  border-radius: 14px;
+  object-fit: cover;
   flex: 0 0 auto;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
 }
+.tab-panel[data-panel="runes"] .rune-ico-empty{ display:inline-block; }
 
-/* 좁은 PC/태블릿: 1열로 “도배”되지 않게 2열 배치 */
-@media (max-width: 1100px){
-  .tier-row.tier-topline{
-    display:grid !important;
-    grid-template-columns: 1fr 1fr;
-    grid-auto-rows: minmax(44px, auto);
-    gap: 10px;
-    align-items: stretch;
-  }
-
-  #tierPreset{ grid-column: 1 / -1; grid-row: 1; }
-  #btnBuildTierParty{ grid-column: 1; grid-row: 2; }
-  #btnAiParty{ grid-column: 2; grid-row: 2; }
-  #btnResetParties{ grid-column: 1; grid-row: 3; }
-
-  .tier-actions-inline{ grid-column: 2; grid-row: 3; }
-  .tier-top-spacer{ display:none; }
+.tab-panel[data-panel="runes"] .rune-set-meta{ min-width:0; }
+.tab-panel[data-panel="runes"] .rune-set-name{
+  font-weight: 900;
+  white-space: nowrap;
+  overflow:hidden;
+  text-overflow: ellipsis;
 }
-
-/* 아주 작은 화면만 1열(모바일) */
-@media (max-width: 520px){
-  .tier-row.tier-topline{
-    grid-template-columns: 1fr;
-  }
-  #btnBuildTierParty,
-  #btnAiParty,
-  #btnResetParties,
-  .tier-actions-inline{
-    grid-column: 1;
-  }
-  .tier-actions-inline{
-    justify-content: space-between;
-  }
-}
-
-/* 3) 선택열(선택/필수 1열 + 자동/자동 2열) */
-.col-check{ width: 96px; min-width: 96px; } /* 기본값(모바일 포함) */
-@media (min-width: 720px){
-  .col-check{ width: 110px; min-width: 110px; } /* PC에서 너무 넓어지지 않게 */
-}
-
-.pick-stack{
-  display:grid !important;
-  grid-template-columns: max-content minmax(0,1fr);
-  grid-template-rows: auto auto;
-  gap: 6px 8px;
-  align-items:center;
-}
-
-.pick-stack .pick-line:nth-of-type(1){ grid-column: 1; grid-row: 1; }
-.pick-stack .pick-line:nth-of-type(2){ grid-column: 1; grid-row: 2; }
-
-.pick-stack .must-slot{ grid-column: 2; grid-row: 1; }
-.pick-stack .must-role{ grid-column: 2; grid-row: 2; }
-
-.pick-stack .pick-text{ white-space: nowrap; }
-
-.pick-stack select.must-slot,
-.pick-stack select.must-role{
-  width: 74px;            /* “자동” 콤보 폭 축소(반으로 줄이는 효과) */
-  min-width: 74px;
-  max-width: 100%;
-  height: 32px;
-  padding: 0 8px;
+.tab-panel[data-panel="runes"] .rune-set-pcs{ font-size: 12px; }
+.tab-panel[data-panel="runes"] .rune-set-eff{
+  margin-top: 4px;
   font-size: 12px;
+  line-height: 1.45;
+  color: rgba(255,255,255,.70);
 }
 
-/* 4) 캐릭터 이미지 소폭 확대 */
-.char-img{
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
+.tab-panel[data-panel="runes"] .rune-substats{ margin-top: 12px; }
+.tab-panel[data-panel="runes"] .rune-chip-row{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.tab-panel[data-panel="runes"] .chip{
+  display:inline-flex;
+  align-items:center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
-/* 모바일에서 캐릭터명은 이미지 하단 */
-@media (max-width: 520px){
-  .char-cell{
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-  }
-  .char-name{
-    text-align: center;
-    margin-top: 0;
-  }
-}
-
-/* 5) 특성~클래스 간격 과다 방지: 열 폭/정렬을 균일하게 */
-.col-elem, .col-faction, .col-class, .col-role, .col-rarity{
-  text-align: center;
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-@media (min-width: 720px){
-  .col-elem, .col-faction, .col-class{ width: 110px; min-width: 110px; }
-  .col-role{ width: 100px; min-width: 100px; }
-  .col-rarity{ width: 90px; min-width: 90px; }
-}
-
-/* pill(속성/특성/클래스/역할/등급) 가운데 정렬 */
-.pill, .pill-badge{
-  margin-left: auto;
-  margin-right: auto;
+/* Main stat slot list (legacy renderSlots) */
+.tab-panel[data-panel="runes"] .rune-slots{ display:grid; gap: 10px; margin-top: 10px; }
+.tab-panel[data-panel="runes"] .slot-row{ display:flex; gap:10px; align-items:flex-start; }
+.tab-panel[data-panel="runes"] .slot-k{ width:48px; flex: 0 0 auto; font-weight: 900; opacity: .85; }
+.tab-panel[data-panel="runes"] .slot-v{ flex:1; display:flex; flex-wrap:wrap; gap:8px; min-width:0; }
+.tab-panel[data-panel="runes"] .slot-item{
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  font-size: 13px;
+  line-height: 1.15;
 }
