@@ -1739,3 +1739,104 @@ body{
   .col-check select.must-slot,
   .col-check select.must-role{ width: 100%; }
 }
+
+/* =========================================================
+   PC / 모바일(데스크탑모드) : 한 화면에 전체 열 노출 (11열)
+   ========================================================= */
+@media (min-width: 760px){
+  /* (1) 데스크탑에서는 폭을 최대한 활용 */
+  body .wrap{
+    max-width: 100% !important; /* select.html inline의 max-width !important도 이김 */
+  }
+
+  /* (2) 가로 스크롤 없애고, 테이블을 압축 가능하게 */
+  .table-wrap{ overflow-x: hidden; }
+  .table{
+    min-width: 0 !important;    /* 기존 min-width(920px 등) 제거 */
+    table-layout: fixed;        /* 열 폭을 강제로 고정(압축/말줄임 가능) */
+  }
+
+  /* (3) 패딩/폰트 줄여서 11열이 안정적으로 들어오게 */
+  .table thead th{
+    padding: 10px 8px !important;
+    font-size: 12px !important;
+    text-align: center !important;
+  }
+  .table tbody td{
+    padding: 10px 8px !important;
+    font-size: 13px !important;
+  }
+
+  /* (4) 셀 내용이 폭을 밀어내지 못하게(말줄임) */
+  .table thead th,
+  .table tbody td{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* (5) 11열 폭(%) 배분: 합계 ≈ 100% */
+  .col-check{
+    width: 6% !important;
+    min-width: 0 !important;
+    text-align: center !important;
+  }
+
+  .col-char{
+    width: 16% !important;
+    min-width: 0 !important;
+  }
+
+  /* 스탯 4열 */
+  .col-hp, .col-def, .col-atk, .col-crit{
+    width: 8% !important;
+    min-width: 0 !important;
+    text-align: right !important;
+  }
+
+  /* 속성/특성/클래스/역할/등급 5열 */
+  .col-elem, .col-faction, .col-class, .col-role, .col-rarity{
+    width: 9.2% !important;
+    min-width: 0 !important;
+    text-align: center !important;
+  }
+
+  /* (6) 캐릭터명: 이미지 아래 배치(폭 절약) */
+  .col-char .char-cell{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .col-char .char-img{
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+  .col-char .char-name{
+    width: 100%;
+    text-align: center;
+    font-size: 12.5px;
+    line-height: 1.15;
+    font-weight: 900;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* (7) pill이 폭을 밀지 않게 축소 + 말줄임 */
+  .pill{
+    max-width: 100%;
+    min-width: 0;
+    justify-content: center;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .pill-with-icon{ max-width: 100%; min-width: 0; }
+  .pill-with-icon .pill-text{ overflow: hidden; text-overflow: ellipsis; }
+  .pill img, .pill-with-icon .mini-icon{
+    width: 14px;
+    height: 14px;
+  }
+}
