@@ -1840,3 +1840,98 @@ body{
     height: 14px;
   }
 }
+
+/* =========================================================
+   FIX: 선택(자동/자동) 콤보 잘림 + 본문 중앙정렬 통일 (Desktop)
+   ========================================================= */
+@media (min-width: 760px){
+
+  /* 1) 열 폭 재배분: 선택 열 넓히고, 캐릭터/스탯을 예쁘게 조정 (합계 ≈ 100%) */
+  .col-check{
+    width: 9% !important;
+    min-width: 0 !important;
+    text-align: center !important;
+  }
+  .col-char{
+    width: 15% !important;
+    min-width: 0 !important;
+    text-align: center !important;
+  }
+
+  .col-hp, .col-def, .col-atk, .col-crit{
+    width: 7.5% !important;
+    min-width: 0 !important;
+    text-align: center !important; /* 기존 right 정렬 제거 */
+  }
+
+  .col-elem, .col-faction, .col-class, .col-role, .col-rarity{
+    width: 9.2% !important;
+    min-width: 0 !important;
+    text-align: center !important;
+  }
+
+  /* 2) 본문(열 내용) 중앙정렬 통일 */
+  .table tbody td{
+    text-align: center !important;
+  }
+
+  /* pill도 가운데로 오게(내용이 폭을 밀지 않도록) */
+  .pill,
+  .pill-with-icon{
+    margin: 0 auto;
+    justify-content: center;
+  }
+
+  /* 3) 선택 열 내부 2행 2열 레이아웃: (선택/필수) | (자동/자동) */
+  /*    - 콤보폭을 ‘너무 작지 않게’ 고정(잘림 방지) */
+  .col-check .pick-stack{
+    display: grid !important;
+    grid-template-columns: 1fr 120px; /* 오른쪽 콤보 영역 확보 */
+    grid-auto-rows: minmax(34px, auto);
+    column-gap: 10px;
+    row-gap: 8px;
+    align-items: center;
+    justify-items: center;
+    width: 100%;
+  }
+
+  /* 왼쪽(선택/필수) 영역도 중앙 정렬 */
+  .col-check .pick-stack label{
+    justify-self: center;
+  }
+
+  /* 오른쪽(자동/자동) 콤보: 잘리지 않게 폭/패딩 조정 */
+  .col-check .pick-stack select,
+  .col-check .must-slot,
+  .col-check .must-role{
+    width: 120px !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  /* 캐릭터명 아래 배치(이미 적용 중이면 유지) */
+  .col-char .char-cell{
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .col-char .char-name{
+    text-align: center;
+  }
+}
+
+/* 모바일(진짜 작은 화면)에서는 콤보가 100%로 자연 확장 */
+@media (max-width: 520px){
+  .col-check .pick-stack{
+    grid-template-columns: 1fr 1fr;
+  }
+  .col-check .pick-stack select,
+  .col-check .must-slot,
+  .col-check .must-role{
+    width: 100% !important;
+  }
+}
