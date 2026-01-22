@@ -200,6 +200,183 @@ function pick(obj, ...keys) {
         .trim();
     }
 
+    // -------------------------
+    // Rune set meta (for set effects in 추천 룬)
+    // - setPlan 항목에 효과 텍스트가 없을 때, 정적 runes.js(또는 json)에서 보강
+    // -------------------------
+    var RUNE_SET_META = null; // { [slugKey(setName)]: { name, effect2p, effect4p, effectAny } }
+
+    function normalizeRuneSetMeta(src){
+      // src can be:
+      // - ES module exports (runes.js)
+      // - plain JSON object/array
+      if (!src) return null;
+
+      // 1) pick likely containers
+      const cands = [
+        src.RUNE_SETS, src.RUNESETS, src.RUNE_SET, src.RUNESET,
+        src.RUNES, src.runes, src.sets, src.SETS,
+        src.default, src.data
+      ];
+
+      let base = null;
+      for (const c of cands){
+        if (!c) continue;
+        if (Array.isArray(c)) { base = c; break; }
+        if (typeof c === "object" && !Array.isArray(c)){
+          if (Array.isArray(c.sets)) { base = c.sets; break; }
+          if (Array.isArray(c.items)) { base = c.items; break; }
+          if (Array.isArray(c.runes)) { base = c.runes; break; }
+          // sometimes it is already a map keyed by set name
+          if (Object.keys(c).length && Object.values(c).some(v => typeof v === "object")) { base = c; break; }
+        }
+      }
+      if (!base && Array.isArray(src)) base = src;
+      if (!base) return null;
+
+      const out = {};
+
+      function normalizeOne(name, it){
+        const setName = String(name || "").trim();
+        if (!setName) return;
+
+        const key = slugKey(setName);
+
+        // direct fields
+        let e2 = pick(it, "effect2p","effect_2p","effect2","twoPiece","two_piece","twoEffect","set2","set2Effect","two");
+        let e4 = pick(it, "effect4p","effect_4p","effect4","fourPiece","four_piece","fourEffect","set4","set4Effect","four");
+
+        // nested effects containers
+        const fx = pick(it, "effects","effect","setEffects","set_effects");
+        if (fx){
+          if (Array.isArray(fx)){
+            // common: [2p, 4p]
+            if (!e2 && fx[0] != null) e2 = (typeof fx[0] === "string") ? fx[0] : pick(fx[0],"text","desc","description","effect");
+            if (!e4 && fx[1] != null) e4 = (typeof fx[1] === "string") ? fx[1] : pick(fx[1],"text","desc","description","effect");
+          } else if (typeof fx === "object"){
+            const k2 = pick(fx, "2","2p","two","twoPiece","two_piece");
+            const k4 = pick(fx, "4","4p","four","fourPiece","four_piece");
+            if (!e2 && typeof k2 === "string") e2 = k2;
+            if (!e4 && typeof k4 === "string") e4 = k4;
+          } else if (typeof fx === "string"){
+            // sometimes one description only
+          }
+        }
+
+        const any = pick(it, "effect","desc","description","text");
+
+        out[key] = {
+          name: setName,
+          effect2p: (typeof e2 === "string") ? e2 : "",
+          effect4p: (typeof e4 === "string") ? e4 : "",
+          effectAny: (typeof any === "string") ? any : "",
+        };
+      }
+
+      if (Array.isArray(base)){
+        for (const it of base){
+          if (!it) continue;
+          const nm = pick(it, "set","name","title");
+          normalizeOne(nm, it);
+        }
+        return Object.keys(out).length ? out : null;
+      }
+
+      // object map form
+      if (typeof base === "object"){
+        for (const [k, v] of Object.entries(base)){
+          if (!v) continue;
+          // key might be the name itself
+          const nm = pick(v, "set","name","title") || k;
+          normalizeOne(nm, v);
+        }
+        return Object.keys(out).length ? out : null;
+      }
+
+      return null;
+    }
+
+    function setRuneSetMeta(meta){
+      RUNE_SET_META = (meta && typeof meta === "object") ? meta : null;
+      try{
+        window.__runeSetMeta = RUNE_SET_META;
+        window.dispatchEvent(new Event("runesmeta:loaded"));
+      }catch(e){}
+    }
+
+    // expose for module loader
+    try{
+      window.normalizeRuneSetMeta = normalizeRuneSetMeta;
+      window.setRuneSetMeta = setRuneSetMeta;
+    }catch(e){}
+
+    function extractEffectFromPlanItem(item, pieces){
+      if (!item || typeof item !== "object") return "";
+      const p = Number(pieces || 0) || 0;
+
+      if (p >= 4){
+        const e4 = pick(item, "effect4p","effect_4p","fourEffect","fourPiece","four_piece","effect4","set4Effect");
+        if (typeof e4 === "string" && e4.trim()) return e4;
+      }
+      if (p === 2){
+        const e2 = pick(item, "effect2p","effect_2p","twoEffect","twoPiece","two_piece","effect2","set2Effect");
+        if (typeof e2 === "string" && e2.trim()) return e2;
+      }
+      const any = pick(item, "effect","desc","description","text","effectText","effect_text");
+      return (typeof any === "string") ? any : "";
+    }
+
+    function lookupEffectFromMeta(setName, pieces){
+      if (!RUNE_SET_META) return "";
+      const key = slugKey(setName);
+      const m = RUNE_SET_META[key];
+      if (!m) return "";
+      const p = Number(pieces || 0) || 0;
+
+      if (p >= 4 && m.effect4p) return m.effect4p;
+      if (p === 2 && m.effect2p) return m.effect2p;
+      return m.effectAny || "";
+    }
+
+    function getRuneSetEffectText(setName, pieces, planItem){
+      const fromItem = extractEffectFromPlanItem(planItem, pieces);
+      if (fromItem && String(fromItem).trim()) return String(fromItem).trim();
+
+      const fromMeta = lookupEffectFromMeta(setName, pieces);
+      if (fromMeta && String(fromMeta).trim()) return String(fromMeta).trim();
+
+      return "";
+    }
+
+    function hydrateRuneSetEffects(root){
+      const scope = root || document;
+      if (!scope || !RUNE_SET_META) return;
+
+      try{
+        scope.querySelectorAll(".rune-set[data-setkey]").forEach(setEl => {
+          const effEl = setEl.querySelector(".rune-set-eff");
+          if (!effEl) return;
+          if (effEl.dataset && effEl.dataset.hasEffect === "1") return;
+
+          const setKey = setEl.getAttribute("data-setkey") || "";
+          const pieces = Number(setEl.getAttribute("data-pieces") || effEl.getAttribute("data-effect-pieces") || 0) || 0;
+
+          const m = RUNE_SET_META[setKey];
+          if (!m) return;
+
+          const txt = (pieces >= 4 ? m.effect4p : (pieces === 2 ? m.effect2p : "")) || m.effectAny || "";
+          if (!txt) return;
+
+          effEl.innerHTML = formatDescText(escapeHtml(String(txt)));
+          if (effEl.dataset) effEl.dataset.hasEffect = "1";
+        });
+      }catch(e){}
+    }
+
+    window.addEventListener("runesmeta:loaded", () => {
+      try { hydrateRuneSetEffects(document.getElementById("modalBody")); } catch(e){}
+    });
+
 
     // -------------------------
     // 필수(파티 지정) 상태 관리 (초기화는 render보다 먼저)
@@ -487,24 +664,38 @@ function pick(obj, ...keys) {
         return obj.builds;
       }
 
+      
       function renderSetItem(s) {
         const icon = (s && s.icon)
           ? `<img class="rune-ico" src="${escapeHtml(String(s.icon))}" alt="" loading="lazy"
                onerror="this.onerror=null;this.src='data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';this.classList.add('rune-ico-broken');" />`
           : `<div class="rune-ico rune-ico-empty"></div>`;
-        const name = escapeHtml(String(s && s.set ? s.set : "-"));
+
+        const setNameRaw = String(s && s.set ? s.set : "-");
+        const name = escapeHtml(setNameRaw);
         const pcsNum = Number(s && s.pieces ? s.pieces : 0) || 0;
         const pcs = pcsNum ? `${pcsNum}세트` : "";
-        return `<div class="rune-set">
+
+        // set effect text (prefer API payload; fallback to static rune meta if available)
+        const effText = getRuneSetEffectText(setNameRaw, pcsNum, s);
+        const effHtml = (effText && String(effText).trim())
+          ? `<div class="rune-set-eff muted" data-has-effect="1">${formatDescText(escapeHtml(String(effText)))}</div>`
+          : `<div class="rune-set-eff muted" data-has-effect="0" data-effect-pieces="${escapeHtml(String(pcsNum||0))}"></div>`;
+
+        const setKey = slugKey(setNameRaw);
+
+        return `<div class="rune-set" data-setkey="${escapeHtml(setKey)}" data-pieces="${escapeHtml(String(pcsNum||0))}">
           ${icon}
           <div class="rune-set-meta">
             <div class="rune-set-name">${name}</div>
             <div class="rune-set-pcs muted">${escapeHtml(pcs)}</div>
+            ${effHtml}
           </div>
         </div>`;
       }
 
-      function renderSlots(slots){
+      function renderSlots
+(slots){
         if (!slots || typeof slots !== "object") return "";
         const keys = Object.keys(slots).sort((a,b)=>Number(a)-Number(b));
         const rows = keys.map(k=>{
@@ -697,6 +888,7 @@ function pick(obj, ...keys) {
         const runeReco = j.rune_reco || null;
         modalBody.innerHTML = renderDetailTabs(detail, runeReco);
         bindTabEvents();
+        try { hydrateRuneSetEffects(modalBody); } catch(e) {}
       } catch (e) {
         modalBody.innerHTML = `<div class="detail-empty">불러오기 실패: ${escapeHtml(String(e))}</div>`;
       }
@@ -2178,12 +2370,13 @@ function renderTierPartyResult(rankMap, res){
       const box = document.getElementById("tierPartyResult");
       if (!box) return;
 
+      let warnHtml = "";
       if (res.warnings && res.warnings.length){
-        out += `<div class="tier-warn">${res.warnings.map(w=>`<div>• ${escapeHtml(w)}</div>`).join("")}</div>`;
+        warnHtml = `<div class="tier-warn">${res.warnings.map(w=>`<div>• ${escapeHtml(w)}</div>`).join("")}</div>`;
       }
 
       if (!res.ok){
-        box.innerHTML = `<div class="tier-error">${escapeHtml(res.msg || "실패")}</div>`;
+        box.innerHTML = warnHtml + `<div class="tier-error">${escapeHtml(res.msg || "실패")}</div>`;
         return;
       }
 
@@ -2249,7 +2442,7 @@ function renderTierPartyResult(rankMap, res){
         `;
       }).join("");
 
-      box.innerHTML = html;
+      box.innerHTML = warnHtml + html;
     }
 
     function initTierUI(){
@@ -2362,7 +2555,46 @@ function renderTierPartyResult(rankMap, res){
     });
   </script>
 
-  <!-- ✅ tier-lists 모듈 import (파일명 혼동 대비 fallback) -->
+  
+  <!-- ✅ rune set meta loader (set effect text for 추천 룬) -->
+  <script type="module">
+    const candidates = [
+      "/data/zone-nova/runes.js",
+      "/data/zone-nova/rune-sets.js",
+      "/data/zone-nova/runesets.js",
+      "/data/zone-nova/runes_ko.js",
+      "/data/zone-nova/runes_ko.json",
+      "/data/zone-nova/runes.json"
+    ];
+
+    let loaded = null;
+
+    for (const p of candidates) {
+      try {
+        if (p.endsWith(".json")) {
+          const r = await fetch(p, { cache: "no-store" });
+          if (!r.ok) continue;
+          loaded = await r.json();
+        } else {
+          loaded = await import(p);
+        }
+        if (loaded) break;
+      } catch (e) {}
+    }
+
+    try {
+      if (loaded && typeof window.normalizeRuneSetMeta === "function" && typeof window.setRuneSetMeta === "function") {
+        const meta = window.normalizeRuneSetMeta(loaded);
+        window.setRuneSetMeta(meta);
+      } else {
+        window.dispatchEvent(new Event("runesmeta:loaded"));
+      }
+    } catch (e) {
+      window.dispatchEvent(new Event("runesmeta:loaded"));
+    }
+  </script>
+
+<!-- ✅ tier-lists 모듈 import (파일명 혼동 대비 fallback) -->
   <script type="module">
     const candidates = [
       "/data/zone-nova/tier-lists.js",
