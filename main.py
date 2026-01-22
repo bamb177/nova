@@ -732,7 +732,7 @@ def rune_db_by_name() -> dict[str, dict]:
 # Keyword dictionaries (EN + KO) used for both character profiling and rune-effect tagging.
 _KW_HEAL = ["heal", "healing", "restore", "recovery", "회복", "치유", "힐"]
 _KW_SHIELD = ["shield", "barrier", "보호막", "실드"]
-_KW_DOT = ["continuous", "dot", "damage over time", "burn", "bleed", "poison", "지속", "지속 피해", "도트", "중독", "화상", "출혈"]
+_KW_DOT = ["dot", "damage over time", "burn", "bleed", "poison", "지속 피해", "도트", "중독", "화상", "출혈"]
 _KW_EXTRA = ["extra attack", "follow-up", "추가 공격", "추격", "추가타", "[extra attack]"]  # NOTE: '추가 피해'는 범용 추가데미지로 오탐이 많아 제외
 _KW_TEAM = ["team", "all allies", "allied", "party", "아군", "팀", "전체", "전원"]
 _KW_BUFF = ["increase", "increased", "buff", "up", "증가", "상승", "강화", "부여"]
@@ -884,16 +884,42 @@ def _role_from_base(base: dict) -> str:
 
 
 def _infer_role_from_texts(texts: list[str], base_role: str) -> str:
+    """
+    Refined role inference to avoid false 'buffer' detection from ally-triggered self-buffs.
+    - If base_role is already a support/tank role, trust it.
+    - Team buff counts only when the buff is applied to allies/party, not merely triggered by allies.
+    """
     if base_role in ("buffer", "debuffer", "healer", "tank"):
         return base_role
 
     team_buff = debuff = heal = 0
+
+    def _is_self_only_text(t: str) -> bool:
+        tl = t.lower()
+        # Self-only markers: wearer/self/own
+        if any(k in t for k in ["자신", "본인", "착용자"]):
+            return True
+        if any(k in tl for k in ["self", "wearer", "equipped", "the wearer", "the equipped"]):
+            return True
+        return False
+
+    def _is_team_target_text(t: str) -> bool:
+        # Ally/party/whole-team target markers
+        return any(k in t for k in ["아군", "파티", "팀", "전체"]) or any(k in t.lower() for k in ["ally", "allies", "party", "team", "all team"])
+
     for t in texts:
         tl = t.lower()
+
         if any(k in tl for k in _KW_HEAL):
             heal += 2
+
+        # Count team buff only if:
+        #  - team markers exist, AND buff markers exist, AND
+        #  - NOT self-only context
         if any(k in tl for k in _KW_TEAM) and any(k in tl for k in _KW_BUFF):
-            team_buff += 2
+            if _is_team_target_text(t) and (not _is_self_only_text(t)):
+                team_buff += 2
+
         if any(k in tl for k in _KW_DEBUFF) or any(k in tl for k in _KW_VULN):
             debuff += 1
 
@@ -904,8 +930,6 @@ def _infer_role_from_texts(texts: list[str], base_role: str) -> str:
     if debuff >= max(heal, team_buff) and debuff >= 3:
         return "debuffer"
     return "dps"
-
-
 def _detect_profile(detail: dict, base: dict) -> dict:
     texts = _skill_texts(detail or {})
 
@@ -1057,8 +1081,12 @@ def _rune_tag_index(rune_db: dict[str, dict]) -> dict[str, dict]:
 
 # ---------- Scoring: objective by role ----------
 
-def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dict], tag_idx: dict[str, dict]) -> float:
+def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dict], tag_idx: dict[str, dict], mode: str = "pve") -> float:
     tags = (tag_idx.get(set_name) or {}).get("tags4" if pieces == 4 else "tags2", set())
+
+    # Mode-aware combat length model
+    fight_time = 15 if str(mode).lower() == "pvp" else 90
+    opener_ratio = min(10.0, float(fight_time)) / float(fight_time)  # 10s-limited effects
 
     role = profile["role"]
     scaling = profile["scaling"]
@@ -1108,7 +1136,7 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         if "ENERGY_EFF" in tags:
             score += 20.0 * (0.6 + 0.4 * ult)
         if "START_ENERGY" in tags:
-            score += 16.0 * (0.6 + 0.4 * ult)
+            score += 16.0 * (0.6 + 0.4 * ult) * opener_ratio
         if "ULT_TRIGGER" in tags:
             score += 6.0 * ult
         if "HP" in tags or "DEF" in tags:
@@ -1222,31 +1250,63 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
     if no_crit and ("CRIT_RATE" in tags or "CRIT_DMG" in tags):
         score -= 8.0
 
+
+    # ---- Hard sanity penalties to avoid pathological recommendations ----
+    sname_l = str(set_name or "").strip().lower()
+    if pieces == 4:
+        # Tide: opener-limited. In long PVE, heavily downweight. In short PVP, keep viable.
+        if sname_l.startswith("tide"):
+            score -= 22.0 * (1.0 - opener_ratio)
+        # Beth: crit damage oriented; should not be recommended for pure tanks/healers.
+        if sname_l.startswith("beth") and role in ("tank", "healer"):
+            score -= 40.0
+
     return score
 
 
-def _best_rune_builds(profile: dict, rune_db: dict[str, dict]) -> tuple[list[dict], list[str]]:
+def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve") -> tuple[list[dict], list[str]]:
     tag_idx = _rune_tag_index(rune_db)
     sets = list(rune_db.keys())
 
     best: list[tuple[float, str, str]] = []
     for s4 in sets:
-        sc4 = _score_set(profile, s4, 4, rune_db, tag_idx)
+        sc4 = _score_set(profile, s4, 4, rune_db, tag_idx, mode=mode)
         if sc4 < -5:
             continue
         for s2 in sets:
             # 룬 세트는 중복 장착 불가: 4세트와 2세트가 같은 세트면 제외
             if s2 == s4:
                 continue
-            sc2 = _score_set(profile, s2, 2, rune_db, tag_idx)
+            sc2 = _score_set(profile, s2, 2, rune_db, tag_idx, mode=mode)
             total = sc4 + sc2
             best.append((total, s4, s2))
+
+    # Fallback: if all combinations were filtered out, choose the best-scoring 4pc + 2pc even if negative.
+    if not best:
+        # pick best 4pc
+        best4 = None
+        for s4 in sets:
+            sc4 = _score_set(profile, s4, 4, rune_db, tag_idx, mode=mode)
+            if best4 is None or sc4 > best4[0]:
+                best4 = (sc4, s4)
+        # pick best 2pc not same
+        best2 = None
+        for s2 in sets:
+            if best4 and s2 == best4[1]:
+                continue
+            sc2 = _score_set(profile, s2, 2, rune_db, tag_idx, mode=mode)
+            if best2 is None or sc2 > best2[0]:
+                best2 = (sc2, s2)
+        if best4 and best2:
+            best.append((best4[0] + best2[0], best4[1], best2[1]))
 
     best.sort(key=lambda x: x[0], reverse=True)
     # UI/요청사항: "대체안" 노출은 혼선을 유발하므로 1개만 반환
     top = best[:1]
 
     rationale: list[str] = []
+    fight_time = 15 if str(mode).lower() == "pvp" else 90
+    rationale.append(f"모드: {str(mode).lower()} / 전투시간 가정: {fight_time}s")
     rationale.append(f"역할 판정: {profile['role']} / 스케일링 판정: {profile['scaling']}")
     if profile.get("sample_text"):
         rationale.append(f"스케일링 근거 예시: '{str(profile['sample_text'])[:140]}'")
@@ -1373,71 +1433,94 @@ def _substats_for(profile: dict) -> list[str]:
     return ["Critical Rate (%)", "Critical Damage (%)", scaling_pct, "Attack Penetration (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
 
 
+def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> dict:
+    overrides = load_rune_overrides()
+    rune_db = rune_db_by_name()
 
-def recommend_runes(character, mode="pve"):
-    """
-    Corrected rune recommendation with hard DENY rules and reasoning.
-    """
-    name = character.get("name")
-    role = character.get("role")
-    char_class = character.get("class")
+    ov = overrides.get(cid)
+    if isinstance(ov, dict) and ov.get("builds"):
+        builds = []
+        for b in ov.get("builds") or []:
+            if not isinstance(b, dict):
+                continue
+            sp = []
+            for it in b.get("setPlan") or []:
+                if not isinstance(it, dict):
+                    continue
+                sname = str(it.get("set") or "").strip()
+                r = rune_db.get(sname) or {}
+                sp.append({
+                    "set": sname,
+                    "pieces": int(it.get("pieces") or 0),
+                    "icon": r.get("icon"),
+                    "twoPiece": r.get("twoPiece", ""),
+                    "fourPiece": r.get("fourPiece", ""),
+                    "note": r.get("note", ""),
+                })
+            builds.append({
+                "title": str(b.get("title") or "Override"),
+                "setPlan": sp,
+                "slots": b.get("slots") or {},
+                "substats": b.get("substats") or [],
+                "notes": b.get("notes") or [],
+                "rationale": b.get("rationale") or ["rune_overrides.json 수동 오버라이드 적용"],
+            })
+        return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
 
-    # collect texts
-    texts = []
-    for sk in character.get("skills", {}).values():
-        texts.append(sk.get("description", ""))
-    for eff in character.get("memoryCard", {}).get("effects", []):
-        texts.append(eff)
-    full_text = " ".join(texts)
+    profile = _detect_profile(detail or {}, base or {})
+    core_builds, rationale = _best_rune_builds(profile, rune_db, mode=mode)
 
-    reasons = []
-    scores = {}
+    builds = []
+    for b in core_builds:
+        setplan = []
+        for s in b.get("setPlan") or []:
+            nm = s.get("set")
+            r = rune_db.get(nm) or {}
+            setplan.append({
+                "set": nm,
+                "pieces": s.get("pieces"),
+                "icon": r.get("icon"),
+                "twoPiece": r.get("twoPiece", ""),
+                "fourPiece": r.get("fourPiece", ""),
+                "note": r.get("note", ""),
+            })
 
-    NEG_INF = -999
+        builds.append({
+            "title": b.get("title") or "추천(자동)",
+            "setPlan": setplan,
+            "slots": _slot_plan_for(profile, base.get("element")),
+            "substats": _substats_for(profile),
+            "notes": [],
+            "rationale": rationale + [f"조합 점수(상대 비교용): {b.get('_score')}"],
+        })
 
-    # helpers
-    def has_dot(text):
-        return bool(re.search(r"(지속 피해|초당 .* 피해|매초 .* 피해|\d+초 동안 .* 피해)", text))
+    # constraint notes
+    notes = []
+    for b in builds:
+        for s in b["setPlan"]:
+            nm = s["set"]
+            r = rune_db.get(nm) or {}
+            cr = r.get("classRestriction") or []
+            if cr:
+                notes.append(f"{nm} 4세트는 클래스 제한이 있습니다: {', '.join(map(str, cr))}")
+            if r.get("note"):
+                notes.append(f"{nm}: {r.get('note')}")
+            if r.get("teamConflict"):
+                notes.append(f"{nm}: 팀 세트 상충 주의 ({', '.join(map(str, r.get('teamConflict')))} )")
 
-    def gives_party_energy(text):
-        return bool(re.search(r"(아군|파티|모든 아군).*에너지.*회복", text))
+    uniq_notes = []
+    seen = set()
+    for n in notes:
+        if n not in seen:
+            seen.add(n)
+            uniq_notes.append(n)
 
-    # ---- Tide ----
-    if role == "Buffer" and gives_party_energy(full_text):
-        scores["Tide"] = 10 if mode == "pvp" else -10
-        reasons.append("아군 에너지 지원 가능 → Tide 조건 충족")
-    else:
-        scores["Tide"] = NEG_INF
-        reasons.append("에너지 서포터 아님 → Tide 제외")
+    for b in builds:
+        b["notes"] = uniq_notes
 
-    # ---- Gimel ----
-    if has_dot(full_text):
-        scores["Gimel"] = 15
-        reasons.append("지속 피해 구조 → Gimel 적합")
-    else:
-        scores["Gimel"] = NEG_INF
-        reasons.append("지속 피해 없음 → Gimel 제외")
+    return {"mode": "auto", "profile": {**profile, "mode": str(mode).lower()}, "builds": builds}
 
-    # ---- Beth ----
-    if role == "DPS" and char_class not in ["Guardian"] and "치명타" in full_text:
-        scores["Beth"] = 15
-        reasons.append("치명타 DPS 구조 → Beth 적합")
-    else:
-        scores["Beth"] = NEG_INF
-        reasons.append("탱커/비치명 구조 → Beth 제외")
 
-    # ---- Alpha (fallback) ----
-    scores["Alpha"] = 5
-    reasons.append("범용 공격 세트 → Alpha 기본 추천")
-
-    ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-
-    return {
-        "character": name,
-        "mode": mode,
-        "runes": ranked,
-        "reasons": reasons
-    }
 def rune_summary_for_list(cid: str, base: dict, detail: dict) -> Optional[dict]:
     reco = recommend_runes(cid, base, detail)
     builds = reco.get("builds") or []
@@ -2080,7 +2163,10 @@ def api_char_detail(cid: str):
         }
 
     try:
-        rune_reco = recommend_runes(cid2, base, detail)
+        rune_mode = (request.args.get('rune_mode') or 'pve').strip().lower()
+        if rune_mode not in ('pve','pvp'):
+            rune_mode = 'pve'
+        rune_reco = recommend_runes(cid2, base, detail, mode=rune_mode)
     except Exception as e:
         rune_reco = {"mode": "error", "error": str(e), "builds": []}
 
