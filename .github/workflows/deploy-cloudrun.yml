@@ -3,16 +3,14 @@ name: Deploy to Cloud Run
 on:
   push:
     branches: ["main"]
-    # UI/코드 변경만으로도 배포가 필요하면 유지.
-    # 만약 "데이터/스크립트만 바뀔 때는 배포 불필요"라면 아래 paths/paths-ignore로 더 줄일 수 있습니다.
   workflow_dispatch:
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
-  GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
-  SERVICE: ${{ secrets.CLOUD_RUN_SERVICE }}
-  REGION: ${{ secrets.CLOUD_RUN_REGION }}
+  GAR_LOCATION: ${{ secrets.GAR_LOCATION }}          # asia-northeast1
+  GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}      # Artifact Registry "Repository" name
+  SERVICE: ${{ secrets.CLOUD_RUN_SERVICE }}          # Cloud Run service name (e.g., nova)
+  REGION: ${{ secrets.CLOUD_RUN_REGION }}            # asia-northeast1
 
 jobs:
   deploy:
@@ -27,6 +25,14 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Debug target (safe)
+        run: |
+          echo "PROJECT_ID=${PROJECT_ID}"
+          echo "GAR_LOCATION=${GAR_LOCATION}"
+          echo "GAR_REPOSITORY=${GAR_REPOSITORY}"
+          echo "SERVICE=${SERVICE}"
+          echo "REGION=${REGION}"
+
       - name: Auth to Google Cloud (WIF)
         uses: google-github-actions/auth@v2
         with:
@@ -36,16 +42,15 @@ jobs:
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
 
-      # ✅ BuildKit + GHA 캐시로 Docker build를 "증분"으로 전환 (대부분 1~2분대로 단축)
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Configure Docker for Artifact Registry
         run: |
           gcloud auth configure-docker "${GAR_LOCATION}-docker.pkg.dev" --quiet
 
-      - name: Build & Push Image (cached)
-        id: build
+      # BuildKit is enabled by default in buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & Push Image (BuildKit + cached)
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -57,7 +62,6 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Deploy to Cloud Run
-        id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE }}
