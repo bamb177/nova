@@ -9,6 +9,17 @@
   <link rel="stylesheet" href="/css/select.css?v={{ last_refresh }}" />
 
   <!-- ✅ Tier 결과 카드 이미지 + PC 폭 확장 오버라이드 -->
+  <style id="tierOverride">
+    .tier-section{margin:14px 0 18px;}
+    .tier-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.04);}
+    .tier-section-title{font-weight:900;letter-spacing:.2px;}
+    .tier-section-sub{opacity:.85;font-size:12px;}
+    .tier-party-block{margin-top:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(0,0,0,.18);}
+    .tier-party-title{font-weight:800;margin-bottom:8px;}
+    .tier-cat{margin:10px 0 14px;padding:12px 12px;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(0,0,0,.18);}
+    .tier-cat-title{font-weight:900;margin-bottom:6px;}
+    .tier-cat-meta{font-size:12px;opacity:.9;line-height:1.35;margin-bottom:10px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);}
+  </style>
 </head>
 
 <body>
@@ -379,7 +390,7 @@ function pick(obj, ...keys) {
     // -------------------------
     // 필수(파티 지정) 상태 관리 (초기화는 render보다 먼저)
     // -------------------------
-    // MUST_STATE[cid] = { on: true/false, target: "" | "Guild:1" | "PVP:2" | "Left:1", role: "" | "Tank" | "DPS" | "Healer" | "Buffer" | "Debuffer" }
+    // MUST_STATE[cid] = { on: true/false, target: "" | "Guild:1" | "PVP:2" | "Rift:1", role: "" | "Tank" | "DPS" | "Healer" | "Buffer" | "Debuffer" }
     var MUST_STATE = {};
     const MUST_KEY = "nova.must.v1";
 
@@ -1410,11 +1421,13 @@ function cssEsc(s){
   return String(s).replace(/[^a-zA-Z0-9_\-]/g, (m)=>`\\${m}`);
 }
 
+
 function mustOptionHTML(){
   const groups = [
-    { name:"Guild", n:3 },
+    { name:"PVE",   n:1 },
     { name:"PVP",   n:2 },
-    { name:"Left",  n:2 },
+    { name:"Guild", n:3 },
+    { name:"Rift",  n:2 },
   ];
   let html = `<option value="">자동</option>`;
   for (const g of groups){
@@ -1426,6 +1439,7 @@ function mustOptionHTML(){
   }
   return html;
 }
+
 
 
 function mustRoleOptionHTML(){
@@ -1463,7 +1477,8 @@ function initMustControlsForVisibleRows(){
 
       // 배치/역할 드롭다운 초기상태 반영
       sel.disabled = !chk.checked;
-      sel.value = st.target || "";
+      const tgt0 = String(st.target || "");
+      sel.value = tgt0.startsWith("Left:") ? tgt0.replace(/^Left:/,"Rift:") : tgt0;
 
       if (roleSel){
         roleSel.disabled = !chk.checked;
@@ -1563,7 +1578,8 @@ function getMustOverrides(){
   const out = {};
   for (const [cid, st] of Object.entries(MUST_STATE || {})){
     if (!st || !st.on) continue;
-    const target = String(st.target || "");
+    let target = String(st.target || "");
+    if (target.startsWith("Left:")) target = target.replace(/^Left:/,"Rift:");
     const role = String(st.role || "");
     if (target || role) out[cid] = { target, role };
   }
@@ -1572,19 +1588,25 @@ function getMustOverrides(){
 
 
 
+
 function getMustAssignments(){
-  const byCategory = { Guild:[[],[],[]], PVP:[[],[]], Left:[[],[]] };
+  const byCategory = { PVE:[[]], Guild:[[],[],[]], PVP:[[],[]], Rift:[[],[]] };
   const auto = [];
 
   for (const [cid, st] of Object.entries(MUST_STATE || {})){
     if (!st || !st.on) continue;
 
-    const target = String(st.target || "");
+    let target = String(st.target || "");
+    if (target.startsWith("Left:")) target = target.replace(/^Left:/,"Rift:");
+
     if (!target){ auto.push(cid); continue; }
 
-    const [cat, idxStr] = target.split(":");
-    const i = parseInt(idxStr, 10);
-    if (!cat || !i) { auto.push(cid); continue; }
+    const parts = target.split(":");
+    if (parts.length !== 2){ auto.push(cid); continue; }
+
+    const cat = parts[0];
+    const i = parseInt(parts[1], 10);
+    if (!cat || !i){ auto.push(cid); continue; }
 
     if (byCategory[cat] && byCategory[cat][i-1]){
       byCategory[cat][i-1].push(cid);
@@ -1595,6 +1617,7 @@ function getMustAssignments(){
 
   return { auto, byCategory };
 }
+
 
 function getRankMapObjectForCurrentPreset(){
   const sel = document.getElementById("tierPreset");
@@ -1629,7 +1652,7 @@ function renderAiPartyResult(res){
 
     const metaLines = [
       `총점: <b>${escapeHtml(String(Math.round((party?.total_score||0)*10)/10))}</b>`,
-      `구성: 탱 ${escapeHtml(String(counts.tank||0))} / 힐 ${escapeHtml(String(counts.healer||0))} / 딜 ${escapeHtml(String(counts.dps||0))} / 디버퍼 ${escapeHtml(String(counts.debuffer||0))}`,
+      `구성: 탱 ${escapeHtml(String(counts.tank||0))} / 힐 ${escapeHtml(String(counts.healer||0))} / 딜 ${escapeHtml(String(counts.dps||0))} / 버퍼 ${escapeHtml(String(counts.buffer||0))} / 디버퍼 ${escapeHtml(String(counts.debuffer||0))}`,
       `콤보(${escapeHtml(String(cmode||""))}): 속성 ${escapeHtml(String((combo.element_hits||[]).join(", ")||"-"))} / 특성 ${escapeHtml(String((combo.faction_hits||[]).join(", ")||"-"))}`,
     ].join(" · ");
 
@@ -1672,7 +1695,7 @@ function renderAiPartyResult(res){
   }
 
   if (groups){
-    const order = ["Guild", "PVP", "Left"];
+    const order = Array.isArray(res.order) && res.order.length ? res.order : ["Guild","PVE","PVP","Rift"];
     for (const cat of order){
       const arr = Array.isArray(groups[cat]) ? groups[cat] : [];
       if (!arr.length) continue;
@@ -1722,10 +1745,12 @@ async function requestAiParty(){
   const requiredClasses = classSet ? Array.from(classSet) : [];
 
   const payload = {
+    preset_key: preset,
+    time_limit_ms: 4800,
     owned,
     required,
     required_overrides: getMustOverrides(),
-    must_assignments: getMustAssignments(), // Guild 3 / PVP 2 / Left 2 + 타겟 지정
+    must_assignments: getMustAssignments(), // Guild 3 / PVP 2 / Rift 2 + 타겟 지정
     required_classes: requiredClasses,
     rank_map: getRankMapObjectForCurrentPreset(),
     party_size: 4,
@@ -1739,11 +1764,15 @@ async function requestAiParty(){
   if (box) box.innerHTML = `<div class="tier-loading">AI 추천 계산중…</div>`;
 
   try {
+    const ctrl = new AbortController();
+    const tmr = setTimeout(()=>ctrl.abort(), 5000);
+
     const r = await fetch("/zones/zone-nova/recommend", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    });
+      signal: ctrl.signal,
+    }).finally(()=>clearTimeout(tmr));
     const ct = (r.headers.get("content-type") || "").toLowerCase();
     if (ct.includes("application/json")) {
       const j = await r.json();
@@ -1753,7 +1782,8 @@ async function requestAiParty(){
       renderAiPartyResult({ ok:false, error: "서버가 JSON이 아닌 응답을 반환했습니다. (라우트/서버 에러 가능)\n" + t.slice(0, 400) });
     }
   } catch (e){
-    renderAiPartyResult({ ok:false, error: String(e?.message || e) });
+    const msg = (e && (e.name === "AbortError")) ? "AI 추천 계산이 5초를 초과하여 중단되었습니다. (필수/클래스/콤보 조건을 완화하거나 보유 후보를 줄여보세요)" : String(e?.message || e);
+    renderAiPartyResult({ ok:false, error: msg });
   }
 }
 
@@ -2072,7 +2102,7 @@ function buildPartiesForCategory(rankMap, n, mustByParty){
 // Multi-party build optimization
 // ------------------------------
 // buildPartiesForCategory()는 파티를 1→N 순서로 그리디하게 구성합니다.
-// 다파티(특히 Guild/PVP/Left)에서는 "어느 파티를 먼저 채우느냐"가 결과에 영향을 주므로,
+// 다파티(특히 Guild/PVP/Rift)에서는 "어느 파티를 먼저 채우느냐"가 결과에 영향을 주므로,
 // n이 작을 때(<=3) 모든 순열을 시도하여 총점 합이 최대가 되는 순서를 선택합니다.
 
 function _permute(arr){
@@ -2119,7 +2149,7 @@ function buildPartiesForCategoryWithOrder(rankMap, n, mustByParty, order){
 }
 
 function buildPartiesForCategoryOptimized(rankMap, n, mustByParty){
-  // n이 작을 때만 순열 최적화(요청사항: Guild 3, PVP 2, Left 2)
+  // n이 작을 때만 순열 최적화(요청사항: Guild 3, PVP 2, Rift 2)
   const nn = Math.max(0, Number(n||0)|0);
   if (nn <= 1){
     const p = buildPartiesForCategory(rankMap, nn, mustByParty);
@@ -2152,16 +2182,16 @@ function buildPartiesForCategoryOptimized(rankMap, n, mustByParty){
  * ✅ 기본 파티 수(요청사항)
  * - Guild 3
  * - PVP 2
- * - Left 2
+ * - Rift 2
  * - 나머지 1
  */
-const PARTY_COUNTS = { Guild:3, PVE:1, PVP:2, Left:2 };
+const PARTY_COUNTS = { Guild:3, PVE:1, PVP:2, Rift:2 };
 
 function buildEmptyMustMap(){
   return {
     Guild: Array.from({length: PARTY_COUNTS.Guild}, () => []),
     PVP:   Array.from({length: PARTY_COUNTS.PVP},   () => []),
-    Left:  Array.from({length: PARTY_COUNTS.Left},  () => []),
+    Rift:  Array.from({length: PARTY_COUNTS.Rift},  () => []),
     PVE:   Array.from({length: PARTY_COUNTS.PVE},   () => []),
   };
 }
@@ -2292,7 +2322,7 @@ function buildAllCategoryParties(rankMap, mustByCat){
     Guild: buildPartiesForCategoryOptimized(rankMap, PARTY_COUNTS.Guild, must.Guild),
     PVE:   buildPartiesForCategoryOptimized(rankMap, PARTY_COUNTS.PVE,   must.PVE),
     PVP:   buildPartiesForCategoryOptimized(rankMap, PARTY_COUNTS.PVP,   must.PVP),
-    Left:  buildPartiesForCategoryOptimized(rankMap, PARTY_COUNTS.Left,  must.Left),
+    Rift:  buildPartiesForCategoryOptimized(rankMap, PARTY_COUNTS.Rift,  must.Rift),
   };
 }
 
@@ -2305,7 +2335,7 @@ function buildPartiesByPresetKey(rankMap, presetKey){
 
   // explicit 배치 반영
   if (mustRaw && mustRaw.byCategory){
-    for (const cat of ["Guild","PVP","Left"]){
+    for (const cat of ["Guild","PVP","Rift","PVE"] ){
       const src = mustRaw.byCategory[cat];
       if (!Array.isArray(src)) continue;
       for (let i=0; i<mustByCat[cat].length; i++){
@@ -2315,10 +2345,10 @@ function buildPartiesByPresetKey(rankMap, presetKey){
   }
 
   // 기본값: 전체 카테고리
-  const defOrder = ["Guild", "PVE", "PVP", "Left"];
+  const defOrder = ["Guild", "PVE", "PVP", "Rift"];
   const primaryCat = (
     k === "pvp" ? "PVP" :
-    (k === "rift" || k === "left") ? "Left" :
+    (k === "rift" || k === "left") ? "Rift" :
     (k === "guild-raid" ? "Guild" :
      (k === "pve" || k === "new-player") ? "PVE" :
      "Guild")
@@ -2345,8 +2375,8 @@ function buildPartiesByPresetKey(rankMap, presetKey){
   }
   if (k === "rift" || k === "left") {
     return {
-      order: ["Left"],
-      data: { Left: buildPartiesForCategory(rankMap, PARTY_COUNTS.Left, sanitized.mustByCat.Left) },
+      order: ["Rift"],
+      data: { Rift: buildPartiesForCategory(rankMap, PARTY_COUNTS.Rift, sanitized.mustByCat.Rift) },
       warnings: sanitized.warnings
     };
   }
@@ -2409,7 +2439,7 @@ function renderTierPartyResult(rankMap, res){
       const sections = res.data;
       const order = Array.isArray(res.order) && res.order.length
         ? res.order
-        : ["Guild", "PVE", "PVP", "Left"];
+        : ["Guild", "PVE", "PVP", "Rift"];
 
       const html = order.map(cat => {
         const parties = sections[cat] || [];
