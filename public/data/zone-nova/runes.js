@@ -62,9 +62,9 @@ export const RUNE_SETS = {
     classRestriction: 'Debuffer',
     note: '동일 효과 중첩 불가. 길드 레이드에서만 획득가능',
   },
-  Tide: {
-    name: 'Tide [Energy]',
-    image: 'Tide.jpg',
+  Kappa: {
+    name: 'Kappa',
+    image: 'Kappa.jpg',
     twoPiece: '방어력 +12%',
     fourPiece: '전투 시작 후 10초 동안 아군 전체의 에너지 획득 효율 +30%',
     note: '효과 중첩 불가. 파티 내 Daleth 4세트 효과는 비활성화됨. 길드 레이드 전용',
