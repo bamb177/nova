@@ -261,7 +261,7 @@ def parse_rune_effect_text(text: str) -> dict:
         dur = _parse_seconds(t)
         out["cond"] = {"type": "after_extra", "dur": dur}
 
-    if ("after dealing continuous damage" in tl) or ("continuous damage" in tl) or ("damage over time" in tl) or ("dot" in tl) or ("지속 피해" in t) or ("지속피해" in t) or ("도트" in t) or ("중독" in t) or ("화상" in t) or ("출혈" in t):
+    if "after dealing continuous damage" in tl or "continuous damage" in tl or "dot" in tl or "지속" in t:
         dur = _parse_seconds(t)
         out["cond"] = {"type": "after_dot", "dur": dur}
 
@@ -322,7 +322,7 @@ def parse_rune_effect_text(text: str) -> dict:
             out["mods"]["extra_dmg"] = out["mods"].get("extra_dmg", 0.0) + p
 
     # Continuous damage +20% (DOT)
-    if ("continuous damage" in tl) or ("damage over time" in tl) or ("dot" in tl) or ("지속 피해" in t) or ("지속피해" in t) or ("도트" in t) or ("중독" in t) or ("화상" in t) or ("출혈" in t):
+    if "continuous damage" in tl or "dot" in tl or "지속" in t:
         p = _pct_from_text(t)
         if p is not None and ("damage" in tl or "피해" in t):
             out["mods"]["dot_dmg"] = out["mods"].get("dot_dmg", 0.0) + p
@@ -732,7 +732,7 @@ def rune_db_by_name() -> dict[str, dict]:
 # Keyword dictionaries (EN + KO) used for both character profiling and rune-effect tagging.
 _KW_HEAL = ["heal", "healing", "restore", "recovery", "회복", "치유", "힐"]
 _KW_SHIELD = ["shield", "barrier", "보호막", "실드"]
-_KW_DOT = ["continuous damage", "damage over time", "dot", "burn", "bleed", "poison", "지속 피해", "지속피해", "도트", "중독", "화상", "출혈"]
+_KW_DOT = ["continuous", "dot", "damage over time", "burn", "bleed", "poison", "지속", "지속 피해", "도트", "중독", "화상", "출혈"]
 _KW_EXTRA = ["extra attack", "follow-up", "추가 공격", "추격", "추가타", "[extra attack]"]  # NOTE: '추가 피해'는 범용 추가데미지로 오탐이 많아 제외
 _KW_TEAM = ["team", "all allies", "allied", "party", "아군", "팀", "전체", "전원"]
 _KW_BUFF = ["increase", "increased", "buff", "up", "증가", "상승", "강화", "부여"]
@@ -796,115 +796,10 @@ def _skill_texts(detail: dict) -> list[str]:
         if isinstance(detail.get(key), (dict, list, str)):
             texts += _collect_texts(detail.get(key))
 
-    # memory cards / memory traits (character synergies often live here)
-    for key in ["memory", "memories", "memoryCard", "memoryCards", "memory_card", "memory_cards", "card", "cards"]:
-        if isinstance(detail.get(key), (dict, list, str)):
-            texts += _collect_texts(detail.get(key))
-
     if not texts:
         texts = _collect_texts(detail)
 
     return texts
-
-
-def _grouped_texts(detail: dict) -> dict[str, list[str]]:
-    """Best-effort grouping of character texts by skill type.
-
-    We use this to avoid false positives (e.g., '지속시간') and to weight signals:
-    - normal/auto/passive: frequent sources
-    - ultimate: less frequent
-    - memory: synergy but secondary
-    """
-    groups: dict[str, list[str]] = {
-        "normal": [],
-        "ultimate": [],
-        "passive": [],
-        "auto": [],
-        "memory": [],
-        "other": [],
-    }
-    if not isinstance(detail, dict):
-        return groups
-
-    def add(g: str, v):
-        if v is None:
-            return
-        groups[g] += _collect_texts(v)
-
-    # nested skills container
-    for container_key in ["skills", "skill", "skillSet", "skill_set"]:
-        v = detail.get(container_key)
-        if isinstance(v, dict):
-            for k, vv in v.items():
-                kl = str(k).lower()
-                if any(x in kl for x in ["ultimate", "burst", "ult", "궁극", "필살"]):
-                    add("ultimate", vv)
-                elif "passive" in kl or "패시브" in kl:
-                    add("passive", vv)
-                elif any(x in kl for x in ["auto", "basic", "normal", "attack", "기본", "노멀", "평타", "일반"]):
-                    add("normal", vv)
-                else:
-                    add("other", vv)
-
-    # top-level common keys (projects often flatten these)
-    for key in ["normal", "basic", "basicAttack", "basic_attack", "auto", "active", "skill1", "skill2", "skill3"]:
-        if isinstance(detail.get(key), (dict, list, str)):
-            add("normal", detail.get(key))
-
-    for key in ["ultimate", "burst", "ult", "궁극기", "필살기"]:
-        if isinstance(detail.get(key), (dict, list, str)):
-            add("ultimate", detail.get(key))
-
-    for key in ["passive", "passive1", "passive2", "패시브"]:
-        if isinstance(detail.get(key), (dict, list, str)):
-            add("passive", detail.get(key))
-
-    # memory cards / traits
-    for key in ["memory", "memories", "memoryCard", "memoryCards", "memory_card", "memory_cards", "card", "cards"]:
-        if isinstance(detail.get(key), (dict, list, str)):
-            add("memory", detail.get(key))
-
-    # anything left
-    if not any(groups.values()):
-        groups["other"] = _collect_texts(detail)
-
-    # de-dup inside each group
-    for g in list(groups.keys()):
-        seen = set()
-        uniq = []
-        for s in groups[g]:
-            if s not in seen:
-                seen.add(s)
-                uniq.append(s)
-        groups[g] = uniq
-
-    return groups
-
-
-_KW_BASIC = ["basic attack", "normal attack", "auto attack", "기본 공격", "일반 공격", "평타"]
-
-
-def _is_dot_text(t: str) -> bool:
-    """Detect DoT/continuous-damage intent without matching generic duration words (e.g., '지속시간')."""
-    if not t:
-        return False
-    tl = t.lower()
-    # EN
-    if ("continuous damage" in tl) or ("damage over time" in tl) or re.search(r"dot", tl):
-        return True
-    # KO (avoid bare '지속' which is often used for duration only)
-    if ("지속 피해" in t) or ("지속피해" in t):
-        return True
-    if ("도트" in t) or ("중독" in t) or ("화상" in t) or ("출혈" in t):
-        return True
-    return False
-
-
-def _is_basic_text(t: str) -> bool:
-    if not t:
-        return False
-    tl = t.lower()
-    return any(k in tl for k in _KW_BASIC) or ("기본 공격" in t) or ("일반 공격" in t) or ("평타" in t)
 
 
 # ---------- Scaling detection (ATK / HP / DEF) ----------
@@ -1029,79 +924,35 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     if best > 0:
         scaling = "ATK" if best == atk_s else ("HP" if best == hp_s else "DEF")
 
-    groups = _grouped_texts(detail or {})
-
-    # weighted intent signals (avoid generic matches like '지속시간')
-    w = {"normal": 1.0, "auto": 1.0, "passive": 1.0, "ultimate": 0.65, "memory": 0.7, "other": 0.8}
-
     dot_cnt = extra_cnt = ult_cnt = 0
-    dot_core_cnt = extra_core_cnt = 0
-    basic_cnt = 0
-
     team_buff_cnt = debuff_cnt = heal_cnt = shield_cnt = 0
 
-    total_w = 0.0
-    dot_w = extra_w = ult_w = 0.0
-    basic_w = 0.0
-    team_buff_w = debuff_w = heal_w = shield_w = 0.0
+    for t in texts:
+        tl = t.lower()
+        if any(k in tl for k in _KW_DOT):
+            dot_cnt += 1
+        # strict extra attack detection (avoid false positives like "추가 피해")
+        if ("extra attack" in tl) or ("follow-up" in tl) or ("추가 공격" in t) or ("추격" in t):
+            extra_cnt += 1
+        if any(k in tl for k in _KW_ULT):
+            ult_cnt += 1
+        if any(k in tl for k in _KW_HEAL):
+            heal_cnt += 1
+        if any(k in tl for k in _KW_SHIELD):
+            shield_cnt += 1
+        if any(k in tl for k in _KW_TEAM) and any(k in tl for k in _KW_BUFF):
+            team_buff_cnt += 1
+        if any(k in tl for k in _KW_DEBUFF) or any(k in tl for k in _KW_VULN):
+            debuff_cnt += 1
 
-    for g, arr in (groups or {}).items():
-        ww = float(w.get(g, 0.8))
-        for t in arr or []:
-            total_w += ww
-            tl = t.lower()
-
-            if _is_dot_text(t):
-                dot_cnt += 1
-                dot_w += ww
-                if g in ("normal", "passive", "memory"):
-                    dot_core_cnt += 1
-
-            # strict extra-attack detection (avoid false positives like '추가 피해')
-            if _RE_EXTRA_ATTACK_STRICT.search(t or ""):
-                extra_cnt += 1
-                extra_w += ww
-                if g in ("normal", "passive", "memory"):
-                    extra_core_cnt += 1
-
-            if _is_basic_text(t):
-                basic_cnt += 1
-                basic_w += ww
-
-            if (g == "ultimate") or any(k in tl for k in _KW_ULT):
-                ult_cnt += 1
-                ult_w += ww
-
-            if any(k in tl for k in _KW_HEAL):
-                heal_cnt += 1
-                heal_w += ww
-
-            if any(k in tl for k in _KW_SHIELD):
-                shield_cnt += 1
-                shield_w += ww
-
-            if any(k in tl for k in _KW_TEAM) and any(k in tl for k in _KW_BUFF):
-                team_buff_cnt += 1
-                team_buff_w += ww
-
-            if any(k in tl for k in _KW_DEBUFF) or any(k in tl for k in _KW_VULN):
-                debuff_cnt += 1
-                debuff_w += ww
-
-    if total_w <= 0:
-        total_w = float(max(1, len(texts)))
-
-    # shares (0~1)
-    dot_share = dot_w / total_w
-    extra_share = extra_w / total_w
-    basic_share = basic_w / total_w
-
-    # importance/strength (0~1)
-    ult_importance = min(1.0, (ult_w / total_w) * 1.6)
-    team_buff_strength = min(1.0, (team_buff_w / total_w) * 2.2)
-    debuff_strength = min(1.0, (debuff_w / total_w) * 2.2)
-    heal_strength = min(1.0, (heal_w / total_w) * 2.4)
-    shield_strength = min(1.0, (shield_w / total_w) * 2.4)
+    total = max(1, len(texts))
+    dot_share = dot_cnt / total
+    extra_share = extra_cnt / total
+    ult_importance = min(1.0, ult_cnt / total * 2.0)
+    team_buff_strength = min(1.0, team_buff_cnt / total * 2.0)
+    debuff_strength = min(1.0, debuff_cnt / total * 2.0)
+    heal_strength = min(1.0, heal_cnt / total * 2.0)
+    shield_strength = min(1.0, shield_cnt / total * 2.0)
 
     base_role = _role_from_base(base or {})
     role = _infer_role_from_texts(texts, base_role)
@@ -1124,13 +975,7 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         "hp_score": hp_s,
         "def_score": def_s,
         "dot_share": dot_share,
-        "dot_cnt": dot_cnt,
-        "dot_core_cnt": dot_core_cnt,
         "extra_share": extra_share,
-        "extra_cnt": extra_cnt,
-        "extra_core_cnt": extra_core_cnt,
-        "basic_share": basic_share,
-        "basic_cnt": basic_cnt,
         "ult_importance": ult_importance,
         "team_buff_strength": team_buff_strength,
         "debuff_strength": debuff_strength,
@@ -1173,7 +1018,7 @@ def _rune_tags_from_effect(effect_text: str) -> set[str]:
         tags.add("BASIC_DMG")
     if "extra attack" in tl or "추가 공격" in t:
         tags.add("EXTRA_DMG")
-    if ("continuous damage" in tl) or ("damage over time" in tl) or ("dot" in tl) or ("지속 피해" in t) or ("지속피해" in t) or ("도트" in t) or ("중독" in t) or ("화상" in t) or ("출혈" in t):
+    if "continuous damage" in tl or "damage over time" in tl or "지속" in t:
         tags.add("DOT_DMG")
 
     # heal/shield
@@ -1247,27 +1092,19 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
     scaling = profile["scaling"]
     no_crit = profile["no_crit"]
 
-    dot = float(profile.get("dot_share", 0.0))
-    dot_cnt = int(profile.get("dot_cnt", 0) or 0)
-    dot_core_cnt = int(profile.get("dot_core_cnt", 0) or 0)
-
-    extra = float(profile.get("extra_share", 0.0))
-    extra_cnt = int(profile.get("extra_cnt", 0) or 0)
-    extra_core_cnt = int(profile.get("extra_core_cnt", 0) or 0)
-
-    basic = float(profile.get("basic_share", 0.0))
-
-    ult = float(profile.get("ult_importance", 0.0))
+    dot = profile["dot_share"]
+    extra = profile["extra_share"]
+    ult = profile["ult_importance"]
     debuff = profile["debuff_strength"]
     heal = profile["heal_strength"]
     shield = profile["shield_strength"]
 
     score = 0.0
 
-    # Strong anti-spam guard: Tide 4P is opener-limited; in PVE 장기전 평균 효율이 낮아 패널티 적용
+    # Strong anti-spam guard: Tide 4P is opener-limited; in PVE는 '전투 시작/첫 10초' 한정 효과라 평균 효율이 낮아 추천 후보에서 제외
     md = (str(mode or "pve").strip().lower() or "pve")
     if md == "pve" and pieces == 4 and _is_tide_4p_exact(set_name, rune_db):
-        score -= 30.0
+        return -1e9
 
 
     # scaling match (mostly for 2pc)
@@ -1381,15 +1218,7 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         # 기본공격 피해: 대부분 ATK 기반(평타 비중)에서만 의미가 큼.
         # DEF/HP 스케일 DPS에는 오추천을 유발하므로 거의 가치를 주지 않는다.
         if "BASIC_DMG" in tags:
-            if scaling == "ATK":
-                # Basic-attack 세트는 "평타 비중"이 있을 때만 강합니다.
-                # (스킬 중심 캐릭터에 기본공격 세트가 기본값처럼 뜨는 현상 방지)
-                if basic >= 0.18:
-                    score += 12.0 * min(1.0, basic * 2.5)
-                else:
-                    score += 2.0
-            else:
-                score += 0.0
+            score += 10.0 if scaling == "ATK" else 0.0
         if "EXTRA_DMG" in tags:
             # Extra-attack 세트는 실제 'Extra attack/추가 공격' 기믹이 있을 때만 고가치
             if extra < 0.12:
@@ -1397,23 +1226,7 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
             else:
                 score += 18.0 * (0.3 + 0.7 * min(1.0, extra * 3.0))
         if "DOT_DMG" in tags:
-            # DoT(지속 피해) 세트는 DoT가 "주요 딜 기믹"일 때만 강합니다.
-            # (지속시간/버프 지속 같은 문구 오탐으로 DOT 세트가 기본값처럼 뜨는 현상 방지)
-            if pieces == 4:
-                if (dot < 0.30) and (dot_cnt < 2) and (dot_core_cnt < 1):
-                    score -= 14.0
-                else:
-                    score += 14.0 * (0.10 + 0.90 * min(1.0, dot * 2.2))
-            else:
-                # 2세트는 보조 시너지이므로 완만하게 반영
-                if (dot < 0.18) and (dot_cnt < 1):
-                    score -= 2.0
-                else:
-                    score += 6.0 * min(1.0, dot * 2.5)
-
-            # Gimel(Continuous Damage) 4세트 도배 방지: DoT 근거가 약하면 추가 감점
-            if (pieces == 4) and (str(set_name).strip().lower() == "gimel") and (dot < 0.40):
-                score -= 10.0
+            score += 18.0 * (0.3 + 0.7 * min(1.0, dot * 3.0))
 
         # 스케일 매칭 보상: DEF/HP 스케일은 스탯 자체 기여도가 크므로 보상을 조금 더 줌
         if "ATK" in tags:
@@ -1444,6 +1257,287 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         score -= 8.0
 
     return score
+
+
+# ---------- Rune rationale debug (trigger log) ----------
+
+def _texts_by_source(detail: dict) -> dict[str, list[str]]:
+    """Try to separate skill/memory texts by source to make recommendations auditable."""
+    out: dict[str, list[str]] = {"normal": [], "auto": [], "passive": [], "ultimate": [], "memory": [], "other": []}
+    if not isinstance(detail, dict):
+        return out
+
+    def add(bucket: str, obj: Any):
+        if bucket not in out:
+            out[bucket] = []
+        out[bucket] += _collect_texts(obj)
+
+    # Common structures: detail["skills"][<type>], and/or top-level keys.
+    skills = detail.get("skills")
+    if isinstance(skills, dict):
+        add("normal", skills.get("normal") or skills.get("basic") or skills.get("basicAttack"))
+        add("auto", skills.get("auto") or skills.get("active") or skills.get("skill1") or skills.get("skill2") or skills.get("skill3"))
+        add("passive", skills.get("passive") or skills.get("passive1") or skills.get("passive2"))
+        add("ultimate", skills.get("ultimate") or skills.get("burst"))
+        # anything else in skills
+        for k, v in skills.items():
+            kl = str(k).lower()
+            if kl in ("normal", "basic", "basicattack", "auto", "active", "skill1", "skill2", "skill3", "passive", "passive1", "passive2", "ultimate", "burst"):
+                continue
+            add("other", v)
+
+    # Top-level fallbacks
+    for k, bucket in [
+        ("normal", "normal"),
+        ("basic", "normal"),
+        ("basicAttack", "normal"),
+        ("auto", "auto"),
+        ("active", "auto"),
+        ("ultimate", "ultimate"),
+        ("burst", "ultimate"),
+        ("passive", "passive"),
+        ("passive1", "passive"),
+        ("passive2", "passive"),
+    ]:
+        if k in detail:
+            add(bucket, detail.get(k))
+
+    # Memory card / memory related keys (best-effort, schema varies)
+    def walk_for_memory(o: Any):
+        if isinstance(o, dict):
+            for kk, vv in o.items():
+                kkl = str(kk).lower()
+                if ("memory" in kkl) or ("mem" == kkl) or ("메모리" in str(kk)):
+                    add("memory", vv)
+                walk_for_memory(vv)
+        elif isinstance(o, list):
+            for it in o:
+                walk_for_memory(it)
+
+    walk_for_memory(detail)
+
+    # de-dup within each bucket
+    for b in list(out.keys()):
+        seen, uniq = set(), []
+        for s in out[b]:
+            if s and s not in seen:
+                seen.add(s)
+                uniq.append(s)
+        out[b] = uniq
+    return out
+
+
+def _make_trigger_log(detail: dict, base: dict, profile: dict, limit_per_bucket: int = 4) -> list[str]:
+    """Return human-readable trigger lines: keyword hits and weights used for profile inference."""
+    buckets = _texts_by_source(detail or {})
+    lines: list[str] = []
+
+    # Summary
+    lines.append(f"LOG: role={profile.get('role')} (base={_role_from_base(base or {})}), scaling={profile.get('scaling')}, no_crit={bool(profile.get('no_crit'))}")
+    lines.append(f"LOG: shares(dot={profile.get('dot_share'):.2f}, extra={profile.get('extra_share'):.2f}, ult={profile.get('ult_importance'):.2f}, heal={profile.get('heal_strength'):.2f}, shield={profile.get('shield_strength'):.2f}, buff={profile.get('team_buff_strength'):.2f}, debuff={profile.get('debuff_strength'):.2f})")
+
+    # Helper to show excerpts
+    def ex(t: str, n: int = 60) -> str:
+        s = re.sub(r"\s+", " ", str(t)).strip()
+        return (s[:n] + "…") if len(s) > n else s
+
+    # Scaling hits by source
+    def scaling_hits(bucket_texts: list[str], keys: list[str]) -> list[float]:
+        hits: list[float] = []
+        for t in bucket_texts:
+            hits += _pct_hits(t, keys)
+        return hits
+
+    # Weights used (documented, not necessarily 1:1 to every score rule)
+    W = {
+        "DOT": 1.0,
+        "EXTRA_ATTACK": 1.0,
+        "HEAL": 1.0,
+        "SHIELD": 1.0,
+        "TEAM_BUFF": 1.0,
+        "DEBUFF": 1.0,
+        "ULT": 0.7,  # ultimate is weighted lower (frequency)
+    }
+
+    # Per bucket keyword triggers (top hits)
+    kw_defs = [
+        ("DOT", _KW_DOT),
+        ("HEAL", _KW_HEAL),
+        ("SHIELD", _KW_SHIELD),
+        ("TEAM_BUFF", _KW_TEAM),
+        ("DEBUFF", _KW_DEBUFF),
+        ("VULN", _KW_VULN),
+        ("ULT", _KW_ULT),
+    ]
+
+    def bucket_trigger_lines(bucket: str, texts: list[str]) -> list[str]:
+        outl: list[str] = []
+        if not texts:
+            return outl
+
+        # Percent scaling evidence
+        atk = scaling_hits(texts, ["attack power", "atk", "attack", "공격력"])
+        hp = scaling_hits(texts, ["max hp", "hp", "health", "체력", "생명"])
+        df = scaling_hits(texts, ["defense", "def", "방어력"])
+        if atk or hp or df:
+            top = []
+            if atk: top.append(f"ATK%={max(atk):g}")
+            if hp: top.append(f"HP%={max(hp):g}")
+            if df: top.append(f"DEF%={max(df):g}")
+            outl.append(f"LOG[{bucket}]: scaling-hits " + ", ".join(top))
+
+        # Keyword evidence (show excerpt where first matched)
+        shown = 0
+        for label, kws in kw_defs:
+            if shown >= limit_per_bucket:
+                break
+            for t in texts:
+                tl = t.lower()
+                if any(k in tl for k in kws):
+                    w = W.get(label, 1.0)
+                    outl.append(f"LOG[{bucket}]: {label} w={w} | {ex(t)}")
+                    shown += 1
+                    break
+
+        # Extra attack strict detection
+        for t in texts:
+            tl = t.lower()
+            if ("extra attack" in tl) or ("follow-up" in tl) or ("추가 공격" in t) or ("추격" in t):
+                outl.append(f"LOG[{bucket}]: EXTRA_ATTACK w={W['EXTRA_ATTACK']} | {ex(t)}")
+                break
+
+        return outl[: max(1, limit_per_bucket + 2)]
+
+    for bucket in ["normal", "auto", "passive", "ultimate", "memory"]:
+        bl = bucket_trigger_lines(bucket, buckets.get(bucket) or [])
+        if bl:
+            lines += bl
+
+    # If nothing found, still provide a hint
+    if len(lines) <= 2:
+        lines.append("LOG: 트리거 문구를 스킬/메모리 텍스트에서 충분히 찾지 못했습니다. (데이터 스키마/번역 누락 가능)")
+
+    return lines
+
+
+def _score_set_breakdown(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dict], tag_idx: dict[str, dict], mode: str = "pve") -> tuple[float, list[str]]:
+    """Return (score, reasons[]) for transparency. Reasons are additive."""
+    tags = (tag_idx.get(set_name) or {}).get("tags4" if pieces == 4 else "tags2", set())
+
+    role = profile["role"]
+    scaling = profile["scaling"]
+    no_crit = profile["no_crit"]
+
+    dot = profile["dot_share"]
+    extra = profile["extra_share"]
+    ult = profile["ult_importance"]
+    debuff = profile["debuff_strength"]
+    heal = profile["heal_strength"]
+    shield = profile["shield_strength"]
+
+    score = 0.0
+    reasons: list[str] = []
+
+    md = (str(mode or "pve").strip().lower() or "pve")
+    if md == "pve" and pieces == 4 and _is_tide_4p_exact(set_name, rune_db):
+        return (-1e9, ["PVE에서 Tide 4세트는 추천 후보에서 제외(첫 10초 오프너 한정)"])
+
+    def add(delta: float, why: str):
+        nonlocal score
+        score += delta
+        reasons.append(f"{delta:+g}: {why}")
+
+    # scaling match (mostly for 2pc)
+    if pieces == 2:
+        if "ATK" in tags and scaling == "ATK":
+            add(6.0, "2P ATK + scaling=ATK")
+        elif "ATK" in tags:
+            add(2.0, "2P ATK (off-scale)")
+
+        if "DEF" in tags and scaling == "DEF":
+            add(6.0, "2P DEF + scaling=DEF")
+        elif "DEF" in tags:
+            add(2.0, "2P DEF (off-scale)")
+
+        if "HP" in tags and scaling == "HP":
+            add(6.0, "2P HP + scaling=HP")
+        elif "HP" in tags:
+            add(2.0, "2P HP (off-scale)")
+
+        if "CRIT_RATE" in tags and not no_crit:
+            if role == "dps":
+                add(6.0, "2P CRIT_RATE for DPS")
+            elif role == "debuffer":
+                add(2.0, "2P CRIT_RATE for debuffer")
+            elif profile.get("healer_hybrid"):
+                add(2.0, "2P CRIT_RATE for healer-hybrid")
+            else:
+                add(1.0, "2P CRIT_RATE (minor)")
+
+        if "ENERGY" in tags:
+            if role in ("buffer", "debuffer"):
+                add(5.0, "2P ENERGY for support")
+            else:
+                add(2.0, "2P ENERGY (minor)")
+
+        if "HEAL" in tags:
+            if role == "healer":
+                add(6.0, "2P HEAL for healer")
+            else:
+                add(1.0, "2P HEAL (minor)")
+
+    # 4pc tags / effects
+    if pieces == 4:
+        if "DOT" in tags:
+            if dot >= 0.35:
+                add(10.0, f"4P DOT strong (dot_share={dot:.2f})")
+            elif dot >= 0.20:
+                add(4.0, f"4P DOT medium (dot_share={dot:.2f})")
+            else:
+                add(-8.0, f"4P DOT weak → 감점 (dot_share={dot:.2f})")
+
+        if "EXTRA_ATTACK" in tags:
+            if extra >= 0.25:
+                add(10.0, f"4P EXTRA_ATTACK strong (extra_share={extra:.2f})")
+            elif extra >= 0.12:
+                add(4.0, f"4P EXTRA_ATTACK medium (extra_share={extra:.2f})")
+            else:
+                add(-6.0, f"4P EXTRA_ATTACK weak → 감점 (extra_share={extra:.2f})")
+
+        if "CRIT" in tags and not no_crit:
+            if role == "dps":
+                add(8.0, "4P CRIT for DPS")
+            else:
+                add(2.0, "4P CRIT (minor)")
+
+        if "HEAL" in tags:
+            if role == "healer" or heal >= 0.35:
+                add(8.0, f"4P HEAL for healer (heal_strength={heal:.2f})")
+            else:
+                add(1.0, "4P HEAL (minor)")
+
+        if "SHIELD" in tags:
+            if shield >= 0.30:
+                add(7.0, f"4P SHIELD strong (shield_strength={shield:.2f})")
+            elif shield >= 0.15:
+                add(3.0, f"4P SHIELD medium (shield_strength={shield:.2f})")
+            else:
+                add(-3.0, f"4P SHIELD weak → 감점 (shield_strength={shield:.2f})")
+
+        if "DEBUFF" in tags:
+            if role == "debuffer" or debuff >= 0.35:
+                add(7.0, f"4P DEBUFF for debuffer (debuff_strength={debuff:.2f})")
+            else:
+                add(1.0, "4P DEBUFF (minor)")
+
+        if "ENERGY" in tags:
+            if role in ("buffer", "debuffer") and ult >= 0.20:
+                add(6.0, f"4P ENERGY for support (ult_importance={ult:.2f})")
+            else:
+                add(1.0, "4P ENERGY (minor)")
+
+    return (round(score, 3), reasons)
+
 
 
 def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve") -> tuple[list[dict], list[str]]:
@@ -1491,7 +1585,7 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve"
             "setPlan": [{"set": s4, "pieces": 4}, {"set": s2, "pieces": 2}],
         })
     if md == "pve":
-        rationale.append("PVE: Tide 4세트(전투 시작/첫 10초 오프너 한정)는 장기전 평균 효율이 낮아 강한 패널티를 적용했습니다.")
+        rationale.append("PVE: Tide 4세트(전투 시작/첫 10초 오프너 한정)는 장기전 평균 효율이 낮아 추천 후보에서 제외합니다.")
     return builds, rationale
 
 
@@ -1634,6 +1728,31 @@ def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> di
 
     profile = _detect_profile(detail or {}, base or {})
     core_builds, rationale = _best_rune_builds(profile, rune_db, mode=mode)
+
+    # --- 근거 로그(트리거/가중치) 출력: 스킬(노멀/오토/패시브/궁극기) + 메모리카드 텍스트 기반 ---
+    try:
+        rationale += ["근거 로그(분석 트리거)"] + _make_trigger_log(detail or {}, base or {}, profile)
+    except Exception:
+        # 로그 출력이 실패해도 추천 자체는 동작해야 함
+        rationale.append("근거 로그 생성 중 오류가 발생했습니다. (데이터 스키마/필드 누락 가능)")
+
+    # --- 선택된 세트별 점수 구성(가산/감산) ---
+    try:
+        tag_idx_dbg = _rune_tag_index(rune_db)
+        for b in core_builds:
+            sp = b.get("setPlan") or []
+            if len(sp) >= 2:
+                s4 = sp[0].get("set")
+                s2 = sp[1].get("set")
+                sc4, why4 = _score_set_breakdown(profile, s4, 4, rune_db, tag_idx_dbg, mode=mode)
+                sc2, why2 = _score_set_breakdown(profile, s2, 2, rune_db, tag_idx_dbg, mode=mode)
+                rationale.append(f"LOG[score]: 4세트 {s4} = {sc4} / 2세트 {s2} = {sc2}")
+                # Too verbose is harmful; show top 6 reasons per part
+                rationale += [f"LOG[4P {s4}] " + r for r in (why4[:6] if isinstance(why4, list) else [])]
+                rationale += [f"LOG[2P {s2}] " + r for r in (why2[:6] if isinstance(why2, list) else [])]
+                break
+    except Exception:
+        rationale.append("LOG[score]: 세트 점수 구성(가산/감산) 계산 중 오류가 발생했습니다.")
 
     builds = []
     for b in core_builds:
