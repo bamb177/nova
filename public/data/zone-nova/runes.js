@@ -8,9 +8,9 @@ export const RUNE_SETS = {
     twoPiece: '공격력 +8%',
     fourPiece: '기본 공격 피해 +30%',
   },
-  'Shattered-Foundation': {
-    name: 'Shattered Foundation',
-    image: 'Shattered-Foundation.jpg',
+  'Poki': {
+    name: 'Poki',
+    image: 'Poki.jpg',
     twoPiece: '방어력 +12%',
     fourPiece: '보호막 효과 +20%',
   },
@@ -21,8 +21,8 @@ export const RUNE_SETS = {
     fourPiece: 'HP가 80% 이상일 때 치명타 피해 +24%',
   },
   Zahn: {
-    name: 'Zahn',
-    image: 'Zahn.jpg',
+    name: 'Zane',
+    image: 'Zane.jpg',
     twoPiece: 'HP +8%',
     fourPiece: '궁극기 사용 후 받는 피해 5% 감소 (10초)',
   },
@@ -39,23 +39,23 @@ export const RUNE_SETS = {
     fourPiece: '궁극기 사용 후 아군 전체의 피해가 10% 증가하며, 10초간 지속',
     note: '동일한 패시브 효과는 중첩되지 않음',
   },
-  Hert: {
-    name: 'Hert Extra Attack Damage',
-    image: 'Hert-Pursuit-Damage.jpg',
+  Het: {
+    name: 'Het',
+    image: 'Het.jpg',
     twoPiece: '추가 공격 피해 +20%',
     fourPiece: '추가 공격 피해를 가한 후 치명타 확률 +15% (10초)',
     note: '길드 레이드에서만 획득 가능',
   },
-  'Gimel-Continuous-Damage': {
-    name: 'Gimel Continuous Damage',
-    image: 'Gimel-Continuous-Damage.jpg',
+  'Gimel': {
+    name: 'Gimel',
+    image: 'Gimel.jpg',
     twoPiece: '지속 피해 +20%',
     fourPiece: '지속 피해를 가한 후 자신의 공격력이 2% 증가하며 최대 10중첩, 5초간 지속',
     note: '길드 레이드에서만 획득 가능',
   },
-  Giants: {
-    name: 'Giants [Vulnerability]',
-    image: 'Giants.jpg',
+  Iots: {
+    name: 'Iots',
+    image: 'Iots.jpg',
     twoPiece: '공격력 +8%',
     fourPiece:
       '장착 캐릭터가 디버퍼 클래스일 경우, 궁극기 피해를 받은 대상이 5초간 받는 피해 10% 증가',
