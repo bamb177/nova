@@ -723,49 +723,6 @@ def rune_db_by_name() -> dict[str, dict]:
     return {str(r.get("name")): r for r in db if isinstance(r, dict) and r.get("name")}
 
 
-def _merge_two_four_effect(two_piece: str, four_piece: str) -> str:
-    """Normalize 4-set effect text so UI can show 2P+4P without duplication.
-
-    Returns a string like:
-      2세트: ...
-      4세트: ...
-
-    NOTE: We deliberately use a newline between lines. The UI converts '\n' to '<br>'.
-    """
-    two = (two_piece or "").strip()
-    four = (four_piece or "").strip()
-
-    # Strip common prefixes if the source already includes them
-    two = re.sub(r"^\s*2\s*세트\s*[:：]?\s*", "", two).strip()
-    two = re.sub(r"^\s*4\s*세트\s*[:：]?\s*", "", two).strip()
-
-    if not two and not four:
-        return ""
-
-    four_only = four
-
-    # If 4p text already contains both 2/4 sections, extract the 4-section only
-    if re.search(r"4\s*세트", four):
-        parts = re.split(r"4\s*세트\s*[:：]?\s*", four, maxsplit=1)
-        if len(parts) == 2:
-            four_only = parts[1].strip()
-
-    # Remove any lingering leading labels
-    four_only = re.sub(r"^\s*(?:2\s*세트|4\s*세트)\s*[:：]?\s*", "", four_only).strip()
-
-    # If the 2p text appears duplicated inside the 4p part, remove a simple duplicate
-    if two and four_only and two in four_only:
-        four_only = four_only.replace(two, "").strip()
-        four_only = re.sub(r"^[\-\–\—:：\s]+", "", four_only).strip()
-
-    if two and four_only:
-        return f"2세트: {two}\n4세트: {four_only}"
-    if two and not four_only:
-        return f"2세트: {two}"
-    return four
-
-
-
 
 # -------------------------
 # -------------------------
@@ -1061,7 +1018,7 @@ def _rune_tags_from_effect(effect_text: str) -> set[str]:
         tags.add("BASIC_DMG")
     if "extra attack" in tl or "추가 공격" in t:
         tags.add("EXTRA_DMG")
-    if "continuous damage" in tl or "damage over time" in tl or "지속" in t:
+    if ("continuous damage" in tl) or ("damage over time" in tl) or ("지속 피해" in t) or ("도트" in t) or ("중독" in t) or ("화상" in t) or ("출혈" in t):
         tags.add("DOT_DMG")
 
     # heal/shield
@@ -1103,19 +1060,55 @@ _RE_TIDE_4P_START = re.compile(
     re.IGNORECASE,
 )
 
-def _is_tide_4p_exact(set_name: str, rune_db: dict[str, dict]) -> bool:
-    """Strict-ish identification for Tide 4-piece opener-limited text patterns."""
+def _canonical_set_name(name: str) -> str:
+    """Normalize rune set names that sometimes include bracket suffixes (e.g., 'Tide [Energy]')."""
+    if name is None:
+        return ""
+    s = str(name).strip().lower()
+    # common decorations: 'Tide [Energy]' / 'Tide(Energy)' / 'Tide - Energy'
+    s = re.sub(r"\s*[\(\[][^\)\]]+[\)\]]\s*$", "", s)  # trailing (...) or [...]
+    s = re.sub(r"\s*[-–—:]\s*[^-–—:]+\s*$", "", s)  # trailing ' - xxx'
+    return s.strip()
+
+
+
+def _is_tide_name(name: str) -> bool:
+    return _canonical_set_name(name) == "tide"
+
+def _find_rune_entry(set_name: str, rune_db: dict[str, dict]) -> tuple[str, dict]:
+    """Find rune db entry by exact key or canonical-prefix match."""
     if not set_name:
+        return "", {}
+    if set_name in rune_db:
+        return set_name, (rune_db.get(set_name) or {})
+    # try canonical prefix match
+    cn = _canonical_set_name(set_name)
+    if not cn:
+        return "", {}
+    for k, v in rune_db.items():
+        if _canonical_set_name(k) == cn:
+            return k, (v or {})
+    return "", {}
+
+
+def _is_tide_4p_exact(set_name: str, rune_db: dict[str, dict]) -> bool:
+    """Identify Tide 4-piece opener-limited patterns (including names like 'Tide [Energy]')."""
+    cn = _canonical_set_name(set_name)
+    if cn != "tide":
         return False
-    nm = str(set_name).strip().lower()
-    if nm != "tide":
+
+    key, r = _find_rune_entry(set_name, rune_db)
+    if not r:
         return False
-    r = rune_db.get(set_name) or {}
+
     four = str(r.get("fourPiece") or "")
     if not four:
         return False
-    # Require both 'battle start' context and '10s window' context to prevent false positives.
-    return bool(_RE_TIDE_4P_START.search(four) and _RE_TIDE_4P_10S.search(four))
+
+    # Require BOTH: start-of-battle AND first-10s (or equivalent) patterns to avoid false positives
+    has_10s = bool(_RE_TIDE_4P_10S.search(four))
+    has_start = bool(_RE_TIDE_4P_START.search(four))
+    return has_10s and has_start
 
 def _rune_tag_index(rune_db: dict[str, dict]) -> dict[str, dict]:
     idx: dict[str, dict] = {}
@@ -1144,10 +1137,10 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
 
     score = 0.0
 
-    # Strong anti-spam guard: Tide 4P is opener-limited; in PVE 장기전 평균 효율이 낮아 패널티 적용
+    # Strong anti-spam guard: Tide 4P is opener-limited; in PVE는 '전투 시작/첫 10초' 한정 효과라 평균 효율이 낮아 추천 후보에서 제외
     md = (str(mode or "pve").strip().lower() or "pve")
-    if md == "pve" and pieces == 4 and _is_tide_4p_exact(set_name, rune_db):
-        score -= 30.0
+    if md == "pve" and pieces == 4 and _is_tide_name(set_name):
+        return -1e9
 
 
     # scaling match (mostly for 2pc)
@@ -1302,6 +1295,287 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
     return score
 
 
+# ---------- Rune rationale debug (trigger log) ----------
+
+def _texts_by_source(detail: dict) -> dict[str, list[str]]:
+    """Try to separate skill/memory texts by source to make recommendations auditable."""
+    out: dict[str, list[str]] = {"normal": [], "auto": [], "passive": [], "ultimate": [], "memory": [], "other": []}
+    if not isinstance(detail, dict):
+        return out
+
+    def add(bucket: str, obj: Any):
+        if bucket not in out:
+            out[bucket] = []
+        out[bucket] += _collect_texts(obj)
+
+    # Common structures: detail["skills"][<type>], and/or top-level keys.
+    skills = detail.get("skills")
+    if isinstance(skills, dict):
+        add("normal", skills.get("normal") or skills.get("basic") or skills.get("basicAttack"))
+        add("auto", skills.get("auto") or skills.get("active") or skills.get("skill1") or skills.get("skill2") or skills.get("skill3"))
+        add("passive", skills.get("passive") or skills.get("passive1") or skills.get("passive2"))
+        add("ultimate", skills.get("ultimate") or skills.get("burst"))
+        # anything else in skills
+        for k, v in skills.items():
+            kl = str(k).lower()
+            if kl in ("normal", "basic", "basicattack", "auto", "active", "skill1", "skill2", "skill3", "passive", "passive1", "passive2", "ultimate", "burst"):
+                continue
+            add("other", v)
+
+    # Top-level fallbacks
+    for k, bucket in [
+        ("normal", "normal"),
+        ("basic", "normal"),
+        ("basicAttack", "normal"),
+        ("auto", "auto"),
+        ("active", "auto"),
+        ("ultimate", "ultimate"),
+        ("burst", "ultimate"),
+        ("passive", "passive"),
+        ("passive1", "passive"),
+        ("passive2", "passive"),
+    ]:
+        if k in detail:
+            add(bucket, detail.get(k))
+
+    # Memory card / memory related keys (best-effort, schema varies)
+    def walk_for_memory(o: Any):
+        if isinstance(o, dict):
+            for kk, vv in o.items():
+                kkl = str(kk).lower()
+                if ("memory" in kkl) or ("mem" == kkl) or ("메모리" in str(kk)):
+                    add("memory", vv)
+                walk_for_memory(vv)
+        elif isinstance(o, list):
+            for it in o:
+                walk_for_memory(it)
+
+    walk_for_memory(detail)
+
+    # de-dup within each bucket
+    for b in list(out.keys()):
+        seen, uniq = set(), []
+        for s in out[b]:
+            if s and s not in seen:
+                seen.add(s)
+                uniq.append(s)
+        out[b] = uniq
+    return out
+
+
+def _make_trigger_log(detail: dict, base: dict, profile: dict, limit_per_bucket: int = 4) -> list[str]:
+    """Return human-readable trigger lines: keyword hits and weights used for profile inference."""
+    buckets = _texts_by_source(detail or {})
+    lines: list[str] = []
+
+    # Summary
+    lines.append(f"LOG: role={profile.get('role')} (base={_role_from_base(base or {})}), scaling={profile.get('scaling')}, no_crit={bool(profile.get('no_crit'))}")
+    lines.append(f"LOG: shares(dot={profile.get('dot_share'):.2f}, extra={profile.get('extra_share'):.2f}, ult={profile.get('ult_importance'):.2f}, heal={profile.get('heal_strength'):.2f}, shield={profile.get('shield_strength'):.2f}, buff={profile.get('team_buff_strength'):.2f}, debuff={profile.get('debuff_strength'):.2f})")
+
+    # Helper to show excerpts
+    def ex(t: str, n: int = 60) -> str:
+        s = re.sub(r"\s+", " ", str(t)).strip()
+        return (s[:n] + "…") if len(s) > n else s
+
+    # Scaling hits by source
+    def scaling_hits(bucket_texts: list[str], keys: list[str]) -> list[float]:
+        hits: list[float] = []
+        for t in bucket_texts:
+            hits += _pct_hits(t, keys)
+        return hits
+
+    # Weights used (documented, not necessarily 1:1 to every score rule)
+    W = {
+        "DOT": 1.0,
+        "EXTRA_ATTACK": 1.0,
+        "HEAL": 1.0,
+        "SHIELD": 1.0,
+        "TEAM_BUFF": 1.0,
+        "DEBUFF": 1.0,
+        "ULT": 0.7,  # ultimate is weighted lower (frequency)
+    }
+
+    # Per bucket keyword triggers (top hits)
+    kw_defs = [
+        ("DOT", _KW_DOT),
+        ("HEAL", _KW_HEAL),
+        ("SHIELD", _KW_SHIELD),
+        ("TEAM_BUFF", _KW_TEAM),
+        ("DEBUFF", _KW_DEBUFF),
+        ("VULN", _KW_VULN),
+        ("ULT", _KW_ULT),
+    ]
+
+    def bucket_trigger_lines(bucket: str, texts: list[str]) -> list[str]:
+        outl: list[str] = []
+        if not texts:
+            return outl
+
+        # Percent scaling evidence
+        atk = scaling_hits(texts, ["attack power", "atk", "attack", "공격력"])
+        hp = scaling_hits(texts, ["max hp", "hp", "health", "체력", "생명"])
+        df = scaling_hits(texts, ["defense", "def", "방어력"])
+        if atk or hp or df:
+            top = []
+            if atk: top.append(f"ATK%={max(atk):g}")
+            if hp: top.append(f"HP%={max(hp):g}")
+            if df: top.append(f"DEF%={max(df):g}")
+            outl.append(f"LOG[{bucket}]: scaling-hits " + ", ".join(top))
+
+        # Keyword evidence (show excerpt where first matched)
+        shown = 0
+        for label, kws in kw_defs:
+            if shown >= limit_per_bucket:
+                break
+            for t in texts:
+                tl = t.lower()
+                if any(k in tl for k in kws):
+                    w = W.get(label, 1.0)
+                    outl.append(f"LOG[{bucket}]: {label} w={w} | {ex(t)}")
+                    shown += 1
+                    break
+
+        # Extra attack strict detection
+        for t in texts:
+            tl = t.lower()
+            if ("extra attack" in tl) or ("follow-up" in tl) or ("추가 공격" in t) or ("추격" in t):
+                outl.append(f"LOG[{bucket}]: EXTRA_ATTACK w={W['EXTRA_ATTACK']} | {ex(t)}")
+                break
+
+        return outl[: max(1, limit_per_bucket + 2)]
+
+    for bucket in ["normal", "auto", "passive", "ultimate", "memory"]:
+        bl = bucket_trigger_lines(bucket, buckets.get(bucket) or [])
+        if bl:
+            lines += bl
+
+    # If nothing found, still provide a hint
+    if len(lines) <= 2:
+        lines.append("LOG: 트리거 문구를 스킬/메모리 텍스트에서 충분히 찾지 못했습니다. (데이터 스키마/번역 누락 가능)")
+
+    return lines
+
+
+def _score_set_breakdown(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dict], tag_idx: dict[str, dict], mode: str = "pve") -> tuple[float, list[str]]:
+    """Return (score, reasons[]) for transparency. Reasons are additive."""
+    tags = (tag_idx.get(set_name) or {}).get("tags4" if pieces == 4 else "tags2", set())
+
+    role = profile["role"]
+    scaling = profile["scaling"]
+    no_crit = profile["no_crit"]
+
+    dot = profile["dot_share"]
+    extra = profile["extra_share"]
+    ult = profile["ult_importance"]
+    debuff = profile["debuff_strength"]
+    heal = profile["heal_strength"]
+    shield = profile["shield_strength"]
+
+    score = 0.0
+    reasons: list[str] = []
+
+    md = (str(mode or "pve").strip().lower() or "pve")
+    if md == "pve" and pieces == 4 and _is_tide_name(set_name):
+        return (-1e9, ["PVE에서 Tide 4세트는 추천 후보에서 제외(첫 10초 오프너 한정)"])
+
+    def add(delta: float, why: str):
+        nonlocal score
+        score += delta
+        reasons.append(f"{delta:+g}: {why}")
+
+    # scaling match (mostly for 2pc)
+    if pieces == 2:
+        if "ATK" in tags and scaling == "ATK":
+            add(6.0, "2P ATK + scaling=ATK")
+        elif "ATK" in tags:
+            add(2.0, "2P ATK (off-scale)")
+
+        if "DEF" in tags and scaling == "DEF":
+            add(6.0, "2P DEF + scaling=DEF")
+        elif "DEF" in tags:
+            add(2.0, "2P DEF (off-scale)")
+
+        if "HP" in tags and scaling == "HP":
+            add(6.0, "2P HP + scaling=HP")
+        elif "HP" in tags:
+            add(2.0, "2P HP (off-scale)")
+
+        if "CRIT_RATE" in tags and not no_crit:
+            if role == "dps":
+                add(6.0, "2P CRIT_RATE for DPS")
+            elif role == "debuffer":
+                add(2.0, "2P CRIT_RATE for debuffer")
+            elif profile.get("healer_hybrid"):
+                add(2.0, "2P CRIT_RATE for healer-hybrid")
+            else:
+                add(1.0, "2P CRIT_RATE (minor)")
+
+        if "ENERGY" in tags:
+            if role in ("buffer", "debuffer"):
+                add(5.0, "2P ENERGY for support")
+            else:
+                add(2.0, "2P ENERGY (minor)")
+
+        if "HEAL" in tags:
+            if role == "healer":
+                add(6.0, "2P HEAL for healer")
+            else:
+                add(1.0, "2P HEAL (minor)")
+
+    # 4pc tags / effects
+    if pieces == 4:
+        if "DOT" in tags:
+            if dot >= 0.35:
+                add(10.0, f"4P DOT strong (dot_share={dot:.2f})")
+            elif dot >= 0.20:
+                add(4.0, f"4P DOT medium (dot_share={dot:.2f})")
+            else:
+                add(-8.0, f"4P DOT weak → 감점 (dot_share={dot:.2f})")
+
+        if "EXTRA_ATTACK" in tags:
+            if extra >= 0.25:
+                add(10.0, f"4P EXTRA_ATTACK strong (extra_share={extra:.2f})")
+            elif extra >= 0.12:
+                add(4.0, f"4P EXTRA_ATTACK medium (extra_share={extra:.2f})")
+            else:
+                add(-6.0, f"4P EXTRA_ATTACK weak → 감점 (extra_share={extra:.2f})")
+
+        if "CRIT" in tags and not no_crit:
+            if role == "dps":
+                add(8.0, "4P CRIT for DPS")
+            else:
+                add(2.0, "4P CRIT (minor)")
+
+        if "HEAL" in tags:
+            if role == "healer" or heal >= 0.35:
+                add(8.0, f"4P HEAL for healer (heal_strength={heal:.2f})")
+            else:
+                add(1.0, "4P HEAL (minor)")
+
+        if "SHIELD" in tags:
+            if shield >= 0.30:
+                add(7.0, f"4P SHIELD strong (shield_strength={shield:.2f})")
+            elif shield >= 0.15:
+                add(3.0, f"4P SHIELD medium (shield_strength={shield:.2f})")
+            else:
+                add(-3.0, f"4P SHIELD weak → 감점 (shield_strength={shield:.2f})")
+
+        if "DEBUFF" in tags:
+            if role == "debuffer" or debuff >= 0.35:
+                add(7.0, f"4P DEBUFF for debuffer (debuff_strength={debuff:.2f})")
+            else:
+                add(1.0, "4P DEBUFF (minor)")
+
+        if "ENERGY" in tags:
+            if role in ("buffer", "debuffer") and ult >= 0.20:
+                add(6.0, f"4P ENERGY for support (ult_importance={ult:.2f})")
+            else:
+                add(1.0, "4P ENERGY (minor)")
+
+    return (round(score, 3), reasons)
+
+
+
 def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve") -> tuple[list[dict], list[str]]:
     tag_idx = _rune_tag_index(rune_db)
     sets = list(rune_db.keys())
@@ -1347,7 +1621,7 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve"
             "setPlan": [{"set": s4, "pieces": 4}, {"set": s2, "pieces": 2}],
         })
     if md == "pve":
-        rationale.append("PVE: Tide 4세트(전투 시작/첫 10초 오프너 한정)는 장기전 평균 효율이 낮아 강한 패널티를 적용했습니다.")
+        rationale.append("PVE: Tide 4세트(전투 시작/첫 10초 오프너 한정)는 장기전 평균 효율이 낮아 추천 후보에서 제외합니다.")
     return builds, rationale
 
 
@@ -1454,9 +1728,75 @@ def _substats_for(profile: dict) -> list[str]:
     return ["Critical Rate (%)", "Critical Damage (%)", scaling_pct, "Attack Penetration (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
 
 
+def _format_set_effect_for_display(r: dict, pieces: int) -> tuple[str, str]:
+    """Return (two_piece_text, four_piece_text_for_display).
+
+    UI behavior: when pieces==4, it typically displays only the 4p text.
+    Requirement:
+      - 4세트 선택 시 2세트+4세트 효과를 함께 표기
+      - 효과 설명에는 '2세트:' / '4세트:' 두 줄만 남기고, 그 외 'n세트' 문구는 제거
+      - 원문에 이미 2/4 세트 라벨이 섞여 있어도 중복 표기되지 않도록 정규화
+    """
+    two_raw = str(r.get("twoPiece") or "")
+    four_raw = str(r.get("fourPiece") or "")
+
+    def _clean_piece_text(s: str) -> str:
+        t = (s or "").strip()
+
+        # Remove any inline set-count labels anywhere (Korean / English)
+        # Examples: '2세트: ...', '4세트 ...', '2-piece: ...', '4 piece ...', '2P: ...'
+        t = re.sub(r"\b(2|4)\s*(세트|set|piece|p)\b\s*[:：\-–—]?\s*", " ", t, flags=re.IGNORECASE)
+
+        # Also remove leftover '2세트', '4세트' without punctuation
+        t = re.sub(r"\b(2|4)\s*세트\b", " ", t)
+
+        # Normalize whitespace / leading punctuation
+        t = re.sub(r"\s+", " ", t).strip()
+        t = re.sub(r"^[\-–—:：\s]+", "", t).strip()
+        return t
+
+    def _extract_four_only(s: str) -> str:
+        t = (s or "").strip()
+        if not t:
+            return ""
+        # If the 4p text already includes both 2/4 sections, take the 4-section only.
+        m1 = re.search(r"4\s*세트\s*[:：]?\s*", t)
+        if m1:
+            return t[m1.end():].strip()
+        m2 = re.search(r"4\s*[- ]?piece\s*[:：]?\s*", t, flags=re.IGNORECASE)
+        if m2:
+            return t[m2.end():].strip()
+        return t
+
+    two = _clean_piece_text(two_raw)
+    four_only = _clean_piece_text(_extract_four_only(four_raw))
+
+    # De-duplicate if 2p text is embedded in the 4p part
+    if two and four_only and two in four_only:
+        four_only = four_only.replace(two, "").strip()
+        four_only = re.sub(r"^[\-–—:：\s]+", "", four_only).strip()
+
+    # Build display
+    if pieces == 4:
+        # Even if one side is missing, keep the two-line shape as much as possible
+        if two and four_only:
+            four_disp = f"2세트: {two}\n4세트: {four_only}"
+        elif two and not four_only:
+            four_disp = f"2세트: {two}\n4세트:"
+        elif (not two) and four_only:
+            four_disp = f"2세트:\n4세트: {four_only}"
+        else:
+            four_disp = ""
+    else:
+        # 2세트 선택 시에는 2세트만 표기
+        four_disp = _clean_piece_text(four_raw)
+
+    return two, four_disp
+
 def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> dict:
     overrides = load_rune_overrides()
     rune_db = rune_db_by_name()
+    md = (str(mode or "pve").strip().lower() or "pve")
 
     ov = overrides.get(cid)
     if isinstance(ov, dict) and ov.get("builds"):
@@ -1464,20 +1804,29 @@ def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> di
         for b in ov.get("builds") or []:
             if not isinstance(b, dict):
                 continue
+            invalid = False
             sp = []
             for it in b.get("setPlan") or []:
                 if not isinstance(it, dict):
                     continue
                 sname = str(it.get("set") or "").strip()
                 r = rune_db.get(sname) or {}
+                pcs = int(it.get("pieces") or 0)
+                if md == "pve" and pcs == 4 and _is_tide_name(sname):
+                    invalid = True
+                    break
+                two_txt, four_disp = _format_set_effect_for_display(r, pcs)
                 sp.append({
                     "set": sname,
-                    "pieces": int(it.get("pieces") or 0),
+                    "pieces": pcs,
                     "icon": r.get("icon"),
-                    "twoPiece": (r.get("twoPiece", "") or ""),
-                    "fourPiece": _merge_two_four_effect((r.get("twoPiece", "") or ""), (r.get("fourPiece", "") or "")),
+                    "twoPiece": two_txt,
+                    "fourPiece": four_disp,
                     "note": r.get("note", ""),
                 })
+            if invalid:
+                # PVE에서는 Tide 4세트는 어떤 경우에도 추천하지 않음 (오버라이드도 무시)
+                continue
             builds.append({
                 "title": str(b.get("title") or "Override"),
                 "setPlan": sp,
@@ -1491,18 +1840,45 @@ def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> di
     profile = _detect_profile(detail or {}, base or {})
     core_builds, rationale = _best_rune_builds(profile, rune_db, mode=mode)
 
+    # --- 근거 로그(트리거/가중치) 출력: 스킬(노멀/오토/패시브/궁극기) + 메모리카드 텍스트 기반 ---
+    try:
+        rationale += ["근거 로그(분석 트리거)"] + _make_trigger_log(detail or {}, base or {}, profile)
+    except Exception:
+        # 로그 출력이 실패해도 추천 자체는 동작해야 함
+        rationale.append("근거 로그 생성 중 오류가 발생했습니다. (데이터 스키마/필드 누락 가능)")
+
+    # --- 선택된 세트별 점수 구성(가산/감산) ---
+    try:
+        tag_idx_dbg = _rune_tag_index(rune_db)
+        for b in core_builds:
+            sp = b.get("setPlan") or []
+            if len(sp) >= 2:
+                s4 = sp[0].get("set")
+                s2 = sp[1].get("set")
+                sc4, why4 = _score_set_breakdown(profile, s4, 4, rune_db, tag_idx_dbg, mode=mode)
+                sc2, why2 = _score_set_breakdown(profile, s2, 2, rune_db, tag_idx_dbg, mode=mode)
+                rationale.append(f"LOG[score]: 4세트 {s4} = {sc4} / 2세트 {s2} = {sc2}")
+                # Too verbose is harmful; show top 6 reasons per part
+                rationale += [f"LOG[4P {s4}] " + r for r in (why4[:6] if isinstance(why4, list) else [])]
+                rationale += [f"LOG[2P {s2}] " + r for r in (why2[:6] if isinstance(why2, list) else [])]
+                break
+    except Exception:
+        rationale.append("LOG[score]: 세트 점수 구성(가산/감산) 계산 중 오류가 발생했습니다.")
+
     builds = []
     for b in core_builds:
         setplan = []
         for s in b.get("setPlan") or []:
             nm = s.get("set")
             r = rune_db.get(nm) or {}
+            pcs = int(s.get("pieces") or 0)
+            two_txt, four_disp = _format_set_effect_for_display(r, pcs)
             setplan.append({
                 "set": nm,
-                "pieces": s.get("pieces"),
+                "pieces": pcs,
                 "icon": r.get("icon"),
-                "twoPiece": (r.get("twoPiece", "") or ""),
-                "fourPiece": _merge_two_four_effect((r.get("twoPiece", "") or ""), (r.get("fourPiece", "") or "")),
+                "twoPiece": two_txt,
+                "fourPiece": four_disp,
                 "note": r.get("note", ""),
             })
 
