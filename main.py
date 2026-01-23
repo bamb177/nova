@@ -563,15 +563,18 @@ def load_rune_overrides(force: bool = False) -> dict:
 
 # fallback only used when runes.js parsing fails
 FALLBACK_RUNES = [
-    {"name": "Alpha", "twoPiece": "Attack Power +8%", "fourPiece": "Basic Attack Damage +30%", "icon": None},
-    {"name": "Beth", "twoPiece": "Critical Hit Rate +6%", "fourPiece": "When HP >80%: Critical Hit Damage +24%", "icon": None},
-    {"name": "Zahn", "twoPiece": "HP +8%", "fourPiece": "After Ultimate: Take 5% less damage (10s)", "icon": None},
-    {"name": "Shattered Foundation", "twoPiece": "Defense +12%", "fourPiece": "Shield Effectiveness +20%", "icon": None},
-    {"name": "Daleth", "twoPiece": "Healing Effectiveness +10%", "fourPiece": "Battle Start: Gain 1 Energy immediately", "icon": None},
-    {"name": "Epsilon", "twoPiece": "Attack Power +8%", "fourPiece": "After ultimate, team damage +10% (10s)", "icon": None, "note": "Same passive effect cannot stack"},
-    {"name": "Hert", "twoPiece": "Extra Attack damage +20%", "fourPiece": "After dealing Extra Attack damage, Critical Hit Rate +15% (10s)", "icon": None, "note": "Guild raid only"},
-    {"name": "Gimel", "twoPiece": "Continuous damage +20%", "fourPiece": "After dealing continuous damage, own attack power +2% (stacks up to 10, 5s)", "icon": None, "note": "Guild raid only"},
+    {"name": "Alpha", "twoPiece": "공격력 +8%", "fourPiece": "기본 공격 피해 +30%", "icon": None},
+    {"name": "Poki", "twoPiece": "방어력 +12%", "fourPiece": "보호막 효과 +20%", "icon": None},
+    {"name": "Beth", "twoPiece": "치명타 확률 +6%", "fourPiece": "HP가 80% 이상일 때 치명타 피해 +24%", "icon": None},
+    {"name": "Zane", "twoPiece": "HP +8%", "fourPiece": "궁극기 사용 후 받는 피해 5% 감소 (10초)", "icon": None},
+    {"name": "Daleth", "twoPiece": "회복 효과 +10%", "fourPiece": "전투 시작 시 즉시 에너지 1 획득", "icon": None},
+    {"name": "Epsilon", "twoPiece": "추가 공격 피해 +20%", "fourPiece": "궁극기 사용 후 아군 전체의 피해가 10% 증가하며, 10초간 지속", "icon": None, "note": "동일한 패시브 효과는 중첩되지 않음"},
+    {"name": "Het", "twoPiece": "추가 공격 피해 +20%", "fourPiece": "추가 공격 피해를 가한 후 치명타 확률 +15% (10초)", "icon": None, "note": "길드 레이드에서만 획득 가능"},
+    {"name": "Gimel", "twoPiece": "지속 피해 +20%", "fourPiece": "지속 피해를 가한 후 자신의 공격력이 2% 증가하며 최대 10중첩, 5초간 지속", "icon": None, "note": "길드 레이드에서만 획득 가능"},
+    {"name": "Iots", "twoPiece": "공격력 +8%", "fourPiece": "장착 캐릭터가 디버퍼 클래스일 경우, 궁극기 피해를 받은 대상이 5초간 받는 피해 10% 증가", "icon": None, "note": "동일 효과 중첩 불가. 길드 레이드에서만 획득가능", "classRestriction": ["Debuffer"]},
+    {"name": "Kappa", "twoPiece": "방어력 +12%", "fourPiece": "전투 시작 후 10초 동안 아군 전체의 에너지 획득 효율 +30%", "icon": None, "note": "효과 중첩 불가. 파티 내 Daleth 4세트 효과는 비활성화됨. 길드 레이드 전용", "teamConflict": ["Daleth"]},
 ]
+
 
 
 def load_runes_db(force: bool = False) -> list[dict]:
@@ -718,9 +721,65 @@ def load_runes_db(force: bool = False) -> list[dict]:
     return norm
 
 
+def _apply_rune_rules(rune_db: dict[str, dict]) -> None:
+    """Post-process rune DB:
+    - name-change aliases (Tide->Kappa, Hert->Het, Shattered Foundation->Poki, Zahn->Zane)
+    - enforce known cross-set conflicts (Kappa 4P ↔ Daleth 4P)
+    """
+    def canon(s: str) -> str:
+        s = str(s or "").strip().lower()
+        s = re.sub(r"\s*[\(\[][\^\)\]]+[\)\]]\s*$", "", s)
+        s = re.sub(r"\s*[-–—:]\s*[^-–—:]+\s*$", "", s)
+        return s.strip()
+
+    # --- aliases for backward compatibility (overrides/old data) ---
+    aliases = {
+        "tide": "kappa",
+        "tide [energy]": "kappa",
+        "tide(energy)": "kappa",
+        "hert": "het",
+        "shattered foundation": "poki",
+        "zahn": "zane",
+    }
+
+    # build lookup by canonical name
+    by_canon: dict[str, str] = {}
+    for k in list(rune_db.keys()):
+        by_canon.setdefault(canon(k), k)
+
+    for old, new in aliases.items():
+        old_k = by_canon.get(old)
+        new_k = by_canon.get(new)
+        if (not old_k) and new_k:
+            # add alias key pointing to the same dict object
+            rune_db[old.title()] = rune_db[new_k]
+
+    # --- enforce conflicts: Kappa 4P disables Daleth 4P in party, and vice versa ---
+    # keep this in machine-readable teamConflict so UI/notes can show it consistently.
+    def ensure_conflict(a: str, b: str):
+        ka = by_canon.get(a)
+        kb = by_canon.get(b)
+        if not ka or not kb:
+            return
+        ra = rune_db.get(ka) or {}
+        rb = rune_db.get(kb) or {}
+        ta = set(_as_list(ra.get("teamConflict")))
+        tb = set(_as_list(rb.get("teamConflict")))
+        if b.title() not in ta:
+            ta.add(b.title())
+        if a.title() not in tb:
+            tb.add(a.title())
+        ra["teamConflict"] = sorted(ta)
+        rb["teamConflict"] = sorted(tb)
+
+    ensure_conflict("kappa", "daleth")
+
+
 def rune_db_by_name() -> dict[str, dict]:
     db = load_runes_db()
-    return {str(r.get("name")): r for r in db if isinstance(r, dict) and r.get("name")}
+    m = {str(r.get("name")): r for r in db if isinstance(r, dict) and r.get("name")}
+    _apply_rune_rules(m)
+    return m
 
 
 
@@ -1055,7 +1114,7 @@ def _rune_tags_from_effect(effect_text: str) -> set[str]:
 # ---------- Exact-match guards (regex) ----------
 
 # Tide 4-piece: opener-limited effect (e.g., 'first 10s' / '전투 시작 후 첫 10초')
-# Apply a strong penalty in PVE to avoid 'Tide spam' for buffers/debuffers in long fights.
+# Apply a strong penalty in PVE to avoid 'Kappa(구 Tide) spam' for buffers/debuffers in long fights.
 _RE_TIDE_4P_10S = re.compile(
     r"(?:\bfirst\s*10\s*s\b|\binitial\s*10\s*s\b|\bwithin\s*the\s*first\s*10\s*s\b|첫\s*10\s*초|처음\s*10\s*초|전투\s*시작\s*(?:후)?\s*10\s*초)",
     re.IGNORECASE,
@@ -1096,8 +1155,8 @@ def _find_rune_entry(set_name: str, rune_db: dict[str, dict]) -> tuple[str, dict
     return "", {}
 
 
-def _is_tide_4p_exact(set_name: str, rune_db: dict[str, dict]) -> bool:
-    """Identify Tide 4-piece opener-limited patterns (including names like 'Tide [Energy]')."""
+def _is_kappa_or_tide_4p_exact(set_name: str, rune_db: dict[str, dict]) -> bool:
+    """Identify Kappa(구 Tide) 4-piece opener-limited patterns (including legacy names like 'Tide [Energy]')."""
     cn = _canonical_set_name(set_name)
     if cn != "tide":
         return False
@@ -1164,10 +1223,22 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
 
     score = 0.0
 
-    # Strong anti-spam guard: Tide 4P is opener-limited; in PVE는 '전투 시작/첫 10초' 한정 효과라 평균 효율이 낮아 추천 후보에서 제외
+    # PVE 전면 제외: Kappa(구 Tide) 4세트는 '전투 시작~10초' 오프너 에너지 한정이라 장기전 평균 효율이 낮음
     md = (str(mode or "pve").strip().lower() or "pve")
-    if md == "pve" and pieces == 4 and _is_pve_excluded_opener_energy_4p(set_name, rune_db):
+    cn = _canonical_set_name(set_name)
+    if md == "pve" and pieces == 4 and (cn in ("kappa", "tide") or _is_pve_excluded_opener_energy_4p(set_name, rune_db)):
         return -1e9
+
+    # 4세트 트리거 정밀화: 기믹이 없으면 해당 4세트는 제외(도배/오추천 방지)
+    if pieces == 4:
+        if cn == "gimel" and dot < 0.12:
+            return -1e9
+        if cn in ("het", "hert") and extra < 0.12:
+            return -1e9
+        if cn == "epsilon" and ult < 0.12:
+            return -1e9
+        if cn == "epsilon" and ult < 0.20:
+            score -= 10.0
 
 
     # scaling match (mostly for 2pc)
@@ -1198,6 +1269,13 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
                 # 힐러/탱커/버퍼는 기본적으로 치확 2세트 효율이 낮음(하이브리드 예외)
                 score += 0.0
 
+
+    # 2세트 트리거 정밀화(세트 도배 방지): 기믹이 없으면 해당 2세트도 감점
+    if pieces == 2:
+        if cn == "gimel" and dot < 0.12:
+            score -= 12.0
+        if cn in ("het", "hert", "epsilon") and extra < 0.12:
+            score -= 10.0
     # role-specific (4pc dominates)
     if role == "buffer":
         if "TEAM_DMG" in tags:
@@ -1283,13 +1361,21 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         if "BASIC_DMG" in tags:
             score += 10.0 if scaling == "ATK" else 0.0
         if "EXTRA_DMG" in tags:
-            # Extra-attack 세트는 실제 'Extra attack/추가 공격' 기믹이 있을 때만 고가치
+            # Extra-attack 세트: 실제 '추가 공격' 트리거가 없으면 강하게 감점/제외
             if extra < 0.12:
-                score -= 8.0  # 오탐 억제
+                score -= 14.0 if pieces == 4 else 10.0
             else:
-                score += 18.0 * (0.3 + 0.7 * min(1.0, extra * 3.0))
+                score += 18.0 * min(1.0, extra * 3.0)
+                if cn in ("het", "hert") and pieces == 4:
+                    score += 4.0  # Het 4P 추가 보정
         if "DOT_DMG" in tags:
-            score += 18.0 * (0.3 + 0.7 * min(1.0, dot * 3.0))
+            # DOT 세트: '지속 피해' 트리거가 없으면 강하게 감점/제외
+            if dot < 0.12:
+                score -= 16.0 if pieces == 4 else 12.0
+            else:
+                score += 18.0 * min(1.0, dot * 3.0)
+                if cn == "gimel" and pieces == 4:
+                    score += 3.0  # Gimel 4P 추가 보정
 
         # 스케일 매칭 보상: DEF/HP 스케일은 스탯 자체 기여도가 크므로 보상을 조금 더 줌
         if "ATK" in tags:
@@ -1483,123 +1569,159 @@ def _make_trigger_log(detail: dict, base: dict, profile: dict, limit_per_bucket:
     return lines
 
 
-def _score_set_breakdown(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dict], tag_idx: dict[str, dict], mode: str = "pve") -> tuple[float, list[str]]:
-    """Return (score, reasons[]) for transparency. Reasons are additive."""
-    tags = (tag_idx.get(set_name) or {}).get("tags4" if pieces == 4 else "tags2", set())
-
-    role = profile["role"]
-    scaling = profile["scaling"]
-    no_crit = profile["no_crit"]
-
-    dot = profile["dot_share"]
-    extra = profile["extra_share"]
-    ult = profile["ult_importance"]
-    debuff = profile["debuff_strength"]
-    heal = profile["heal_strength"]
-    shield = profile["shield_strength"]
-
-    score = 0.0
-    reasons: list[str] = []
+def _score_set_breakdown(profile: dict, set_name: str, pieces: int, rune_db: dict, tag_idx: dict, mode: str = "pve"):
+    """점수 산출 근거(디버깅용). _score_set과 동일한 규칙/가중치를 가능한 한 맞춰서 기록합니다."""
+    tags = (tag_idx.get(set_name) or {}).get("tags4" if pieces == 4 else "tags2", set()) or set()
+    tags = set(tags)
 
     md = (str(mode or "pve").strip().lower() or "pve")
-    if md == "pve" and pieces == 4 and _is_pve_excluded_opener_energy_4p(set_name, rune_db):
-        return (-1e9, ["PVE에서 '전투 시작 후 첫 10초 에너지' 계열 4세트는 추천 후보에서 제외(장기전 평균 효율 낮음)"])
+    cn = _canonical_set_name(set_name)
 
-    def add(delta: float, why: str):
+    dot = float(profile.get("dot_share", 0.0))
+    extra = float(profile.get("extra_share", 0.0))
+    ult = float(profile.get("ult_importance", 0.0))
+    heal = float(profile.get("heal_strength", 0.0))
+    shield = float(profile.get("shield_strength", 0.0))
+    vuln = float(profile.get("vuln_strength", 0.0))
+    role = str(profile.get("role", "dps") or "dps").strip().lower()
+    scaling = str(profile.get("scaling", "atk") or "atk").strip().lower()
+    no_crit = bool(profile.get("no_crit", False))
+    clazz = str(profile.get("class", "") or "").strip().lower()
+
+    reasons: list[str] = []
+    score = 0.0
+
+    def add(v: float, msg: str):
         nonlocal score
-        score += delta
-        reasons.append(f"{delta:+g}: {why}")
+        score += float(v)
+        if abs(v) >= 0.05:
+            reasons.append(f"{v:+.1f} {msg}")
 
-    # scaling match (mostly for 2pc)
-    if pieces == 2:
-        if "ATK" in tags and scaling == "ATK":
-            add(6.0, "2P ATK + scaling=ATK")
-        elif "ATK" in tags:
-            add(2.0, "2P ATK (off-scale)")
+    # PVE 전면 제외(방어적 가드)
+    if md == "pve" and pieces == 4 and (cn in ("kappa", "tide") or _is_pve_excluded_opener_energy_4p(set_name, rune_db)):
+        return -1e9, ["PVE 전면 제외: Kappa(구 Tide) 4세트(전투 시작~10초 에너지 효율)"]
 
-        if "DEF" in tags and scaling == "DEF":
-            add(6.0, "2P DEF + scaling=DEF")
-        elif "DEF" in tags:
-            add(2.0, "2P DEF (off-scale)")
-
-        if "HP" in tags and scaling == "HP":
-            add(6.0, "2P HP + scaling=HP")
-        elif "HP" in tags:
-            add(2.0, "2P HP (off-scale)")
-
-        if "CRIT_RATE" in tags and not no_crit:
-            if role == "dps":
-                add(6.0, "2P CRIT_RATE for DPS")
-            elif role == "debuffer":
-                add(2.0, "2P CRIT_RATE for debuffer")
-            elif profile.get("healer_hybrid"):
-                add(2.0, "2P CRIT_RATE for healer-hybrid")
-            else:
-                add(1.0, "2P CRIT_RATE (minor)")
-
-        if "ENERGY" in tags:
-            if role in ("buffer", "debuffer"):
-                add(5.0, "2P ENERGY for support")
-            else:
-                add(2.0, "2P ENERGY (minor)")
-
-        if "HEAL" in tags:
-            if role == "healer":
-                add(6.0, "2P HEAL for healer")
-            else:
-                add(1.0, "2P HEAL (minor)")
-
-    # 4pc tags / effects
+    # 4세트 트리거 정밀화
     if pieces == 4:
-        if "DOT" in tags:
-            if dot >= 0.35:
-                add(10.0, f"4P DOT strong (dot_share={dot:.2f})")
-            elif dot >= 0.20:
-                add(4.0, f"4P DOT medium (dot_share={dot:.2f})")
-            else:
-                add(-8.0, f"4P DOT weak → 감점 (dot_share={dot:.2f})")
+        if cn == "gimel" and dot < 0.12:
+            return -1e9, ["4P Gimel 제외: '지속 피해(DOT)' 트리거 없음"]
+        if cn in ("het", "hert") and extra < 0.12:
+            return -1e9, ["4P Het 제외: '추가 공격' 트리거 없음"]
+        if cn == "epsilon" and ult < 0.12:
+            return -1e9, ["4P Epsilon 제외: '궁극기 사용 후' 트리거 부족"]
+        if cn == "epsilon" and ult < 0.20:
+            add(-10.0, "Epsilon 4P: 궁극기 비중 낮음(발동 기대값↓)")
 
-        if "EXTRA_ATTACK" in tags:
-            if extra >= 0.25:
-                add(10.0, f"4P EXTRA_ATTACK strong (extra_share={extra:.2f})")
-            elif extra >= 0.12:
-                add(4.0, f"4P EXTRA_ATTACK medium (extra_share={extra:.2f})")
-            else:
-                add(-6.0, f"4P EXTRA_ATTACK weak → 감점 (extra_share={extra:.2f})")
+    # 2세트 기본 보정(스케일링/역할)
+    if pieces == 2:
+        if scaling == "atk" and "ATK" in tags:
+            add(+7.0, "2P ATK 스케일")
+        if scaling == "def" and "DEF" in tags:
+            add(+7.0, "2P DEF 스케일")
+        if scaling == "hp" and "HP" in tags:
+            add(+7.0, "2P HP 스케일")
 
-        if "CRIT" in tags and not no_crit:
-            if role == "dps":
-                add(8.0, "4P CRIT for DPS")
-            else:
-                add(2.0, "4P CRIT (minor)")
+        if role == "healer" and "HEAL" in tags:
+            add(+7.0, "2P HEAL(힐러)")
+        if shield > 0 and "SHIELD" in tags:
+            add(+6.0, "2P SHIELD(보호막)")
+        if role == "dps" and (not no_crit) and "CRIT_RATE" in tags:
+            add(+6.0, "2P CRIT_RATE(DPS)")
+        if role == "dps" and (not no_crit) and "CRIT_DMG" in tags:
+            add(+5.0, "2P CRIT_DMG(DPS)")
+        if role != "dps" and "ENERGY_EFF" in tags:
+            add(+3.0, "2P 에너지 효율")
 
+        # 2세트 트리거 정밀화(세트 도배 방지)
+        if cn == "gimel" and dot < 0.12:
+            add(-12.0, "Gimel 2P: DOT 트리거 없음")
+        if cn in ("het", "hert", "epsilon") and extra < 0.12:
+            add(-10.0, f"{set_name} 2P: 추가 공격 트리거 없음")
+
+    # 역할 기반(4pc 중심)
+    if role == "healer":
         if "HEAL" in tags:
-            if role == "healer" or heal >= 0.35:
-                add(8.0, f"4P HEAL for healer (heal_strength={heal:.2f})")
-            else:
-                add(1.0, "4P HEAL (minor)")
+            add(+20.0 + 10.0 * min(1.0, heal * 2.0), "힐 강화")
+        if "HP" in tags:
+            add(+8.0, "HP 기반 생존/힐")
+        if "DEF" in tags:
+            add(+6.0, "DEF 기반 생존/힐")
+        if "SHIELD" in tags and shield > 0:
+            add(+10.0, "보호막 강화")
+        if "ENERGY_EFF" in tags:
+            add(+4.0, "에너지 효율")
+        if "START_ENERGY" in tags:
+            add(+3.0, "시작 에너지")
 
-        if "SHIELD" in tags:
-            if shield >= 0.30:
-                add(7.0, f"4P SHIELD strong (shield_strength={shield:.2f})")
-            elif shield >= 0.15:
-                add(3.0, f"4P SHIELD medium (shield_strength={shield:.2f})")
-            else:
-                add(-3.0, f"4P SHIELD weak → 감점 (shield_strength={shield:.2f})")
+    elif role == "buffer":
+        if "TEAM_DMG" in tags:
+            add(+18.0 * min(1.0, ult * 1.8), "아군 피해증가(궁극기 연계)")
+        if "ENERGY_EFF" in tags:
+            add(+6.0, "에너지 효율")
+        if "START_ENERGY" in tags:
+            add(+5.0, "오프너 에너지")
+        if "HP" in tags:
+            add(+4.0, "생존(HP)")
+        if "DEF" in tags:
+            add(+4.0, "생존(DEF)")
 
-        if "DEBUFF" in tags:
-            if role == "debuffer" or debuff >= 0.35:
-                add(7.0, f"4P DEBUFF for debuffer (debuff_strength={debuff:.2f})")
+        if "EXTRA_DMG" in tags:
+            if extra < 0.12:
+                add(-10.0, "추가 공격 트리거 없음")
             else:
-                add(1.0, "4P DEBUFF (minor)")
+                add(+6.0 * min(1.0, extra * 3.0), "추가 공격 기반")
 
-        if "ENERGY" in tags:
-            if role in ("buffer", "debuffer") and ult >= 0.20:
-                add(6.0, f"4P ENERGY for support (ult_importance={ult:.2f})")
+    elif role == "debuffer":
+        if "VULN" in tags:
+            add(+20.0 * min(1.0, vuln * 2.0), "받피증/취약")
+        if "TEAM_DMG" in tags:
+            add(+8.0 * min(1.0, ult * 1.8), "팀 피해증가(궁극기)")
+        if "ENERGY_EFF" in tags:
+            add(+5.0, "에너지 효율")
+        if "START_ENERGY" in tags:
+            add(+4.0, "오프너 에너지")
+
+    else:
+        # DPS
+        if "BASIC_DMG" in tags:
+            add(+16.0, "기본공격 강화")
+        if "ULT_DMG" in tags:
+            add(+15.0 * min(1.0, ult * 1.8), "궁극기 피해")
+        if "TEAM_DMG" in tags:
+            add(+2.0, "팀 피해(부가)")
+
+        if "EXTRA_DMG" in tags:
+            if extra < 0.12:
+                add(-14.0 if pieces == 4 else -10.0, "추가 공격 트리거 없음")
             else:
-                add(1.0, "4P ENERGY (minor)")
+                add(+18.0 * min(1.0, extra * 3.0), "추가 공격 피해")
+                if cn in ("het", "hert") and pieces == 4:
+                    add(+4.0, "Het 4P 추가 보정")
 
-    return (round(score, 3), reasons)
+        if "DOT_DMG" in tags:
+            if dot < 0.12:
+                add(-16.0 if pieces == 4 else -12.0, "지속 피해 트리거 없음")
+            else:
+                add(+18.0 * min(1.0, dot * 3.0), "지속 피해")
+                if cn == "gimel" and pieces == 4:
+                    add(+3.0, "Gimel 4P 추가 보정")
+
+        if no_crit and ("CRIT_RATE" in tags or "CRIT_DMG" in tags):
+            add(-25.0, "치명타 비사용(no-crit)")
+
+    # 클래스 제한(예: Iots는 Debuffer 전용)
+    class_req = None
+    try:
+        class_req = (rune_db.get(set_name) or {}).get("classRestriction")
+    except Exception:
+        class_req = None
+    if class_req:
+        req = {str(x).strip().lower() for x in _as_list(class_req) if str(x).strip()}
+        if req and clazz and (clazz not in req):
+            add(-40.0, f"클래스 제한({class_req}) 불일치")
+
+    return score, reasons
+
 
 
 
@@ -1870,7 +1992,7 @@ def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> di
                     "note": r.get("note", ""),
                 })
             if invalid:
-                # PVE에서는 Tide 4세트는 어떤 경우에도 추천하지 않음 (오버라이드도 무시)
+                # PVE에서는 Kappa 4세트(구 Tide)는 어떤 경우에도 추천하지 않음 (오버라이드도 무시)
                 continue
             builds.append({
                 "title": str(b.get("title") or "Override"),
