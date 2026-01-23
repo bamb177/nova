@@ -1060,19 +1060,51 @@ _RE_TIDE_4P_START = re.compile(
     re.IGNORECASE,
 )
 
-def _is_tide_4p_exact(set_name: str, rune_db: dict[str, dict]) -> bool:
-    """Strict-ish identification for Tide 4-piece opener-limited text patterns."""
+def _canonical_set_name(name: str) -> str:
+    """Normalize rune set names that sometimes include bracket suffixes (e.g., 'Tide [Energy]')."""
+    if name is None:
+        return ""
+    s = str(name).strip().lower()
+    # common decorations: 'Tide [Energy]' / 'Tide(Energy)' / 'Tide - Energy'
+    s = re.sub(r"\s*[\(\[][^\)\]]+[\)\]]\s*$", "", s)  # trailing (...) or [...]
+    s = re.sub(r"\s*[-–—:]\s*[^-–—:]+\s*$", "", s)  # trailing ' - xxx'
+    return s.strip()
+
+
+def _find_rune_entry(set_name: str, rune_db: dict[str, dict]) -> tuple[str, dict]:
+    """Find rune db entry by exact key or canonical-prefix match."""
     if not set_name:
+        return "", {}
+    if set_name in rune_db:
+        return set_name, (rune_db.get(set_name) or {})
+    # try canonical prefix match
+    cn = _canonical_set_name(set_name)
+    if not cn:
+        return "", {}
+    for k, v in rune_db.items():
+        if _canonical_set_name(k) == cn:
+            return k, (v or {})
+    return "", {}
+
+
+def _is_tide_4p_exact(set_name: str, rune_db: dict[str, dict]) -> bool:
+    """Identify Tide 4-piece opener-limited patterns (including names like 'Tide [Energy]')."""
+    cn = _canonical_set_name(set_name)
+    if cn != "tide":
         return False
-    nm = str(set_name).strip().lower()
-    if nm != "tide":
+
+    key, r = _find_rune_entry(set_name, rune_db)
+    if not r:
         return False
-    r = rune_db.get(set_name) or {}
+
     four = str(r.get("fourPiece") or "")
     if not four:
         return False
-    # Require both 'battle start' context and '10s window' context to prevent false positives.
-    return bool(_RE_TIDE_4P_START.search(four) and _RE_TIDE_4P_10S.search(four))
+
+    # Require BOTH: start-of-battle AND first-10s (or equivalent) patterns to avoid false positives
+    has_10s = bool(_RE_TIDE_4P_10S.search(four))
+    has_start = bool(_RE_TIDE_4P_START.search(four))
+    return has_10s and has_start
 
 def _rune_tag_index(rune_db: dict[str, dict]) -> dict[str, dict]:
     idx: dict[str, dict] = {}
@@ -1692,9 +1724,24 @@ def _substats_for(profile: dict) -> list[str]:
     return ["Critical Rate (%)", "Critical Damage (%)", scaling_pct, "Attack Penetration (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
 
 
+def _format_set_effect_for_display(r: dict, pieces: int) -> tuple[str, str]:
+    """Return (two_piece_text, four_piece_text_for_display).
+
+    UI behavior: when pieces==4, it typically displays only the 4p text.
+    Requirement: for 4-set selections, display BOTH 2p and 4p effects together.
+    """
+    two = str(r.get("twoPiece") or "")
+    four = str(r.get("fourPiece") or "")
+    if pieces == 4 and two and four:
+        four_disp = f"2세트: {two}\n4세트: {four}"
+    else:
+        four_disp = four
+    return two, four_disp
+
 def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> dict:
     overrides = load_rune_overrides()
     rune_db = rune_db_by_name()
+    md = (str(mode or "pve").strip().lower() or "pve")
 
     ov = overrides.get(cid)
     if isinstance(ov, dict) and ov.get("builds"):
@@ -1702,20 +1749,29 @@ def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> di
         for b in ov.get("builds") or []:
             if not isinstance(b, dict):
                 continue
+            invalid = False
             sp = []
             for it in b.get("setPlan") or []:
                 if not isinstance(it, dict):
                     continue
                 sname = str(it.get("set") or "").strip()
                 r = rune_db.get(sname) or {}
+                pcs = int(it.get("pieces") or 0)
+                if md == "pve" and pcs == 4 and _is_tide_4p_exact(sname, rune_db):
+                    invalid = True
+                    break
+                two_txt, four_disp = _format_set_effect_for_display(r, pcs)
                 sp.append({
                     "set": sname,
-                    "pieces": int(it.get("pieces") or 0),
+                    "pieces": pcs,
                     "icon": r.get("icon"),
-                    "twoPiece": r.get("twoPiece", ""),
-                    "fourPiece": r.get("fourPiece", ""),
+                    "twoPiece": two_txt,
+                    "fourPiece": four_disp,
                     "note": r.get("note", ""),
                 })
+            if invalid:
+                # PVE에서는 Tide 4세트는 어떤 경우에도 추천하지 않음 (오버라이드도 무시)
+                continue
             builds.append({
                 "title": str(b.get("title") or "Override"),
                 "setPlan": sp,
@@ -1760,12 +1816,14 @@ def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> di
         for s in b.get("setPlan") or []:
             nm = s.get("set")
             r = rune_db.get(nm) or {}
+            pcs = int(s.get("pieces") or 0)
+            two_txt, four_disp = _format_set_effect_for_display(r, pcs)
             setplan.append({
                 "set": nm,
-                "pieces": s.get("pieces"),
+                "pieces": pcs,
                 "icon": r.get("icon"),
-                "twoPiece": r.get("twoPiece", ""),
-                "fourPiece": r.get("fourPiece", ""),
+                "twoPiece": two_txt,
+                "fourPiece": four_disp,
                 "note": r.get("note", ""),
             })
 
