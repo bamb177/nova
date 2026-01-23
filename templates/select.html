@@ -342,15 +342,91 @@ function pick(obj, ...keys) {
       return m.effectAny || "";
     }
 
-    function getRuneSetEffectText(setName, pieces, planItem){
-      const fromItem = extractEffectFromPlanItem(planItem, pieces);
-      if (fromItem && String(fromItem).trim()) return String(fromItem).trim();
-
-      const fromMeta = lookupEffectFromMeta(setName, pieces);
-      if (fromMeta && String(fromMeta).trim()) return String(fromMeta).trim();
-
-      return "";
+    function splitLabeled24(text){
+      const t = String(text || "").replace(/\r/g, "");
+      const has2 = /2\s*세트\s*[:：]/.test(t);
+      const has4 = /4\s*세트\s*[:：]/.test(t);
+      if (!has2 || !has4) return null;
+      const m = t.match(/2\s*세트\s*[:：]\s*([\s\S]*?)\s*4\s*세트\s*[:：]\s*([\s\S]*)/);
+      if (!m) return null;
+      return { e2: m[1] || "", e4: m[2] || "" };
     }
+
+    function cleanEffectBody(s){
+      let t = String(s || "").replace(/\r/g, "").trim();
+      if (!t) return "";
+      // remove leading "n세트:" label if present
+      t = t.replace(/^\s*\d+\s*세트\s*[:：]\s*/,"").trim();
+      // remove any embedded "n세트:" labels (keep numbers like +12% intact)
+      t = t.replace(/\s*\d+\s*세트\s*[:：]\s*/g, " ").trim();
+      return t;
+    }
+
+    function normalizeSetEffectText(setName, pieces, planItem){
+      const p = Number(pieces || 0) || 0;
+
+      // 4세트: 항상 2세트/4세트 2줄로 정규화
+      if (p >= 4){
+        const raw4_item = (() => {
+          if (!planItem || typeof planItem !== "object") return "";
+          const v = pick(planItem, "effect4p","effect_4p","fourEffect","fourPiece","four_piece","effect4","set4Effect","effect","desc","description","text","effectText","effect_text");
+          return (typeof v === "string") ? v : "";
+        })();
+        const raw2_item = (() => {
+          if (!planItem || typeof planItem !== "object") return "";
+          const v = pick(planItem, "effect2p","effect_2p","twoEffect","twoPiece","two_piece","effect2","set2Effect");
+          return (typeof v === "string") ? v : "";
+        })();
+        const raw4_meta = lookupEffectFromMeta(setName, 4);
+        const raw2_meta = lookupEffectFromMeta(setName, 2);
+
+        // Prefer parsing from 4p text if it already contains both labels
+        const parseSrc = (raw4_item && String(raw4_item).trim()) ? String(raw4_item) :
+                         ((raw4_meta && String(raw4_meta).trim()) ? String(raw4_meta) : "");
+        const parsed = splitLabeled24(parseSrc);
+
+        let e2 = "";
+        let e4 = "";
+
+        if (parsed){
+          e2 = cleanEffectBody(parsed.e2);
+          e4 = cleanEffectBody(parsed.e4);
+        }
+
+        if (!e2){
+          const r2 = (raw2_item && String(raw2_item).trim()) ? raw2_item : raw2_meta;
+          e2 = cleanEffectBody(r2);
+        }
+        if (!e4){
+          const r4 = (raw4_item && String(raw4_item).trim()) ? raw4_item : raw4_meta;
+          // If r4 still has both labels in one line (rare), force parse again
+          const maybe = splitLabeled24(String(r4 || ""));
+          if (maybe && !e2) e2 = cleanEffectBody(maybe.e2);
+          e4 = cleanEffectBody(maybe ? maybe.e4 : r4);
+        }
+
+        const lines = [];
+        if (e2) lines.push(`2세트: ${e2}`);
+        if (e4) lines.push(`4세트: ${e4}`);
+        return lines.join("\n").trim();
+      }
+
+      // 2세트: 항상 "2세트:" 라벨을 붙여 표시
+      if (p === 2){
+        const raw2 = extractEffectFromPlanItem(planItem, 2) || lookupEffectFromMeta(setName, 2) || "";
+        const e2 = cleanEffectBody(raw2);
+        return e2 ? `2세트: ${e2}` : "";
+      }
+
+      // other pieces: best effort
+      const any = extractEffectFromPlanItem(planItem, p) || lookupEffectFromMeta(setName, p) || "";
+      return cleanEffectBody(any);
+    }
+
+    function getRuneSetEffectText(setName, pieces, planItem){
+      return normalizeSetEffectText(setName, pieces, planItem);
+    }
+
 
     function hydrateRuneSetEffects(root){
       const scope = root || document;
@@ -368,7 +444,8 @@ function pick(obj, ...keys) {
           const m = RUNE_SET_META[setKey];
           if (!m) return;
 
-          const txt = (pieces >= 4 ? m.effect4p : (pieces === 2 ? m.effect2p : "")) || m.effectAny || "";
+          const setName = m.name || "";
+          const txt = getRuneSetEffectText(setName, pieces, null) || "";
           if (!txt) return;
 
           effEl.innerHTML = formatDescText(escapeHtml(String(txt)));
@@ -678,7 +755,6 @@ function pick(obj, ...keys) {
         const setNameRaw = String(s && s.set ? s.set : "-");
         const name = escapeHtml(setNameRaw);
         const pcsNum = Number(s && s.pieces ? s.pieces : 0) || 0;
-        const pcs = pcsNum ? `${pcsNum}세트` : "";
 
         // set effect text (prefer API payload; fallback to static rune meta if available)
         const effText = getRuneSetEffectText(setNameRaw, pcsNum, s);
@@ -692,7 +768,6 @@ function pick(obj, ...keys) {
           ${icon}
           <div class="rune-set-meta">
             <div class="rune-set-name">${name}</div>
-            <div class="rune-set-pcs muted">${escapeHtml(pcs)}</div>
             ${effHtml}
           </div>
         </div>`;
