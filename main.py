@@ -734,6 +734,7 @@ _KW_HEAL = ["heal", "healing", "restore", "recovery", "회복", "치유", "힐"]
 _KW_SHIELD = ["shield", "barrier", "보호막", "실드"]
 _KW_DOT = ["continuous", "dot", "damage over time", "burn", "bleed", "poison", "지속", "지속 피해", "도트", "중독", "화상", "출혈"]
 _KW_EXTRA = ["extra attack", "follow-up", "추가 공격", "추격", "추가타", "[extra attack]"]  # NOTE: '추가 피해'는 범용 추가데미지로 오탐이 많아 제외
+_KW_BASIC = ["basic attack", "normal attack", "auto attack", "basic atk", "normal atk", "기본 공격", "기본공격", "통상 공격", "일반 공격", "평타", "기본타"]
 _KW_TEAM = ["team", "all allies", "allied", "party", "아군", "팀", "전체", "전원"]
 _KW_BUFF = ["increase", "increased", "buff", "up", "증가", "상승", "강화", "부여"]
 _KW_DEBUFF = ["decrease", "reduced", "debuff", "down", "감소", "약화", "깎", "감쇠", "취약", "받는 피해"]
@@ -801,6 +802,50 @@ def _skill_texts(detail: dict) -> list[str]:
 
     return texts
 
+def _memory_texts(detail: dict) -> list[str]:
+    """Collect memory-card related texts to improve rune profiling.
+
+    The project uses multiple JSON schemas over time, so we scan common keys and also
+    fall back to keys containing 'memory'/'card'.
+    """
+    if not isinstance(detail, dict):
+        return []
+
+    texts: list[str] = []
+    common_keys = [
+        "memoryCards", "memory_cards", "memorycards",
+        "memoryCard", "memory_card", "memorycard",
+        "memory", "memories",
+        "cards", "card",
+        "recommendedMemory", "recommended_memory",
+        "memoryCardInfo", "memoryCardData",
+    ]
+    for key in common_keys:
+        if isinstance(detail.get(key), (dict, list, str)):
+            texts += _collect_texts(detail.get(key))
+
+    # fallback: any key containing memory/card
+    for k, v in detail.items():
+        if not isinstance(k, str):
+            continue
+        kl = k.lower()
+        if ("memory" in kl or "card" in kl) and isinstance(v, (dict, list, str)):
+            texts += _collect_texts(v)
+
+    # de-dup while preserving order
+    out: list[str] = []
+    seen = set()
+    for t in texts:
+        s = str(t).strip()
+        if not s:
+            continue
+        if s in seen:
+            continue
+        seen.add(s)
+        out.append(s)
+    return out
+
+
 
 # ---------- Scaling detection (ATK / HP / DEF) ----------
 
@@ -858,7 +903,7 @@ def detect_no_crit(detail: dict) -> bool:
         if detail.get(k) is True:
             return True
 
-    for t in _skill_texts(detail):
+    for t in (_skill_texts(detail) + _memory_texts(detail)):
         tl = t.lower()
         if any(k in tl for k in _KW_CRIT_DISABLE):
             return True
@@ -907,7 +952,7 @@ def _infer_role_from_texts(texts: list[str], base_role: str) -> str:
 
 
 def _detect_profile(detail: dict, base: dict) -> dict:
-    texts = _skill_texts(detail or {})
+    texts = (_skill_texts(detail or {}) + _memory_texts(detail or {}))
 
     atk_hits, hp_hits, def_hits = [], [], []
     for t in texts:
@@ -925,6 +970,7 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         scaling = "ATK" if best == atk_s else ("HP" if best == hp_s else "DEF")
 
     dot_cnt = extra_cnt = ult_cnt = 0
+    basic_cnt = 0
     team_buff_cnt = debuff_cnt = heal_cnt = shield_cnt = 0
 
     for t in texts:
@@ -934,6 +980,8 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         # strict extra attack detection (avoid false positives like "추가 피해")
         if ("extra attack" in tl) or ("follow-up" in tl) or ("추가 공격" in t) or ("추격" in t):
             extra_cnt += 1
+        if any(k in tl for k in _KW_BASIC):
+            basic_cnt += 1
         if any(k in tl for k in _KW_ULT):
             ult_cnt += 1
         if any(k in tl for k in _KW_HEAL):
@@ -948,6 +996,7 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     total = max(1, len(texts))
     dot_share = dot_cnt / total
     extra_share = extra_cnt / total
+    basic_share = basic_cnt / total
     ult_importance = min(1.0, ult_cnt / total * 2.0)
     team_buff_strength = min(1.0, team_buff_cnt / total * 2.0)
     debuff_strength = min(1.0, debuff_cnt / total * 2.0)
@@ -976,6 +1025,7 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         "def_score": def_s,
         "dot_share": dot_share,
         "extra_share": extra_share,
+        "basic_share": basic_share,
         "ult_importance": ult_importance,
         "team_buff_strength": team_buff_strength,
         "debuff_strength": debuff_strength,
@@ -1103,8 +1153,17 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
 
     # Strong anti-spam guard: Tide 4P is opener-limited; in PVE 장기전 평균 효율이 낮아 패널티 적용
     md = (str(mode or "pve").strip().lower() or "pve")
-    if md == "pve" and pieces == 4 and _is_tide_4p_exact(set_name, rune_db):
-        score -= 30.0
+    if md == "pve" and pieces == 4:
+        # Hard rule: Tide 4P (and any "first 10s" opener-limited 4P) is ignored in PVE.
+        # PVE는 장기전 기준 평균 효율이 중요하므로 오프너(초반 10초) 한정 버프는 채용하지 않습니다.
+        nm = str(set_name).strip().lower()
+        if nm == "tide":
+            score -= 9999.0
+        else:
+            r0 = rune_db.get(set_name) or {}
+            four0 = str(r0.get("fourPiece") or "")
+            if four0 and _RE_TIDE_4P_10S.search(four0):
+                score -= 40.0
 
 
     # scaling match (mostly for 2pc)
@@ -1218,7 +1277,14 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         # 기본공격 피해: 대부분 ATK 기반(평타 비중)에서만 의미가 큼.
         # DEF/HP 스케일 DPS에는 오추천을 유발하므로 거의 가치를 주지 않는다.
         if "BASIC_DMG" in tags:
-            score += 10.0 if scaling == "ATK" else 0.0
+            # 기본공격 세트는 "평타/기본공격 비중"이 실제로 높을 때만 고가치.
+            basic = float(profile.get("basic_share") or 0.0)
+            if scaling == "ATK":
+                if basic < 0.08:
+                    score -= 6.0
+                score += 18.0 * (0.25 + 0.75 * min(1.0, basic * 3.0))
+            else:
+                score += 0.0
         if "EXTRA_DMG" in tags:
             # Extra-attack 세트는 실제 'Extra attack/추가 공격' 기믹이 있을 때만 고가치
             if extra < 0.12:
@@ -1284,6 +1350,7 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve"
 
     rationale: list[str] = []
     rationale.append(f"역할 판정: {profile['role']} / 스케일링 판정: {profile['scaling']}")
+    rationale.append(f"키트 판정: DOT {profile.get('dot_share'):.2f}, Extra {profile.get('extra_share'):.2f}, Basic {float(profile.get('basic_share') or 0.0):.2f}, Ult {profile.get('ult_importance'):.2f}")
     if profile.get("sample_text"):
         rationale.append(f"스케일링 근거 예시: '{str(profile['sample_text'])[:140]}'")
     if profile.get("no_crit"):
@@ -1304,7 +1371,7 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve"
             "setPlan": [{"set": s4, "pieces": 4}, {"set": s2, "pieces": 2}],
         })
     if md == "pve":
-        rationale.append("PVE: Tide 4세트(전투 시작/첫 10초 오프너 한정)는 장기전 평균 효율이 낮아 강한 패널티를 적용했습니다.")
+        rationale.append("PVE: 초반 10초(오프너) 한정 4세트(예: Tide)는 장기전 평균 효율이 낮아 추천에서 제외(또는 매우 강한 패널티)합니다.")
     return builds, rationale
 
 
@@ -1411,9 +1478,36 @@ def _substats_for(profile: dict) -> list[str]:
     return ["Critical Rate (%)", "Critical Damage (%)", scaling_pct, "Attack Penetration (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
 
 
+def _pve_disallowed_override(builds: list[dict], rune_db: dict[str, dict]) -> bool:
+    """Hard constraints for PVE rune builds.
+
+    - Tide 4P is opener-limited and treated as unusable in PVE.
+    - Any 4P with explicit 'first 10 seconds' type text is also avoided in PVE.
+    """
+    try:
+        for b in builds or []:
+            for it in (b.get("setPlan") or []):
+                if not isinstance(it, dict):
+                    continue
+                nm = str(it.get("set") or "").strip()
+                pcs = int(it.get("pieces") or 0)
+                if pcs != 4:
+                    continue
+                if nm.lower() == "tide":
+                    return True
+                r = rune_db.get(nm) or {}
+                four = str(r.get("fourPiece") or "")
+                if four and _RE_TIDE_4P_10S.search(four):
+                    return True
+    except Exception:
+        return False
+    return False
+
+
 def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> dict:
     overrides = load_rune_overrides()
     rune_db = rune_db_by_name()
+    md = (str(mode or "pve").strip().lower() or "pve")
 
     ov = overrides.get(cid)
     if isinstance(ov, dict) and ov.get("builds"):
@@ -1443,7 +1537,12 @@ def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> di
                 "notes": b.get("notes") or [],
                 "rationale": b.get("rationale") or ["rune_overrides.json 수동 오버라이드 적용"],
             })
-        return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
+        # Hard sanity: PVE에서는 오프너(초반 10초) 한정 4세트(예: Tide)를 추천하지 않습니다.
+        if md == "pve" and _pve_disallowed_override(builds, rune_db):
+            # ignore override and fall back to auto recommendation
+            builds = []
+        else:
+            return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
 
     profile = _detect_profile(detail or {}, base or {})
     core_builds, rationale = _best_rune_builds(profile, rune_db, mode=mode)
