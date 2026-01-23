@@ -261,7 +261,7 @@ def parse_rune_effect_text(text: str) -> dict:
         dur = _parse_seconds(t)
         out["cond"] = {"type": "after_extra", "dur": dur}
 
-    if ("after dealing continuous damage" in tl) or _is_dot_text(t):
+    if "after dealing continuous damage" in tl or "continuous damage" in tl or "dot" in tl or "지속" in t:
         dur = _parse_seconds(t)
         out["cond"] = {"type": "after_dot", "dur": dur}
 
@@ -322,7 +322,7 @@ def parse_rune_effect_text(text: str) -> dict:
             out["mods"]["extra_dmg"] = out["mods"].get("extra_dmg", 0.0) + p
 
     # Continuous damage +20% (DOT)
-    if _is_dot_text(t):
+    if "continuous damage" in tl or "dot" in tl or "지속" in t:
         p = _pct_from_text(t)
         if p is not None and ("damage" in tl or "피해" in t):
             out["mods"]["dot_dmg"] = out["mods"].get("dot_dmg", 0.0) + p
@@ -732,41 +732,7 @@ def rune_db_by_name() -> dict[str, dict]:
 # Keyword dictionaries (EN + KO) used for both character profiling and rune-effect tagging.
 _KW_HEAL = ["heal", "healing", "restore", "recovery", "회복", "치유", "힐"]
 _KW_SHIELD = ["shield", "barrier", "보호막", "실드"]
-_KW_DOT = ["continuous damage", "damage over time", "dot", "burn", "bleed", "poison", "지속 피해", "도트", "중독", "화상", "출혈", "매초", "초마다"]
-_KW_BASIC = ["basic attack", "normal attack", "기본 공격", "평타"]
-
-# DOT(지속피해) 오탐 방지: '지속시간/지속' 같은 범용 단어는 제외하고,
-# 실제 지속 피해(매초/초마다 피해, 중독/화상/출혈 등)만 매칭합니다.
-_RE_DOT_STRICT_EN = re.compile(r"(damage\s*over\s*time|continuous\s*damage|\bdot\b|burn|bleed|poison)", re.IGNORECASE)
-_RE_DOT_PERIODIC_EN = re.compile(r"(per\s*second|every\s*second)", re.IGNORECASE)
-_RE_DOT_STRICT_KO = re.compile(r"(지속\s*피해|도트|중독|화상|출혈)", re.IGNORECASE)
-_RE_DOT_PERIODIC_KO = re.compile(r"(매초|초마다|초\s*동안\s*매)", re.IGNORECASE)
-
-def _is_dot_text(s: str) -> bool:
-    if not isinstance(s, str):
-        return False
-    t = s.strip()
-    if not t:
-        return False
-    tl = t.lower()
-
-    # Explicit DOT terms
-    if _RE_DOT_STRICT_EN.search(tl):
-        return True
-    if _RE_DOT_STRICT_KO.search(t):
-        return True
-
-    # Periodic wording must be accompanied by 'damage/피해' to avoid heal/other periodic false positives
-    if _RE_DOT_PERIODIC_EN.search(tl) and ("damage" in tl or "dmg" in tl):
-        return True
-    if _RE_DOT_PERIODIC_KO.search(t) and ("피해" in t or "데미지" in tl):
-        return True
-
-    return False
-
-def _is_dot_effect_text(s: str) -> bool:
-    # Alias: rune effect text uses the same DOT detection rules
-    return _is_dot_text(s)
+_KW_DOT = ["dot", "damage over time", "continuous damage", "burn", "bleed", "poison", "지속 피해", "지속피해", "도트", "중독", "화상", "출혈"]
 _KW_EXTRA = ["extra attack", "follow-up", "추가 공격", "추격", "추가타", "[extra attack]"]  # NOTE: '추가 피해'는 범용 추가데미지로 오탐이 많아 제외
 _KW_TEAM = ["team", "all allies", "allied", "party", "아군", "팀", "전체", "전원"]
 _KW_BUFF = ["increase", "increased", "buff", "up", "증가", "상승", "강화", "부여"]
@@ -778,6 +744,11 @@ _KW_CRIT_DISABLE = ["cannot crit", "can't crit", "no crit", "crit disabled", "�
 
 # Extra-attack strict matcher: 실제 '추가 공격(Extra attack)' 타입만 인정(범용 '추가 피해' 제외)
 _RE_EXTRA_ATTACK_STRICT = re.compile(r"(\[\s*extra\s*attack\s*\]|extra\s*attack|follow-?up|추가\s*공격|추격)", re.IGNORECASE)
+# DOT strict matcher: avoid false positives from generic '지속'(e.g., '지속시간')
+_RE_DOT_STRICT = re.compile(
+    r"(damage\s*over\s*time|\bdot\b|continuous\s*damage|burn|bleed|poison|지속\s*피해|도트|중독|화상|출혈)",
+    re.IGNORECASE,
+)
 
 
 # ---------- Character text extraction ----------
@@ -924,8 +895,6 @@ def _infer_role_from_texts(texts: list[str], base_role: str) -> str:
     team_buff = debuff = heal = 0
     for t in texts:
         tl = t.lower()
-        if any(k in tl for k in _KW_BASIC):
-            basic_cnt += 1
         if any(k in tl for k in _KW_HEAL):
             heal += 2
         if any(k in tl for k in _KW_TEAM) and any(k in tl for k in _KW_BUFF):
@@ -960,14 +929,12 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     if best > 0:
         scaling = "ATK" if best == atk_s else ("HP" if best == hp_s else "DEF")
 
-    dot_cnt = extra_cnt = ult_cnt = basic_cnt = 0
+    dot_cnt = extra_cnt = ult_cnt = 0
     team_buff_cnt = debuff_cnt = heal_cnt = shield_cnt = 0
 
     for t in texts:
         tl = t.lower()
-        if any(k in tl for k in _KW_BASIC):
-            basic_cnt += 1
-        if _is_dot_text(t):
+        if _RE_DOT_STRICT.search(t):
             dot_cnt += 1
         # strict extra attack detection (avoid false positives like "추가 피해")
         if ("extra attack" in tl) or ("follow-up" in tl) or ("추가 공격" in t) or ("추격" in t):
@@ -986,7 +953,6 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     total = max(1, len(texts))
     dot_share = dot_cnt / total
     extra_share = extra_cnt / total
-    basic_share = basic_cnt / total
     ult_importance = min(1.0, ult_cnt / total * 2.0)
     team_buff_strength = min(1.0, team_buff_cnt / total * 2.0)
     debuff_strength = min(1.0, debuff_cnt / total * 2.0)
@@ -1015,7 +981,6 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         "def_score": def_s,
         "dot_share": dot_share,
         "extra_share": extra_share,
-        "basic_share": basic_share,
         "ult_importance": ult_importance,
         "team_buff_strength": team_buff_strength,
         "debuff_strength": debuff_strength,
@@ -1058,7 +1023,7 @@ def _rune_tags_from_effect(effect_text: str) -> set[str]:
         tags.add("BASIC_DMG")
     if "extra attack" in tl or "추가 공격" in t:
         tags.add("EXTRA_DMG")
-    if _is_dot_effect_text(t):
+    if ("continuous damage" in tl) or ("damage over time" in tl) or ("지속 피해" in t) or ("도트" in t) or ("중독" in t) or ("화상" in t) or ("출혈" in t):
         tags.add("DOT_DMG")
 
     # heal/shield
@@ -1150,15 +1115,34 @@ def _is_tide_4p_exact(set_name: str, rune_db: dict[str, dict]) -> bool:
     has_start = bool(_RE_TIDE_4P_START.search(four))
     return has_10s and has_start
 
+_RE_ENERGY_EFF = re.compile(r"(energy\s*gain\s*efficiency|에너지\s*획득\s*효율|에너지\s*획득효율)", re.IGNORECASE)
+
+def _is_pve_excluded_opener_energy_4p(set_name: str, rune_db: dict[str, dict]) -> bool:
+    """Exclude Tide-like opener sets in PVE by effect text, even if the set name was renamed (e.g., Tide -> Kappa).
+
+    Rule: 4P effect that is limited to the first ~10 seconds AND triggers at battle start AND is about energy gain/efficiency.
+    """
+    key, r = _find_rune_entry(set_name, rune_db)
+    if not r:
+        return False
+    four = str(r.get("fourPiece") or "")
+    if not four:
+        return False
+
+    has_10s = bool(_RE_TIDE_4P_10S.search(four))
+    has_start = bool(_RE_TIDE_4P_START.search(four))
+    if not (has_10s and has_start):
+        return False
+
+    tl = four.lower()
+    has_energy = bool(_RE_ENERGY_EFF.search(four)) or (("energy" in tl) and ("gain" in tl or "regen" in tl)) or (("에너지" in four) and ("획득" in four or "회복" in four))
+    return bool(has_energy)
 def _rune_tag_index(rune_db: dict[str, dict]) -> dict[str, dict]:
     idx: dict[str, dict] = {}
     for name, r in rune_db.items():
         two = str(r.get("twoPiece") or "")
         four = str(r.get("fourPiece") or "")
-        t2 = _rune_tags_from_effect(two)
-        t4 = _rune_tags_from_effect(four)
-        # 4세트는 2세트 효과를 포함하므로 태그도 합집합으로 산정
-        idx[name] = {"tags2": t2, "tags4": (t4 | t2)}
+        idx[name] = {"tags2": _rune_tags_from_effect(two), "tags4": _rune_tags_from_effect(four)}
     return idx
 
 
@@ -1173,7 +1157,6 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
 
     dot = profile["dot_share"]
     extra = profile["extra_share"]
-    basic = profile.get("basic_share", 0.0)
     ult = profile["ult_importance"]
     debuff = profile["debuff_strength"]
     heal = profile["heal_strength"]
@@ -1183,7 +1166,7 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
 
     # Strong anti-spam guard: Tide 4P is opener-limited; in PVE는 '전투 시작/첫 10초' 한정 효과라 평균 효율이 낮아 추천 후보에서 제외
     md = (str(mode or "pve").strip().lower() or "pve")
-    if md == "pve" and pieces == 4 and _is_tide_name(set_name):
+    if md == "pve" and pieces == 4 and _is_pve_excluded_opener_energy_4p(set_name, rune_db):
         return -1e9
 
 
@@ -1298,10 +1281,7 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         # 기본공격 피해: 대부분 ATK 기반(평타 비중)에서만 의미가 큼.
         # DEF/HP 스케일 DPS에는 오추천을 유발하므로 거의 가치를 주지 않는다.
         if "BASIC_DMG" in tags:
-            if scaling == "ATK":
-                score += 8.0 + 8.0 * min(1.0, basic * 2.5)
-            else:
-                score += 0.0
+            score += 10.0 if scaling == "ATK" else 0.0
         if "EXTRA_DMG" in tags:
             # Extra-attack 세트는 실제 'Extra attack/추가 공격' 기믹이 있을 때만 고가치
             if extra < 0.12:
@@ -1309,13 +1289,7 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
             else:
                 score += 18.0 * (0.3 + 0.7 * min(1.0, extra * 3.0))
         if "DOT_DMG" in tags:
-            # DOT 세트는 '지속 피해' 비중이 충분할 때만 유효. (오탐/도배 방지)
-            if dot < 0.15:
-                score -= 14.0 if pieces == 4 else 6.0
-            elif dot < 0.30:
-                score += 6.0 * ((dot - 0.15) / 0.15)
-            else:
-                score += 18.0 * min(1.0, (dot - 0.15) / 0.35)
+            score += 18.0 * (0.3 + 0.7 * min(1.0, dot * 3.0))
 
         # 스케일 매칭 보상: DEF/HP 스케일은 스탯 자체 기여도가 크므로 보상을 조금 더 줌
         if "ATK" in tags:
@@ -1423,7 +1397,7 @@ def _make_trigger_log(detail: dict, base: dict, profile: dict, limit_per_bucket:
 
     # Summary
     lines.append(f"LOG: role={profile.get('role')} (base={_role_from_base(base or {})}), scaling={profile.get('scaling')}, no_crit={bool(profile.get('no_crit'))}")
-    lines.append(f"LOG: shares(dot={profile.get('dot_share'):.2f}, extra={profile.get('extra_share'):.2f}, basic={profile.get('basic_share', 0.0):.2f}, ult={profile.get('ult_importance'):.2f}, heal={profile.get('heal_strength'):.2f}, shield={profile.get('shield_strength'):.2f}, buff={profile.get('team_buff_strength'):.2f}, debuff={profile.get('debuff_strength'):.2f})")
+    lines.append(f"LOG: shares(dot={profile.get('dot_share'):.2f}, extra={profile.get('extra_share'):.2f}, ult={profile.get('ult_importance'):.2f}, heal={profile.get('heal_strength'):.2f}, shield={profile.get('shield_strength'):.2f}, buff={profile.get('team_buff_strength'):.2f}, debuff={profile.get('debuff_strength'):.2f})")
 
     # Helper to show excerpts
     def ex(t: str, n: int = 60) -> str:
@@ -1450,13 +1424,12 @@ def _make_trigger_log(detail: dict, base: dict, profile: dict, limit_per_bucket:
 
     # Per bucket keyword triggers (top hits)
     kw_defs = [
-        ("DOT", None),  # strict DOT detection via _is_dot_text()
+        ("DOT", _KW_DOT),
         ("HEAL", _KW_HEAL),
         ("SHIELD", _KW_SHIELD),
         ("TEAM_BUFF", _KW_TEAM),
         ("DEBUFF", _KW_DEBUFF),
         ("VULN", _KW_VULN),
-        ("BASIC", _KW_BASIC),
         ("ULT", _KW_ULT),
     ]
 
@@ -1483,12 +1456,7 @@ def _make_trigger_log(detail: dict, base: dict, profile: dict, limit_per_bucket:
                 break
             for t in texts:
                 tl = t.lower()
-                hit = False
-                if label == "DOT":
-                    hit = _is_dot_text(t)
-                else:
-                    hit = bool(kws) and any(k in tl for k in kws)
-                if hit:
+                if (label == "DOT" and _RE_DOT_STRICT.search(t)) or (label != "DOT" and any(k in tl for k in kws)):
                     w = W.get(label, 1.0)
                     outl.append(f"LOG[{bucket}]: {label} w={w} | {ex(t)}")
                     shown += 1
@@ -1516,10 +1484,7 @@ def _make_trigger_log(detail: dict, base: dict, profile: dict, limit_per_bucket:
 
 
 def _score_set_breakdown(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dict], tag_idx: dict[str, dict], mode: str = "pve") -> tuple[float, list[str]]:
-    """
-    Return (score, reasons[]) for transparency.
-    IMPORTANT: reasons/score must stay consistent with _score_set() to make 역추적이 가능.
-    """
+    """Return (score, reasons[]) for transparency. Reasons are additive."""
     tags = (tag_idx.get(set_name) or {}).get("tags4" if pieces == 4 else "tags2", set())
 
     role = profile["role"]
@@ -1528,27 +1493,24 @@ def _score_set_breakdown(profile: dict, set_name: str, pieces: int, rune_db: dic
 
     dot = profile["dot_share"]
     extra = profile["extra_share"]
-    basic = profile.get("basic_share", 0.0)
     ult = profile["ult_importance"]
     debuff = profile["debuff_strength"]
     heal = profile["heal_strength"]
     shield = profile["shield_strength"]
 
-    md = (str(mode or "pve").strip().lower() or "pve")
-    if md == "pve" and pieces == 4 and _is_tide_name(set_name):
-        return (-1e9, ["PVE에서 Tide 4세트는 추천 후보에서 제외(첫 10초 오프너 한정)"])
-
     score = 0.0
     reasons: list[str] = []
 
+    md = (str(mode or "pve").strip().lower() or "pve")
+    if md == "pve" and pieces == 4 and _is_pve_excluded_opener_energy_4p(set_name, rune_db):
+        return (-1e9, ["PVE에서 '전투 시작 후 첫 10초 에너지' 계열 4세트는 추천 후보에서 제외(장기전 평균 효율 낮음)"])
+
     def add(delta: float, why: str):
         nonlocal score
-        score += float(delta)
+        score += delta
         reasons.append(f"{delta:+g}: {why}")
 
-    # -----------------
-    # 2pc: scaling match + crit rate (same as _score_set)
-    # -----------------
+    # scaling match (mostly for 2pc)
     if pieces == 2:
         if "ATK" in tags and scaling == "ATK":
             add(6.0, "2P ATK + scaling=ATK")
@@ -1573,123 +1535,72 @@ def _score_set_breakdown(profile: dict, set_name: str, pieces: int, rune_db: dic
             elif profile.get("healer_hybrid"):
                 add(2.0, "2P CRIT_RATE for healer-hybrid")
             else:
-                add(0.0, "2P CRIT_RATE (low value for this role)")
+                add(1.0, "2P CRIT_RATE (minor)")
 
-    # -----------------
-    # role-specific (same as _score_set)
-    # -----------------
-    if role == "buffer":
-        if "TEAM_DMG" in tags:
-            add(18.0 * (0.6 + 0.4 * ult), f"TEAM_DMG (ult_importance={ult:.2f})")
-        if "ENERGY_EFF" in tags:
-            add(20.0 * (0.6 + 0.4 * ult), f"ENERGY_EFF (ult_importance={ult:.2f})")
-        if "START_ENERGY" in tags:
-            add(16.0 * (0.6 + 0.4 * ult), f"START_ENERGY (ult_importance={ult:.2f})")
-        if "ULT_TRIGGER" in tags:
-            add(6.0 * ult, f"ULT_TRIGGER (ult_importance={ult:.2f})")
-        if "HP" in tags or "DEF" in tags:
-            add(2.0, "survivability tags for buffer")
-        if ("CRIT_DMG" in tags) or ("CRIT_RATE" in tags) or ("BASIC_DMG" in tags):
-            add(0.5, "minor DPS-tag penalty guard for buffer")
+        if "ENERGY" in tags:
+            if role in ("buffer", "debuffer"):
+                add(5.0, "2P ENERGY for support")
+            else:
+                add(2.0, "2P ENERGY (minor)")
 
-    elif role == "debuffer":
-        if "VULN" in tags:
-            add(22.0 * (0.6 + 0.4 * ult) * (0.6 + 0.4 * max(debuff, 0.2)),
-                f"VULN (debuff_strength={debuff:.2f}, ult_importance={ult:.2f})")
-        if "TEAM_DMG" in tags:
-            add(8.0 * (0.6 + 0.4 * ult), f"TEAM_DMG (ult_importance={ult:.2f})")
-        if "ENERGY_EFF" in tags:
-            add(10.0 * (0.6 + 0.4 * ult), f"ENERGY_EFF (ult_importance={ult:.2f})")
-        if "START_ENERGY" in tags:
-            add(8.0 * (0.6 + 0.4 * ult), f"START_ENERGY (ult_importance={ult:.2f})")
-        if "ULT_TRIGGER" in tags:
-            add(4.0 * ult, f"ULT_TRIGGER (ult_importance={ult:.2f})")
-        if "HP" in tags or "DEF" in tags:
-            add(2.5, "survivability tags for debuffer")
-
-    elif role == "healer":
         if "HEAL" in tags:
-            add(22.0 * (0.7 + 0.3 * max(heal, 0.2)), f"HEAL (heal_strength={heal:.2f})")
-        if "ENERGY_EFF" in tags:
-            add(10.0 * (0.6 + 0.4 * ult), f"ENERGY_EFF (ult_importance={ult:.2f})")
-        if "START_ENERGY" in tags:
-            add(10.0 * (0.6 + 0.4 * ult), f"START_ENERGY (ult_importance={ult:.2f})")
-        if "HP" in tags or "DEF" in tags:
-            add(6.0, "survivability tags for healer")
+            if role == "healer":
+                add(6.0, "2P HEAL for healer")
+            else:
+                add(1.0, "2P HEAL (minor)")
+
+    # 4pc tags / effects
+    if pieces == 4:
+        if "DOT" in tags:
+            if dot >= 0.35:
+                add(10.0, f"4P DOT strong (dot_share={dot:.2f})")
+            elif dot >= 0.20:
+                add(4.0, f"4P DOT medium (dot_share={dot:.2f})")
+            else:
+                add(-8.0, f"4P DOT weak → 감점 (dot_share={dot:.2f})")
+
+        if "EXTRA_ATTACK" in tags:
+            if extra >= 0.25:
+                add(10.0, f"4P EXTRA_ATTACK strong (extra_share={extra:.2f})")
+            elif extra >= 0.12:
+                add(4.0, f"4P EXTRA_ATTACK medium (extra_share={extra:.2f})")
+            else:
+                add(-6.0, f"4P EXTRA_ATTACK weak → 감점 (extra_share={extra:.2f})")
+
+        if "CRIT" in tags and not no_crit:
+            if role == "dps":
+                add(8.0, "4P CRIT for DPS")
+            else:
+                add(2.0, "4P CRIT (minor)")
+
+        if "HEAL" in tags:
+            if role == "healer" or heal >= 0.35:
+                add(8.0, f"4P HEAL for healer (heal_strength={heal:.2f})")
+            else:
+                add(1.0, "4P HEAL (minor)")
 
         if "SHIELD" in tags:
-            if shield <= 0.05:
-                if pieces == 4:
-                    add(-6.0, "SHIELD 4P blocked (no shield mechanics detected)")
+            if shield >= 0.30:
+                add(7.0, f"4P SHIELD strong (shield_strength={shield:.2f})")
+            elif shield >= 0.15:
+                add(3.0, f"4P SHIELD medium (shield_strength={shield:.2f})")
             else:
-                add(10.0 * min(1.0, shield), f"SHIELD (shield_strength={shield:.2f})")
+                add(-3.0, f"4P SHIELD weak → 감점 (shield_strength={shield:.2f})")
 
-        if profile.get("healer_hybrid") and not no_crit:
-            if ("CRIT_RATE" in tags) or ("CRIT_DMG" in tags):
-                add(3.0, "healer-hybrid crit synergy")
-            if "ATK" in tags and scaling == "ATK":
-                add(4.0, "healer-hybrid ATK scaling synergy")
-
-    elif role == "tank":
-        if "HP" in tags:
-            add(16.0, "HP for tank")
-        if "DEF" in tags:
-            add(16.0, "DEF for tank")
-
-        if "SHIELD" in tags:
-            if shield <= 0.05:
-                if pieces == 4:
-                    add(-6.0, "SHIELD 4P blocked (no shield mechanics detected)")
+        if "DEBUFF" in tags:
+            if role == "debuffer" or debuff >= 0.35:
+                add(7.0, f"4P DEBUFF for debuffer (debuff_strength={debuff:.2f})")
             else:
-                add(14.0 * min(1.0, shield), f"SHIELD (shield_strength={shield:.2f})")
+                add(1.0, "4P DEBUFF (minor)")
 
-        if "START_ENERGY" in tags:
-            add(3.0, "START_ENERGY (minor)")
-        if "ENERGY_EFF" in tags:
-            add(3.0, "ENERGY_EFF (minor)")
-
-    else:
-        # DPS
-        if (("CRIT_RATE" in tags) or ("CRIT_DMG" in tags)) and not no_crit:
-            add(16.0 if scaling == "ATK" else 8.0, f"CRIT for DPS (scaling={scaling})")
-
-        if "BASIC_DMG" in tags:
-            if scaling == "ATK":
-                add(8.0 + 8.0 * min(1.0, basic * 2.5), f"BASIC_DMG (basic_share={basic:.2f})")
+        if "ENERGY" in tags:
+            if role in ("buffer", "debuffer") and ult >= 0.20:
+                add(6.0, f"4P ENERGY for support (ult_importance={ult:.2f})")
             else:
-                add(0.0, "BASIC_DMG ignored (non-ATK scaling)")
-
-        if "EXTRA_DMG" in tags:
-            if extra < 0.12:
-                add(-8.0, f"EXTRA_DMG blocked (extra_share={extra:.2f})")
-            else:
-                add(18.0 * (0.3 + 0.7 * min(1.0, extra * 3.0)), f"EXTRA_DMG (extra_share={extra:.2f})")
-
-        if "DOT_DMG" in tags:
-            if dot < 0.15:
-                add(-14.0 if pieces == 4 else -6.0, f"DOT_DMG blocked (dot_share={dot:.2f})")
-            elif dot < 0.30:
-                add(6.0 * ((dot - 0.15) / 0.15), f"DOT_DMG medium (dot_share={dot:.2f})")
-            else:
-                add(18.0 * min(1.0, (dot - 0.15) / 0.35), f"DOT_DMG strong (dot_share={dot:.2f})")
-
-        if "ATK" in tags:
-            if scaling == "ATK":
-                add(8.0, "ATK scaling match")
-            else:
-                add(-12.0 if pieces == 4 else -8.0, f"ATK blocked for non-ATK scaling (scaling={scaling})")
-
-        if "DEF" in tags and scaling == "DEF":
-            add(14.0, "DEF scaling match")
-        if "HP" in tags and scaling == "HP":
-            add(14.0, "HP scaling match")
-
-        if "ENERGY_EFF" in tags:
-            add(4.0 * ult, f"ENERGY_EFF (ult_importance={ult:.2f})")
-        if "START_ENERGY" in tags:
-            add(3.0 * ult, f"START_ENERGY (ult_importance={ult:.2f})")
+                add(1.0, "4P ENERGY (minor)")
 
     return (round(score, 3), reasons)
+
 
 
 def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve") -> tuple[list[dict], list[str]]:
@@ -1712,11 +1623,29 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve"
             best.append((total, s4, s2))
 
     best.sort(key=lambda x: x[0], reverse=True)
+
+    # Fallback: if scoring filters eliminated all combinations, pick the best available 4P and 2P separately.
+    fallback_used = False
+    if not best and sets:
+        fallback_used = True
+        # pick best 4P excluding hard-excluded sets
+        cand4 = [( _score_set(profile, s, 4, rune_db, tag_idx, mode=mode), s) for s in sets]
+        cand4 = [(sc, s) for (sc, s) in cand4 if sc > -1e8] or cand4
+        cand4.sort(key=lambda x: x[0], reverse=True)
+        s4 = cand4[0][1] if cand4 else (sets[0] if sets else "")
+        # pick best 2P distinct from s4
+        cand2 = [( _score_set(profile, s, 2, rune_db, tag_idx, mode=mode), s) for s in sets if s != s4]
+        cand2.sort(key=lambda x: x[0], reverse=True)
+        s2 = cand2[0][1] if cand2 else (next((s for s in sets if s != s4), s4) if sets else "")
+        best = [( (cand4[0][0] if cand4 else 0.0) + (cand2[0][0] if cand2 else 0.0), s4, s2 )]
+
     # UI/요청사항: "대체안" 노출은 혼선을 유발하므로 1개만 반환
     top = best[:1]
 
     rationale: list[str] = []
     rationale.append(f"역할 판정: {profile['role']} / 스케일링 판정: {profile['scaling']}")
+    if fallback_used:
+        rationale.append("주의: 점수 필터로 후보가 소거되어 안전장치(fallback)로 4P/2P 최상위 조합을 구성했습니다.")
     if profile.get("sample_text"):
         rationale.append(f"스케일링 근거 예시: '{str(profile['sample_text'])[:140]}'")
     if profile.get("no_crit"):
@@ -1737,7 +1666,7 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve"
             "setPlan": [{"set": s4, "pieces": 4}, {"set": s2, "pieces": 2}],
         })
     if md == "pve":
-        rationale.append("PVE: Tide 4세트(전투 시작/첫 10초 오프너 한정)는 장기전 평균 효율이 낮아 추천 후보에서 제외합니다.")
+        rationale.append("PVE: '전투 시작 후 첫 10초 에너지' 계열 4세트는 장기전 평균 효율이 낮아 추천 후보에서 제외합니다.")
     return builds, rationale
 
 
@@ -1928,7 +1857,7 @@ def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> di
                 sname = str(it.get("set") or "").strip()
                 r = rune_db.get(sname) or {}
                 pcs = int(it.get("pieces") or 0)
-                if md == "pve" and pcs == 4 and _is_tide_name(sname):
+                if md == "pve" and pcs == 4 and _is_pve_excluded_opener_energy_4p(sname, rune_db):
                     invalid = True
                     break
                 two_txt, four_disp = _format_set_effect_for_display(r, pcs)
