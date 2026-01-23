@@ -768,22 +768,22 @@ function pick(obj, ...keys) {
         return renderBuilds(builds);
       }
 
-      // both: show PVE/PVP toggle
+      // split: show PVE/PVP toggle
       const pveBuilds = pickBuilds(runeReco.pve);
       const pvpBuilds = pickBuilds(runeReco.pvp);
 
       // default tab: PVE
       return `
-        <div class="rune-mode-wrap" data-rune-mode="pve">
-          <div class="seg">
-            <button type="button" class="seg-btn is-active" data-mode="pve">PVE</button>
-            <button type="button" class="seg-btn" data-mode="pvp">PVP</button>
+        <div class="rune-mode-wrap rune-reco" data-rune-mode="pve">
+          <div class="rune-seg">
+            <button type="button" class="rune-seg-btn active" data-mode="pve">PVE</button>
+            <button type="button" class="rune-seg-btn" data-mode="pvp">PVP</button>
           </div>
 
-          <div class="rune-mode-panel" data-panel="pve">
+          <div class="rune-mode-panel active" data-panel="pve">
             ${renderBuilds(pveBuilds)}
           </div>
-          <div class="rune-mode-panel" data-panel="pvp" style="display:none">
+          <div class="rune-mode-panel" data-panel="pvp">
             ${renderBuilds(pvpBuilds)}
           </div>
         </div>
@@ -830,16 +830,21 @@ function pick(obj, ...keys) {
         }
 
         // rune mode (PVE/PVP) toggle inside "추천 룬" tab
-        const segBtn = e.target.closest(".seg-btn");
+        const segBtn = e.target.closest(".rune-seg-btn, .seg-btn");
         if (segBtn) {
           const mode = segBtn.dataset.mode;
-          const wrap = segBtn.closest(".rune-mode-wrap");
+          const wrap = segBtn.closest(".rune-reco, .rune-mode-wrap");
           if (!wrap || !mode) return;
 
           wrap.dataset.runeMode = mode;
-          wrap.querySelectorAll(".seg-btn").forEach(b => b.classList.toggle("is-active", b.dataset.mode === mode));
+          wrap.querySelectorAll(".rune-seg-btn, .seg-btn").forEach(b => {
+            const on = b.dataset.mode === mode;
+            b.classList.toggle("active", on);
+            b.classList.toggle("is-active", on);
+          });
           wrap.querySelectorAll(".rune-mode-panel").forEach(p => {
             const isOn = p.dataset.panel === mode;
+            p.classList.toggle("active", isOn);
             p.style.display = isOn ? "" : "none";
           });
           return;
