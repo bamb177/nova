@@ -2256,3 +2256,117 @@ select.select{
   padding-left: 9px !important;
   padding-right: 9px !important;
 }
+
+/* =========================================================
+   FIX: Character image "disappearing" + body font 15px (2026-01-24)
+   - If horizontal scroll occurs, only the first column stays visible => image seems gone.
+     Make 캐릭터 열 sticky as well, and rebalance widths for 15px values.
+   ========================================================= */
+
+/* Ensure character image never gets hidden by accidental rules */
+.char-img{
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Body values to 15px */
+.table tbody td{
+  font-size: 15px !important;
+  line-height: 1.25 !important;
+}
+
+/* Slightly tighter padding to compensate */
+.table th, .table td{
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+/* Column widths tuned for 15px readability (try to keep within one screen) */
+.table th.col-pick, .table td.col-pick,
+.table th:first-child, .table td:first-child{
+  width: 132px !important;
+  min-width: 132px !important;
+}
+/* 캐릭터 열 폭 확보 */
+.table th.col-char, .table td.col-char,
+.table th:nth-child(2), .table td:nth-child(2){
+  width: 180px !important;
+  min-width: 180px !important;
+}
+
+/* Numeric columns (체력/방어/공격) */
+.table th.col-hp, .table td.col-hp,
+.table th.col-def, .table td.col-def,
+.table th.col-atk, .table td.col-atk,
+.table th:nth-child(3), .table td:nth-child(3),
+.table th:nth-child(4), .table td:nth-child(4),
+.table th:nth-child(5), .table td:nth-child(5){
+  width: 100px !important;
+  min-width: 100px !important;
+}
+
+/* Crit */
+.table th.col-crit, .table td.col-crit,
+.table th:nth-child(6), .table td:nth-child(6){
+  width: 80px !important;
+  min-width: 80px !important;
+}
+
+/* 속성/특성 */
+.table th.col-elem, .table td.col-elem,
+.table th:nth-child(7), .table td:nth-child(7),
+.table th.col-trait, .table td.col-trait,
+.table th:nth-child(8), .table td:nth-child(8){
+  width: 132px !important;
+  min-width: 132px !important;
+}
+
+/* 클래스/역할 */
+.table th.col-class, .table td.col-class,
+.table th:nth-child(9), .table td:nth-child(9),
+.table th.col-role, .table td.col-role,
+.table th:nth-child(10), .table td:nth-child(10){
+  width: 112px !important;
+  min-width: 112px !important;
+}
+
+/* 등급 */
+.table th.col-grade, .table td.col-grade,
+.table th:last-child, .table td:last-child{
+  width: 92px !important;
+  min-width: 92px !important;
+}
+.table td.col-grade .pill,
+.table td.col-grade .badge,
+.table td.col-grade .tag,
+.table td:last-child .pill,
+.table td:last-child .badge,
+.table td:last-child .tag{
+  width: 60px !important;
+  min-width: 60px !important;
+  justify-content: center !important;
+}
+
+/* Chips smaller to avoid truncation while keeping 15px table values */
+.table .pill,
+.table .badge,
+.table .tag,
+.table td .chip{
+  font-size: 13px !important;
+  padding: 6px 10px !important;
+}
+
+/* Sticky: 선택 + 캐릭터 열 고정(스크롤 시 이미지가 사라져 보이는 문제 방지) */
+.table th:first-child, .table td:first-child{
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 4 !important;
+  background: rgba(28, 34, 44, 0.98) !important;
+}
+.table th:nth-child(2), .table td:nth-child(2){
+  position: sticky !important;
+  left: 132px !important;
+  z-index: 3 !important;
+  background: rgba(28, 34, 44, 0.98) !important;
+}
