@@ -2088,3 +2088,89 @@ select.select{
   width: 100% !important;
   table-layout: fixed !important;
 }
+
+/* =========================================================
+   TABLE DENSITY OPTIMIZATION (2026-01-24)
+   Goal: "모든 열 한 화면 표시"를 더 강하게
+   (1) 헤더 글자 크기 1단계 축소
+   (2) 수치 컬럼(체력/방어/공격) 균등 재분배
+   (3) 등급 칩 폭 고정
+   ========================================================= */
+
+/* (1) Header font size down one step + tighter header padding */
+.table thead th{
+  font-size: 13px !important;
+  letter-spacing: -0.2px !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+
+/* Slightly smaller body text, keep bold */
+.table tbody td{
+  font-size: 13px !important;
+}
+
+/* (2) Rebalance numeric columns (체력/방어/공격) equally */
+.table th.col-hp, .table td.col-hp,
+.table th.col-def, .table td.col-def,
+.table th.col-atk, .table td.col-atk,
+/* Fallback to nth-child: assuming columns order
+   선택(1) 캐릭터(2) 체력(3) 방어(4) 공격(5) ... */
+.table th:nth-child(3), .table td:nth-child(3),
+.table th:nth-child(4), .table td:nth-child(4),
+.table th:nth-child(5), .table td:nth-child(5){
+  width: 96px !important;
+  min-width: 96px !important;
+}
+
+/* Slightly compact other narrow columns */
+.table th.col-crit, .table td.col-crit,
+.table th:nth-child(6), .table td:nth-child(6){
+  width: 78px !important;
+  min-width: 78px !important;
+}
+
+/* Attribute/trait/class/role columns: keep moderate widths */
+.table th.col-elem, .table td.col-elem,
+.table th:nth-child(7), .table td:nth-child(7){
+  width: 124px !important;
+  min-width: 124px !important;
+}
+.table th.col-trait, .table td.col-trait,
+.table th:nth-child(8), .table td:nth-child(8){
+  width: 124px !important;
+  min-width: 124px !important;
+}
+.table th.col-class, .table td.col-class,
+.table th:nth-child(9), .table td:nth-child(9){
+  width: 110px !important;
+  min-width: 110px !important;
+}
+.table th.col-role, .table td.col-role,
+.table th:nth-child(10), .table td:nth-child(10){
+  width: 110px !important;
+  min-width: 110px !important;
+}
+
+/* (3) Fix grade chip width so it doesn't expand */
+.table th.col-grade, .table td.col-grade,
+.table th:last-child, .table td:last-child{
+  width: 86px !important;
+  min-width: 86px !important;
+}
+.table td.col-grade .pill,
+.table td.col-grade .badge,
+.table td.col-grade .tag,
+.table td:last-child .pill,
+.table td:last-child .badge,
+.table td:last-child .tag{
+  min-width: 56px !important;
+  width: 56px !important;
+  justify-content: center !important;
+}
+
+/* Make table slightly denser overall */
+.table th, .table td{
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
