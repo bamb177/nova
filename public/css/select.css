@@ -1706,3 +1706,181 @@ body{
   font-size: 13px;
   line-height: 1.15;
 }
+
+
+
+/* =========================================================
+   2026-01-25  Layout + UI normalization (filters/tier/table)
+   - Character name under image
+   - Fit all columns in one viewport (table-layout fixed + widths)
+   - Uniform input/select styling
+   - Tier controls: preset + 5 buttons in one row
+   - Tier class chips: readable grid
+========================================================= */
+
+/* 3) Uniform combo/input design */
+.input, .select, select.select, input.input{
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line2);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.92);
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.input::placeholder{
+  color: rgba(255,255,255,.45);
+}
+
+.input:focus, .select:focus{
+  border-color: rgba(120,170,255,.55);
+  box-shadow: 0 0 0 3px rgba(120,170,255,.18);
+}
+
+/* native select arrow color (best-effort) */
+select.select{
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(255,255,255,.55) 50%),
+    linear-gradient(135deg, rgba(255,255,255,.55) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 18px,
+    calc(100% - 12px) 18px;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 34px;
+}
+
+/* 5) Tier controls: one row */
+.tier-row.tier-topline{
+  display: grid;
+  grid-template-columns: minmax(240px, 1.6fr) 3.4fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.tier-btnrow{
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0,1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.tier-btnrow .btn{
+  height: 44px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.tier-row.tier-secondline{
+  display: block;
+}
+
+/* 3) Tier class chips: readable (3->2->1 columns) */
+#tierClassBox.tier-classes-inline{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+@media (max-width: 980px){
+  #tierClassBox.tier-classes-inline{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px){
+  #tierClassBox.tier-classes-inline{ grid-template-columns: 1fr; }
+}
+
+/* Make each chip fill its grid cell */
+#tierClassBox .tier-class-item{
+  width: 100%;
+  justify-content: flex-start;
+}
+
+/* 1) Character name under image */
+.char-cell{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.char-cell img, .char-img{
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
+.char-name{
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+  white-space: normal;
+  word-break: keep-all;
+}
+
+/* 2) Table: fit all columns in one viewport */
+.table{
+  width: 100%;
+  table-layout: fixed;
+}
+
+.table th, .table td{
+  padding: 8px 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Allow character cell to wrap name */
+.table td.col-char, .table th.col-char{
+  white-space: normal;
+}
+
+/* Column widths (percent-based to stay within viewport) */
+.table th.col-check, .table td.col-check{ width: 8%; }
+.table th.col-char,  .table td.col-char { width: 16%; }
+.table th.col-hp,    .table td.col-hp   { width: 9%; }
+.table th.col-def,   .table td.col-def  { width: 9%; }
+.table th.col-atk,   .table td.col-atk  { width: 9%; }
+.table th.col-crit,  .table td.col-crit { width: 6%; }
+.table th.col-elem,  .table td.col-elem { width: 8%; }
+.table th.col-faction,.table td.col-faction{ width: 10%; }
+.table th.col-class, .table td.col-class{ width: 10%; }
+.table th.col-role,  .table td.col-role { width: 8%; }
+.table th.col-rarity,.table td.col-rarity{ width: 6%; }
+
+/* Pills inside table: smaller to fit */
+.pill, .badge, .tag{
+  max-width: 100%;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Keep selection column controls compact */
+.col-check .select{
+  height: 38px;
+  border-radius: 10px;
+  padding: 0 10px;
+}
+
+/* Responsive safety: slightly smaller type on narrow screens */
+@media (max-width: 900px){
+  .table th, .table td{ font-size: 12px; padding: 7px 5px; }
+  .tier-btnrow{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+
