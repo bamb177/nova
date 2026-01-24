@@ -2038,61 +2038,68 @@ body{
   line-height: 1.15;
 }
 
+
+
 /* =========================================================
-   2026-01-25 Layout tweak (requested)
-   1) 검색/필터: 콤보상자(Select) 1열(세로 스택)
-   2) 등급표(선택/필수 영역): 콤보상자 2열(가로 2칸)
-   - 기존 규칙을 최대한 유지하고, "마지막"에 override로만 처리
-========================================================= */
+   OVERRIDES (2026-01-25)
+   요구사항:
+   1) 검색/필터 영역(.filters-box) 내 모든 콤보박스 1열(세로) 배치
+   2) 등급표 영역(.tier-panel / .tier-section / 표 선택셀) 내 모든 콤보박스 2열 배치
+   ========================================================= */
 
-/* 1) 검색/필터 콤보상자 1열 배치 (PC/넓은 화면) */
-@media (min-width: 981px){
-  .filters{
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
-    align-items: stretch !important;
-  }
-  .filters .input,
-  .filters .select,
-  .filters .btn{
-    width: 100% !important;
-    min-width: 0 !important;
-  }
+/* 1) 검색/필터: 1열 스택(PC 포함) */
+.filters-box .filters{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+  align-items: stretch !important;
 }
 
-/* 2) 등급표(선택/필수) 콤보상자 2열 배치
-   - .pick-stack은 선택 셀 내부의 드롭다운(자동/필수 등) 묶음
-   - 화면이 어느 정도 있을 때만 2열로(너무 좁으면 기존 1열 유지)
+.filters-box .filters .input,
+.filters-box .filters .select,
+.filters-box .filters select,
+.filters-box .filters input[type="text"]{
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* 검색창이 별도 스타일(#q)로 폭을 잡는 경우도 동일 적용 */
+.filters-box .filters #q{ width: 100% !important; min-width: 0 !important; }
+
+/* 2) 등급표: 콤보박스 2열 배치
+   - 대표 케이스: 선택/필수 UI의 드롭다운(.pick-stack)
 */
-@media (min-width: 560px){
-  .pick-stack{
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 8px !important;
-    align-items: start !important;
-  }
-
-  .pick-line{
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  /* 드롭다운이 칸에 맞게 줄어들 수 있도록 */
-  .pick-line .must-slot,
-  .pick-line .must-role{
-    width: 100% !important;
-    max-width: none !important;
-    min-width: 0 !important;
-  }
+.pick-stack{
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 6px 8px !important;
+  align-items: center !important;
+  width: 100%;
 }
 
-/* 아주 좁은 화면에서는 다시 1열(가독성 우선) */
-@media (max-width: 559px){
+/* 체크/라벨 라인은 위쪽에 전체폭으로 */
+.pick-stack .pick-line{
+  grid-column: 1 / -1 !important;
+}
+
+/* 드롭다운 폭은 셀에 맞춰 유동 */
+.pick-stack select,
+.pick-stack .must-slot,
+.pick-stack .must-role{
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+
+/* 등급표 상단 프리셋 드롭다운이 단독이라도 동일 톤/폭 유지 */
+.tier-panel select,
+.tier-section select{
+  min-width: 0;
+}
+
+/* 매우 좁은 화면에서는 2열이 답답하므로 1열로 자동 전환 */
+@media (max-width: 420px){
   .pick-stack{
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 6px !important;
-    align-items: flex-start !important;
+    grid-template-columns: 1fr !important;
   }
 }
