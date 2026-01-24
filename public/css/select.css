@@ -199,27 +199,20 @@ body{
 }
 
 /* =========================
-   Filters (inputs layout)
+   Filters (inputs layout) — NO FIXED WIDTHS
 ========================= */
 .filters{
   display:flex;
   flex-wrap: wrap;
   gap:10px;
-  align-items:center;
+  align-items:stretch;
 }
 
+/* allow controls to size naturally; avoid min-width clamps */
 .input, .select{
-  border: 1px solid var(--line2);
-  background: rgba(0,0,0,.18);
-  color: var(--txt);
-  padding: 10px 12px;
-  border-radius: 12px;
-  font-weight: 800;
-  outline: none;
+  min-width: 0;
+  flex: 1 1 auto;
 }
-
-.input{ min-width: 260px; }
-.select{ min-width: 160px; }
 
 /* =========================
    Table + horizontal scroll
@@ -869,46 +862,6 @@ body{
     line-height: 1.15;
   }
 
-  /* ✅ 모바일: 필터 내부는 기존 너가 만든 2열 그리드 유지 */
-  .filters{
-    display:grid !important;
-    grid-template-columns: 2fr 1fr !important;
-    gap:8px !important;
-    align-items:stretch !important;
-  }
-
-  .filters .input,
-  .filters .select,
-  .filters .btn{
-    height:36px !important;
-    padding:0 10px !important;
-    font-size:14px !important;
-    width:100% !important;
-    min-width:0 !important;
-  }
-
-  /* 1행: 검색 + 클래스 */
-  .filters #q{
-    grid-column: 1 / 2 !important;
-    grid-row: 1 !important;
-    min-width:0 !important;
-  }
-  .filters #classFilter{
-    grid-column: 2 / 3 !important;
-    grid-row: 1 !important;
-    min-width:0 !important;
-  }
-
-  /* 2행부터: 자동 배치 */
-  .filters #rarityFilter,
-  .filters #elemFilter,
-  .filters #factionFilter,
-  .filters #roleFilter,
-  .filters #btnAll,
-  .filters #btnNone{
-    grid-column: auto !important;
-  }
-
   /* ✅ 모바일에서 카드 라운드 살짝 정리 */
   .panel, .filters-box, .tier-panel, .tier-section, .card{
     border-radius: 14px;
@@ -1440,24 +1393,6 @@ body{
 /* 버튼 글자 쪼개짐 방지 */
 .btn{ white-space: nowrap; }
 
-/* filters: 중간 폭에서는 2열 그리드 */
-@media (max-width: 980px){
-  .filters{
-    display:grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-    align-items: stretch !important;
-  }
-  .filters #q{ grid-column: 1 / -1 !important; }
-  .filters .input, .filters .select, .filters .btn{
-    width: 100% !important;
-    min-width: 0 !important;
-    font-size: 16px !important;
-    height: 42px !important;
-    padding: 0 12px !important;
-  }
-}
-
 
 /* wide에서 카드/섹션 내부 여백 조금 여유 있게 */
 @media (min-width: 1100px){
@@ -1466,26 +1401,6 @@ body{
   .filters-box{ padding: 12px 14px; }
 }
 
-
-@media (max-width: 520px){
-  .tier-classes-inline{
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 10px !important;
-  }
-  .tier-class-item{
-    border-radius: 14px;
-    padding: 12px 10px;
-    background: rgba(255,255,255,.04);
-    border: 1px solid rgba(255,255,255,.10);
-  }
-  .tier-class-item input{
-    transform: scale(1.15);
-  }
-  .tier-class-item span{
-    font-weight: 800;
-    letter-spacing: .2px;
-  }
-}
 
 
 
@@ -1551,36 +1466,6 @@ body{
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 190px;
-}
-
-/* Tier 상단 컨트롤(드롭다운 + 3버튼 / 클래스조건 + 2버튼) */
-.tier-row.tier-topline{
-  display:grid;
-  grid-template-columns: minmax(220px, 380px) 1fr;
-  gap: 10px;
-  align-items: center;
-}
-.tier-btnrow{
-  display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-.tier-actions-row{
-  display:grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.tier-btnrow .btn,
-.tier-actions-row .btn{ width: 100%; justify-content:center; }
-
-@media (max-width: 720px){
-  .tier-row.tier-topline{ grid-template-columns: 1fr; }
-}
-
-@media (max-width: 520px){
-  .tier-btnrow .btn{ padding: 0 8px !important; font-size: 14px !important; height: 46px !important; }
-  .tier-actions-row .btn{ height: 46px !important; }
 }
 
 /* ✅ 필수(파티 지정) UI: 선택/필수/배치 드롭다운 */
@@ -1688,18 +1573,15 @@ body{
 .subpanel:not([open]) .tier-class-inline{
   display:none;
 }
-/* 더 촘촘한 클래스 칩 */
+/* 클래스 칩(선택 클래스 포함 조건): 레이아웃 강제 제거 */
 .tier-classes-inline{
   margin-top: 10px;
-  display: grid !important;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
-@media (max-width: 1100px){
-  .tier-classes-inline{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-@media (max-width: 720px){
-  .tier-classes-inline{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tier-class-item{
+  width: auto;
 }
 
 /* =========================
@@ -1823,152 +1705,4 @@ body{
   background: rgba(255,255,255,.03);
   font-size: 13px;
   line-height: 1.15;
-}
-
-/* =====================================================================
-   LAYOUT OVERRIDES (2026-01-24) - 사용자 요구사항 반영
-   1) 검색/필터: 전체 1열 스택
-   2) 등급표: 2열(좌:프리셋/조건, 우:버튼) + 버튼 높이/정렬/간격 통일
-   3) 클래스 7개 칩: 3/2/1열 그리드로 자연스러운 줄바꿈
-   4) 상단 Nova(topbar) 틀고정 해제
-   5) 캐릭터 표: 한 화면에 최대한 많은 열이 보이도록 폭/레이아웃 완화
-===================================================================== */
-
-/* 4) 상단 Nova 틀고정 해제 */
-.topbar{
-  position: static !important;
-  top: auto !important;
-}
-
-/* 1) 검색/필터: 모든 입력/콤보 1열(세로 스택) */
-.filters{
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 10px !important;
-  align-items: stretch !important;
-}
-.filters > *{
-  min-width: 0 !important;
-}
-.filters .input,
-.filters .select{
-  width: 100% !important;
-  min-width: 0 !important;
-}
-
-/* 2) 등급표: 2열 레이아웃(PC) */
-.tier-row.tier-topline{
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) 420px !important;
-  gap: 12px !important;
-  align-items: start !important;
-}
-#tierPreset{
-  width: 100% !important;
-  min-width: 0 !important;
-}
-
-/* 오른쪽 버튼 영역: 동일 높이 + 정렬 + 간격 통일 */
-.tier-btnrow{
-  display: grid !important;
-  grid-auto-rows: 48px !important;
-  gap: 10px !important;
-  align-content: start !important;
-}
-.tier-btnrow .btn{
-  width: 100% !important;
-  height: 48px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border-radius: 16px;
-}
-
-/* 하단(클래스조건 / 전체선택·해제)도 2열 */
-.tier-row.tier-secondline{
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) 420px !important;
-  gap: 12px !important;
-  align-items: start !important;
-}
-.tier-actions-row{
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 10px !important;
-  align-content: start !important;
-}
-.tier-actions-row .btn{
-  width: 100% !important;
-  height: 48px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border-radius: 16px;
-}
-
-/* 3) 클래스 7개 칩: 자연스러운 3/2/1열 그리드 */
-#tierClassBox.tier-classes-inline{
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 10px !important;
-  width: 100% !important;
-}
-@media (max-width: 1200px){
-  #tierClassBox.tier-classes-inline{
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-}
-@media (max-width: 520px){
-  #tierClassBox.tier-classes-inline{
-    grid-template-columns: 1fr !important;
-  }
-}
-
-/* 칩 자체는 폭을 100%로 사용해 ‘눌림’ 방지 */
-.tier-class-item{
-  width: 100% !important;
-  justify-content: flex-start;
-  border-radius: 14px;
-}
-
-/* PC에서 너무 과한 min-width로 인해 깨지는 것 방지 */
-.tier-class-inline,
-#tierClassInline{
-  min-width: 0 !important;
-  width: 100% !important;
-}
-
-/* 2열 레이아웃이 답답해지는 구간에서는 1열로 스택 */
-@media (max-width: 980px){
-  .tier-row.tier-topline,
-  .tier-row.tier-secondline{
-    grid-template-columns: 1fr !important;
-  }
-  .tier-btnrow{
-    grid-auto-rows: 46px !important;
-  }
-  .tier-btnrow .btn,
-  .tier-actions-row .btn{
-    height: 46px !important;
-  }
-}
-
-/* 5) 캐릭터 표: 한 화면에 최대한 많은 열 표시 */
-@media (min-width: 1200px){
-  .wrap{ max-width: 1600px; }
-  .table thead th{ padding: 10px 8px; font-size: 13px; }
-  .table tbody td{ padding: 10px 8px; font-size: 14px; }
-}
-
-/* 3) 캐릭터명: 이미지 하단 고정 */
-.char-cell{
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  gap: 8px !important;
-}
-.char-name{
-  white-space: normal !important;
-  text-align: center !important;
-  line-height: 1.2;
 }
