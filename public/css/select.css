@@ -2370,3 +2370,114 @@ select.select{
   z-index: 3 !important;
   background: rgba(28, 34, 44, 0.98) !important;
 }
+
+/* =========================================================
+   HOTFIX (2026-01-24)
+   - Fix color mismatch on 선택/캐릭터 columns (remove sticky backgrounds)
+   - Stronger "one screen" fit: tighter widths + tighter chips
+   ========================================================= */
+
+/* Disable sticky on first two columns to prevent different background bands */
+.table th:first-child, .table td:first-child,
+.table th:nth-child(2), .table td:nth-child(2){
+  position: static !important;
+  left: auto !important;
+  z-index: auto !important;
+  background: transparent !important;
+}
+
+/* Ensure consistent backgrounds for header/body */
+.table thead th{
+  background: rgba(35, 41, 53, 0.9) !important;
+}
+.table tbody td{
+  background: transparent !important;
+}
+/* If rows use background, keep it uniform */
+.table tbody tr{
+  background: rgba(28, 34, 44, 0.55) !important;
+}
+.table tbody tr:nth-child(even){
+  background: rgba(28, 34, 44, 0.45) !important;
+}
+
+/* Keep body values 15px but compress horizontal space */
+.table th, .table td{
+  padding-left: 7px !important;
+  padding-right: 7px !important;
+}
+
+/* Aggressive width tuning (try to fit within typical 1366px without scroll) */
+.table th.col-pick, .table td.col-pick,
+.table th:first-child, .table td:first-child{
+  width: 112px !important;
+  min-width: 112px !important;
+}
+.table th.col-char, .table td.col-char,
+.table th:nth-child(2), .table td:nth-child(2){
+  width: 160px !important;
+  min-width: 160px !important;
+}
+.table th.col-hp, .table td.col-hp,
+.table th.col-def, .table td.col-def,
+.table th.col-atk, .table td.col-atk,
+.table th:nth-child(3), .table td:nth-child(3),
+.table th:nth-child(4), .table td:nth-child(4),
+.table th:nth-child(5), .table td:nth-child(5){
+  width: 92px !important;
+  min-width: 92px !important;
+}
+.table th.col-crit, .table td.col-crit,
+.table th:nth-child(6), .table td:nth-child(6){
+  width: 70px !important;
+  min-width: 70px !important;
+}
+.table th.col-elem, .table td.col-elem,
+.table th:nth-child(7), .table td:nth-child(7),
+.table th.col-trait, .table td.col-trait,
+.table th:nth-child(8), .table td:nth-child(8){
+  width: 112px !important;
+  min-width: 112px !important;
+}
+.table th.col-class, .table td.col-class,
+.table th:nth-child(9), .table td:nth-child(9),
+.table th.col-role, .table td.col-role,
+.table th:nth-child(10), .table td:nth-child(10){
+  width: 100px !important;
+  min-width: 100px !important;
+}
+.table th.col-grade, .table td.col-grade,
+.table th:last-child, .table td:last-child{
+  width: 78px !important;
+  min-width: 78px !important;
+}
+
+/* Chips: smaller to fit one screen, still readable */
+.table .pill,
+.table .badge,
+.table .tag,
+.table td .chip{
+  font-size: 12px !important;
+  padding: 5px 9px !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Grade chip fixed */
+.table td.col-grade .pill,
+.table td.col-grade .badge,
+.table td.col-grade .tag,
+.table td:last-child .pill,
+.table td:last-child .badge,
+.table td:last-child .tag{
+  width: 56px !important;
+  min-width: 56px !important;
+}
+
+/* Ensure dropdowns in 선택열 remain visible within new width */
+.table .pick-stack select{
+  font-size: 13px !important;
+  height: 34px !important;
+}
