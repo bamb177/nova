@@ -869,45 +869,23 @@ body{
     line-height: 1.15;
   }
 
-  /* ✅ 모바일: 필터 내부는 기존 너가 만든 2열 그리드 유지 */
+  /* ✅ 모바일/소형: 검색/필터는 1열(세로)로 통일 */
   .filters{
-    display:grid !important;
-    grid-template-columns: 2fr 1fr !important;
-    gap:8px !important;
-    align-items:stretch !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    align-items: stretch !important;
   }
-
   .filters .input,
   .filters .select,
   .filters .btn{
-    height:36px !important;
-    padding:0 10px !important;
-    font-size:14px !important;
-    width:100% !important;
-    min-width:0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 36px !important;
+    padding: 0 10px !important;
+    font-size: 14px !important;
   }
-
-  /* 1행: 검색 + 클래스 */
-  .filters #q{
-    grid-column: 1 / 2 !important;
-    grid-row: 1 !important;
-    min-width:0 !important;
-  }
-  .filters #classFilter{
-    grid-column: 2 / 3 !important;
-    grid-row: 1 !important;
-    min-width:0 !important;
-  }
-
-  /* 2행부터: 자동 배치 */
-  .filters #rarityFilter,
-  .filters #elemFilter,
-  .filters #factionFilter,
-  .filters #roleFilter,
-  .filters #btnAll,
-  .filters #btnNone{
-    grid-column: auto !important;
-  }
+  .filters #q{ grid-column: 1 / -1 !important; }
 
   /* ✅ 모바일에서 카드 라운드 살짝 정리 */
   .panel, .filters-box, .tier-panel, .tier-section, .card{
@@ -1437,27 +1415,6 @@ body{
    - 폰트 크기 일관성 향상
 ========================================================= */
 
-/* 버튼 글자 쪼개짐 방지 */
-.btn{ white-space: nowrap; }
-
-/* filters: 중간 폭에서는 2열 그리드 */
-@media (max-width: 980px){
-  .filters{
-    display:grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-    align-items: stretch !important;
-  }
-  .filters #q{ grid-column: 1 / -1 !important; }
-  .filters .input, .filters .select, .filters .btn{
-    width: 100% !important;
-    min-width: 0 !important;
-    font-size: 16px !important;
-    height: 42px !important;
-    padding: 0 12px !important;
-  }
-}
-
 
 /* 텍스트 크기 “너무 작은 것들”만 상향 (전체 동일 체감) */
 .filters-summary-hint,
@@ -1469,6 +1426,20 @@ body{
 
 
 
+
+/* =========================================================
+   Wide desktop (전체창/와이드) 레이아웃 개선
+   - 등급표 상단 줄: 좌측(프리셋+버튼) / 우측(클래스 조건) 균형
+   - 버튼 폭 과도하게 늘어나는 현상 방지
+   - 패널 내부 여백/정렬 통일
+========================================================= */
+
+/* PC 전체창에서 컨테이너 폭 확장(콘텐츠 밀도 개선) */
+@media (min-width: 1200px){
+  .wrap{ max-width: 1520px; }
+}
+
+
 /* wide에서 카드/섹션 내부 여백 조금 여유 있게 */
 @media (min-width: 1100px){
   .panel{ padding: 16px; }
@@ -1476,14 +1447,6 @@ body{
   .filters-box{ padding: 12px 14px; }
 }
 
-/* 검색/필터 바도 전체창에서 한 줄 유지 도움 */
-@media (min-width: 1100px){
-  .filters{
-    gap: 12px;
-  }
-  .input{ min-width: 320px; }
-  .select{ min-width: 190px; }
-}
 
 @media (max-width: 520px){
   .tier-classes-inline{
@@ -1813,39 +1776,40 @@ body{
   font-size: 13px;
   line-height: 1.15;
 }
+
 /* =========================================================
-   CLEAN LAYOUT OVERRIDES (Tier/Filters + Char name under image)
-   - Purpose: remove conflicting fixed layouts and apply ONE consistent layout
-   - Date: 2026-01-25
+   LAYOUT RESET (User requested) — Filters 1열 / Tier 2열 / Char name under image
+   - 기존 고정/중복 레이아웃 규칙을 제거한 후, 아래 규칙으로 최종 배치 통일
 ========================================================= */
 
-/* 1) 검색/필터: (검색은 1행 전체) + 5개 콤보 1줄 배치(PC) */
-@media (min-width: 900px){
-  .filters{
-    display: grid !important;
-    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-    gap: 10px !important;
-    align-items: stretch !important;
-  }
-  .filters #q{ grid-column: 1 / -1 !important; }
-  .filters .select{
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-}
-
-/* 2) 등급표: 상단(프리셋 + 3버튼) 1열(세로) */
-.tier-row.tier-topline{
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
+/* 1) 검색/필터: 전체 1열(세로 스택) */
+.filters{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
   gap: 10px !important;
+  align-items: stretch !important;
 }
-#tierPreset{ width: 100% !important; min-width: 0 !important; }
+.filters .input,
+.filters .select,
+.filters .btn{
+  width: 100% !important;
+  min-width: 0 !important;
+}
 
+/* 2) 등급표: 2열 배치 (topline: preset | buttons, secondline: classCond | actions) */
+.tier-row.tier-topline{
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 12px !important;
+  align-items: start !important;
+}
+#tierPreset{
+  width: 100% !important;
+  min-width: 0 !important;
+}
 .tier-btnrow{
-  display: flex !important;
-  flex-direction: column !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;   /* 3버튼은 1열 스택(안정/가독성) */
   gap: 10px !important;
 }
 .tier-btnrow .btn{
@@ -1853,36 +1817,67 @@ body{
   justify-content: center !important;
 }
 
-/* 3) 등급표: 하단(선택 클래스 포함 조건 / 전체선택·해제) 2열 */
 .tier-row.tier-secondline{
   display: grid !important;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  grid-template-columns: 1fr 1fr !important;
   gap: 12px !important;
   align-items: start !important;
 }
-@media (max-width: 860px){
-  .tier-row.tier-secondline{ grid-template-columns: 1fr !important; }
+#classCondPanel{
+  width: 100% !important;
+  min-width: 0 !important;
 }
-
 .tier-actions-row{
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   gap: 10px !important;
-  align-items: stretch !important;
+  align-content: start !important;
 }
 .tier-actions-row .btn{
   width: 100% !important;
   justify-content: center !important;
 }
 
-/* 4) 캐릭터명: 이미지 하단 배치 고정 */
+/* 화면이 좁아지면 자연스럽게 1열로 */
+@media (max-width: 900px){
+  .tier-row.tier-topline,
+  .tier-row.tier-secondline{
+    grid-template-columns: 1fr !important;
+  }
+  .tier-actions-row{
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* 3) 캐릭터명: 이미지 하단 고정 */
 .char-cell{
+  display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   gap: 8px !important;
 }
 .char-name{
-  text-align: center;
-  white-space: normal !important;
-  line-height: 1.2;
+  text-align: center !important;
+}
+
+/* 4) 캐릭터 목록(테이블): 가로 스크롤/고정폭 최소화 → 페이지 폭 안에서 최대한 표시 */
+.table-wrap{
+  overflow-x: hidden !important;
+}
+.table{
+  min-width: 0 !important;
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+.col-check, .col-rarity, .col-elem, .col-faction, .col-class, .col-role{
+  width: auto !important;
+}
+.table thead th,
+.table tbody td{
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 1200px){
+  .table thead th{ font-size: 12px !important; }
+  .table tbody td{ font-size: 13px !important; }
 }
