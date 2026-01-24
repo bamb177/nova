@@ -1434,7 +1434,7 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve"
     md = (str(mode or "pve").strip().lower() or "pve")
 
     role = profile.get("role") or "dps"
-    het4_allowed = bool(profile.get("has_explicit_extra_attack"))
+    extra_attack_4_allowed = bool(profile.get("has_explicit_extra_attack"))
 
     sets_all = list(sets)
     allowed4 = set(sets_all)
@@ -1484,10 +1484,12 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve"
             forced2 = None
 
 
-    # ---- Het 4세트 허용 조건: 명시 키워드(추가공격/extra attack/follow-up/additional attack) 있을 때만 ----
-    if not het4_allowed:
-        allowed4.discard("Het")  # 4세트만 금지 (2세트는 허용)
-        if forced4 == "Het":
+    # ---- Het/Epsilon 4세트 허용 조건: 명시 키워드(추가공격/extra attack/follow-up/additional attack) 있을 때만 ----
+    if not extra_attack_4_allowed:
+        # 4세트만 금지 (2세트는 허용)
+        allowed4.discard("Het")
+        allowed4.discard("Epsilon")
+        if forced4 in {"Het", "Epsilon"}:
             forced4 = None
     # Final iteration sets
     sets4 = [forced4] if forced4 else sorted(list(allowed4))
@@ -1507,8 +1509,8 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve"
 
 
     # Re-apply Het(4p) restriction even after safety fallbacks
-    if not het4_allowed:
-        sets4 = [s for s in sets4 if s != "Het"]
+    if not extra_attack_4_allowed:
+        sets4 = [s for s in sets4 if s not in {"Het", "Epsilon"}]
 
     best: list[tuple[float, str, str]] = []
     for s4 in sets4:
