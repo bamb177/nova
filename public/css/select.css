@@ -869,23 +869,45 @@ body{
     line-height: 1.15;
   }
 
-  /* ✅ 모바일/소형: 검색/필터는 1열(세로)로 통일 */
+  /* ✅ 모바일: 필터 내부는 기존 너가 만든 2열 그리드 유지 */
   .filters{
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 8px !important;
-    align-items: stretch !important;
+    display:grid !important;
+    grid-template-columns: 2fr 1fr !important;
+    gap:8px !important;
+    align-items:stretch !important;
   }
+
   .filters .input,
   .filters .select,
   .filters .btn{
-    width: 100% !important;
-    min-width: 0 !important;
-    height: 36px !important;
-    padding: 0 10px !important;
-    font-size: 14px !important;
+    height:36px !important;
+    padding:0 10px !important;
+    font-size:14px !important;
+    width:100% !important;
+    min-width:0 !important;
   }
-  .filters #q{ grid-column: 1 / -1 !important; }
+
+  /* 1행: 검색 + 클래스 */
+  .filters #q{
+    grid-column: 1 / 2 !important;
+    grid-row: 1 !important;
+    min-width:0 !important;
+  }
+  .filters #classFilter{
+    grid-column: 2 / 3 !important;
+    grid-row: 1 !important;
+    min-width:0 !important;
+  }
+
+  /* 2행부터: 자동 배치 */
+  .filters #rarityFilter,
+  .filters #elemFilter,
+  .filters #factionFilter,
+  .filters #roleFilter,
+  .filters #btnAll,
+  .filters #btnNone{
+    grid-column: auto !important;
+  }
 
   /* ✅ 모바일에서 카드 라운드 살짝 정리 */
   .panel, .filters-box, .tier-panel, .tier-section, .card{
@@ -1415,28 +1437,25 @@ body{
    - 폰트 크기 일관성 향상
 ========================================================= */
 
+/* 버튼 글자 쪼개짐 방지 */
+.btn{ white-space: nowrap; }
 
-/* 텍스트 크기 “너무 작은 것들”만 상향 (전체 동일 체감) */
-.filters-summary-hint,
-.tier-summary-hint,
-.tier-help,
-.tier-info{
-  font-size: 14px !important;
-}
-
-
-
-
-/* =========================================================
-   Wide desktop (전체창/와이드) 레이아웃 개선
-   - 등급표 상단 줄: 좌측(프리셋+버튼) / 우측(클래스 조건) 균형
-   - 버튼 폭 과도하게 늘어나는 현상 방지
-   - 패널 내부 여백/정렬 통일
-========================================================= */
-
-/* PC 전체창에서 컨테이너 폭 확장(콘텐츠 밀도 개선) */
-@media (min-width: 1200px){
-  .wrap{ max-width: 1520px; }
+/* filters: 중간 폭에서는 2열 그리드 */
+@media (max-width: 980px){
+  .filters{
+    display:grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+  }
+  .filters #q{ grid-column: 1 / -1 !important; }
+  .filters .input, .filters .select, .filters .btn{
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 16px !important;
+    height: 42px !important;
+    padding: 0 12px !important;
+  }
 }
 
 
@@ -1534,6 +1553,35 @@ body{
   max-width: 190px;
 }
 
+/* Tier 상단 컨트롤(드롭다운 + 3버튼 / 클래스조건 + 2버튼) */
+.tier-row.tier-topline{
+  display:grid;
+  grid-template-columns: minmax(220px, 380px) 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.tier-btnrow{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.tier-actions-row{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tier-btnrow .btn,
+.tier-actions-row .btn{ width: 100%; justify-content:center; }
+
+@media (max-width: 720px){
+  .tier-row.tier-topline{ grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px){
+  .tier-btnrow .btn{ padding: 0 8px !important; font-size: 14px !important; height: 46px !important; }
+  .tier-actions-row .btn{ height: 46px !important; }
+}
 
 /* ✅ 필수(파티 지정) UI: 선택/필수/배치 드롭다운 */
 .pick-stack{
@@ -1777,29 +1825,41 @@ body{
   line-height: 1.15;
 }
 
-/* =========================================================
-   LAYOUT RESET (User requested) — Filters 1열 / Tier 2열 / Char name under image
-   - 기존 고정/중복 레이아웃 규칙을 제거한 후, 아래 규칙으로 최종 배치 통일
-========================================================= */
+/* =====================================================================
+   LAYOUT OVERRIDES (2026-01-24) - 사용자 요구사항 반영
+   1) 검색/필터: 전체 1열 스택
+   2) 등급표: 2열(좌:프리셋/조건, 우:버튼) + 버튼 높이/정렬/간격 통일
+   3) 클래스 7개 칩: 3/2/1열 그리드로 자연스러운 줄바꿈
+   4) 상단 Nova(topbar) 틀고정 해제
+   5) 캐릭터 표: 한 화면에 최대한 많은 열이 보이도록 폭/레이아웃 완화
+===================================================================== */
 
-/* 1) 검색/필터: 전체 1열(세로 스택) */
+/* 4) 상단 Nova 틀고정 해제 */
+.topbar{
+  position: static !important;
+  top: auto !important;
+}
+
+/* 1) 검색/필터: 모든 입력/콤보 1열(세로 스택) */
 .filters{
   display: grid !important;
   grid-template-columns: 1fr !important;
   gap: 10px !important;
   align-items: stretch !important;
 }
+.filters > *{
+  min-width: 0 !important;
+}
 .filters .input,
-.filters .select,
-.filters .btn{
+.filters .select{
   width: 100% !important;
   min-width: 0 !important;
 }
 
-/* 2) 등급표: 2열 배치 (topline: preset | buttons, secondline: classCond | actions) */
+/* 2) 등급표: 2열 레이아웃(PC) */
 .tier-row.tier-topline{
   display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
+  grid-template-columns: minmax(0, 1fr) 420px !important;
   gap: 12px !important;
   align-items: start !important;
 }
@@ -1807,25 +1867,29 @@ body{
   width: 100% !important;
   min-width: 0 !important;
 }
+
+/* 오른쪽 버튼 영역: 동일 높이 + 정렬 + 간격 통일 */
 .tier-btnrow{
   display: grid !important;
-  grid-template-columns: 1fr !important;   /* 3버튼은 1열 스택(안정/가독성) */
+  grid-auto-rows: 48px !important;
   gap: 10px !important;
+  align-content: start !important;
 }
 .tier-btnrow .btn{
   width: 100% !important;
+  height: 48px !important;
+  display: inline-flex !important;
+  align-items: center !important;
   justify-content: center !important;
+  border-radius: 16px;
 }
 
+/* 하단(클래스조건 / 전체선택·해제)도 2열 */
 .tier-row.tier-secondline{
   display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
+  grid-template-columns: minmax(0, 1fr) 420px !important;
   gap: 12px !important;
   align-items: start !important;
-}
-#classCondPanel{
-  width: 100% !important;
-  min-width: 0 !important;
 }
 .tier-actions-row{
   display: grid !important;
@@ -1835,18 +1899,65 @@ body{
 }
 .tier-actions-row .btn{
   width: 100% !important;
+  height: 48px !important;
+  display: inline-flex !important;
+  align-items: center !important;
   justify-content: center !important;
+  border-radius: 16px;
 }
 
-/* 화면이 좁아지면 자연스럽게 1열로 */
-@media (max-width: 900px){
+/* 3) 클래스 7개 칩: 자연스러운 3/2/1열 그리드 */
+#tierClassBox.tier-classes-inline{
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+@media (max-width: 1200px){
+  #tierClassBox.tier-classes-inline{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 520px){
+  #tierClassBox.tier-classes-inline{
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* 칩 자체는 폭을 100%로 사용해 ‘눌림’ 방지 */
+.tier-class-item{
+  width: 100% !important;
+  justify-content: flex-start;
+  border-radius: 14px;
+}
+
+/* PC에서 너무 과한 min-width로 인해 깨지는 것 방지 */
+.tier-class-inline,
+#tierClassInline{
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+/* 2열 레이아웃이 답답해지는 구간에서는 1열로 스택 */
+@media (max-width: 980px){
   .tier-row.tier-topline,
   .tier-row.tier-secondline{
     grid-template-columns: 1fr !important;
   }
-  .tier-actions-row{
-    grid-template-columns: 1fr 1fr !important;
+  .tier-btnrow{
+    grid-auto-rows: 46px !important;
   }
+  .tier-btnrow .btn,
+  .tier-actions-row .btn{
+    height: 46px !important;
+  }
+}
+
+/* 5) 캐릭터 표: 한 화면에 최대한 많은 열 표시 */
+@media (min-width: 1200px){
+  .wrap{ max-width: 1600px; }
+  .table thead th{ padding: 10px 8px; font-size: 13px; }
+  .table tbody td{ padding: 10px 8px; font-size: 14px; }
 }
 
 /* 3) 캐릭터명: 이미지 하단 고정 */
@@ -1857,27 +1968,7 @@ body{
   gap: 8px !important;
 }
 .char-name{
+  white-space: normal !important;
   text-align: center !important;
-}
-
-/* 4) 캐릭터 목록(테이블): 가로 스크롤/고정폭 최소화 → 페이지 폭 안에서 최대한 표시 */
-.table-wrap{
-  overflow-x: hidden !important;
-}
-.table{
-  min-width: 0 !important;
-  width: 100% !important;
-  table-layout: fixed !important;
-}
-.col-check, .col-rarity, .col-elem, .col-faction, .col-class, .col-role{
-  width: auto !important;
-}
-.table thead th,
-.table tbody td{
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-@media (max-width: 1200px){
-  .table thead th{ font-size: 12px !important; }
-  .table tbody td{ font-size: 13px !important; }
+  line-height: 1.2;
 }
