@@ -1884,3 +1884,76 @@ select.select{
   .tier-btnrow{ grid-template-columns: repeat(2, minmax(0,1fr)); }
 }
 
+/* =========================================================
+   FINAL OVERRIDE: SINGLE ROW (가로 1줄) for top control groups
+   - Desktop: keep controls on ONE horizontal line (no wrap)
+   - Responsive: below 1100px, allow wrapping/stacking for readability
+   ========================================================= */
+
+/* ---------- Search/Filter: search + 5 selects in ONE ROW (desktop) ---------- */
+@media (min-width: 1100px){
+  .filters{
+    display: grid !important;
+    grid-template-columns: minmax(260px, 2.2fr) repeat(5, minmax(140px, 1fr)) !important;
+    gap: 10px !important;
+    align-items: center !important;
+  }
+  .filters > *{
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  /* Prevent flex leftovers from causing wrap */
+  .filters{ flex-wrap: nowrap !important; }
+}
+
+/* ---------- Tier top controls: dropdown + 5 buttons in ONE ROW (desktop) ---------- */
+@media (min-width: 1100px){
+  .tier-row.tier-topline{
+    display: grid !important;
+    grid-template-columns: minmax(260px, 2.2fr) repeat(5, minmax(140px, 1fr)) !important;
+    gap: 10px !important;
+    align-items: center !important;
+  }
+
+  /* Make the button group “transparent” so each button occupies its own grid cell */
+  .tier-btnrow{
+    display: contents !important;
+  }
+
+  /* Ensure buttons share identical size */
+  .tier-btnrow .btn,
+  .tier-btnrow button{
+    width: 100% !important;
+    height: 44px !important;
+    justify-content: center !important;
+  }
+
+  #tierPreset{
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+/* ---------- Responsive fallback: below desktop, allow stacking ---------- */
+@media (max-width: 1099px){
+  .filters{
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .tier-row.tier-topline{
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .tier-btnrow{
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .tier-btnrow .btn,
+  .tier-btnrow button{
+    width: 100% !important;
+    height: 48px !important;
+  }
+}
