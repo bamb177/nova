@@ -1,39 +1,45 @@
-/* =========================
-   Base theme / layout
-========================= */
+/* =========================================================
+   Nova Wiki - select.css (clean relayout)
+   목적:
+   - 고정(min-width/폭) 위주의 레이아웃 규칙 제거
+   - 검색/필터: 클래스/등급/속성/특성/역할을 PC에서 1줄 배치
+   - 등급표: (등급표선택/등급표파티/AI추천/초기화) 1열,
+            (선택 클래스 포함 조건 / 전체선택·해제) 2열
+   - 캐릭터명: 이미지 하단 배치
+========================================================= */
+
 :root{
   --bg0:#070b14;
   --bg1:#0b1222;
+  --panel:rgba(255,255,255,.04);
+  --panel2:rgba(255,255,255,.06);
   --line:rgba(255,255,255,.10);
   --line2:rgba(255,255,255,.14);
   --txt:rgba(255,255,255,.92);
   --muted:rgba(255,255,255,.70);
   --muted2:rgba(255,255,255,.58);
+  --radius:16px;
+  --radius2:12px;
+  --shadow: 0 16px 36px rgba(0,0,0,.35);
+  --h:46px;
 }
 
-*{ box-sizing: border-box; }
-
-html, body{ height: 100%; }
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
 
 body{
   margin:0;
+  color:var(--txt);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
   background:
     radial-gradient(1200px 600px at 30% -10%, #132246, transparent 60%),
     radial-gradient(900px 500px at 80% 0%, #1a2b55, transparent 55%),
     linear-gradient(180deg,var(--bg0),var(--bg1));
-  color:var(--txt);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
-
-  /* ✅ 전체 페이지 스크롤은 기본 허용(모바일 스크롤 이슈 방지) */
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x:hidden;
+  overflow-y:auto;
   -webkit-overflow-scrolling: touch;
-
-  /* ✅ 배경이 ‘끊겨 보이는’ 체감을 줄이는 핵심: 배경을 뷰포트에 고정 */
   background-attachment: fixed;
 }
-
-/* ✅ fixed가 모바일(iOS 계열)에서 이슈가 있으면 자동으로 scroll로 */
 @supports (-webkit-touch-callout: none){
   body{ background-attachment: scroll; }
 }
@@ -45,2064 +51,349 @@ body{
 }
 
 /* =========================
-   Topbar
+   Common: panels / details
 ========================= */
-.topbar{
-  position: sticky;
-  top: 0;
-  z-index: 80;
+.panel{
+  border:1px solid var(--line);
+  background: rgba(255,255,255,.02);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
 
+.filters-box,
+.tier-panel{
+  border:1px solid var(--line);
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.filters-summary,
+.tier-summary{
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap: 12px;
-
-  margin-bottom: 12px;
-
-  /* 가독성/완성도: 스크롤 시에도 상단 정보가 유지되도록 */
-  background: rgba(7,11,20,.62);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 16px;
-  padding: 10px 12px;
+  padding: 6px 4px 10px 4px;
+  cursor:pointer;
+  user-select:none;
 }
-
-/* ✅ h1 + 캐릭터수 + 갱신시간 한 줄 */
-.title-row{
-  display:flex;
-  align-items:baseline;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-.title-row h1{
-  margin:0;
-  font-size: 20px;
-  font-weight: 900;
+.filters-summary-title,
+.tier-summary-title{
+  font-weight: 700;
   letter-spacing: .2px;
 }
-
-.meta-inline{
+.filters-summary-hint,
+.tier-summary-hint{
+  color: var(--muted2);
   font-size: 13px;
-  font-weight: 850;
-  color: var(--muted2);
-  white-space: nowrap;
 }
 
-.refresh{
-  font-weight: 800;
-  color: var(--muted2);
-  white-space: nowrap;
-}
+.filters-body,
+.tier-body{ padding-top: 6px; }
 
 /* =========================
-   Buttons / badges
+   Inputs / buttons
 ========================= */
+.input,
+.select{
+  width:100%;
+  height: var(--h);
+  border-radius: 14px;
+  border:1px solid var(--line2);
+  background: rgba(0,0,0,.18);
+  color: var(--txt);
+  outline:none;
+  padding: 0 14px;
+}
+.select{
+  padding-right: 34px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(255,255,255,.80) 50%),
+    linear-gradient(135deg, rgba(255,255,255,.80) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 18px,
+    calc(100% - 12px) 18px;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+.input::placeholder{ color: rgba(255,255,255,.55); }
+
 .btn{
-  appearance:none;
+  height: var(--h);
+  border-radius: 14px;
   border:1px solid var(--line2);
   background: rgba(255,255,255,.06);
   color: var(--txt);
-  padding: 10px 12px;
-  border-radius: 12px;
-  font-weight: 850;
+  padding: 0 14px;
   cursor:pointer;
-  text-decoration:none;
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
+  font-weight: 700;
 }
 .btn:hover{ background: rgba(255,255,255,.10); }
-
-/* =========================
-   Panel / error
-========================= */
-.panel{
-  border:1px solid var(--line);
-
-  /* ✅ 기존: rgba(255,255,255,.03) 덩어리 느낌 → 유리(Glass) 카드로 */
-  background: rgba(255,255,255,.045);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-
-  border-radius: 16px;
-  padding: 14px;
-
-  /* ✅ margin-top으로 쌓이면 ‘박스 단위로 끊김’이 더 잘 보임 → 제거 */
-  margin-top: 0;
-
-  /* ✅ 카드가 떠 보이게(끊김 체감↓, 완성도↑) */
-  box-shadow:
-    0 10px 24px rgba(0,0,0,.22),
-    inset 0 1px 0 rgba(255,255,255,.05);
-}
-
-/* ✅ 패널 간 간격은 형제 결합으로 통일 (기존 margin-top 대체) */
-.panel + .panel{
-  margin-top: 12px;
-}
-
-.error{
-  border: 1px solid rgba(255,80,80,.35);
-  background: rgba(255,80,80,.10);
-  color: rgba(255,220,220,.92);
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin-top: 10px;
-  font-weight: 800;
+.btn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
 }
 
 /* =========================
-   Filters (details wrapper)
+   1) Filters layout
+   - PC에서: 검색 input은 1행 전체폭
+           클래스/등급/속성/특성/역할은 2행 1줄(5칸)
 ========================= */
-.filters-box{
-  border:1px solid rgba(255,255,255,.10);
-
-  /* ✅ filters 박스도 동일한 유리 톤으로 통일 */
-  background: rgba(255,255,255,.04);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-
-  border-radius: 16px;
-  padding: 10px 12px;
+.filters{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  align-items: center;
 }
 
-.filters-summary{
-  list-style:none;
-  cursor:pointer;
+/* 검색창은 항상 전체폭 */
+#q{ grid-column: 1 / -1; }
+
+/* Desktop: 5개 콤보 1줄 */
+@media (min-width: 900px){
+  .filters{
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  #q{ grid-column: 1 / -1; } /* 1행 전체폭 */
+  #classFilter,
+  #rarityFilter,
+  #elemFilter,
+  #factionFilter,
+  #roleFilter{ grid-row: 2; }
+}
+
+/* =========================
+   2) Tier layout
+   - topline: 1열(세로 스택)
+   - secondline: 2열(좌: 조건/우: 전체선택·해제)
+========================= */
+.tier-row{ gap: 10px; }
+
+.tier-row.tier-topline{
+  display:grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+  align-items: stretch;
+}
+
+.tier-btnrow{
+  display:grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+}
+.tier-btnrow .btn{ width:100%; }
+
+.tier-row.tier-secondline{
+  display:grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  align-items: start;
+}
+@media (max-width: 900px){
+  .tier-row.tier-secondline{
+    grid-template-columns: 1fr !important; /* 모바일에서는 세로 스택 */
+  }
+}
+
+.tier-actions-row{
+  display:grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  align-items: stretch;
+}
+.tier-actions-row .btn{ width:100%; justify-content:center; }
+
+.subpanel{
+  border: 1px solid var(--line);
+  border-radius: var(--radius2);
+  background: rgba(0,0,0,.14);
+  padding: 8px 10px;
+}
+.subpanel-summary{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:10px;
-  font-weight: 950;
-  color: rgba(255,255,255,.90);
+  cursor:pointer;
+  user-select:none;
+  padding: 4px 2px 8px 2px;
 }
-.filters-summary::-webkit-details-marker{ display:none; }
+.subpanel-title{ font-weight:800; }
+.subpanel-toggle{ color: var(--muted2); font-size: 13px; }
 
-.filters-summary-title{ font-weight: 950; }
-.filters-summary-hint{
-  font-size: 12px;
-  font-weight: 850;
-  color: rgba(255,255,255,.65);
-  white-space: nowrap;
-}
-
-.filters-body{ margin-top: 10px; }
-
-/* 접혀 있을 때(= summary만 보일 때) 얇게 */
-.filters-box:not([open]){
-  padding: 8px 10px;
-}
-.filters-box:not([open]) .filters-body{
-  display:none;
-}
+/* 클래스 조건 내부 */
+.tier-class-inline{ display:flex; flex-direction:column; gap:10px; }
+.tier-check{ display:flex; align-items:center; gap:10px; color: var(--muted); font-size: 14px; }
+.tier-classes{ display:flex; flex-wrap:wrap; gap:10px; opacity:.85; }
 
 /* =========================
-   Filters (inputs layout)
-========================= */
-.filters{
-  display:flex;
-  flex-wrap: wrap;
-  gap:10px;
-  align-items:center;
-}
-
-.input, .select{
-  border: 1px solid var(--line2);
-  background: rgba(0,0,0,.18);
-  color: var(--txt);
-  padding: 10px 12px;
-  border-radius: 12px;
-  font-weight: 800;
-  outline: none;
-}
-
-.input{ min-width: 260px; }
-.select{ min-width: 160px; }
-
-/* =========================
-   Table + horizontal scroll
+   Table
 ========================= */
 .table-wrap{
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-  overscroll-behavior-y: auto;
-  border-radius: 16px;
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  background: rgba(255,255,255,.02);
 }
 
 .table{
   width:100%;
-  min-width: 920px;
   border-collapse: separate;
   border-spacing: 0;
-  overflow: hidden;
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  margin-top: 12px;
-
-  /* ✅ 테이블도 유리 톤으로 살짝 통일 */
-  background: rgba(255,255,255,.025);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
-
 .table thead th{
-  text-align:left;
-  padding: 12px 12px;
-  font-size: 13px;
-  color: rgba(255,255,255,.78);
-  border-bottom: 1px solid var(--line);
-
-  /* ✅ 헤더도 ‘단절되는 진한 바’ 느낌 최소화 */
-  background: rgba(255,255,255,.035);
-
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.table tbody td{
-  padding: 12px 12px;
-  border-bottom: 1px solid rgba(255,255,255,.07);
-  vertical-align: middle;
-  font-size: 15px;
-  color: rgba(255,255,255,.90);
-}
-.table tbody tr:hover{ background: rgba(255,255,255,.03); }
-
-.col-check{ width: 56px; }
-.col-rarity{ width: 92px; }
-.col-elem{ width: 160px; }
-.col-faction{ width: 180px; }
-.col-class{ width: 160px; }
-.col-role{ width: 140px; }
-
-.char-cell{
-  display:flex;
-  align-items:center;
-  gap: 12px;
-  cursor: pointer;
-  user-select:none;
-}
-
-.char-img{
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.12);
-  object-fit: cover;
-  background: rgba(255,255,255,.05);
-  flex: 0 0 auto;
-}
-
-.char-name{
-  font-size: 16px;
-  font-weight: 900;
-  letter-spacing: .2px;
-}
-
-/* =========================
-   Pills
-========================= */
-.pill{
-  display:inline-flex;
-  align-items:center;
-  gap: 8px;
-  padding: 7px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.04);
-  font-weight: 900;
-  font-size: 13px;
-  line-height: 1;
-  color: rgba(255,255,255,.90);
-  white-space: nowrap;
-}
-
-.pill img{
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  object-fit: contain;
-  opacity: .95;
-}
-
-.pill-with-icon{
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  vertical-align: middle;
-}
-.pill-with-icon .mini-icon{
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  object-fit: cover;
-  flex: 0 0 auto;
-}
-.pill-with-icon .pill-text{ line-height: 1; }
-
-.pill-ssr{
-  border-color: rgba(255,255,255,.28);
-  background: linear-gradient(90deg, rgba(255,255,170,.95), rgba(255,240,110,.92));
-  color: rgba(0,0,0,.78);
-}
-.pill-sr{
-  border-color: rgba(255,255,255,.22);
-  background: linear-gradient(90deg, rgba(255,180,70,.92), rgba(255,120,40,.90));
-  color: rgba(0,0,0,.80);
-}
-.pill-r{
-  border-color: rgba(255,255,255,.18);
-  background: rgba(255,255,255,.08);
-  color: rgba(255,255,255,.86);
-}
-.pill-none{
-  border-color: rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  color: rgba(255,255,255,.58);
-}
-.pill-neutral{
-  background: rgba(255,255,255,.04);
-  border-color: rgba(255,255,255,.12);
-  color: rgba(255,255,255,.86);
-}
-
-/* =========================
-   Modal
-========================= */
-.modal-backdrop{
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.55);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 18px;
-  z-index: 9999;
-}
-.modal-backdrop.show{ display:flex; }
-
-.modal{
-  width: min(980px, 100%);
-  max-height: min(86vh, 920px);
-  overflow: auto;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: linear-gradient(180deg, rgba(18,28,45,.98), rgba(10,16,28,.98));
-  box-shadow: 0 20px 70px rgba(0,0,0,.45);
-}
-
-.modal-head{
   position: sticky;
   top: 0;
   z-index: 2;
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(255,255,255,.10);
-  background: rgba(6, 12, 24, .88);
+  background: rgba(0,0,0,.24);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 10px;
+  font-size: 13px;
+  color: rgba(255,255,255,.82);
+  text-align: center;
+}
+.table tbody td{
+  border-top: 1px solid rgba(255,255,255,.06);
+  padding: 10px 10px;
+  text-align:center;
+  vertical-align: middle;
 }
 
-.modal-title{
-  font-size: 16px;
-  font-weight: 950;
+/* =========================
+   3) 캐릭터 셀: 이미지 위 / 이름 아래
+========================= */
+.col-char{ text-align:left; }
+.char-cell{
+  display:flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center;
+  gap: 8px !important;
+  min-width: 120px;
 }
-.modal-title .cn{
-  margin-left: 10px;
-  font-size: 12px;
-  font-weight: 850;
-  color: rgba(255,255,255,.70);
+.char-img{
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  object-fit: cover;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(0,0,0,.20);
-  padding: 3px 8px;
-  border-radius: 999px;
 }
-
-.modal-close{
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
-  color: rgba(255,255,255,.92);
-  font-size: 22px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.modal-body{ padding: 16px; }
-
-.modal-loading{
-  padding: 18px;
-  color: rgba(255,255,255,.70);
+.char-name{
   font-weight: 800;
-}
-
-.detail-empty{
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.04);
-  color: rgba(255,255,255,.72);
-  font-weight: 800;
-}
-
-/* =========================
-   Tabs + Cards
-========================= */
-.tabs { display: flex; flex-direction: column; gap: 12px; }
-
-.tab-bar{
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 6px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.10);
-
-  /* ✅ 탭 바도 유리 톤 */
-  background: rgba(255,255,255,.035);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-.tab-btn{
-  padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.04);
-  color: rgba(255,255,255,.82);
-  font-weight: 900;
-  cursor: pointer;
-}
-.tab-btn.active{
-  background: rgba(255,255,255,.12);
-  border-color: rgba(255,255,255,.22);
-  color: rgba(255,255,255,.95);
-}
-
-.tab-panel{ display: none; }
-.tab-panel.active{ display: block; }
-
-.cards{
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-.card{
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.10);
-
-  /* ✅ 카드도 동일 톤으로 이어지게 */
-  background: rgba(255,255,255,.04);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-
-  padding: 12px;
-}
-
-.card-title{
-  font-size: 15px;
-  font-weight: 950;
-  margin-bottom: 6px;
-  color: rgba(255,255,255,.92);
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.card-desc{
-  font-size: 14px;
-  color: rgba(255,255,255,.78);
-  line-height: 1.45;
-  white-space: pre-wrap;
-}
-
-.kv{
-  width:100%;
-  border-collapse: collapse;
-  margin-top: 8px;
-}
-.kv td{
-  border-top: 1px solid rgba(255,255,255,.08);
-  padding: 8px 6px;
-  font-size: 12px;
-  color: rgba(255,255,255,.78);
-  vertical-align: top;
-  white-space: pre-wrap;
-}
-.kv-k{
-  width: 180px;
-  color: rgba(255,255,255,.86);
-  font-weight: 900;
-}
-
-/* =========================
-   Skill group
-========================= */
-.group{ margin-top: 12px; border-radius: 14px; }
-
-.group-title{
-  margin: 0 0 8px 0;
-  font-size: 13px;
-  font-weight: 950;
-  color: rgba(255,255,255,.90);
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-}
-
-/* Auto/Ultimate/Passive/Normal/Team 색상 구분 */
-.group-auto .group-title{
-  border-color: rgba(120,220,255,.22);
-  background: linear-gradient(90deg, rgba(120,220,255,.14), rgba(255,255,255,.03));
-}
-.group-ultimate .group-title{
-  border-color: rgba(255,180,70,.22);
-  background: linear-gradient(90deg, rgba(255,180,70,.14), rgba(255,255,255,.03));
-}
-.group-passive .group-title{
-  border-color: rgba(200,170,255,.22);
-  background: linear-gradient(90deg, rgba(200,170,255,.14), rgba(255,255,255,.03));
-}
-.group-normal .group-title{
-  border-color: rgba(160,250,220,.22);
-  background: linear-gradient(90deg, rgba(160,250,220,.14), rgba(255,255,255,.03));
-}
-.group-team .group-title{
-  border-color: rgba(255,255,255,.18);
-  background: linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
-}
-
-.raw summary{
-  cursor:pointer;
-  color: rgba(255,255,255,.82);
-  font-weight: 900;
-  margin-top: 10px;
-}
-.raw pre{
-  margin: 8px 0 0 0;
-  padding: 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.25);
-  overflow:auto;
-  font-size: 12px;
-  color: rgba(255,255,255,.78);
-}
-
-/* =========================
-   Awakenings table
-========================= */
-.awak-table{
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 14px;
+  text-align: center;
+  line-height: 1.15;
+  white-space: normal !important;
   overflow: hidden;
-  background: rgba(255,255,255,.02);
-}
-.awak-table th, .awak-table td{
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(255,255,255,.08);
-  text-align: left;
-  vertical-align: top;
-  font-size: 13px;
-  color: rgba(255,255,255,.82);
-  white-space: pre-wrap;
-}
-.awak-table th{
-  color: rgba(255,255,255,.90);
-  background: rgba(255,255,255,.04);
-  font-weight: 950;
-  position: sticky;
-  top: 0;
-  z-index: 1;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  max-width: 140px;
 }
 
 /* =========================
-   Tier Panel
+   Pick stack (선택/필수/자동 드롭다운)
 ========================= */
-.tier-panel{
-  margin-top: 12px;
-  border: 1px solid rgba(255,255,255,.10);
-
-  /* ✅ tier-panel도 동일 톤으로 */
-  background: rgba(255,255,255,.04);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-
-  border-radius: 16px;
-  padding: 12px;
-
-  box-shadow:
-    0 10px 24px rgba(0,0,0,.18),
-    inset 0 1px 0 rgba(255,255,255,.05);
-}
-
-/* ✅ details 요약 헤더: 검색/필터와 동일한 (열기/닫기) UX */
-.tier-summary{
-  list-style: none;
-  cursor: pointer;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap: 10px;
-  font-weight: 950;
-  color: rgba(255,255,255,.90);
-}
-.tier-summary::-webkit-details-marker{ display:none; }
-.tier-summary-title{ font-weight: 950; }
-.tier-summary-hint{
-  font-size: 12px;
-  font-weight: 850;
-  color: rgba(255,255,255,.65);
-  white-space: nowrap;
-}
-
-.tier-body{ margin-top: 10px; }
-
-/* 접혀 있을 때(= summary만 보일 때) 얇게 */
-.tier-panel:not([open]){
-  padding: 8px 10px;
-}
-.tier-panel:not([open]) .tier-body{
-  display:none;
-}
-
-.tier-actions{
-  gap: 8px;
-}
-
-.tier-row{
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.tier-row.tier-sub{ margin-top: 6px; }
-
-.tier-info{
-  font-size: 12px;
-  color: rgba(255,255,255,.68);
-  font-weight: 850;
-}
-
-.tier-check{
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 850;
-  color: rgba(255,255,255,.85);
-}
-
-.tier-classes{
-  display:flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 8px 0 0;
-}
-
-.tier-classes[aria-disabled="true"]{ opacity: .55; }
-
-.tier-class-item{
-  display:inline-flex;
-  gap: 6px;
-  align-items:center;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.04);
-  font-weight: 850;
-  color: rgba(255,255,255,.85);
-}
-
-.tier-help{
-  margin-top: 8px;
-  font-size: 12px;
-  color: rgba(255,255,255,.65);
-}
-
-.tier-result{ margin-top: 10px; }
-
-.tier-error{
-  border:1px solid rgba(255,80,80,.35);
-  background: rgba(255,80,80,.10);
-  padding: 10px 12px;
-  border-radius: 14px;
-  font-weight: 850;
-}
-
-.tier-grid{
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap: 10px;
-}
-@media (min-width: 640px){
-  .tier-grid{ grid-template-columns: repeat(4, minmax(0,1fr)); }
-}
-
-.tier-card{
-  border: 1px solid rgba(255,255,255,.10);
-
-  /* ✅ 결과 카드도 동일 톤으로 */
-  background: rgba(255,255,255,.04);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-
-  border-radius: 14px;
-  padding: 10px;
-}
-
-.tier-card-top{
-  display:flex;
-  gap: 8px;
-  align-items:center;
-  margin-bottom: 8px;
-}
-
-.tier-name{ font-weight: 950; }
-
-.tier-card-sub{
-  display:flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.tier-badge{
-  display:inline-flex;
-  align-items:center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-weight: 950;
-  font-size: 12px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
-}
-
-.tier-sss{
-  background: linear-gradient(90deg, rgba(255,255,170,.95), rgba(255,240,110,.92));
-  color: rgba(0,0,0,.78);
-}
-.tier-ss{
-  background: linear-gradient(90deg, rgba(255,180,70,.92), rgba(255,120,40,.90));
-  color: rgba(0,0,0,.80);
-}
-.tier-s{ background: rgba(255,255,255,.10); }
-.tier-a{ background: rgba(255,255,255,.06); }
-
-/* ✅ collapse: head만 남기고 내용 숨김 + 얇게 */
-.tier-panel.collapsed{
-  padding: 10px 12px;
-}
-.tier-panel.collapsed .tier-panel-head{
-  margin-bottom: 0;
-}
-.tier-panel.collapsed .tier-row,
-.tier-panel.collapsed .tier-help,
-.tier-panel.collapsed .tier-result{
-  display: none;
-}
-
-/* ===== Tier result sections (Guild/PVE/PVP/Rift) ===== */
-.tier-section{
-  margin-top: 12px;
-  border: 1px solid rgba(255,255,255,.10);
-
-  /* ✅ 섹션도 끊김이 덜 보이도록 톤 통일 */
-  background: rgba(255,255,255,.035);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-
-  border-radius: 16px;
-  padding: 12px;
-}
-.tier-section-head{
-  display:flex;
-  align-items:baseline;
-  justify-content:space-between;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.tier-section-title{
-  font-weight: 950;
-  font-size: 14px;
-  color: rgba(255,255,255,.92);
-}
-.tier-section-sub{
-  font-weight: 850;
-  font-size: 12px;
-  color: rgba(255,255,255,.65);
-  white-space: nowrap;
-}
-.tier-party-block{ margin-top: 10px; }
-.tier-party-title{
-  font-weight: 950;
-  font-size: 13px;
-  color: rgba(255,255,255,.86);
-  margin-bottom: 8px;
-}
-
-/* =========================
-   Mobile tuning
-========================= */
-@media (max-width: 520px){
-  .wrap{
-    padding: 10px;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
-  }
-
-  .title-row h1{
-    font-size: 20px;
-    line-height: 1.15;
-  }
-
-  /* ✅ 모바일: 필터 내부는 기존 너가 만든 2열 그리드 유지 */
-  .filters{
-    display:grid !important;
-    grid-template-columns: 2fr 1fr !important;
-    gap:8px !important;
-    align-items:stretch !important;
-  }
-
-  .filters .input,
-  .filters .select,
-  .filters .btn{
-    height:36px !important;
-    padding:0 10px !important;
-    font-size:14px !important;
-    width:100% !important;
-    min-width:0 !important;
-  }
-
-  /* 1행: 검색 + 클래스 */
-  .filters #q{
-    grid-column: 1 / 2 !important;
-    grid-row: 1 !important;
-    min-width:0 !important;
-  }
-  .filters #classFilter{
-    grid-column: 2 / 3 !important;
-    grid-row: 1 !important;
-    min-width:0 !important;
-  }
-
-  /* 2행부터: 자동 배치 */
-  .filters #rarityFilter,
-  .filters #elemFilter,
-  .filters #factionFilter,
-  .filters #roleFilter,
-  .filters #btnAll,
-  .filters #btnNone{
-    grid-column: auto !important;
-  }
-
-  /* ✅ 모바일에서 카드 라운드 살짝 정리 */
-  .panel, .filters-box, .tier-panel, .tier-section, .card{
-    border-radius: 14px;
-  }
-}
-
-
-
-/* =========================
-   Nav button (top bar)
-========================= */
-.navbtn{
-  margin-left: 12px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid var(--line, rgba(255,255,255,.14));
-  background: rgba(255,255,255,.04);
-  color: inherit;
-  text-decoration: none;
-  font-size: 13px;
-}
-.navbtn:hover{
-  background: rgba(255,255,255,.08);
-}
-
-/* =========================
-   Rune Recommendation UI
-========================= */
-.rune-wrap{
-  display: grid;
-  gap: 12px;
-}
-
-.rune-profile{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-}
-
-.rune-tabs{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-}
-
-.rune-tab-btn{
-  border: 1px solid var(--line, rgba(255,255,255,.14));
-  background: rgba(255,255,255,.03);
-  color: inherit;
-  padding: 8px 10px;
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 13px;
-}
-.rune-tab-btn.active{
-  background: rgba(255,255,255,.10);
-  border-color: rgba(255,255,255,.22);
-}
-
-.rune-tab-panel{ display:none; }
-.rune-tab-panel.active{ display:block; }
-
-.rune-build{
-  border: 1px solid var(--line, rgba(255,255,255,.14));
-  background: rgba(255,255,255,.03);
-  border-radius: 16px;
-  padding: 12px;
-}
-
-.rune-build-head{
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap:10px;
-  margin-bottom: 10px;
-}
-
-.rune-build-title{
-  font-weight: 700;
-  font-size: 15px;
-}
-
-.rune-sets{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-  margin-bottom: 12px;
-}
-
-.rune-set-pill{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding: 8px 10px;
-  border-radius: 14px;
-  border: 1px solid var(--line, rgba(255,255,255,.14));
-  background: rgba(0,0,0,.10);
-}
-
-.rune-set-ico{
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  object-fit: cover;
-  flex: 0 0 auto;
-  box-shadow: 0 8px 18px rgba(0,0,0,.25);
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.08);
-}
-.rune-set-ico.ph{
-  display:inline-block;
-}
-
-.rune-set-txt{ line-height: 1.15; }
-.rune-set-name{ font-weight: 700; font-size: 13px; }
-.rune-set-piece{ font-size: 12px; opacity: .75; }
-
-.rune-cols{
-  display:grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 12px;
-}
-
-@media (max-width: 880px){
-  .rune-cols{ grid-template-columns: 1fr; }
-}
-
-.rune-col-title{
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  opacity: .92;
-}
-
-.rune-slots{
-  display:grid;
-  gap: 8px;
-}
-
-.rune-slot-row{
-  display:grid;
-  grid-template-columns: 36px 1fr;
-  gap: 10px;
-  align-items: start;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.02);
-}
-
-.rune-slot-k{
-  font-weight: 800;
-  opacity: .85;
-}
-.rune-slot-v{
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px;
-}
-.rune-stat{
-  display:inline-block;
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.04);
-  font-size: 12px;
-}
-
-.rune-list{
-  margin-top: 10px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.06);
-  border-radius: 14px;
-  padding: 10px;
-}
-.rune-list-title{
-  font-weight: 800;
-  font-size: 13px;
-  margin-bottom: 6px;
-}
-.rune-list ul{
-  margin: 0;
-  padding-left: 18px;
-  line-height: 1.45;
-}
-.rune-list li{
-  margin: 2px 0;
-  opacity: .92;
-}
-
-/* =========================
-   Tier card rune mini icons
-========================= */
-.rune-mini{
-  display:flex;
-  gap:6px;
-  margin-left: 8px;
-  align-items:center;
-}
-
-.rune-mini-img{
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  object-fit: cover;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.05);
-}
-
-.rune-mini-ph{
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  display:inline-block;
-}
-
-
-/* =========================
-   Character modal > "추천 룬" 탭
-   - select.html 내부 style 주입 제거 → select.css로 일원화
-   - 모바일 가독성/정렬 개선 + 이미지 과대 노출 방지
-========================= */
-.tab-panel[data-panel="runes"] .card{
-  padding: 14px;
-}
-
-.tab-panel[data-panel="runes"] .card-title{
-  margin-bottom: 8px;
-}
-
-.tab-panel[data-panel="runes"] .rune-sets{
-  display: grid;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.tab-panel[data-panel="runes"] .rune-set{
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 14px;
-  padding: 12px;
-  background: rgba(255,255,255,.02);
-}
-
-.tab-panel[data-panel="runes"] .rune-set-top{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.tab-panel[data-panel="runes"] .rune-ico{
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  object-fit: cover;
-  flex: 0 0 auto;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
-}
-
-.tab-panel[data-panel="runes"] .rune-ico-empty{ display:inline-block; }
-
-.tab-panel[data-panel="runes"] .rune-set-title{ font-weight: 800; }
-.tab-panel[data-panel="runes"] .rune-set-pcs{ font-size: .92em; opacity: .72; margin-left: 6px; }
-
-.tab-panel[data-panel="runes"] .rune-set-body{
-  margin-top: 10px;
-  display: grid;
-  gap: 8px;
-}
-
-.tab-panel[data-panel="runes"] .rune-eff{ line-height: 1.45; }
-
-.tab-panel[data-panel="runes"] .rune-eff-tag{
-  display: inline-block;
-  min-width: 44px;
-  padding: 3px 8px;
-  margin-right: 6px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.04);
-  font-size: .86em;
-  opacity: .92;
-}
-
-.tab-panel[data-panel="runes"] .rune-note{ opacity: .78; }
-
-
-/* ===== Rune recommendation mode segment (BOTH / PVE / PVP) ===== */
-.rune-reco{ display: grid; gap: 12px; }
-
-.rune-seg{
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding: 6px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.04);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-.rune-seg-btn{
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: rgba(255,255,255,.86);
-  font-weight: 800;
-  letter-spacing: .4px;
-  padding: 10px 0;
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.rune-seg-btn.active{
-  background: rgba(255,255,255,.10);
-  border: 1px solid rgba(255,255,255,.18);
-  color: rgba(255,255,255,.98);
-  box-shadow: 0 10px 22px rgba(0,0,0,.22);
-}
-
-.rune-mode-panel{ display: none; }
-.rune-mode-panel.active{ display: block; }
-
-.rune-grid-col{ display: grid; gap: 12px; }
-
-.rune-grid{
-  display: grid;
-  grid-template-columns: 1.05fr .95fr;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-@media (max-width: 920px){
-  .tab-panel[data-panel="runes"] .rune-grid{ grid-template-columns: 1fr; }
-}
-
-.tab-panel[data-panel="runes"] .rune-sec-title{
-  font-weight: 800;
-  margin: 4px 0 10px;
-  opacity: .92;
-}
-
-.tab-panel[data-panel="runes"] .rune-slots{ display: grid; gap: 8px; }
-
-.tab-panel[data-panel="runes"] .slot-row{
-  display: grid;
-  grid-template-columns: 54px 1fr;
-  gap: 10px;
-  align-items: start;
-}
-
-.tab-panel[data-panel="runes"] .slot-k{ opacity: .82; font-weight: 800; }
-.tab-panel[data-panel="runes"] .slot-v{ display: grid; gap: 6px; }
-
-.tab-panel[data-panel="runes"] .slot-item{
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-}
-
-.tab-panel[data-panel="runes"] .slot-item.muted{ opacity: .6; }
-
-.tab-panel[data-panel="runes"] .rune-list{ margin-top: 10px; }
-.tab-panel[data-panel="runes"] .rune-list-title{ font-weight: 800; opacity: .92; margin-bottom: 6px; }
-.tab-panel[data-panel="runes"] .rune-ul{ margin: 0; padding-left: 18px; display: grid; gap: 6px; line-height: 1.45; }
-
-/* ✅ 데이터/브라우저 영향으로 img가 크게 노출되는 경우 방지 ("추천 룬" 탭만) */
-.tab-panel[data-panel="runes"] img{
-  max-width: 72px;
-  max-height: 72px;
-  width: auto;
-  height: auto;
-}
-
-.tab-panel[data-panel="runes"] .rune-ico{
-  max-width: none;
-  max-height: none;
-  width: 44px;
-  height: 44px;
-}
-
-
-/* =========================================================
-   FINAL SCALE (+3pt 체감) + TABLE 헤더 줄바꿈 방지 + PILL 확대
-========================================================= */
-body{
-  font-size: 16px;
-  line-height: 1.45;
-}
-
-/* 상단 */
-.title-row h1{ font-size: 20px; }
-.meta-inline{ font-size: 15px; }
-.refresh{ font-size: 15px; }
-
-/* 입력/버튼 */
-.input, .select, .btn{
-  font-size: 15px;
-  padding: 10px 12px;
-}
-.navbtn{ font-size: 14px; }
-
-/* 테이블: 한글 음절 줄바꿈(선/택) 방지 */
-.table thead th,
-.table tbody td{
-  white-space: nowrap;
-  word-break: keep-all;
-}
-
-/* 테이블 폰트 업 */
-.table thead th{ font-size: 14px; }
-.table tbody td{ font-size: 15px; }
-
-/* 컬럼 폭(선택/필수) */
-.col-check{ width: 86px; min-width: 86px; }
-.col-req{ width: 86px; min-width: 86px; }
-
-/* 캐릭터명 */
-.char-name{ font-size: 16px; }
-
-/* 속성/특성/클래스/역할/등급 pill 확대 */
-.pill{
-  font-size: 16px;
-  padding: 9px 14px;
-  gap: 10px;
-}
-.pill img,
-.pill-with-icon .mini-icon{
-  width: 18px;
-  height: 18px;
-}
-
-/* 모달 내부 글씨도 같이 */
-.modal-title{ font-size: 18px; }
-.card-title{ font-size: 17px; }
-.card-desc{ font-size: 16px; }
-.kv td{ font-size: 14px; }
-.group-title{ font-size: 15px; }
-.awak-table th, .awak-table td{ font-size: 15px; }
-
-/* 모바일: 과도한 깨짐 방지 */
-@media (max-width: 520px){
-  body{ font-size: 17px; }
-  .title-row h1{ font-size: 21px; }
-
-  .filters .input,
-  .filters .select,
-  .filters .btn{
-    height:40px !important;
-    font-size:16px !important;
-  }
-
-  .table thead th{ font-size: 15px; }
-  .table tbody td{ font-size: 16px; }
-
-  .pill{ font-size: 15px; }
-}
-
-/* =========================================================
-   Memory Card tab (표 구조 유지)
-   - 카드(좌측) 열만 크게
-   - 이미지가 좌측 셀을 100%로 꽉 채우게
-========================================================= */
-.memcard-table{ table-layout: fixed; }
-
-.memcard-table .memcard-th,
-.memcard-table td.memcard-imgcell{
-  width: clamp(180px, 26vw, 340px);
-}
-
-.memcard-table td.memcard-imgcell{
-  padding: 10px;
-  vertical-align: top;
-}
-
-.memcard-table td.memcard-imgcell .memcard-img{
-  display: block;
-  width: 100% !important;
-  height: auto !important;
-  max-width: none !important;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.12);
-  box-shadow: 0 10px 26px rgba(0,0,0,.35);
-  background: rgba(255,255,255,.06);
-}
-
-@media (max-width: 520px){
-  .memcard-table .memcard-th,
-  .memcard-table td.memcard-imgcell{
-    width: clamp(150px, 44vw, 260px);
-  }
-  .memcard-table td.memcard-imgcell{ padding: 8px; }
-}
-
-
-/* =========================================================
-   Memory Card (force): select.html 인라인 스타일보다 우선 적용
-========================================================= */
-.memcard-table td.memcard-imgcell{
-  width: clamp(240px, 30vw, 420px) !important;
-  padding: 10px !important;
-}
-.memcard-table td.memcard-imgcell .memcard-img{
-  width: 100% !important;
-  height: auto !important;
-  aspect-ratio: 5 / 8;
-  object-fit: cover;
-}
-@media (max-width: 520px){
-  .memcard-table td.memcard-imgcell{
-    width: clamp(170px, 54vw, 320px) !important;
-    padding: 8px !important;
-  }
-}
-
-
-/* =========================================================
-   Tablet / Narrow desktop (창 반으로 줄였을 때) 레이아웃 안정화
-   - tier 상단 라인: 버튼 세로 깨짐 방지
-   - class 조건 박스(min-width:420)로 인한 압착 제거
-   - filters: 2열 그리드로 정렬
-   - 폰트 크기 일관성 향상
-========================================================= */
-
-/* 버튼 글자 쪼개짐 방지 */
-.btn{ white-space: nowrap; }
-
-/* filters: 중간 폭에서는 2열 그리드 */
-@media (max-width: 980px){
-  .filters{
-    display:grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-    align-items: stretch !important;
-  }
-  .filters #q{ grid-column: 1 / -1 !important; }
-  .filters .input, .filters .select, .filters .btn{
-    width: 100% !important;
-    min-width: 0 !important;
-    font-size: 16px !important;
-    height: 42px !important;
-    padding: 0 12px !important;
-  }
-}
-
-/* tier 상단: flex 압착 대신 grid로 재배치 */
-@media (max-width: 1100px){
-  .tier-row.tier-topline{
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-    align-items: start !important;
-  }
-
-  /* 1행: preset */
-  #tierPreset{ grid-column: 1 / -1 !important; width: 100% !important; min-width: 0 !important; }
-
-  /* 2행: 두 버튼 */
-  #btnBuildTierParty{ grid-column: 1 / 2 !important; width: 100% !important; justify-content: center; }
-  #btnAiParty{ grid-column: 2 / 3 !important; width: 100% !important; justify-content: center; }
-
-  /* 3행: 클래스 포함 조건 박스 */
-  #tierClassInline{
-    grid-column: 1 / -1 !important;
-    min-width: 0 !important;           /* 인라인(min-width:420) 무력화 */
-    width: 100% !important;
-  }
-  /* 인라인에서 min-width가 강하게 걸려 있으므로 important로 제거 */
-  .tier-class-inline{ min-width: 0 !important; flex: 1 1 auto !important; }
-
-  /* 4행: 전체선택/해제 */
-  .tier-actions-inline{
-    grid-column: 1 / -1 !important;
-    margin-left: 0 !important;
-    justify-content: flex-end !important;
-    flex-wrap: wrap !important;
-  }
-  .tier-actions-inline .btn{
-    min-width: 160px;
-  }
-}
-
-/* 더 좁아지면(모바일에 가까운 폭): 한 열 스택 */
-@media (max-width: 720px){
-  .tier-row.tier-topline{
-    grid-template-columns: 1fr !important;
-  }
-  #btnBuildTierParty, #btnAiParty{
-    grid-column: 1 / -1 !important;
-  }
-  .tier-actions-inline{
-    justify-content: space-between !important;
-  }
-  .tier-actions-inline .btn{
-    width: calc(50% - 6px);
-    min-width: 0;
-    justify-content: center;
-  }
-}
-
-/* 텍스트 크기 “너무 작은 것들”만 상향 (전체 동일 체감) */
-.filters-summary-hint,
-.tier-summary-hint,
-.tier-help,
-.tier-info{
-  font-size: 14px !important;
-}
-
-
-/* =========================================================
-   Mobile: Tier top controls (요청사항)
-   - 드롭다운 아래
-     1) 등급표파티 / AI파티 / 파티초기화 (동일 폭 + 동일 높이 + 터치영역 확장)
-     2) 전체 선택 / 전체 해제 (동일 폭)
-     3) 선택 클래스 포함 조건 박스: 양옆 꽉
-   - 기존 tier-topline 재배치 규칙보다 아래에 두어 최종 우선 적용
-========================================================= */
-
-/* tier-topline: 드롭다운 + 2개 행 컨테이너 구조 */
-.tier-row.tier-topline{
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 10px !important;
-}
-
-/* 3버튼 / 2버튼 행: 기본은 그리드 */
-.tier-btnrow{
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 10px !important;
-}
-
-.tier-actions-row{
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 10px !important;
-}
-
-/* ✅ 3버튼 동일 폭/높이 고정 + 터치영역 확장 */
-.tier-btnrow .btn,
-.tier-actions-row .btn{
-  width: 100%;
-  justify-content: center;
-}
-
-/* 고정 높이(터치영역): 모바일/태블릿 중심 */
-@media (max-width: 980px){
-  .tier-btnrow .btn,
-  .tier-actions-row .btn{
-    height: 46px !important;
-    padding: 0 12px !important;
-    font-size: 16px !important;
-    border-radius: 16px;
-  }
-}
-
-/* 극소 화면에서도 3버튼을 무조건 1행 유지 (요청사항) */
-@media (max-width: 520px){
-  .tier-btnrow{
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .tier-btnrow .btn{
-    padding: 0 8px !important;
-    font-size: 14px !important;
-  }
-}
-
-/* 선택 클래스 포함 조건 박스: 모바일에서 양옆 꽉 + 내부 칩 2열 */
-@media (max-width: 720px){
-  #classCondPanel,
-  #classCondPanel .tier-class-inline{
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-  #classCondPanel .tier-class-inline{
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
-  }
-  #classCondPanel .tier-classes-inline{
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 10px !important;
-    width: 100% !important;
-  }
-}
-
-
-
-/* =========================================================
-   Wide desktop (전체창/와이드) 레이아웃 개선
-   - 등급표 상단 줄: 좌측(프리셋+버튼) / 우측(클래스 조건) 균형
-   - 버튼 폭 과도하게 늘어나는 현상 방지
-   - 패널 내부 여백/정렬 통일
-========================================================= */
-
-/* PC 전체창에서 컨테이너 폭 확장(콘텐츠 밀도 개선) */
-@media (min-width: 1200px){
-  .wrap{ max-width: 1520px; }
-}
-
-/* tier 상단 라인을 와이드에서 "좌/우"로 보기 좋게 */
-@media (min-width: 1101px){
-  .tier-row.tier-topline{
-    display: grid;
-    grid-template-columns: minmax(260px, 380px) minmax(420px, 1fr) minmax(360px, 460px);
-    gap: 12px;
-    align-items: start;
-  }
-
-  /* 프리셋 */
-  #tierPreset{
-    width: 100%;
-    min-width: 0;
-  }
-
-  /* 버튼 묶음: 너무 길게 늘어나는 걸 방지하고 균형 배치 */
-  .tier-actions{
-    display: flex;
-    gap: 10px;
-    justify-content: flex-start;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  #btnBuildTierParty,
-  #btnAiParty{
-    flex: 0 0 auto;
-    min-width: 200px;
-    max-width: 260px;
-    width: auto;
-    justify-content: center;
-  }
-
-  /* 클래스 조건 박스: 우측 고정 폭 느낌으로 안정 */
-  #tierClassInline{
-    width: 100%;
-    min-width: 0 !important;
-    justify-self: end;
-  }
-  .tier-class-inline{
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  /* 하단 전체선택/해제는 오른쪽 정렬 */
-  .tier-actions-inline{
-    justify-content: flex-end !important;
-    gap: 10px;
-  }
-}
-
-/* wide에서 카드/섹션 내부 여백 조금 여유 있게 */
-@media (min-width: 1100px){
-  .panel{ padding: 16px; }
-  .tier-panel{ padding: 14px; }
-  .filters-box{ padding: 12px 14px; }
-}
-
-/* 검색/필터 바도 전체창에서 한 줄 유지 도움 */
-@media (min-width: 1100px){
-  .filters{
-    gap: 12px;
-  }
-  .input{ min-width: 320px; }
-  .select{ min-width: 190px; }
-}
-
-@media (max-width: 520px){
-  .tier-classes-inline{
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 10px !important;
-  }
-  .tier-class-item{
-    border-radius: 14px;
-    padding: 12px 10px;
-    background: rgba(255,255,255,.04);
-    border: 1px solid rgba(255,255,255,.10);
-  }
-  .tier-class-item input{
-    transform: scale(1.15);
-  }
-  .tier-class-item span{
-    font-weight: 800;
-    letter-spacing: .2px;
-  }
-}
-
-
-
-
-/* =========================================================
-   Tier / AI 추천 결과 카드 (초상화 + 메타) — Clean merged
-========================================================= */
-.tier-portrait{
-  width:44px;
-  height:44px;
-  border-radius:12px;
-  object-fit:cover;
-  flex:0 0 auto;
-  box-shadow: 0 8px 18px rgba(0,0,0,.25);
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
-}
-.tier-portrait-empty{
-  background: rgba(255,255,255,.04);
-}
-
-/* 카테고리 블록(파티 묶음) */
-.tier-cat{
-  margin-top: 14px;
-  padding: 14px;
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 18px;
-  background: rgba(255,255,255,.03);
-}
-.tier-cat-title{
-  font-weight: 900;
-  letter-spacing: .2px;
-  margin-bottom: 8px;
-}
-.tier-cat-meta{
-  margin: 0 0 12px 0;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.18);
-  color: rgba(255,255,255,.82);
-  line-height: 1.35;
-}
-
-.tier-section-title{
-  margin: 10px 0 6px;
-  font-weight: 900;
-  letter-spacing: .2px;
-}
-
-/* archetype pill 강조 */
-.pill-accent{
-  border: 1px solid rgba(255,255,255,.18);
-  background: rgba(255,255,255,.08);
-  color: rgba(255,255,255,.92);
-  font-weight: 900;
-  letter-spacing: .2px;
-}
-
-/* 긴 특성명/속성명 말줄임 */
-.tier-card-sub .pill{
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 190px;
-}
-
-/* Tier 상단 컨트롤(드롭다운 + 3버튼 / 클래스조건 + 2버튼) */
-.tier-row.tier-topline{
-  display:grid;
-  grid-template-columns: minmax(220px, 380px) 1fr;
-  gap: 10px;
-  align-items: center;
-}
-.tier-btnrow{
-  display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-.tier-actions-row{
-  display:grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.tier-btnrow .btn,
-.tier-actions-row .btn{ width: 100%; justify-content:center; }
-
-@media (max-width: 720px){
-  .tier-row.tier-topline{ grid-template-columns: 1fr; }
-}
-
-@media (max-width: 520px){
-  .tier-btnrow .btn{ padding: 0 8px !important; font-size: 14px !important; height: 46px !important; }
-  .tier-actions-row .btn{ height: 46px !important; }
-}
-
-/* ✅ 필수(파티 지정) UI: 선택/필수/배치 드롭다운 */
 .pick-stack{
   display:flex;
-  flex-direction:column;
-  gap:6px;
-  align-items:flex-start;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
 }
 .pick-line{
   display:flex;
   align-items:center;
-  gap:8px;
-  font-size:12px;
+  gap: 10px;
+  font-size: 12px;
   color: rgba(255,255,255,.82);
-  user-select:none;
 }
-.pick-line input{ transform: translateY(0.5px); }
-.pick-text{ white-space:nowrap; }
-.must-slot{
-  width: 132px;
-  max-width: 132px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--line2);
-  background: rgba(255,255,255,.04);
+.pick-text{ white-space: nowrap; }
+
+/* dropdown in pick area */
+.must-slot, .auto-slot{
+  width: 100%;
+  height: 40px;
+  border-radius: 12px;
+  border:1px solid var(--line2);
+  background: rgba(0,0,0,.18);
   color: var(--txt);
-  font-size: 12px;
-  outline: none;
+  padding: 0 12px;
 }
-.must-slot:disabled{ opacity: .55; cursor: not-allowed; }
 
-.must-role{
-  height: 32px;
+/* Small helpers */
+.mini-icon{ width:16px; height:16px; vertical-align:-3px; }
+.chip{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
   padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--line2);
-  background: rgba(255,255,255,.04);
-  color: var(--txt);
-  font-size: 12px;
-  outline: none;
-}
-.must-role:disabled{ opacity: .55; cursor: not-allowed; }
-
-/* ✅ 11열 기준: 모바일 가로폭/스크롤 최적화(불필요한 과도 min-width 축소) */
-.col-char{ min-width: 220px; }
-.col-elem, .col-faction, .col-class, .col-role, .col-rarity{
-  width: 82px; min-width: 82px; text-align: center;
-}
-@media (min-width: 420px){
-  .col-char{ min-width: 240px; }
-  .col-elem, .col-faction, .col-class, .col-role, .col-rarity{
-    width: 90px; min-width: 90px;
-  }
-}
-
-
-.tier-warn{
-  margin:10px 0 6px;
-  padding:10px 12px;
-  border:1px solid rgba(255,210,120,.35);
-  background: rgba(255,210,120,.08);
-  border-radius: 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
   color: rgba(255,255,255,.88);
   font-size: 13px;
+  white-space: nowrap;
 }
 
-@media (max-width: 720px){
-  .must-slot{ width: 118px; max-width: 118px; }
-  .pick-line{ font-size: 11px; gap: 7px; }
-  .pick-stack{ gap: 5px; }
+/* Modals (기존 구조 호환 - 최소 스타일) */
+.modal-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display:none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
 }
-
-
-/* ===== Subpanel (class condition) toggle ===== */
-.subpanel{
-  margin-top: 8px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: rgba(255,255,255,.02);
+.modal{
+  width: min(980px, calc(100vw - 28px));
+  max-height: calc(100vh - 28px);
+  overflow:auto;
+  background: rgba(20,26,45,.95);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
 }
-.subpanel[open]{
-  background: rgba(255,255,255,.025);
-}
-.subpanel-summary{
-  list-style: none;
-  cursor: pointer;
-  user-select: none;
+.modal-head{
+  position: sticky;
+  top: 0;
+  background: rgba(0,0,0,.24);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,.10);
+  padding: 12px 14px;
   display:flex;
   align-items:center;
   justify-content: space-between;
   gap: 10px;
+}
+.modal-title{ font-weight: 900; }
+.modal-close{
+  border:1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.06);
+  color: var(--txt);
+  border-radius: 12px;
+  height: 38px;
+  padding: 0 10px;
+  cursor:pointer;
+}
+.modal-body{ padding: 14px; }
+
+/* 에러 배너 */
+.error{
+  margin: 10px 0 14px 0;
   padding: 10px 12px;
   border-radius: 14px;
-}
-.subpanel-summary::-webkit-details-marker{ display:none; }
-.subpanel-title{
-  font-weight: 700;
-  color: var(--txt);
-}
-.subpanel-toggle{
-  color: var(--muted);
-  font-size: 12px;
-}
-.subpanel:not([open]) .tier-class-inline{
-  display:none;
-}
-/* 더 촘촘한 클래스 칩 */
-.tier-classes-inline{
-  margin-top: 10px;
-  display: grid !important;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 10px;
-}
-@media (max-width: 1100px){
-  .tier-classes-inline{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-@media (max-width: 720px){
-  .tier-classes-inline{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-/* =========================
-   JS Error Banner
-========================= */
-.js-error-banner{
-  display:none;
-  position: sticky;
-  top: 0;
-  z-index: 9999;
-  background: rgba(180,40,40,.92);
-  color: #fff;
-  padding: 10px 14px;
-  font-weight: 800;
-  border-bottom: 1px solid rgba(255,255,255,.25);
-}
-
-/* =========================
-   Modal > 추천 룬 (Build cards)
-========================= */
-.tab-panel[data-panel="runes"] .rune-builds{ display:grid; gap:12px; }
-
-.tab-panel[data-panel="runes"] .rune-build-card{
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 16px;
-  padding: 12px;
-  background: rgba(255,255,255,.03);
-  box-shadow: 0 14px 34px rgba(0,0,0,.22);
-}
-
-.tab-panel[data-panel="runes"] .rune-build-head{
-  display:flex;
-  align-items:baseline;
-  justify-content:space-between;
-  gap:10px;
-}
-
-.tab-panel[data-panel="runes"] .rune-build-title{
-  font-weight: 950;
-  font-size: 15px;
-}
-
-.tab-panel[data-panel="runes"] .rune-score{ font-size: 13px; }
-
-.tab-panel[data-panel="runes"] .rune-set-grid{
-  display:grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap:10px;
-  margin-top:10px;
-}
-@media (max-width: 520px){
-  .tab-panel[data-panel="runes"] .rune-set-grid{ grid-template-columns: 1fr; }
-}
-
-.tab-panel[data-panel="runes"] .rune-set{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:10px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.02);
-  min-width: 0;
-}
-
-.tab-panel[data-panel="runes"] .rune-ico{
-  width:44px;
-  height:44px;
-  border-radius: 14px;
-  object-fit: cover;
-  flex: 0 0 auto;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
-}
-.tab-panel[data-panel="runes"] .rune-ico-empty{ display:inline-block; }
-
-.tab-panel[data-panel="runes"] .rune-set-meta{ min-width:0; }
-.tab-panel[data-panel="runes"] .rune-set-name{
-  font-weight: 900;
-  white-space: nowrap;
-  overflow:hidden;
-  text-overflow: ellipsis;
-}
-.tab-panel[data-panel="runes"] .rune-set-pcs{ font-size: 12px; }
-.tab-panel[data-panel="runes"] .rune-set-eff{
-  margin-top: 4px;
-  font-size: 12px;
-  line-height: 1.45;
-  color: rgba(255,255,255,.70);
-}
-
-.tab-panel[data-panel="runes"] .rune-substats{ margin-top: 12px; }
-.tab-panel[data-panel="runes"] .rune-chip-row{
-  display:flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-.tab-panel[data-panel="runes"] .chip{
-  display:inline-flex;
-  align-items:center;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.04);
-  font-weight: 800;
-  font-size: 13px;
-  line-height: 1.1;
-  white-space: nowrap;
-}
-
-/* Main stat slot list (legacy renderSlots) */
-.tab-panel[data-panel="runes"] .rune-slots{ display:grid; gap: 10px; margin-top: 10px; }
-.tab-panel[data-panel="runes"] .slot-row{ display:flex; gap:10px; align-items:flex-start; }
-.tab-panel[data-panel="runes"] .slot-k{ width:48px; flex: 0 0 auto; font-weight: 900; opacity: .85; }
-.tab-panel[data-panel="runes"] .slot-v{ flex:1; display:flex; flex-wrap:wrap; gap:8px; min-width:0; }
-.tab-panel[data-panel="runes"] .slot-item{
-  padding: 7px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  font-size: 13px;
-  line-height: 1.15;
-}
-
-/* =========================================================
-   FINAL OVERRIDES (layout rules requested)
-   1) 검색/필터: 모든 콤보박스(및 검색창) 1열(세로 스택)
-   2) 등급표: 상단 컨트롤 2열(프리셋 | 버튼), 2줄(클래스조건 | 전체선택/해제) 2열
-   - 파일 하단에 배치하여, 기존 !important/미디어 규칙보다 우선 적용
-========================================================= */
-
-/* ---------- 1) Filters: ALWAYS 1-column stack ---------- */
-.filters{
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 10px !important;
-  align-items: stretch !important;
-}
-.filters #q{ width: 100% !important; }
-.filters .input,
-.filters .select,
-.filters .btn{
-  width: 100% !important;
-  min-width: 0 !important;
-}
-
-/* wide에서 걸어둔 min-width(한줄 배치 유도) 무력화 */
-@media (min-width: 1100px){
-  .input{ min-width: 0 !important; }
-  .select{ min-width: 0 !important; }
-}
-
-/* ---------- 2) Tier: 2-column controls on desktop ---------- */
-@media (min-width: 981px){
-  /* 1줄: 프리셋 | 3버튼 */
-  .tier-row.tier-topline{
-    display: grid !important;
-    grid-template-columns: minmax(260px, 420px) 1fr !important;
-    gap: 12px !important;
-    align-items: start !important;
-  }
-  #tierPreset{
-    grid-column: 1 / 2 !important;
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-  .tier-btnrow{
-    grid-column: 2 / 3 !important;
-    width: 100% !important;
-  }
-
-  /* 2줄: 클래스 조건 | 전체선택/해제 */
-  .tier-row.tier-secondline{
-    display: grid !important;
-    grid-template-columns: 1fr minmax(260px, 420px) !important;
-    gap: 12px !important;
-    align-items: start !important;
-  }
-  #classCondPanel{ min-width: 0 !important; }
-  .tier-actions-row{
-    width: 100% !important;
-    align-self: start !important;
-  }
-}
-
-/* 모바일/태블릿(요청대로 세로 스택) 유지 */
-@media (max-width: 980px){
-  .tier-row.tier-topline,
-  .tier-row.tier-secondline{
-    grid-template-columns: 1fr !important;
-  }
+  border: 1px solid rgba(255,120,120,.35);
+  background: rgba(255,80,80,.08);
+  color: rgba(255,220,220,.95);
 }
