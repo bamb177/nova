@@ -1957,3 +1957,60 @@ select.select{
     height: 48px !important;
   }
 }
+
+/* =========================================================
+   Class include panel refinements
+   1) Move '사용' checkbox to the right of '클래스포함' (in summary)
+   2) Make 7 class chips lay out as 2 rows on desktop (4 + 3)
+   3) Default collapsed is handled by removing 'open' attr in HTML
+   ========================================================= */
+
+.subpanel-summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.subpanel-actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.tier-check-in-summary{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:10px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.10);
+  font-weight:700;
+}
+
+/* 2-row policy for class chips on desktop */
+#tierClassBox.tier-classes-inline{
+  display:grid !important;
+  grid-template-columns: repeat(4, minmax(140px, 1fr)) !important;
+  gap:10px !important;
+  align-items:stretch !important;
+}
+
+/* ensure each chip spans full cell */
+#tierClassBox.tier-classes-inline .tier-class-item,
+#tierClassBox.tier-classes-inline .chip,
+#tierClassBox.tier-classes-inline label{
+  width:100% !important;
+}
+
+/* Responsive: keep reasonable grids */
+@media (max-width: 1000px){
+  #tierClassBox.tier-classes-inline{ grid-template-columns: repeat(3, minmax(140px, 1fr)) !important; }
+}
+@media (max-width: 700px){
+  #tierClassBox.tier-classes-inline{ grid-template-columns: repeat(2, minmax(140px, 1fr)) !important; }
+}
+@media (max-width: 460px){
+  #tierClassBox.tier-classes-inline{ grid-template-columns: 1fr !important; }
+}
