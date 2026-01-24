@@ -972,18 +972,14 @@ def _infer_role_from_texts(texts: list[str]) -> str:
             else:
                 heal_self += 1
 
-       # team buff (exclude debuff/vulnerability sentences that also contain "increase/증가")
+        # team buff
+        # Exclude debuff/vulnerability sentences that may contain "increase/증가" wording
         if has_team and has_buff and not has_debuff:
             team_buff += 2
-        
-        # debuff: give it a bit more weight when detected
+
+        # debuff (give slightly more weight than team_buff to reduce false 'buffer' promotions)
         if has_debuff:
             debuff += 2
-
-
-        # debuff
-        if has_debuff:
-            debuff += 1
 
     # prioritize true healers (ally/team healing)
     if heal_team >= max(team_buff, debuff) and heal_team >= 3:
@@ -1033,7 +1029,10 @@ def _detect_profile(detail: dict, base: dict) -> dict:
             heal_cnt += 1
         if any(k in tl for k in _KW_SHIELD):
             shield_cnt += 1
-        if any(k in tl for k in _KW_TEAM) and any(k in tl for k in _KW_BUFF):
+        has_team = any(k in tl for k in _KW_TEAM)
+        has_buff = any(k in tl for k in _KW_BUFF)
+        has_debuff = any(k in tl for k in _KW_DEBUFF) or any(k in tl for k in _KW_VULN)
+        if has_team and has_buff and not has_debuff:
             team_buff_cnt += 1
         if any(k in tl for k in _KW_DEBUFF) or any(k in tl for k in _KW_VULN):
             debuff_cnt += 1
@@ -1073,24 +1072,24 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         # If class hinted DPS (Warrior/Rogue/Mage) but evidence strongly supports support role, promote.
         # This prevents misclassifying DPS as support due to a single "buff" keyword.
         if base_role == "dps":
-        # Pick the strongest support signal instead of fixed priority (buffer > debuffer)
-        support_scores = {
-            "healer": heal_strength,
-            "buffer": team_buff_strength,
-            "debuffer": debuff_strength,
-        }
-        best_support = max(support_scores, key=support_scores.get)
-        best_val = float(support_scores[best_support] or 0.0)
-    
-        if best_support == "healer" and best_val >= 0.55:
-            role = "healer"
-        elif best_support == "buffer" and best_val >= 0.60:
-            role = "buffer"
-        elif best_support == "debuffer" and best_val >= 0.60:
-            role = "debuffer"
-        else:
-            role = "dps"
+            # Pick the strongest support signal instead of fixed priority (buffer > debuffer).
+            # This reduces false "buffer" promotions for vulnerability/debuff characters.
+            support_scores = {
+                "healer": heal_strength,
+                "buffer": team_buff_strength,
+                "debuffer": debuff_strength,
+            }
+            best_support = max(support_scores, key=support_scores.get)
+            best_val = float(support_scores[best_support] or 0.0)
 
+            if best_support == "healer" and best_val >= 0.55:
+                role = "healer"
+            elif best_support == "buffer" and best_val >= 0.60:
+                role = "buffer"
+            elif best_support == "debuffer" and best_val >= 0.60:
+                role = "debuffer"
+            else:
+                role = "dps"
 
         # Always keep Guardian-class tanks as tank via base_role mapping; apply tank heuristic as backup.
         if tankish and role == "dps" and (team_buff_strength + debuff_strength + heal_strength) < 0.35:
@@ -1450,15 +1449,15 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve"
 
     role = profile.get("role") or "dps"
     extra_attack_4_allowed = bool(profile.get("has_explicit_extra_attack"))
-    # Safety: if debuff signal is strong, treat as debuffer for rune purposes
+
+    # Safety: if debuff signal is strong, treat as debuffer for rune purposes even if role was mis-inferred.
     if role != "debuffer":
         ds = float(profile.get("debuff_strength") or 0.0)
         ts = float(profile.get("team_buff_strength") or 0.0)
+        # Require debuff to be both strong and clearly stronger than team-buff.
         if ds >= 0.65 and ds >= ts + 0.10:
             role = "debuffer"
-            profile["role"] = "debuffer"  # keep rationale consistent
-    
-
+            profile["role"] = "debuffer"
 
     sets_all = list(sets)
     allowed4 = set(sets_all)
