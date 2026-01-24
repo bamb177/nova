@@ -799,15 +799,6 @@ def _skill_texts(detail: dict) -> list[str]:
         if isinstance(detail.get(key), (dict, list, str)):
             texts += _collect_texts(detail.get(key))
 
-    # Memory card / memory skill (스킬/메모리카드 기반 추천 우선 반영)
-    for key in [
-        "memory", "memoryCard", "memory_card", "memoryCards", "memory_cards",
-        "memorySkill", "memory_skill", "memoryEffects", "memory_effects",
-        "card", "cards", "memCard", "mem_card",
-    ]:
-        if isinstance(detail.get(key), (dict, list, str)):
-            texts += _collect_texts(detail.get(key))
-
     if not texts:
         texts = _collect_texts(detail)
 
@@ -878,6 +869,49 @@ def detect_no_crit(detail: dict) -> bool:
     return False
 
 
+
+
+def detect_crit_rate_zero_or_missing(detail: dict, base: dict | None = None) -> bool:
+    """Return True when character's crit rate is explicitly 0% or not present in stats.
+    - This is different from `detect_no_crit()` which detects 'cannot crit' mechanics.
+    - Used for hard bans such as 'Beth 추천 금지' when crit rate is 0 or missing.
+    """
+    def _to_float(x):
+        if x is None:
+            return None
+        if isinstance(x, (int, float)):
+            return float(x)
+        if isinstance(x, str):
+            s = x.strip()
+            if not s:
+                return None
+            # accept forms like "0", "0%", "0.0", "12.5%"
+            m = re.search(r"-?\d+(?:\.\d+)?", s)
+            if not m:
+                return None
+            try:
+                return float(m.group(0))
+            except Exception:
+                return None
+        return None
+
+    stats = {}
+    if isinstance(detail, dict) and isinstance(detail.get("stats"), dict):
+        stats = detail.get("stats") or {}
+    elif isinstance(base, dict) and isinstance(base.get("stats"), dict):
+        stats = base.get("stats") or {}
+
+    # 'critRate' (preferred), fallbacks
+    cr = None
+    for k in ("critRate", "crit_rate", "criticalRate", "critical_rate"):
+        if k in stats:
+            cr = stats.get(k)
+            break
+
+    val = _to_float(cr)
+    if val is None:
+        return True
+    return abs(val) < 1e-9
 def _role_from_base(base: dict) -> tuple[str, bool]:
     """Return (base_role, strict).
     - strict=True only when explicit 'role' field is present.
@@ -1047,6 +1081,9 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     no_crit = detect_no_crit(detail or {})
     healer_hybrid = bool(role == "healer" and atk_s >= 15.0 and heal_strength < 0.45)
 
+    crit_rate_zero_or_missing = detect_crit_rate_zero_or_missing(detail or {}, base or {})
+    basic_attack_based = bool(role == "dps" and scaling == "ATK" and (normal_share >= 0.20 or normal_cnt >= 2))
+
     sample_text = None
     if scaling == "ATK":
         sample_text = next((t for t in texts if _pct_hits(t, ["attack power", "atk", "attack", "공격력"])), None)
@@ -1071,6 +1108,8 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         "shield_strength": shield_strength,
         "healer_hybrid": healer_hybrid,
         "no_crit": no_crit,
+        "crit_rate_zero_or_missing": crit_rate_zero_or_missing,
+        "basic_attack_based": basic_attack_based,
         "sample_text": sample_text,
     }
 
@@ -1212,6 +1251,10 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         # Returning a very low score keeps compatibility with downstream sorting, while effectively excluding.
         return -1e9
     
+    # Hard gate: if crit rate is 0% or missing, Beth is forbidden (2p/4p).
+    if (set_name or "").strip().lower() == "beth" and profile.get("crit_rate_zero_or_missing"):
+        return -1e9
+
     # Hard gate: Beth 4p (HP>=80% crit dmg) is a DPS-only set. Tanks/supports should not be recommended.
     if pieces == 4 and (set_name or "").strip().lower() == "beth":
         if role in ("tank", "guardian", "healer", "buffer", "debuffer"):
@@ -1386,13 +1429,78 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve"
     sets = list(rune_db.keys())
     md = (str(mode or "pve").strip().lower() or "pve")
 
+    role = profile.get("role") or "dps"
+
+    sets_all = list(sets)
+    allowed4 = set(sets_all)
+    allowed2 = set(sets_all)
+    forced4: str | None = None
+    forced2: str | None = None
+
+    # ---- Role-based rune pools (hard constraints) ----
+    if role == "tank":
+        allowed4 = {"Poki", "Zane"}
+        allowed2 = {"Poki", "Zane", "Kappa"}  # Kappa는 2세트만
+    elif role == "dps":
+        allowed4 = {"Alpha", "Beth", "Epsilon", "Het", "Gimel", "Iots"}
+        allowed2 = set(allowed4)
+    elif role == "buffer":
+        allowed4 = set(sets_all) - {"Daleth"}
+        allowed2 = set(sets_all) - {"Daleth"}
+    elif role == "debuffer":
+        # (요청사항) Debuffer는 Iots 4세트 고정 + 2세트는 추천으로 구성
+        forced4 = "Iots"
+        allowed4 = {"Iots"}
+        allowed2 = set(sets_all) - {"Poki", "Zane", "Daleth", "Kappa", "Iots"}
+    elif role == "healer":
+        # (요청사항) Healer는 Daleth 2세트 필수
+        forced2 = "Daleth"
+        allowed4 = set(sets_all)
+        allowed2 = set(sets_all)
+
+    # ---- Basic attack 기반 DPS(예: Freya): Alpha 4세트 고정 ----
+    if role != "debuffer" and profile.get("basic_attack_based"):
+        forced4 = "Alpha"
+        allowed4.add("Alpha")
+
+    # ---- Apep 예외: DEF 스케일링(요청사항) → Poki 필수 (2세트 우선) ----
+    name_l = (str(profile.get("_name") or "") + " " + str(profile.get("_cid") or "")).lower()
+    if "apep" in name_l:
+        forced2 = "Poki"
+        allowed2.add("Poki")
+
+    # ---- Beth 추천 금지: 치확이 0%이거나 미존재 ----
+    if profile.get("crit_rate_zero_or_missing"):
+        allowed4.discard("Beth")
+        allowed2.discard("Beth")
+        if forced4 == "Beth":
+            forced4 = None
+        if forced2 == "Beth":
+            forced2 = None
+
+    # Final iteration sets
+    sets4 = [forced4] if forced4 else sorted(list(allowed4))
+    sets2 = [forced2] if forced2 else sorted(list(allowed2))
+
+    # Prevent 4p/2p duplication when a forced set exists
+    if forced2:
+        sets4 = [s for s in sets4 if s != forced2]
+    if forced4:
+        sets2 = [s for s in sets2 if s != forced4]
+
+    # Safety: if constraints made candidates empty, fall back to full set list
+    if not sets4:
+        sets4 = list(sets_all)
+    if not sets2:
+        sets2 = list(sets_all)
+
 
     best: list[tuple[float, str, str]] = []
-    for s4 in sets:
+    for s4 in sets4:
         sc4 = _score_set(profile, s4, 4, rune_db, tag_idx, mode=mode)
         if sc4 < -5:
             continue
-        for s2 in sets:
+        for s2 in sets2:
             # 룬 세트는 중복 장착 불가: 4세트와 2세트가 같은 세트면 제외
             if s2 == s4:
                 continue
@@ -1405,9 +1513,9 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve"
     # ✅ Safety: if everything was filtered out, relax the per-set threshold and still pick the best pair.
     # (We keep the PVE hard exclusion for opener-energy 4p via _score_set().)
     if not best and len(sets) >= 2:
-        for s4 in sets:
+        for s4 in sets4:
             sc4 = _score_set(profile, s4, 4, rune_db, tag_idx, mode=mode)
-            for s2 in sets:
+            for s2 in sets2:
                 if s2 == s4:
                     continue
                 sc2 = _score_set(profile, s2, 2, rune_db, tag_idx, mode=mode)
@@ -1546,217 +1654,6 @@ def _substats_for(profile: dict) -> list[str]:
     return ["Critical Rate (%)", "Critical Damage (%)", scaling_pct, "Attack Penetration (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
 
 
-# ---------- Role-based rune pool constraints (user-configured) ----------
-
-def _match_rune_name(target: str, rune_db: dict[str, dict]) -> Optional[str]:
-    """Return the exact rune set name in rune_db matching target (case-insensitive)."""
-    if not target:
-        return None
-    t = str(target).strip().lower()
-    for k in rune_db.keys():
-        if str(k).strip().lower() == t:
-            return str(k)
-    return None
-
-
-def _resolve_rune_names(targets: list[str], rune_db: dict[str, dict]) -> set[str]:
-    out: set[str] = set()
-    for t in targets:
-        hit = _match_rune_name(t, rune_db)
-        if hit:
-            out.add(hit)
-    return out
-
-
-def _role_rune_constraints(cid: str, base: dict, profile: dict, rune_db: dict[str, dict]) -> dict:
-    """Build role-based allowed pools + mandatory/fixed sets.
-
-    Returns:
-      {
-        allowed4: set[str] | None,
-        allowed2: set[str] | None,
-        fixed4: str | None,
-        fixed2: str | None,
-        notes: list[str]
-      }
-    """
-    notes: list[str] = []
-    all_sets = set(rune_db.keys())
-
-    # Canonical names (support minor naming variance like Zahn/Zane)
-    NAME_ZANE = _match_rune_name("Zane", rune_db) or _match_rune_name("Zahn", rune_db)
-    NAME_ZAHN = _match_rune_name("Zahn", rune_db) or NAME_ZANE
-    # Use a single normalized label for constraints
-    ZANE_NAMES = {x for x in [NAME_ZANE, NAME_ZAHN] if x}
-
-    role = str(profile.get("role") or "dps").strip().lower()
-
-    fixed4: Optional[str] = None
-    fixed2: Optional[str] = None
-    allowed4: Optional[set[str]] = None
-    allowed2: Optional[set[str]] = None
-
-    # --- base pools (per user instruction) ---
-    if role == "tank":
-        allowed4 = _resolve_rune_names(["Poki", "Zane", "Zahn"], rune_db)
-        allowed2 = _resolve_rune_names(["Poki", "Zane", "Zahn", "Kappa"], rune_db)
-        # Kappa is explicitly 2pc-only for Tank
-        allowed4 -= _resolve_rune_names(["Kappa"], rune_db)
-        notes.append("역할 기반 룬 풀: Tank → Poki/Zane(2·4) + Kappa(2)")
-
-    elif role == "dps":
-        allowed4 = _resolve_rune_names(["Alpha", "Beth", "Epsilon", "Het", "Gimel", "Iots"], rune_db)
-        allowed2 = set(allowed4)
-        notes.append("역할 기반 룬 풀: DPS → Alpha/Beth/Epsilon/Het/Gimel/Iots(2·4)")
-
-    elif role == "buffer":
-        # Buffer = Daleth 제외 모두
-        daleth = _match_rune_name("Daleth", rune_db)
-        allowed4 = set(all_sets)
-        allowed2 = set(all_sets)
-        if daleth:
-            allowed4.discard(daleth)
-            allowed2.discard(daleth)
-        notes.append("역할 기반 룬 풀: Buffer → Daleth 제외 전부")
-
-    elif role == "debuffer":
-        # Debuffer = Iots 4세트 고정, Poki/Zane/Daleth/Kappa 제외 모두
-        fixed4 = _match_rune_name("Iots", rune_db)
-        excluded = _resolve_rune_names(["Poki", "Daleth", "Kappa"], rune_db) | ZANE_NAMES
-        allowed4 = set(all_sets) - excluded
-        allowed2 = set(all_sets) - excluded
-        # fixed4 consumes 4pc slot; 2pc cannot duplicate
-        if fixed4:
-            allowed2.discard(fixed4)
-            notes.append("역할 기반 룬 고정: Debuffer → Iots 4세트")
-        notes.append("역할 기반 룬 풀: Debuffer → Poki/Zane/Daleth/Kappa 제외 전부")
-
-    elif role == "healer":
-        # Healer = Daleth 2세트 필수, 그외 모두
-        fixed2 = _match_rune_name("Daleth", rune_db)
-        allowed4 = set(all_sets)
-        allowed2 = set(all_sets)
-        if fixed2:
-            # Daleth 2pc is mandatory; 4pc cannot duplicate
-            allowed4.discard(fixed2)
-            notes.append("역할 기반 룬 고정: Healer → Daleth 2세트")
-        notes.append("역할 기반 룬 풀: Healer → Daleth 2세트 필수 + 그 외 전부")
-
-    # --- character-specific rule: Apep requires Poki (DEF scaling) ---
-    cid_low = str(cid or "").strip().lower()
-    name_low = str((base or {}).get("name") or "").strip().lower()
-    is_apep = ("apep" in cid_low) or (name_low == "apep")
-    if is_apep:
-        poki = _match_rune_name("Poki", rune_db)
-        if poki:
-            # Apply only when not already constrained by a stronger fixed2 rule (e.g., healer).
-            if fixed2 is None:
-                fixed2 = poki
-                # Ensure 4pc pool cannot choose Poki due to duplication
-                if allowed4 is None:
-                    allowed4 = set(all_sets)
-                allowed4.discard(poki)
-                if allowed2 is None:
-                    allowed2 = set(all_sets)
-                allowed2.discard(poki)
-                notes.append("캐릭터 고정: Apep → Poki 2세트(방어력 스케일) 필수")
-            else:
-                notes.append("(참고) Apep은 Poki 권장이나, 현재 역할 고정(2세트)이 우선 적용되었습니다.")
-        else:
-            notes.append("(경고) Apep: Poki 세트가 룬 DB에서 발견되지 않아 고정 적용을 건너뜁니다.")
-
-    # Safety fallback: if pools became too small, relax to full pool (still respecting fixed constraints)
-    if allowed4 is not None and len(allowed4) == 0:
-        allowed4 = set(all_sets)
-        notes.append("(안전장치) 4세트 후보 풀이 비어 전체 룬 풀로 완화했습니다.")
-    if allowed2 is not None and len(allowed2) == 0:
-        allowed2 = set(all_sets)
-        notes.append("(안전장치) 2세트 후보 풀이 비어 전체 룬 풀로 완화했습니다.")
-
-    return {
-        "allowed4": allowed4,
-        "allowed2": allowed2,
-        "fixed4": fixed4,
-        "fixed2": fixed2,
-        "notes": notes,
-    }
-
-
-def _best_rune_builds_constrained(
-    profile: dict,
-    rune_db: dict[str, dict],
-    mode: str = "pve",
-    *,
-    allowed4: Optional[set[str]] = None,
-    allowed2: Optional[set[str]] = None,
-    fixed4: Optional[str] = None,
-    fixed2: Optional[str] = None,
-    extra_rationale: Optional[list[str]] = None,
-) -> tuple[list[dict], list[str]]:
-    """Exhaustive 4+2 search under allowed pools and fixed-set constraints."""
-    tag_idx = _rune_tag_index(rune_db)
-    all_sets = list(rune_db.keys())
-
-    s4_pool = list(allowed4) if allowed4 is not None else all_sets
-    s2_pool = list(allowed2) if allowed2 is not None else all_sets
-
-    # Apply fixed constraints
-    if fixed4:
-        s4_pool = [fixed4]
-    if fixed2:
-        s2_pool = [fixed2]
-
-    best: list[tuple[float, str, str]] = []
-    for s4 in s4_pool:
-        sc4 = _score_set(profile, s4, 4, rune_db, tag_idx, mode=mode)
-        if sc4 < -5:
-            continue
-        for s2 in s2_pool:
-            # 룬 세트는 중복 장착 불가
-            if s2 == s4:
-                continue
-            sc2 = _score_set(profile, s2, 2, rune_db, tag_idx, mode=mode)
-            best.append((sc4 + sc2, s4, s2))
-
-    best.sort(key=lambda x: x[0], reverse=True)
-
-    # Safety: if strict constraints produce no candidates, relax pools but preserve fixed sets where possible.
-    if not best and len(all_sets) >= 2:
-        relax4 = [fixed4] if fixed4 else all_sets
-        relax2 = [fixed2] if fixed2 else all_sets
-        for s4 in relax4:
-            sc4 = _score_set(profile, s4, 4, rune_db, tag_idx, mode=mode)
-            for s2 in relax2:
-                if s2 == s4:
-                    continue
-                sc2 = _score_set(profile, s2, 2, rune_db, tag_idx, mode=mode)
-                best.append((sc4 + sc2, s4, s2))
-        best.sort(key=lambda x: x[0], reverse=True)
-
-    top = best[:1]
-    rationale: list[str] = []
-    rationale.append(f"역할 판정: {profile['role']} / 스케일링 판정: {profile['scaling']}")
-    if profile.get("sample_text"):
-        rationale.append(f"스케일링 근거 예시: '{str(profile['sample_text'])[:140]}'")
-    if extra_rationale:
-        rationale += [str(x) for x in extra_rationale if str(x).strip()]
-
-    builds: list[dict] = []
-    for (score, s4, s2) in top:
-        builds.append({
-            "title": "추천(자동)",
-            "_score": round(float(score), 2),
-            "setPlan": [{"set": s4, "pieces": 4}, {"set": s2, "pieces": 2}],
-        })
-
-    # Preserve existing explanatory line about PVE opener-energy 4p filtering.
-    md = (str(mode or "pve").strip().lower() or "pve")
-    if md == "pve":
-        rationale.append("PVE: Kappa(오프너 10초 에너지) 4세트(전투 시작/첫 10초 오프너 한정)는 장기전 평균 효율이 낮아 강한 패널티를 적용했습니다.")
-
-    return builds, rationale
-
-
 def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> dict:
     overrides = load_rune_overrides()
     rune_db = rune_db_by_name()
@@ -1792,36 +1689,19 @@ def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> di
         return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
 
     profile = _detect_profile(detail or {}, base or {})
-
-    # Apply role-based pools / fixed-set constraints (user rule set)
-    constraints = _role_rune_constraints(cid, base or {}, profile, rune_db)
-    core_builds, rationale = _best_rune_builds_constrained(
-        profile,
-        rune_db,
-        mode=mode,
-        allowed4=constraints.get("allowed4"),
-        allowed2=constraints.get("allowed2"),
-        fixed4=constraints.get("fixed4"),
-        fixed2=constraints.get("fixed2"),
-        extra_rationale=constraints.get("notes") or [],
-    )
+    # For rule-based exceptions (e.g., Apep/Poki), keep identifiers in profile.
+    profile["_cid"] = str(cid or "")
+    profile["_name"] = str((base or {}).get("name") or (detail or {}).get("name") or "")
+    core_builds, rationale = _best_rune_builds(profile, rune_db, mode=mode)
 
     # ✅ Hard guarantee: never return an empty builds list when rune_db is available.
-    # Keep role-based constraints whenever possible.
     if (not core_builds) and len(rune_db.keys()) >= 2:
         tag_idx = _rune_tag_index(rune_db)
-        all_sets = list(rune_db.keys())
-        s4_pool = list(constraints.get("allowed4") or all_sets)
-        s2_pool = list(constraints.get("allowed2") or all_sets)
-        if constraints.get("fixed4"):
-            s4_pool = [constraints["fixed4"]]
-        if constraints.get("fixed2"):
-            s2_pool = [constraints["fixed2"]]
-
+        sets = list(rune_db.keys())
         best = None
-        for s4 in s4_pool:
+        for s4 in sets:
             sc4 = _score_set(profile, s4, 4, rune_db, tag_idx, mode=mode)
-            for s2 in s2_pool:
+            for s2 in sets:
                 if s2 == s4:
                     continue
                 sc2 = _score_set(profile, s2, 2, rune_db, tag_idx, mode=mode)
@@ -1834,7 +1714,7 @@ def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> di
                 "_score": round(float(best[0]), 2),
                 "setPlan": [{"set": best[1], "pieces": 4}, {"set": best[2], "pieces": 2}],
             }]
-            rationale = (rationale or []) + ["(안전장치) 후보 필터링으로 결과가 비었으나, 제약(가능 시)을 유지한 최상위 조합을 강제로 1개 산출했습니다."]
+            rationale = (rationale or []) + ["(안전장치) 후보 필터링으로 결과가 비었으나, 최상위 조합을 강제로 1개 산출했습니다."]
 
     builds = []
     for b in core_builds:
@@ -1853,7 +1733,6 @@ def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> di
 
         builds.append({
             "title": b.get("title") or "추천(자동)",
-            "score": b.get("_score"),
             "setPlan": setplan,
             "slots": _slot_plan_for(profile, base.get("element")),
             "substats": _substats_for(profile),
