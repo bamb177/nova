@@ -2174,3 +2174,85 @@ select.select{
   padding-left: 8px !important;
   padding-right: 8px !important;
 }
+
+/* =========================================================
+   TABLE VALUE TEXT SIZE UP + COLUMN WIDTH ADJUST (2026-01-24)
+   - Increase data (tbody) font size a bit
+   - Widen key columns so values are not clipped
+   ========================================================= */
+
+/* Slightly larger data values */
+.table tbody td{
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+}
+
+/* Keep header modest to save space */
+.table thead th{
+  font-size: 13px !important;
+}
+
+/* Widen the "선택" column so dropdown labels are not clipped */
+.table th.col-pick, .table td.col-pick,
+.table th:first-child, .table td:first-child{
+  width: 132px !important;
+  min-width: 132px !important;
+}
+
+/* Rebalance numeric columns a bit wider for readability */
+.table th.col-hp, .table td.col-hp,
+.table th.col-def, .table td.col-def,
+.table th.col-atk, .table td.col-atk,
+.table th:nth-child(3), .table td:nth-child(3),
+.table th:nth-child(4), .table td:nth-child(4),
+.table th:nth-child(5), .table td:nth-child(5){
+  width: 104px !important;
+  min-width: 104px !important;
+}
+
+/* Crit column slightly wider */
+.table th.col-crit, .table td.col-crit,
+.table th:nth-child(6), .table td:nth-child(6){
+  width: 84px !important;
+  min-width: 84px !important;
+}
+
+/* Attribute/trait columns: widen so pills don’t truncate */
+.table th.col-elem, .table td.col-elem,
+.table th:nth-child(7), .table td:nth-child(7),
+.table th.col-trait, .table td.col-trait,
+.table th:nth-child(8), .table td:nth-child(8){
+  width: 138px !important;
+  min-width: 138px !important;
+}
+
+/* Class/role columns: widen a touch */
+.table th.col-class, .table td.col-class,
+.table th:nth-child(9), .table td:nth-child(9),
+.table th.col-role, .table td.col-role,
+.table th:nth-child(10), .table td:nth-child(10){
+  width: 120px !important;
+  min-width: 120px !important;
+}
+
+/* Grade column: keep fixed but allow chip to be slightly wider */
+.table th.col-grade, .table td.col-grade,
+.table th:last-child, .table td:last-child{
+  width: 92px !important;
+  min-width: 92px !important;
+}
+.table td.col-grade .pill,
+.table td.col-grade .badge,
+.table td.col-grade .tag,
+.table td:last-child .pill,
+.table td:last-child .badge,
+.table td:last-child .tag{
+  width: 60px !important;
+  min-width: 60px !important;
+}
+
+/* Slightly restore padding (since font increased) */
+.table th, .table td{
+  padding-left: 9px !important;
+  padding-right: 9px !important;
+}
