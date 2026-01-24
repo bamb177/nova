@@ -2481,3 +2481,43 @@ select.select{
   font-size: 13px !important;
   height: 34px !important;
 }
+
+/* =========================================================
+   DROPDOWN (SELECT) MENU VISIBILITY FIX (2026-01-24)
+   Symptom: option list shows white background with white text.
+   Fix: force option/optgroup colors where supported.
+   Note: native <select> popup styling support varies by OS/browser.
+   ========================================================= */
+
+/* Base select control */
+select,
+.select,
+.table select,
+.filters select{
+  color: rgba(240, 245, 255, 0.95) !important;
+  background-color: rgba(38, 45, 59, 0.92) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* Option list styling (works in Chromium/Firefox; OS may still override on some platforms) */
+select option,
+select optgroup{
+  background-color: #1c2230 !important;
+  color: #f2f6ff !important;
+}
+
+/* Selected/hovered option colors (partial support) */
+select option:checked{
+  background-color: #2b3953 !important;
+  color: #ffffff !important;
+}
+select option:hover{
+  background-color: #2b3953 !important;
+  color: #ffffff !important;
+}
+
+/* For Windows High Contrast / legacy behaviors */
+select:focus{
+  outline: 2px solid rgba(120, 170, 255, 0.55) !important;
+  outline-offset: 2px !important;
+}
