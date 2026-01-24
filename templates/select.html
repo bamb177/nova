@@ -89,6 +89,9 @@
               <button class="btn" id="btnBuildTierParty" type="button" disabled>등급표 파티</button>
               <button class="btn" id="btnAiParty" type="button" disabled>AI 추천 파티</button>
               <button class="btn" id="btnResetParties" type="button">파티 초기화</button>
+              <button class="btn" id="btnAll" type="button">전체 선택</button>
+                            <button class="btn" id="btnNone" type="button">전체 해제</button>
+
             </div>
           </div>
 
@@ -96,23 +99,19 @@
           <div class="tier-row tier-secondline">
             <details class="subpanel" id="classCondPanel" open>
               <summary class="subpanel-summary">
-                <span class="subpanel-title">선택 클래스 포함 조건</span>
+                <span class="subpanel-title">클래스포함</span>
                 <span class="subpanel-toggle">(열기/닫기)</span>
               </summary>
 
               <div class="tier-class-inline" id="tierClassInline">
                 <label class="tier-check tier-check-inline" title="체크한 클래스가 파티(4인)에 포함되도록 구성합니다. 후보를 해당 클래스로만 제한하지 않습니다.">
                   <input type="checkbox" id="useClassFilter" />
-                  포함 조건 사용
+                  사용
                 </label>
                 <div class="tier-classes tier-classes-inline" id="tierClassBox" aria-disabled="true"></div>
               </div>
             </details>
-            <div class="tier-actions-row">
-              <button class="btn" id="btnAll" type="button">전체 선택</button>
-              <button class="btn" id="btnNone" type="button">전체 해제</button>
-            </div>
-          </div>
+</div>
 
           <div id="tierPartyResult" class="tier-result"></div>
           <div id="aiPartyResult" class="tier-result"></div>
