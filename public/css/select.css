@@ -2038,60 +2038,71 @@ body{
   line-height: 1.15;
 }
 
-
 /* =========================================================
-   OVERRIDE (2026-01-25)
-   요구사항:
-   1) 검색/필터 영역: 모든 콤보박스(입력 포함) 1열(세로) 고정
-   2) 등급표 영역: 모든 콤보박스 2열 고정
-   ※ 기존 flex-wrap / media query grid 규칙을 최종적으로 덮어씀
+   FINAL OVERRIDES (layout rules requested)
+   1) 검색/필터: 모든 콤보박스(및 검색창) 1열(세로 스택)
+   2) 등급표: 상단 컨트롤 2열(프리셋 | 버튼), 2줄(클래스조건 | 전체선택/해제) 2열
+   - 파일 하단에 배치하여, 기존 !important/미디어 규칙보다 우선 적용
 ========================================================= */
 
-/* 1) 검색/필터: 항상 1열 */
-.filters-box .filters{
+/* ---------- 1) Filters: ALWAYS 1-column stack ---------- */
+.filters{
   display: grid !important;
   grid-template-columns: 1fr !important;
   gap: 10px !important;
   align-items: stretch !important;
 }
-.filters-box .filters > *{
+.filters #q{ width: 100% !important; }
+.filters .input,
+.filters .select,
+.filters .btn{
   width: 100% !important;
   min-width: 0 !important;
 }
-.filters-box .filters .input,
-.filters-box .filters .select,
-.filters-box .filters .btn{
-  width: 100% !important;
-  min-width: 0 !important;
+
+/* wide에서 걸어둔 min-width(한줄 배치 유도) 무력화 */
+@media (min-width: 1100px){
+  .input{ min-width: 0 !important; }
+  .select{ min-width: 0 !important; }
 }
 
-/* 2) 등급표: 콤보박스(Select) 2열 */
-.tier-panel .tier-body .tier-row{
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 10px !important;
-  align-items: center !important;
-}
-.tier-panel .tier-body .tier-row > *{ min-width: 0 !important; }
+/* ---------- 2) Tier: 2-column controls on desktop ---------- */
+@media (min-width: 981px){
+  /* 1줄: 프리셋 | 3버튼 */
+  .tier-row.tier-topline{
+    display: grid !important;
+    grid-template-columns: minmax(260px, 420px) 1fr !important;
+    gap: 12px !important;
+    align-items: start !important;
+  }
+  #tierPreset{
+    grid-column: 1 / 2 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .tier-btnrow{
+    grid-column: 2 / 3 !important;
+    width: 100% !important;
+  }
 
-/* 상단(등급표 선택 + 버튼줄)은 기존 grid 유지(깨짐 방지) */
-.tier-row.tier-topline{
-  grid-template-columns: minmax(220px, 380px) 1fr !important;
-}
-@media (max-width: 720px){
-  .tier-row.tier-topline{ grid-template-columns: 1fr !important; }
-}
-
-/* 버튼 전용 줄은 2열 규칙 영향 최소화 */
-.tier-panel .tier-body .tier-row .tier-btnrow,
-.tier-panel .tier-body .tier-row .tier-actions-row{
-  grid-column: 1 / -1 !important;
-}
-
-/* 너무 좁은 화면에서는 등급표 1열로(터치/가독성) */
-@media (max-width: 420px){
-  .tier-panel .tier-body .tier-row{
-    grid-template-columns: 1fr !important;
+  /* 2줄: 클래스 조건 | 전체선택/해제 */
+  .tier-row.tier-secondline{
+    display: grid !important;
+    grid-template-columns: 1fr minmax(260px, 420px) !important;
+    gap: 12px !important;
+    align-items: start !important;
+  }
+  #classCondPanel{ min-width: 0 !important; }
+  .tier-actions-row{
+    width: 100% !important;
+    align-self: start !important;
   }
 }
 
+/* 모바일/태블릿(요청대로 세로 스택) 유지 */
+@media (max-width: 980px){
+  .tier-row.tier-topline,
+  .tier-row.tier-secondline{
+    grid-template-columns: 1fr !important;
+  }
+}
