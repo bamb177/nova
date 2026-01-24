@@ -2039,164 +2039,60 @@ body{
 }
 
 /* =========================================================
-   2026-01-25 UI REFRESH: "신규 배치 구도" + 캐릭터명 이미지 하단
-   - HTML 수정 없이 CSS만으로 레이아웃 재배치
-   - Desktop(>=980px): 검색/필터(좌) + 등급표(우) 2열, 표는 전체폭
-   - Character cell: 세로 스택(이미지 위, 이름 아래)
+   2026-01-25 Layout tweak (requested)
+   1) 검색/필터: 콤보상자(Select) 1열(세로 스택)
+   2) 등급표(선택/필수 영역): 콤보상자 2열(가로 2칸)
+   - 기존 규칙을 최대한 유지하고, "마지막"에 override로만 처리
 ========================================================= */
 
-/* ----- Desktop: 2-column dashboard layout ----- */
-@media (min-width: 980px){
-  .wrap{
-    display: grid;
-    grid-template-columns: 1.05fr .95fr;
-    grid-template-areas:
-      "topbar  topbar"
-      "filters tier"
-      "table   table";
-    gap: 12px;
-    align-items: start;
-  }
-
-  .topbar{ grid-area: topbar; }
-  .filters-box{ grid-area: filters; }
-  .tier-panel{
-    grid-area: tier;
-    margin-top: 0 !important; /* 기존 margin-top 상쇄 */
-  }
-  .table-wrap{ grid-area: table; }
-
-  /* 카드 높이/스크롤 안정화 */
-  .filters-box, .tier-panel{
-    height: fit-content;
-  }
-}
-
-/* ----- Mobile/Tablet: 기존처럼 세로 스택 ----- */
-@media (max-width: 979px){
-  .wrap{ display: block; }
-}
-
-/* ----- Filters 내부: 데스크톱에서 줄 정돈(과밀도 완화) ----- */
-@media (min-width: 980px){
+/* 1) 검색/필터 콤보상자 1열 배치 (PC/넓은 화면) */
+@media (min-width: 981px){
   .filters{
-    display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    gap: 10px;
-    align-items: center;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    align-items: stretch !important;
   }
-  /* 검색창은 1행 전체폭 */
-  .filters #q{
-    grid-column: 1 / -1;
-    min-width: 0 !important;
-  }
-  .filters .input, .filters .select, .filters .btn{
-    width: 100%;
+  .filters .input,
+  .filters .select,
+  .filters .btn{
+    width: 100% !important;
     min-width: 0 !important;
   }
 }
 
-/* =========================================================
-   Character cell: name under image
-========================================================= */
-
-/* 표 전체 nowrap 규칙을 캐릭터 셀만 예외로 */
-.char-cell,
-.char-cell *{
-  white-space: normal !important;
-  word-break: keep-all;
-}
-
-.char-cell{
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  text-align: center;
-}
-
-.char-img{
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
-}
-
-.char-name{
-  font-size: 14px;
-  font-weight: 950;
-  letter-spacing: .1px;
-  line-height: 1.15;
-
-  /* 너무 긴 이름은 2줄까지만 */
-  max-width: 110px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* 캐릭터 컬럼이 과도하게 넓게 잡히는 현상 완화 */
-.col-char{ min-width: 190px !important; }
-
-/* =========================================================
-   Table readability: 행/열 시각적 분리 강화(과도한 대비 없이)
-========================================================= */
-.table{
-  box-shadow:
-    0 14px 34px rgba(0,0,0,.22),
-    inset 0 1px 0 rgba(255,255,255,.05);
-}
-
-.table thead th{
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.table tbody td{
-  border-bottom: 1px solid rgba(255,255,255,.06);
-}
-
-.table tbody tr:hover{
-  background: rgba(255,255,255,.04);
-}
-
-/* 숫자/퍼센트 칼럼은 조금 더 또렷하게 */
-.table tbody td:nth-child(3),
-.table tbody td:nth-child(4),
-.table tbody td:nth-child(5),
-.table tbody td:nth-child(6){
-  color: rgba(255,255,255,.92);
-  font-variant-numeric: tabular-nums;
-}
-
-/* =========================================================
-   Tier panel 상단 버튼: 데스크톱에서 "너무 길게 늘어남" 방지
-========================================================= */
-@media (min-width: 980px){
-  .tier-btnrow .btn,
-  .tier-actions-row .btn{
-    height: 44px;
-    border-radius: 16px;
+/* 2) 등급표(선택/필수) 콤보상자 2열 배치
+   - .pick-stack은 선택 셀 내부의 드롭다운(자동/필수 등) 묶음
+   - 화면이 어느 정도 있을 때만 2열로(너무 좁으면 기존 1열 유지)
+*/
+@media (min-width: 560px){
+  .pick-stack{
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    align-items: start !important;
   }
 
-  /* 파티초기화가 과도하게 길어지는 경우 대비 */
-  #btnTierReset{
-    max-width: 320px;
-    justify-self: end;
+  .pick-line{
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* 드롭다운이 칸에 맞게 줄어들 수 있도록 */
+  .pick-line .must-slot,
+  .pick-line .must-role{
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
   }
 }
 
-/* =========================================================
-   Micro polish
-========================================================= */
-.filters-summary-title,
-.tier-summary-title{
-  letter-spacing: .1px;
+/* 아주 좁은 화면에서는 다시 1열(가독성 우선) */
+@media (max-width: 559px){
+  .pick-stack{
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    align-items: flex-start !important;
+  }
 }
-
-.btn{
-  transition: background .12s ease, border-color .12s ease, transform .06s ease;
-}
-.btn:active{
-  transform: translateY(1px);
-}
-
