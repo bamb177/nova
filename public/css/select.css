@@ -2014,3 +2014,77 @@ select.select{
 @media (max-width: 460px){
   #tierClassBox.tier-classes-inline{ grid-template-columns: 1fr !important; }
 }
+
+/* =========================================================
+   TABLE PATCH (2026-01-24)
+   1) "선택" 열의 자동 드롭다운(자동/필수 등) 안 잘리도록 폭 확보
+   2) 모든 열 값 가운데 정렬 + 글씨 굵게
+   3) "속성" 열(칩) 잘림 방지: 칼럼 폭 확보 + 칩 최대폭/말줄임 조정
+   ========================================================= */
+
+/* Header + body cell common alignment */
+.table th,
+.table td{
+  text-align: center !important;
+  vertical-align: middle !important;
+  font-weight: 700 !important; /* bold */
+}
+
+/* Keep first column (선택) a bit wider so selects fit */
+.table th.col-pick, .table td.col-pick,
+.table th:first-child, .table td:first-child{
+  width: 120px !important;
+  min-width: 120px !important;
+}
+
+/* Inside the pick cell: ensure dropdowns show fully */
+.table .pick-stack,
+.table .pick-stack select,
+.table td.col-pick select{
+  width: 100% !important;
+  min-width: 0 !important;
+}
+.table .pick-stack{
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 8px !important;
+  justify-items: stretch !important;
+}
+
+/* Make the character cell still readable while centered */
+.table td.col-char,
+.table td:nth-child(2){
+  text-align: center !important;
+}
+
+/* Attribute column (속성) width & chip behavior */
+.table th.col-elem, .table td.col-elem,
+.table th:nth-child(7), .table td:nth-child(7){
+  width: 140px !important;
+  min-width: 140px !important;
+}
+
+/* Chips: prevent being clipped by fixed table layout */
+.table .pill,
+.table .badge,
+.table .tag,
+.table td .chip{
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: inline-flex !important;
+  justify-content: center !important;
+}
+
+/* Reduce padding slightly to fit all columns without horizontal scroll */
+.table th, .table td{
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+/* Ensure table can shrink columns gracefully */
+.table{
+  width: 100% !important;
+  table-layout: fixed !important;
+}
