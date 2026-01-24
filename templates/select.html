@@ -97,17 +97,19 @@
 
           <!-- 2줄: 선택클래스포함조건 / 전체선택 / 전체해제 -->
           <div class="tier-row tier-secondline">
-            <details class="subpanel" id="classCondPanel" open>
+            <details class="subpanel" id="classCondPanel">
               <summary class="subpanel-summary">
                 <span class="subpanel-title">클래스포함</span>
-                <span class="subpanel-toggle">(열기/닫기)</span>
+                <span class="subpanel-actions">
+                  <label class="tier-check tier-check-inline tier-check-in-summary" title="체크한 클래스가 파티(4인)에 포함되도록 구성합니다. 후보를 해당 클래스로만 제한하지 않습니다." onmousedown="event.stopPropagation();" onclick="event.stopPropagation();">
+                    <input type="checkbox" id="useClassFilter" />
+                    사용
+                  </label>
+                  <span class="subpanel-toggle">(열기/닫기)</span>
+                </span>
               </summary>
 
               <div class="tier-class-inline" id="tierClassInline">
-                <label class="tier-check tier-check-inline" title="체크한 클래스가 파티(4인)에 포함되도록 구성합니다. 후보를 해당 클래스로만 제한하지 않습니다.">
-                  <input type="checkbox" id="useClassFilter" />
-                  사용
-                </label>
                 <div class="tier-classes tier-classes-inline" id="tierClassBox" aria-disabled="true"></div>
               </div>
             </details>
