@@ -97,10 +97,45 @@ def normalize_element(v: str) -> str:
     return ELEMENT_RENAME.get(s2, s2)
 
 
-def load_overrides() -> tuple[dict, dict]:
-    names = safe_load_json(OVERRIDE_NAMES)
-    factions = safe_load_json(OVERRIDE_FACTIONS)
-    return (names if isinstance(names, dict) else {}), (factions if isinstance(factions, dict) else {})
+def load_overrides() -> tuple[dict, dict, dict, dict]:
+    """Load name/faction overrides.
+    Returns:
+      names: exact-key dict
+      names_ci: case-insensitive dict (keys are normalize_char_name(k).casefold())
+      factions: exact-key dict
+      factions_ci: case-insensitive dict (keys are normalize_char_name(k).casefold())
+    """
+    names_raw = safe_load_json(OVERRIDE_NAMES)
+    factions_raw = safe_load_json(OVERRIDE_FACTIONS)
+
+    names = names_raw if isinstance(names_raw, dict) else {}
+    factions = factions_raw if isinstance(factions_raw, dict) else {}
+
+    names_ci: dict[str, str] = {}
+    factions_ci: dict[str, str] = {}
+
+    for k, v in names.items():
+        if isinstance(k, str) and isinstance(v, str):
+            names_ci[normalize_char_name(k).casefold()] = v
+
+    for k, v in factions.items():
+        if isinstance(k, str) and isinstance(v, str):
+            factions_ci[normalize_char_name(k).casefold()] = v
+
+    return names, names_ci, factions, factions_ci
+
+
+def apply_override(value: str, overrides: dict, overrides_ci: dict) -> str:
+    """Apply override with fallback to case-insensitive match."""
+    raw = normalize_char_name(value or "")
+    if not raw:
+        return raw
+    if isinstance(overrides, dict) and raw in overrides and isinstance(overrides.get(raw), str):
+        return overrides[raw]
+    k = raw.casefold()
+    if isinstance(overrides_ci, dict) and k in overrides_ci and isinstance(overrides_ci.get(k), str):
+        return overrides_ci[k]
+    return raw
 
 
 def find_file_by_stem(folder: str, stem: str) -> Optional[str]:
@@ -2460,7 +2495,7 @@ def load_all(force: bool = False) -> None:
         if not os.path.isdir(CHAR_KO_DIR):
             raise RuntimeError(f"characters_ko 디렉터리 없음: {CHAR_KO_DIR}")
 
-        overrides_names, overrides_factions = load_overrides()
+        overrides_names, overrides_names_ci, overrides_factions, overrides_factions_ci = load_overrides()
         char_img_map = build_character_image_map(CHAR_IMG_DIR)
 
         chars = []
@@ -2482,13 +2517,18 @@ def load_all(force: bool = False) -> None:
             details[cid] = d
 
             raw_name = normalize_char_name(d.get("name") or cid)
-            display_name = overrides_names.get(raw_name, raw_name)
+            display_name = apply_override(raw_name, overrides_names, overrides_names_ci)
 
             rarity = (d.get("rarity") or "-").strip().upper()
             element = normalize_element(str(d.get("element") or "-"))
 
             raw_faction = str(d.get("faction") or "-").strip() or "-"
-            faction = overrides_factions.get(raw_faction, raw_faction)
+            faction = apply_override(raw_faction, overrides_factions, overrides_factions_ci)
+
+            # Ensure overrides are reflected in detail payload used by the character modal
+            d["raw_name"] = raw_name
+            d["name"] = display_name
+            d["faction"] = faction
 
             cls = str(d.get("class") or "-").strip() or "-"
             role = str(d.get("role") or "-").strip() or "-"
@@ -2611,11 +2651,11 @@ def api_char_detail(cid: str):
 
     base = next((c for c in CACHE["chars"] if c.get("id") == cid2), None)
     if not base:
-        overrides_names, overrides_factions = load_overrides()
+        overrides_names, overrides_names_ci, overrides_factions, overrides_factions_ci = load_overrides()
         raw_name = normalize_char_name(detail.get("name") or cid2)
-        display_name = overrides_names.get(raw_name, raw_name)
+        display_name = apply_override(raw_name, overrides_names, overrides_names_ci)
         raw_faction = str(detail.get("faction") or "-").strip() or "-"
-        faction = overrides_factions.get(raw_faction, raw_faction)
+        faction = apply_override(raw_faction, overrides_factions, overrides_factions_ci)
         element = normalize_element(str(detail.get("element") or "-"))
         cls = str(detail.get("class") or "-").strip() or "-"
         base = {
@@ -2633,8 +2673,27 @@ def api_char_detail(cid: str):
             "runes": None,
         }
 
+    # Ensure modal detail reflects overrides (name/faction) even if detail was loaded from disk
     try:
-        # rune recommendation supports ?rune_mode=pve|pvp|both
+        overrides_names, overrides_names_ci, overrides_factions, overrides_factions_ci = load_overrides()
+        raw_name2 = normalize_char_name((detail.get("name") or base.get("raw_name") or cid2))
+        display_name2 = apply_override(raw_name2, overrides_names, overrides_names_ci)
+        raw_faction2 = str(detail.get("faction") or base.get("faction") or "-").strip() or "-"
+        faction2 = apply_override(raw_faction2, overrides_factions, overrides_factions_ci)
+
+        detail["raw_name"] = raw_name2
+        detail["name"] = display_name2
+        detail["faction"] = faction2
+
+        # keep base consistent too
+        base["raw_name"] = raw_name2
+        base["name"] = display_name2
+        base["faction"] = faction2
+    except Exception:
+        pass
+
+    try:
+        # rune recommendation supports \?rune_mode=pve\|pvp\|both
         rm = (request.args.get("rune_mode") or "both").strip().lower()
         if rm in ("pve", "pvp"):
             rune_reco = recommend_runes(cid2, base, detail, mode=rm)
