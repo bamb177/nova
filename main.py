@@ -740,7 +740,7 @@ def rune_db_by_name() -> dict[str, dict]:
 # Keyword dictionaries (EN + KO) used for both character profiling and rune-effect tagging.
 _KW_HEAL = ["heal", "healing", "restore", "recovery", "회복", "치유", "힐"]
 _KW_SHIELD = ["shield", "barrier", "보호막", "실드"]
-_KW_DOT = ["continuous damage", "dot", "damage over time", "burn", "bleed", "poison", "지속 피해", "지속피해", "도트", "중독", "화상", "출혈", "감전", "동상", "부식"]
+_KW_DOT = ["continuous damage", "dot", "damage over time", "burn", "bleed", "poison", "지속 피해", "지속피해", "도트", "중독", "화상", "출혈", "감전", "동상 피해", "부식"]
 _KW_EXTRA = ["extra attack", "additional attack", "follow-up", "추가 공격", "추격", "추가타", "[extra attack]"]  # NOTE: '추가 피해'는 범용 추가데미지로 오탐이 많아 제외
 _KW_TEAM = ["team", "all allies", "allied", "party", "아군", "팀", "전체", "전원"]
 _KW_BUFF = ["increase", "increased", "buff", "up", "증가", "상승", "강화", "부여"]
@@ -752,6 +752,7 @@ _KW_CRIT_DISABLE = ["cannot crit", "can't crit", "no crit", "crit disabled", "�
 
 # Extra-attack strict matcher: 실제 '추가 공격(Extra attack)' 타입만 인정(범용 '추가 피해' 제외)
 _RE_EXTRA_ATTACK_STRICT = re.compile(r'(\[\s*extra\s*attack\s*\]|extra\s*attack|additional\s*-?\s*attack|follow-?up|추가\s*공격|추격)', re.IGNORECASE)
+_RE_BONUS_DAMAGE = re.compile(r'(additional\s+damage|bonus\s+damage|extra\s+damage|추가\s*피해|추가로[^\n\.]{0,60}(피해|damage))', re.IGNORECASE)
 
 
 # ---------- Character text extraction ----------
@@ -1199,7 +1200,7 @@ def _detect_profile(detail: dict, base: dict, cid: Optional[str] = None, debug: 
     if best > 0:
         scaling = "ATK" if best == atk_s else ("HP" if best == hp_s else "DEF")
 
-    dot_cnt = extra_cnt = ult_cnt = 0
+    dot_cnt = extra_cnt = ult_cnt = bonus_dmg_cnt = 0
     normal_cnt = 0
     team_buff_cnt = debuff_cnt = heal_cnt = shield_cnt = 0
 
@@ -1210,6 +1211,8 @@ def _detect_profile(detail: dict, base: dict, cid: Optional[str] = None, debug: 
         # strict extra attack detection (avoid false positives like "추가 피해")
         if _RE_EXTRA_ATTACK_STRICT.search(t):
             extra_cnt += 1
+        if _RE_BONUS_DAMAGE.search(t):
+            bonus_dmg_cnt += 1
         if any(k in tl for k in _KW_ULT):
             ult_cnt += 1
         if ("basic attack" in tl) or ("normal attack" in tl) or ("기본 공격" in t) or ("기본공격" in t) or ("평타" in t):
@@ -1226,15 +1229,17 @@ def _detect_profile(detail: dict, base: dict, cid: Optional[str] = None, debug: 
     total = max(1, len(texts))
     dot_share = dot_cnt / total
     normal_share = normal_cnt / total
-    extra_share = extra_cnt / total
+    extra_share = (extra_cnt + bonus_dmg_cnt) / total
     ult_importance = min(1.0, ult_cnt / total * 2.0)
     team_buff_strength = min(1.0, team_buff_cnt / total * 2.0)
     debuff_strength = min(1.0, debuff_cnt / total * 2.0)
     heal_strength = min(1.0, heal_cnt / total * 2.0)
     shield_strength = min(1.0, shield_cnt / total * 2.0)
 
-    # Het 4세트 허용 조건: 명시 키워드(추가공격/extra attack/follow-up/additional attack) 존재 여부
-    has_explicit_extra_attack = any(_RE_EXTRA_ATTACK_STRICT.search(t or "") for t in texts)
+    # Het/Epsilon 4세트 허용 조건:
+    #  (1) 명시 키워드(추가공격/extra attack/follow-up/additional attack)
+    #  (2) '추가 피해/bonus damage'가 문장 단위로 명확히 표기
+    has_explicit_extra_attack = any(_RE_EXTRA_ATTACK_STRICT.search(t or "") for t in texts) or any(_RE_BONUS_DAMAGE.search(t or "") for t in texts)
 
 
     base_role, base_strict = _role_from_base(base or {})
