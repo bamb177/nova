@@ -63,6 +63,11 @@ def slug_id(s: str) -> str:
     s = re.sub(r"[^a-z0-9_-]", "", s)
     return s
 
+# ✅ debuffer subtype debug (server logs)
+DEBUG_DEBUFFER = str(os.getenv("DEBUG_DEBUFFER", "0")).strip().lower() in ("1","true","yes","y","on")
+DEBUG_DEBUFFER_IDS = {slug_id(x) for x in str(os.getenv("DEBUG_DEBUFFER_IDS", "freye,iots")).split(",") if x.strip()}
+DEBUG_DEBUFFER_TOPN = int(os.getenv("DEBUG_DEBUFFER_TOPN", "6") or "6")
+
 
 def safe_load_json(path: str):
     if not os.path.isfile(path):
@@ -799,6 +804,15 @@ def _skill_texts(detail: dict) -> list[str]:
         if isinstance(detail.get(key), (dict, list, str)):
             texts += _collect_texts(detail.get(key))
 
+    # include memory card / awakenings texts (important for debuffer subtype and scaling hints)
+    for key in ["memoryCard", "memory_card", "memory", "card"]:
+        if isinstance(detail.get(key), (dict, list, str)):
+            texts += _collect_texts(detail.get(key))
+
+    for key in ["awakenings", "awakening"]:
+        if isinstance(detail.get(key), (dict, list, str)):
+            texts += _collect_texts(detail.get(key))
+
     if not texts:
         texts = _collect_texts(detail)
 
@@ -1020,7 +1034,154 @@ def _infer_role_from_texts(texts: list[str]) -> str:
 
 
 
-def _detect_profile(detail: dict, base: dict) -> dict:
+# -------------------------
+# Debuffer subtype classifier (effect_hit vs survival) + debug scoring
+# -------------------------
+
+# NOTE: Allowed substats are fixed to 6: Attack / HP / Defense / Critical Rate / Critical Damage / Penetration
+
+_DEBUFF_TERMS = [
+    # KR
+    "디버프", "약화", "감소", "저항", "방어력 감소", "공격력 감소", "피해 증가", "받는 피해 증가", "받피증",
+    "취약", "중독", "출혈", "화상", "빙결", "기절", "침묵", "속박", "저주", "혼란",
+    "상태이상", "상태 이상", "상태효과", "상태 효과",
+    # EN
+    "debuff", "vulner", "weaken", "resistance", "resist", "status", "crowd control", "cc",
+    "poison", "bleed", "burn", "freeze", "stun", "silence", "bind", "curse", "confuse",
+]
+
+# Effect-hit (accuracy / application reliability)
+_DEBUFF_EH_KW = [
+    # KR
+    ("효과적중", 4), ("효과 적중", 4), ("명중", 3), ("명중률", 3), ("적중", 2),
+    ("저항 감소", 3), ("저항을", 2), ("저항", 1),
+    ("확률로", 1), ("확률", 1), ("% 확률", 1),
+    ("해제 불가", 2), ("해제불가", 2),
+    # EN
+    ("effect hit", 4), ("accuracy", 3), ("hit rate", 3), ("chance", 1), ("% chance", 1),
+    ("cannot be removed", 2), ("irremovable", 2), ("unremovable", 2),
+]
+
+# Survival / defensive utility
+_DEBUFF_SURV_KW = [
+    # KR
+    ("피해 감소", 3), ("받는 피해", 2), ("피해감소", 3), ("피해 감소율", 3),
+    ("보호막", 3), ("실드", 3), ("면역", 3), ("무적", 4), ("도발", 2),
+    ("회복", 3), ("치유", 3), ("흡혈", 2),
+    ("방어력 증가", 2), ("방어 증가", 2), ("체력 증가", 2), ("최대 체력", 2),
+    # EN
+    ("damage reduction", 3), ("reduce damage", 3), ("mitigation", 3),
+    ("shield", 3), ("barrier", 3), ("immune", 3), ("invincible", 4), ("taunt", 2),
+    ("heal", 3), ("healing", 3), ("lifesteal", 2),
+    ("defense up", 2), ("max hp", 2),
+]
+
+# Regex: "xx% chance to <apply/inflict> <debuff>" (EN) / "xx% 확률로 ... (디버프/상태이상)"
+_RE_CHANCE = re.compile(r"(\d{1,3})\s*%")
+_RE_EH_EN = re.compile(r"(\d{1,3})\s*%\s*(chance)?\s*(to)?\s*(apply|inflict|impose|cause)", re.I)
+_RE_EH_KR = re.compile(r"(\d{1,3})\s*%\s*확률", re.I)
+
+def _scan_keywords(texts: list[str], kw_table: list[tuple[str,int]], label: str):
+    hits = []
+    total = 0
+    for t in texts:
+        if not t:
+            continue
+        tl = t.lower()
+        for kw, w in kw_table:
+            if not kw:
+                continue
+            k = kw.lower()
+            if (k in tl) or (kw in t):
+                total += int(w)
+                # keep short context
+                pos = tl.find(k)
+                ctx = t[max(0, pos-20):pos+len(kw)+20] if pos >= 0 else t[:60]
+                hits.append({"group": label, "kw": kw, "w": int(w), "ctx": ctx})
+    return total, hits
+
+def _contains_any_term(text: str, terms: list[str]) -> bool:
+    tl = (text or "").lower()
+    for x in terms:
+        if not x:
+            continue
+        if x.lower() in tl or x in (text or ""):
+            return True
+    return False
+
+def _chance_debuff_bonus(texts: list[str]):
+    bonus = 0
+    hits = []
+    for t in texts:
+        if not t:
+            continue
+        tl = t.lower()
+
+        # EN pattern
+        m = _RE_EH_EN.search(t)
+        if m and _contains_any_term(t, _DEBUFF_TERMS):
+            pct = int(m.group(1))
+            w = 2 if pct >= 50 else 1
+            bonus += w
+            hits.append({"group":"chance_pattern", "kw": f"{pct}% chance+debuff", "w": w, "ctx": t[:120]})
+
+        # KR pattern
+        m2 = _RE_EH_KR.search(t)
+        if m2 and _contains_any_term(t, _DEBUFF_TERMS):
+            # try to capture leading pct if exists
+            pm = _RE_CHANCE.search(t)
+            pct = int(pm.group(1)) if pm else 0
+            w = 2 if pct >= 50 else 1
+            bonus += w
+            hits.append({"group":"chance_pattern", "kw": f"{pct}% 확률+디버프", "w": w, "ctx": t[:120]})
+
+    return bonus, hits
+
+def classify_debuffer_subtype(texts: list[str], heal_strength: float, shield_strength: float, tankish: bool, debug: bool = False):
+    # base keyword scores
+    eh_score, eh_hits = _scan_keywords(texts, _DEBUFF_EH_KW, "effect_hit_kw")
+    surv_score, surv_hits = _scan_keywords(texts, _DEBUFF_SURV_KW, "survival_kw")
+
+    # debuff chance patterns
+    cb, cb_hits = _chance_debuff_bonus(texts)
+    eh_score += cb
+    eh_hits.extend(cb_hits)
+
+    # healing/shielding signals
+    if heal_strength >= 0.35:
+        surv_score += 4
+        surv_hits.append({"group":"profile", "kw":"heal_strength>=0.35", "w":4, "ctx": f"{heal_strength:.2f}"})
+    elif heal_strength >= 0.20:
+        surv_score += 2
+        surv_hits.append({"group":"profile", "kw":"heal_strength>=0.20", "w":2, "ctx": f"{heal_strength:.2f}"})
+
+    if shield_strength >= 0.35:
+        surv_score += 4
+        surv_hits.append({"group":"profile", "kw":"shield_strength>=0.35", "w":4, "ctx": f"{shield_strength:.2f}"})
+    elif shield_strength >= 0.20:
+        surv_score += 2
+        surv_hits.append({"group":"profile", "kw":"shield_strength>=0.20", "w":2, "ctx": f"{shield_strength:.2f}"})
+
+    if tankish:
+        surv_score += 1
+        surv_hits.append({"group":"profile", "kw":"tankish", "w":1, "ctx": ""})
+
+    subtype = "effect_hit" if eh_score >= max(2, surv_score) else "survival"
+
+    dbg = None
+    if debug:
+        dbg = {
+            "effect_hit_score": eh_score,
+            "survival_score": surv_score,
+            "subtype": subtype,
+            "effect_hit_hits": sorted(eh_hits, key=lambda x: (-x["w"], x["kw"]))[:40],
+            "survival_hits": sorted(surv_hits, key=lambda x: (-x["w"], x["kw"]))[:40],
+            "texts_sample": [t[:200] for t in (texts or [])[:12]],
+        }
+    return subtype, dbg
+
+
+def _detect_profile(detail: dict, base: dict, cid: Optional[str] = None, debug: bool = False) -> dict:
     texts = _skill_texts(detail or {})
 
     atk_hits, hp_hits, def_hits = [], [], []
@@ -1116,6 +1277,23 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     crit_rate_zero_or_missing = detect_crit_rate_zero_or_missing(detail or {}, base or {})
     basic_attack_based = bool(role == "dps" and scaling == "ATK" and (normal_share >= 0.20 or normal_cnt >= 2))
 
+    
+    # Debuffer subtype: split between "효과적중형(effect_hit)" vs "생존형(survival)"
+    # - effect_hit: debuff application reliability is the core (keywords: 적중/명중/저항/확률로 상태이상 부여 등)
+    # - survival: debuffing while staying alive (keywords: 피해감소/보호막/회복/도발/방어/체력 증가 등)
+    debuffer_subtype = ""
+    debuffer_debug = None
+    if role == "debuffer":
+        # subtype: effect_hit vs survival (scored by skill/memory text keywords)
+        want_debug = bool(debug) or (DEBUG_DEBUFFER and (slug_id(cid or "") in DEBUG_DEBUFFER_IDS))
+        debuffer_subtype, debuffer_debug = classify_debuffer_subtype(
+            texts=texts,
+            heal_strength=heal_strength,
+            shield_strength=shield_strength,
+            tankish=tankish,
+            debug=want_debug,
+        )
+
     sample_text = None
     if scaling == "ATK":
         sample_text = next((t for t in texts if _pct_hits(t, ["attack power", "atk", "attack", "공격력"])), None)
@@ -1139,6 +1317,8 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         "debuff_strength": debuff_strength,
         "heal_strength": heal_strength,
         "shield_strength": shield_strength,
+        "debuffer_subtype": debuffer_subtype,
+        "debuffer_debug": debuffer_debug,
         "healer_hybrid": healer_hybrid,
         "no_crit": no_crit,
         "crit_rate_zero_or_missing": crit_rate_zero_or_missing,
@@ -1635,7 +1815,9 @@ def _slot_plan_for(profile: dict, element: str) -> dict:
         return plan
 
     if role in ("buffer", "debuffer"):
-        plan["4"] = ["Energy-related (if exists)", "HP (%)", "Defense (%)", scaling_pct]
+                # NOTE: Slot 4 "main option" does NOT include any generic "Energy-related" stat.
+        # Energy is treated as a substat only (if the game provides such substats).
+        plan["4"] = ["HP (%)", "Defense (%)", scaling_pct]
         plan["5"] = ["HP (%)", "Defense (%)", _element_damage_label(element)]
         plan["6"] = ["HP (%)", "Defense (%)", scaling_pct]
         if not no_crit:
@@ -1666,38 +1848,108 @@ def _slot_plan_for(profile: dict, element: str) -> dict:
 
 
 def _substats_for(profile: dict) -> list[str]:
-    role = profile["role"]
-    scaling = profile["scaling"]
-    no_crit = profile["no_crit"]
+    """Return substat priority list.
 
-    scaling_pct = "Attack (%)" if scaling == "ATK" else ("HP (%)" if scaling == "HP" else ("Defense (%)" if scaling == "DEF" else "Attack (%)"))
+    IMPORTANT: In this project, the ONLY supported substats are:
+      - Attack / HP / Defense / Critical Rate / Critical Damage / Penetration
+    """
+    role = str(profile.get("role", "") or "").lower()
+    scaling = str(profile.get("scaling", "ATK") or "ATK").upper()
+    no_crit = bool(profile.get("no_crit", False))
 
+    def dedupe(seq: list[str]) -> list[str]:
+        out: list[str] = []
+        seen = set()
+        for x in seq:
+            x = str(x)
+            if x in seen:
+                continue
+            seen.add(x)
+            out.append(x)
+        return out
+
+    def scaling_primary() -> str:
+        if scaling == "HP":
+            return "HP"
+        if scaling == "DEF":
+            return "Defense"
+        return "Attack"
+
+    primary = scaling_primary()
+
+    # Healer: survivability first; add scaling stat; crit only if applicable.
     if role == "healer":
-        out = ["Healing Effectiveness (%)", "HP (%)", "Defense (%)", "Flat HP / Flat DEF"]
-        if profile.get("healer_hybrid") and not no_crit:
-            out += ["Critical Rate (%)", "Critical Damage (%)", "Attack (%)"]
-        return out
-
-    if role == "tank":
-        return ["HP (%)", "Defense (%)", "Flat HP / Flat DEF", "Damage Reduction / RES (존재 시)"]
-
-    if role in ("buffer", "debuffer"):
-        out = ["Energy Recovery / Energy Gain (존재 시)", "HP (%)", "Defense (%)", scaling_pct]
+        out = ["HP", "Defense"]
+        if primary == "Attack":
+            out.insert(0, "Attack")
+        else:
+            # HP/DEF scalers already covered; keep order stable
+            pass
+        out.append("Penetration")
         if not no_crit:
-            out += ["Critical Rate (%) (부옵/대체)"]
-        return out
+            out += ["Critical Rate", "Critical Damage"]
+        return dedupe(out)
 
-    if no_crit:
-        # no-crit DPS도 DEF/HP 스케일이면 스케일 스탯을 최우선으로
-        return [scaling_pct, "Attack Penetration (%)", "Element Attribute Damage (%)", "HP (%) / Defense (%) (생존)", "Attack (%) (대체)", "Flat Attack (대체)"]
+    # Tank: pure survivability, then minimal offense
+    if role == "tank":
+        out = ["HP", "Defense", "Attack", "Penetration"]
+        if not no_crit:
+            out += ["Critical Rate", "Critical Damage"]
+        return dedupe(out)
 
-    # DPS substat priority
-    if scaling == "DEF":
-        return ["Defense (%)", "Critical Rate (%)", "Critical Damage (%)", "Attack Penetration (%)", "HP (%) (생존)", "Flat DEF (대체)"]
-    if scaling == "HP":
-        return ["HP (%)", "Critical Rate (%)", "Critical Damage (%)", "Attack Penetration (%)", "Defense (%) (생존)", "Flat HP (대체)"]
+    # Buffer: survivability first; then scaling/offense as a fallback
+    if role == "buffer":
+        out = ["HP", "Defense"]
+        if primary not in out:
+            out.append(primary)
+        out.append("Penetration")
+        if not no_crit:
+            out += ["Critical Rate", "Critical Damage"]
+        return dedupe(out)
 
-    return ["Critical Rate (%)", "Critical Damage (%)", scaling_pct, "Attack Penetration (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
+    # Debuffer: subtype split (effect_hit vs survival)
+    if role == "debuffer":
+        subtype = str(profile.get("debuffer_subtype") or "").lower()
+
+        # NOTE: There is no 'Effect Hit/Accuracy' stat in the game.
+        # Proxy rule:
+        # - effect_hit: prefer offensive substats (Penetration, scaling) so the debuffer contributes meaningfully
+        #               while keeping baseline HP/Defense.
+        # - survival: prefer HP/Defense first to maintain debuff uptime.
+        if subtype == "effect_hit":
+            out = ["Penetration"]
+            if primary not in out:
+                out.append(primary)
+            if not no_crit:
+                out += ["Critical Rate", "Critical Damage"]
+            out += ["HP", "Defense", "Attack"]
+            return dedupe(out)
+
+        # survival (default)
+        out = ["HP", "Defense"]
+        if primary not in out:
+            out.append(primary)
+        out.append("Penetration")
+        if not no_crit:
+            out += ["Critical Rate", "Critical Damage"]
+        out += ["Attack"]
+        return dedupe(out)
+
+    # DPS: damage first; allow scaling; add survivability at the end
+    if role == "dps":
+        out = ["Attack", "Penetration"]
+        if primary != "Attack":
+            out.insert(1, primary)
+        if not no_crit:
+            out += ["Critical Rate", "Critical Damage"]
+        out += ["HP", "Defense"]
+        return dedupe(out)
+
+    # Fallback
+    out = ["Attack", "HP", "Defense", "Penetration"]
+    if not no_crit:
+        out += ["Critical Rate", "Critical Damage"]
+    return dedupe(out)
 
 
 def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> dict:
@@ -1734,7 +1986,7 @@ def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> di
             })
         return {"mode": "override", "profile": {"note": "rune_overrides.json 적용"}, "builds": builds}
 
-    profile = _detect_profile(detail or {}, base or {})
+    profile = _detect_profile(detail or {}, base or {}, cid=str(cid or ""))
     # For rule-based exceptions (e.g., Apep/Poki), keep identifiers in profile.
     profile["_cid"] = str(cid or "")
     profile["_name"] = str((base or {}).get("name") or (detail or {}).get("name") or "")
@@ -1907,7 +2159,7 @@ def _combo_detail(members: list[dict]) -> dict:
 
 
 def _member_payload(cid: str, tier: float, base: dict, detail: dict, role_override: Optional[str] = None) -> dict:
-    prof = _detect_profile(detail or {}, base or {})
+    prof = _detect_profile(detail or {}, base or {}, cid=str(cid or ""))
 
     # effective archetype/role for party composition
     role = (role_override or prof.get("role") or _role_from_base(base or {}) or "dps").strip().lower()
@@ -2542,6 +2794,42 @@ def load_all(force: bool = False) -> None:
         CACHE["error"] = str(e)
         CACHE["last_refresh"] = now_iso()
 
+    # Optional: print debuffer subtype match logs for a small sample set (to tune keywords quickly)
+    if DEBUG_DEBUFFER:
+        try:
+            preferred = [x for x in DEBUG_DEBUFFER_IDS if x]
+            picked: list[str] = []
+            # 1) explicit ids
+            for cid in preferred:
+                if cid in details and cid in by_id and cid not in picked:
+                    picked.append(cid)
+            # 2) fill with first N debuffers (based on inferred role)
+            for cid, base in by_id.items():
+                if len(picked) >= DEBUG_DEBUFFER_TOPN:
+                    break
+                if cid in picked:
+                    continue
+                d = details.get(cid) or {}
+                prof = _detect_profile(d, base or {}, cid=str(cid), debug=True)
+                if prof.get("role") == "debuffer":
+                    picked.append(cid)
+
+            for cid in picked[:DEBUG_DEBUFFER_TOPN]:
+                base = by_id.get(cid) or {}
+                d = details.get(cid) or {}
+                prof = _detect_profile(d, base, cid=str(cid), debug=True)
+                dd = prof.get("debuffer_debug") or {}
+                if dd:
+                    app.logger.info("[DEBUFFER_SAMPLE] id=%s name=%s subtype=%s eh=%s surv=%s",
+                                    cid, base.get("name") or base.get("id"),
+                                    dd.get("subtype"), dd.get("effect_hit_score"), dd.get("survival_score"))
+                    for h in dd.get("effect_hit_hits", [])[:10]:
+                        app.logger.info("[DEBUFFER_SAMPLE][EH] +%s %s | %s", h.get("w"), h.get("kw"), h.get("ctx"))
+                    for h in dd.get("survival_hits", [])[:10]:
+                        app.logger.info("[DEBUFFER_SAMPLE][SURV] +%s %s | %s", h.get("w"), h.get("kw"), h.get("ctx"))
+        except Exception:
+            app.logger.exception("DEBUFFER_SAMPLE logging failed")
+
 
 # -------------------------
 # Routes
@@ -2641,6 +2929,18 @@ def api_char_detail(cid: str):
 
     try:
         # rune recommendation supports ?rune_mode=pve|pvp|both
+        # optional debuffer debug: ?debug_debuffer=1
+        debug_debuffer = (request.args.get("debug_debuffer") or "").strip().lower() in ("1","true","yes","y","on")
+        profile = _detect_profile(detail or {}, base or {}, cid=str(cid2), debug=debug_debuffer)
+        if debug_debuffer and profile.get("debuffer_debug"):
+            dd = profile["debuffer_debug"]
+            app.logger.info("[DEBUFFER_DEBUG] id=%s subtype=%s eh=%s surv=%s",
+                            str(cid2), dd.get("subtype"), dd.get("effect_hit_score"), dd.get("survival_score"))
+            for h in dd.get("effect_hit_hits", [])[:12]:
+                app.logger.info("[DEBUFFER_DEBUG][EH] +%s %s | %s", h.get("w"), h.get("kw"), h.get("ctx"))
+            for h in dd.get("survival_hits", [])[:12]:
+                app.logger.info("[DEBUFFER_DEBUG][SURV] +%s %s | %s", h.get("w"), h.get("kw"), h.get("ctx"))
+
         rm = (request.args.get("rune_mode") or "both").strip().lower()
         if rm in ("pve", "pvp"):
             rune_reco = recommend_runes(cid2, base, detail, mode=rm)
@@ -2654,6 +2954,7 @@ def api_char_detail(cid: str):
         "id": cid2,
         "character": base,
         "detail": detail,
+        "profile": profile,
         "rune_reco": rune_reco,
         "detail_source": f"public/data/zone-nova/characters_ko/{cid2}.json",
     })
