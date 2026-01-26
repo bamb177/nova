@@ -1537,14 +1537,37 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
             score += 2.5
 
     elif role == "healer":
+        # Healing/support value
         if "HEAL" in tags:
-            score += 22.0 * (0.7 + 0.3 * max(heal, 0.2))
-        if "ENERGY_EFF" in tags:
-            score += 10.0 * (0.6 + 0.4 * ult)
-        if "START_ENERGY" in tags:
-            score += 10.0 * (0.6 + 0.4 * ult)
-        if "HP" in tags or "DEF" in tags:
-            score += 6.0
+            score += 10.0
+        if "SHIELD" in tags:
+            score += 4.0
+        if "CLEANSE" in tags:
+            score += 3.0
+        if "ENERGY" in tags:
+            score += 4.0
+
+        # Stat preference should follow *healing scaling* first.
+        # (Example: Gaia heals scale with Max HP -> prefer HP over DEF.)
+        if scaling == "HP":
+            if "HP" in tags:
+                score += 8.0
+            if "DEF" in tags:
+                score -= 2.0
+        elif scaling == "ATK":
+            if "ATK" in tags:
+                score += 8.0
+        elif scaling == "DEF":
+            if "DEF" in tags:
+                score += 8.0
+            if "HP" in tags:
+                score -= 1.0
+        else:
+            # If scaling is unknown, keep a mild bias toward survivability (HP > DEF)
+            if "HP" in tags:
+                score += 4.0
+            if "DEF" in tags:
+                score += 2.0
         if "SHIELD" in tags:
             # 보호막 세트는 "보호막/실드" 기믹이 실제로 존재할 때만 유효
             if shield <= 0.05:
