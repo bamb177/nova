@@ -1814,14 +1814,23 @@ def _slot_plan_for(profile: dict, element: str) -> dict:
         plan["6"] = ["Defense (%)", "HP (%)"]
         return plan
 
-    if role in ("buffer", "debuffer"):
-                # NOTE: Slot 4 "main option" does NOT include any generic "Energy-related" stat.
-        # Energy is treated as a substat only (if the game provides such substats).
+    if role == "buffer":
+        # Buffer: survivability/support stat first
         plan["4"] = ["HP (%)", "Defense (%)", scaling_pct]
         plan["5"] = ["HP (%)", "Defense (%)", _element_damage_label(element)]
         plan["6"] = ["HP (%)", "Defense (%)", scaling_pct]
+        return plan
+
+    if role == "debuffer":
+        # Debuffer: treat as semi-DPS (no HP priority).
+        # Slot 4: offensive first, then utility/defense.
+        plan["4"] = [scaling_pct, "Defense (%)", "HP (%)"]
         if not no_crit:
-            plan["4"].append("Critical Rate (%) (부옵/대체)")
+            plan["4"].insert(1, "Critical Rate (%) (Sub/Alt)")
+        # Slot 5: element damage is the only offensive main option in many datasets.
+        plan["5"] = [scaling_pct, _element_damage_label(element), "Defense (%)", "HP (%)"]
+        # Slot 6: offensive first.
+        plan["6"] = [scaling_pct, "Defense (%)", "HP (%)"]
         return plan
 
     # DPS
@@ -1907,33 +1916,23 @@ def _substats_for(profile: dict) -> list[str]:
             out += ["Critical Rate", "Critical Damage"]
         return dedupe(out)
 
-    # Debuffer: subtype split (effect_hit vs survival)
+    # Debuffer: treat as "semi-DPS" (no survival subtype).
+    # Project rule: Debuffer is not a survivability archetype; prioritize offensive contribution.
     if role == "debuffer":
-        subtype = str(profile.get("debuffer_subtype") or "").lower()
+        # Debuffer: treat as "semi-DPS" (no survivability archetype).
+        # Project rule: Debuffer substats must stay within the allowed 6 and avoid HP priority.
+        # Penetration is valuable only when the game has meaningful DEF mitigation; however, to avoid
+        # over-recommending it, we place Attack first and keep Penetration as a high (but not always #1) priority.
+        out = ["Attack", "Penetration"]
 
-        # NOTE: There is no 'Effect Hit/Accuracy' stat in the game.
-        # Proxy rule:
-        # - effect_hit: prefer offensive substats (Penetration, scaling) so the debuffer contributes meaningfully
-        #               while keeping baseline HP/Defense.
-        # - survival: prefer HP/Defense first to maintain debuff uptime.
-        if subtype == "effect_hit":
-            out = ["Penetration"]
-            if primary not in out:
-                out.append(primary)
-            if not no_crit:
-                out += ["Critical Rate", "Critical Damage"]
-            out += ["HP", "Defense", "Attack"]
-            return dedupe(out)
-
-        # survival (default)
-        out = ["HP", "Defense"]
-        if primary not in out:
-            out.append(primary)
-        out.append("Penetration")
+        # crit only if the character actually has crit (no_crit -> skip)
         if not no_crit:
             out += ["Critical Rate", "Critical Damage"]
-        out += ["Attack"]
+
+        # Keep Defense only as a last-resort substat.
+        out += ["Defense"]
         return dedupe(out)
+
 
     # DPS: damage first; allow scaling; add survivability at the end
     if role == "dps":
@@ -2742,11 +2741,24 @@ def load_all(force: bool = False) -> None:
             raw_name = normalize_char_name(d.get("name") or cid)
             display_name = overrides_names.get(raw_name, raw_name)
 
+            # Apply overrides to detail payload as well (modal/title consistency)
+            try:
+                d["raw_name"] = raw_name
+                d["name"] = display_name
+            except Exception:
+                pass
+
             rarity = (d.get("rarity") or "-").strip().upper()
             element = normalize_element(str(d.get("element") or "-"))
 
             raw_faction = str(d.get("faction") or "-").strip() or "-"
             faction = overrides_factions.get(raw_faction, raw_faction)
+
+            try:
+                d["raw_faction"] = raw_faction
+                d["faction"] = faction
+            except Exception:
+                pass
 
             cls = str(d.get("class") or "-").strip() or "-"
             role = str(d.get("role") or "-").strip() or "-"
