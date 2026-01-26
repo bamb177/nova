@@ -1672,8 +1672,8 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve"
         allowed4 = {"Iots"}
         allowed2 = set(sets_all) - {"Poki", "Zane", "Daleth", "Kappa", "Iots"}
     elif role == "healer":
-        # (요청사항) Healer는 Daleth 2세트 필수
-        forced2 = "Daleth"
+        # Healer: Daleth를 하드 고정하지 않고(유동), 스코어링으로 최적 세트를 선택
+        forced2 = None
         allowed4 = set(sets_all)
         allowed2 = set(sets_all)
 
@@ -1809,8 +1809,8 @@ def _slot_plan_for(profile: dict, element: str) -> dict:
 
     if role == "healer":
         plan["4"] = ["Healing Effectiveness (%)", "HP (%)", "Defense (%)"]
-        plan["5"] = ["HP (%)", "Defense (%)"]
-        plan["6"] = ["HP (%)", "Defense (%)"]
+        plan["5"] = ["HP (%)", "Attack (%)", "Defense (%)"]
+        plan["6"] = ["HP (%)", "Attack (%)", "Defense (%)"]
         return plan
 
     if role == "tank":
