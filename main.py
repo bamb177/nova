@@ -97,45 +97,10 @@ def normalize_element(v: str) -> str:
     return ELEMENT_RENAME.get(s2, s2)
 
 
-def load_overrides() -> tuple[dict, dict, dict, dict]:
-    """Load name/faction overrides.
-    Returns:
-      names: exact-key dict
-      names_ci: case-insensitive dict (keys are normalize_char_name(k).casefold())
-      factions: exact-key dict
-      factions_ci: case-insensitive dict (keys are normalize_char_name(k).casefold())
-    """
-    names_raw = safe_load_json(OVERRIDE_NAMES)
-    factions_raw = safe_load_json(OVERRIDE_FACTIONS)
-
-    names = names_raw if isinstance(names_raw, dict) else {}
-    factions = factions_raw if isinstance(factions_raw, dict) else {}
-
-    names_ci: dict[str, str] = {}
-    factions_ci: dict[str, str] = {}
-
-    for k, v in names.items():
-        if isinstance(k, str) and isinstance(v, str):
-            names_ci[normalize_char_name(k).casefold()] = v
-
-    for k, v in factions.items():
-        if isinstance(k, str) and isinstance(v, str):
-            factions_ci[normalize_char_name(k).casefold()] = v
-
-    return names, names_ci, factions, factions_ci
-
-
-def apply_override(value: str, overrides: dict, overrides_ci: dict) -> str:
-    """Apply override with fallback to case-insensitive match."""
-    raw = normalize_char_name(value or "")
-    if not raw:
-        return raw
-    if isinstance(overrides, dict) and raw in overrides and isinstance(overrides.get(raw), str):
-        return overrides[raw]
-    k = raw.casefold()
-    if isinstance(overrides_ci, dict) and k in overrides_ci and isinstance(overrides_ci.get(k), str):
-        return overrides_ci[k]
-    return raw
+def load_overrides() -> tuple[dict, dict]:
+    names = safe_load_json(OVERRIDE_NAMES)
+    factions = safe_load_json(OVERRIDE_FACTIONS)
+    return (names if isinstance(names, dict) else {}), (factions if isinstance(factions, dict) else {})
 
 
 def find_file_by_stem(folder: str, stem: str) -> Optional[str]:
@@ -947,37 +912,66 @@ def detect_crit_rate_zero_or_missing(detail: dict, base: dict | None = None) -> 
     if val is None:
         return True
     return abs(val) < 1e-9
+def _canon_role_token(s: str) -> str:
+    """
+    Canonicalize a role/class string into one of:
+      tank | dps | healer | buffer | debuffer | (empty)
+    Rules:
+      - Case-insensitive
+      - Ignores whitespace/underscores/hyphens and most punctuation
+      - Prefers 'debuffer' over 'buffer' (prevents 'debuffer' matching 'buffer' as substring)
+      - Accepts common variants (e.g., "debuff", "support", "guardian")
+    """
+    raw = (s or "").strip().lower().replace("’", "'")
+    if not raw:
+        return ""
+    # normalize separators then strip non-letters
+    raw = re.sub(r"[\s_\-/]+", "", raw)
+    raw = re.sub(r"[^a-z]", "", raw)
+
+    if not raw:
+        return ""
+
+    # Order matters: 'debuffer' must be checked before 'buffer'
+    if raw.startswith("debuff") or "debuff" in raw or "vuln" in raw or "weaken" in raw:
+        return "debuffer"
+    if raw.startswith("buff") or raw.endswith("buffer") or "buffer" in raw or raw in ("support", "supp", "booster"):
+        return "buffer"
+    if "heal" in raw or raw.startswith("healer") or raw in ("medic", "doctor"):
+        return "healer"
+    if "tank" in raw or "guardian" in raw or raw in ("defender", "protector"):
+        return "tank"
+    if "dps" in raw or raw in ("damage", "dealer", "attacker"):
+        return "dps"
+    return ""
+
+
 def _role_from_base(base: dict) -> tuple[str, bool]:
     """Return (base_role, strict).
-    - strict=True only when explicit 'role' field is present.
-    - class is treated as a hint (strict=False), because some data uses 'class' for category/memory compatibility.
-    """
-    role_raw = str((base or {}).get("role") or "").strip().lower()
-    cls_raw = str((base or {}).get("class") or "").strip().lower()
 
-    if role_raw:
-        if "tank" in role_raw:
-            return "tank", True
-        if "dps" in role_raw:
-            return "dps", True
-        if "healer" in role_raw:
-            return "healer", True
-        if "buffer" in role_raw:
-            return "buffer", True
-        if "debuffer" in role_raw:
-            return "debuffer", True
+    strict=True only when an explicit role can be canonically resolved from base['role'].
+    base['class'] is treated as a hint (strict=False) to avoid bad metadata breaking rune logic.
+    """
+    role_raw = str((base or {}).get("role") or "")
+    cls_raw = str((base or {}).get("class") or "")
+
+    role_tok = _canon_role_token(role_raw)
+    cls_tok = _canon_role_token(cls_raw)
+
+    if role_tok:
+        return role_tok, True
 
     # class-only hint (not strict)
-    if "guardian" in cls_raw:
-        return "tank", False
-    if "healer" in cls_raw:
-        return "healer", False
-    if "buffer" in cls_raw:
-        return "buffer", False
-    if "debuffer" in cls_raw:
-        return "debuffer", False
-    if cls_raw in ("warrior", "rogue", "mage"):
+    if cls_tok in ("tank", "healer", "buffer", "debuffer", "dps"):
+        return cls_tok, False
+
+    # fallbacks for known combat classes (memory compatibility labels)
+    cls_low = cls_raw.strip().lower()
+    if cls_low in ("warrior", "rogue", "mage"):
         return "dps", False
+
+    return "dps", False
+
 
     return "dps", False
 
@@ -1008,13 +1002,12 @@ def _infer_role_from_texts(texts: list[str]) -> str:
                 heal_self += 1
 
         # team buff
-        # Exclude debuff/vulnerability sentences that may contain "increase/증가" wording
-        if has_team and has_buff and not has_debuff:
+        if has_team and has_buff:
             team_buff += 2
 
-        # debuff (give slightly more weight than team_buff to reduce false 'buffer' promotions)
+        # debuff
         if has_debuff:
-            debuff += 2
+            debuff += 1
 
     # prioritize true healers (ally/team healing)
     if heal_team >= max(team_buff, debuff) and heal_team >= 3:
@@ -1064,10 +1057,7 @@ def _detect_profile(detail: dict, base: dict) -> dict:
             heal_cnt += 1
         if any(k in tl for k in _KW_SHIELD):
             shield_cnt += 1
-        has_team = any(k in tl for k in _KW_TEAM)
-        has_buff = any(k in tl for k in _KW_BUFF)
-        has_debuff = any(k in tl for k in _KW_DEBUFF) or any(k in tl for k in _KW_VULN)
-        if has_team and has_buff and not has_debuff:
+        if any(k in tl for k in _KW_TEAM) and any(k in tl for k in _KW_BUFF) and not (any(k in tl for k in _KW_DEBUFF) or any(k in tl for k in _KW_VULN)):
             team_buff_cnt += 1
         if any(k in tl for k in _KW_DEBUFF) or any(k in tl for k in _KW_VULN):
             debuff_cnt += 1
@@ -1107,21 +1097,11 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         # If class hinted DPS (Warrior/Rogue/Mage) but evidence strongly supports support role, promote.
         # This prevents misclassifying DPS as support due to a single "buff" keyword.
         if base_role == "dps":
-            # Pick the strongest support signal instead of fixed priority (buffer > debuffer).
-            # This reduces false "buffer" promotions for vulnerability/debuff characters.
-            support_scores = {
-                "healer": heal_strength,
-                "buffer": team_buff_strength,
-                "debuffer": debuff_strength,
-            }
-            best_support = max(support_scores, key=support_scores.get)
-            best_val = float(support_scores[best_support] or 0.0)
-
-            if best_support == "healer" and best_val >= 0.55:
+            if text_role == "healer" and heal_strength >= 0.55:
                 role = "healer"
-            elif best_support == "buffer" and best_val >= 0.60:
+            elif text_role == "buffer" and team_buff_strength >= 0.60:
                 role = "buffer"
-            elif best_support == "debuffer" and best_val >= 0.60:
+            elif text_role == "debuffer" and debuff_strength >= 0.60:
                 role = "debuffer"
             else:
                 role = "dps"
@@ -1484,15 +1464,6 @@ def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve"
 
     role = profile.get("role") or "dps"
     extra_attack_4_allowed = bool(profile.get("has_explicit_extra_attack"))
-
-    # Safety: if debuff signal is strong, treat as debuffer for rune purposes even if role was mis-inferred.
-    if role != "debuffer":
-        ds = float(profile.get("debuff_strength") or 0.0)
-        ts = float(profile.get("team_buff_strength") or 0.0)
-        # Require debuff to be both strong and clearly stronger than team-buff.
-        if ds >= 0.65 and ds >= ts + 0.10:
-            role = "debuffer"
-            profile["role"] = "debuffer"
 
     sets_all = list(sets)
     allowed4 = set(sets_all)
@@ -2495,7 +2466,7 @@ def load_all(force: bool = False) -> None:
         if not os.path.isdir(CHAR_KO_DIR):
             raise RuntimeError(f"characters_ko 디렉터리 없음: {CHAR_KO_DIR}")
 
-        overrides_names, overrides_names_ci, overrides_factions, overrides_factions_ci = load_overrides()
+        overrides_names, overrides_factions = load_overrides()
         char_img_map = build_character_image_map(CHAR_IMG_DIR)
 
         chars = []
@@ -2517,18 +2488,13 @@ def load_all(force: bool = False) -> None:
             details[cid] = d
 
             raw_name = normalize_char_name(d.get("name") or cid)
-            display_name = apply_override(raw_name, overrides_names, overrides_names_ci)
+            display_name = overrides_names.get(raw_name, raw_name)
 
             rarity = (d.get("rarity") or "-").strip().upper()
             element = normalize_element(str(d.get("element") or "-"))
 
             raw_faction = str(d.get("faction") or "-").strip() or "-"
-            faction = apply_override(raw_faction, overrides_factions, overrides_factions_ci)
-
-            # Ensure overrides are reflected in detail payload used by the character modal
-            d["raw_name"] = raw_name
-            d["name"] = display_name
-            d["faction"] = faction
+            faction = overrides_factions.get(raw_faction, raw_faction)
 
             cls = str(d.get("class") or "-").strip() or "-"
             role = str(d.get("role") or "-").strip() or "-"
@@ -2651,11 +2617,11 @@ def api_char_detail(cid: str):
 
     base = next((c for c in CACHE["chars"] if c.get("id") == cid2), None)
     if not base:
-        overrides_names, overrides_names_ci, overrides_factions, overrides_factions_ci = load_overrides()
+        overrides_names, overrides_factions = load_overrides()
         raw_name = normalize_char_name(detail.get("name") or cid2)
-        display_name = apply_override(raw_name, overrides_names, overrides_names_ci)
+        display_name = overrides_names.get(raw_name, raw_name)
         raw_faction = str(detail.get("faction") or "-").strip() or "-"
-        faction = apply_override(raw_faction, overrides_factions, overrides_factions_ci)
+        faction = overrides_factions.get(raw_faction, raw_faction)
         element = normalize_element(str(detail.get("element") or "-"))
         cls = str(detail.get("class") or "-").strip() or "-"
         base = {
@@ -2673,27 +2639,8 @@ def api_char_detail(cid: str):
             "runes": None,
         }
 
-    # Ensure modal detail reflects overrides (name/faction) even if detail was loaded from disk
     try:
-        overrides_names, overrides_names_ci, overrides_factions, overrides_factions_ci = load_overrides()
-        raw_name2 = normalize_char_name((detail.get("name") or base.get("raw_name") or cid2))
-        display_name2 = apply_override(raw_name2, overrides_names, overrides_names_ci)
-        raw_faction2 = str(detail.get("faction") or base.get("faction") or "-").strip() or "-"
-        faction2 = apply_override(raw_faction2, overrides_factions, overrides_factions_ci)
-
-        detail["raw_name"] = raw_name2
-        detail["name"] = display_name2
-        detail["faction"] = faction2
-
-        # keep base consistent too
-        base["raw_name"] = raw_name2
-        base["name"] = display_name2
-        base["faction"] = faction2
-    except Exception:
-        pass
-
-    try:
-        # rune recommendation supports \?rune_mode=pve\|pvp\|both
+        # rune recommendation supports ?rune_mode=pve|pvp|both
         rm = (request.args.get("rune_mode") or "both").strip().lower()
         if rm in ("pve", "pvp"):
             rune_reco = recommend_runes(cid2, base, detail, mode=rm)
