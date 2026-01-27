@@ -1184,16 +1184,12 @@ def classify_debuffer_subtype(texts: list[str], heal_strength: float, shield_str
 
 def _detect_profile(detail: dict, base: dict, cid: Optional[str] = None, debug: bool = False) -> dict:
     texts = _skill_texts(detail or {})
-    blob = "\n".join([t for t in texts if t]).lower()
 
     atk_hits, hp_hits, def_hits = [], [], []
     for t in texts:
         atk_hits += _pct_hits(t, ["attack power", "atk", "attack", "공격력"])
         hp_hits += _pct_hits(t, ["max hp", "hp", "health", "체력", "생명"])
         def_hits += _pct_hits(t, ["defense", "def", "방어력"])
-
-    # DEF scaling should only trigger when a DEF% coefficient exists (pct_hits) or explicit 'DEF 기반'
-    def_scaling = bool(def_hits) or ("방어력 기반" in blob) or ("def based" in blob) or ("based on def" in blob) or ("scaled by def" in blob) or bool(re.search(r"(방어력|def)\s*만큼", blob))
 
     atk_s = _score_hits(atk_hits)
     hp_s = _score_hits(hp_hits)
@@ -1208,8 +1204,25 @@ def _detect_profile(detail: dict, base: dict, cid: Optional[str] = None, debug: 
     normal_cnt = 0
     team_buff_cnt = debuff_cnt = heal_cnt = shield_cnt = 0
 
+    # Extra signals for DEF/HP set gating (Kappa/Poki vs Zane/Zahn)
+    def_pos_cnt = 0
+    def_neg_cnt = 0
+    def_scale_hint = 0
+    hp_scale_hint = 0
+
     for t in texts:
         tl = t.lower()
+        # DEF set suitability: count self-DEF gain or DEF scaling hints (exclude pure enemy DEF down)
+        if ("방어력 증가" in t) or ("방어력 상승" in t) or ("increase defense" in tl) or ("defense up" in tl) or ("def 증가" in tl):
+            def_pos_cnt += 1
+        if ("방어력 감소" in t) or ("defense down" in tl) or ("reduce defense" in tl) or ("def down" in tl):
+            def_neg_cnt += 1
+        if re.search(r"(방어력\s*(?:의|기준|에\s*비례|비례))", t) or re.search(r"(def(?:ense)?\s*(?:based|scal|scale))", tl):
+            def_scale_hint += 1
+
+        # HP scaling hint (used to lock HP-based healer preference)
+        if ("최대 hp" in tl) or ("max hp" in tl) or re.search(r"(hp\s*(?:기준|에\s*비례|비례))", tl):
+            hp_scale_hint += 1
         if any(k in tl for k in _KW_DOT):
             dot_cnt += 1
         # strict extra attack detection (avoid false positives like "추가 피해")
@@ -1311,13 +1324,20 @@ def _detect_profile(detail: dict, base: dict, cid: Optional[str] = None, debug: 
     elif scaling == "DEF":
         sample_text = next((t for t in texts if _pct_hits(t, ["defense", "def", "방어력"])), None)
 
+    # DEF rune sets (Kappa/Poki) are only treated as "useful" when the kit implies DEF scaling
+    # or self-DEF gain. Pure enemy DEF-down debuffs should NOT enable DEF sets.
+    def_set_allowed = (def_s >= 12.0) or (def_scale_hint > 0) or (def_pos_cnt > 0 and def_pos_cnt >= def_neg_cnt)
+
+    # HP-based healer: healing/shield formulas often scale with HP.
+    hp_based = (hp_s >= max(atk_s, def_s) and (hp_s >= 12.0 or hp_scale_hint > 0)) or (hp_scale_hint > 0)
+    hp_based_healer = (role == "healer" and hp_based)
+
     return {
         "role": role,
         "scaling": scaling,
         "atk_score": atk_s,
         "hp_score": hp_s,
         "def_score": def_s,
-        "def_scaling": def_scaling,
         "dot_share": dot_share,
         "normal_share": normal_share,
         "extra_share": extra_share,
@@ -1327,6 +1347,8 @@ def _detect_profile(detail: dict, base: dict, cid: Optional[str] = None, debug: 
         "debuff_strength": debuff_strength,
         "heal_strength": heal_strength,
         "shield_strength": shield_strength,
+        "def_set_allowed": def_set_allowed,
+        "hp_based_healer": hp_based_healer,
         "debuffer_subtype": debuffer_subtype,
         "debuffer_debug": debuffer_debug,
         "healer_hybrid": healer_hybrid,
@@ -1454,19 +1476,9 @@ def _rune_tag_index(rune_db: dict[str, dict]) -> dict[str, dict]:
 
 def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dict], tag_idx: dict[str, dict], mode: str = "pve") -> float:
     tags = (tag_idx.get(set_name) or {}).get("tags4" if pieces == 4 else "tags2", set())
+
     role = profile["role"]
     scaling = profile["scaling"]
-    signals = profile.get("signals", {})
-    hp_healer = (role == "healer" and scaling == "HP")
-    # HP 기반 힐러는 DEF 세트(예: Kappa)를 강제 제외
-    if hp_healer and set_name == "Kappa":
-        return -999.0
-
-    # ✅ DEF 세트는 기본적으로 Tank/DPS(또는 DEF 스케일/방어 키트)에서만 추천
-    has_def_kit = bool(signals.get("def_scaling", False)) or (scaling == "DEF")
-    if ("DEF" in tags) and (not has_def_kit):
-        return -999.0  # DEF 세트는 DEF 기반(계수)일 때만 추천
-
     no_crit = profile["no_crit"]
 
     dot = profile["dot_share"]
@@ -1475,6 +1487,13 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
     debuff = profile["debuff_strength"]
     heal = profile["heal_strength"]
     shield = profile["shield_strength"]
+
+    sk_norm = re.sub(r"[^a-z0-9]+", "", (set_name or "").strip().lower())
+    is_kappa = sk_norm.startswith("kappa")
+    is_poki = sk_norm.startswith("poki")
+    is_hp_set = sk_norm.startswith("zane") or sk_norm.startswith("zahn")
+    def_allowed = bool(profile.get("def_set_allowed"))
+    hp_based_healer = bool(profile.get("hp_based_healer"))
 
     score = 0.0
 
@@ -1574,15 +1593,6 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
             if "ATK" in tags and scaling == "ATK":
                 score += 4.0
 
-        # ✅ HP 기반 힐러: DEF 세트 강감점 / HP 세트 강가점
-        if scaling == "HP":
-            if "DEF" in tags:
-                score -= 25.0 if pieces >= 4 else 18.0
-            if set_name.lower() in ("zane", "zahn"):
-                score += 12.0 if pieces >= 4 else 6.0
-            if "HP" in tags:
-                score += 8.0 if pieces >= 4 else 4.0
-
     elif role == "tank":
         if "HP" in tags:
             score += 16.0
@@ -1662,6 +1672,27 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
 
     if no_crit and ("CRIT_RATE" in tags or "CRIT_DMG" in tags):
         score -= 8.0
+
+    # --- Guardrails for DEF/HP sets ---
+    # Kappa/Poki: primarily for Tank/DPS and only when kit implies DEF scaling or self-DEF gain.
+    # HP-based Healer: strongly prefer HP set (Zane/Zahn) and strongly penalize DEF2 (Kappa).
+    if is_kappa or is_poki:
+        if role not in ("tank", "dps"):
+            score -= 35.0 if pieces == 2 else 55.0
+        if not def_allowed:
+            score -= 45.0 if pieces == 2 else 70.0
+        else:
+            if role == "tank":
+                score += 20.0 if pieces == 2 else 30.0
+            elif role == "dps":
+                score += 8.0 if pieces == 2 else 12.0
+        if hp_based_healer:
+            score -= 60.0 if pieces == 2 else 90.0
+            if is_kappa and pieces == 2:
+                score -= 30.0  # extra strong penalty for DEF2 on HP-healers
+
+    if hp_based_healer and is_hp_set:
+        score += 25.0 if pieces == 2 else 40.0
 
     return score
 
@@ -2967,17 +2998,6 @@ def api_char_detail(cid: str):
             "class_icon": class_icon_url(cls),
             "runes": None,
         }
-
-
-    # ✅ Apply overrides to detail too (modal uses detail.name first)
-    try:
-        if isinstance(detail, dict) and isinstance(base, dict):
-            detail["name"] = base.get("name") or detail.get("name")
-            if base.get("faction"): detail["faction"] = base.get("faction")
-            if base.get("class"): detail["class"] = base.get("class")
-            if base.get("role"): detail["role"] = base.get("role")
-    except Exception:
-        pass
 
     try:
         # rune recommendation supports ?rune_mode=pve|pvp|both
