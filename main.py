@@ -1454,13 +1454,13 @@ def _rune_tag_index(rune_db: dict[str, dict]) -> dict[str, dict]:
 
 def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dict], tag_idx: dict[str, dict], mode: str = "pve") -> float:
     tags = (tag_idx.get(set_name) or {}).get("tags4" if pieces == 4 else "tags2", set())
-    # HP 기반 힐러는 DEF 2세트(예: Kappa)를 강제 제외
-    if role == "healer" and scaling == "HP" and set_name == "Kappa":
-        return -999.0
-
-
     role = profile["role"]
     scaling = profile["scaling"]
+    signals = profile.get("signals", {})
+    hp_healer = (role == "healer" and scaling == "HP")
+    # HP 기반 힐러는 DEF 세트(예: Kappa)를 강제 제외
+    if hp_healer and set_name == "Kappa":
+        return -999.0
 
     # ✅ DEF 세트는 기본적으로 Tank/DPS(또는 DEF 스케일/방어 키트)에서만 추천
     has_def_kit = bool(signals.get("def_scaling", False)) or (scaling == "DEF")
