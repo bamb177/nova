@@ -7,8 +7,6 @@ from typing import Optional, Any
 
 from itertools import combinations
 from flask import Flask, jsonify, redirect, render_template, request
-from collections import Counter
-
 APP_TITLE = os.getenv("APP_TITLE", "Nova")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -228,144 +226,6 @@ def _pct_from_text(s: str) -> Optional[float]:
     except Exception:
         return None
 
-def parse_rune_effect_text(text: str) -> dict:
-    """
-    2pc/4pc 효과 문구를 '효과 벡터'로 변환.
-    반환 예:
-      {
-        "mods": {"atk_pct":0.08, "crit_rate":0.06, "basic_dmg":0.30, ...},
-        "cond": {"type":"hp_gt", "value":0.80} or {"type":"after_ultimate","dur":10},
-        "target":"self|team",
-        "notes":[...]
-      }
-    """
-    out = {"mods": {}, "cond": None, "target": "self", "notes": []}
-    if not isinstance(text, str) or not text.strip():
-        return out
-
-    t = text.strip()
-    tl = t.lower()
-
-    # --- condition parsing ---
-    # When HP >80%: ...
-    m = re.search(r"when\s+hp\s*([<>]=?)\s*(\d+(?:\.\d+)?)\s*%", tl)
-    if m:
-        op = m.group(1)
-        val = float(m.group(2)) / 100.0
-        out["cond"] = {"type": "hp_cond", "op": op, "value": val}
-        # 조건 앞부분 제거 후 본문만 남겨 파싱 계속
-        t = re.sub(r"(?i)when\s+hp\s*[<>]=?\s*\d+(?:\.\d+)?\s*%\s*:\s*", "", t).strip()
-        tl = t.lower()
-
-    # After ultimate / after dealing X
-    if "after ultimate" in tl or "after ult" in tl or "궁극기" in t or "필살기" in t:
-        dur = _parse_seconds(t)  # (10s)
-        out["cond"] = {"type": "after_ultimate", "dur": dur}
-
-    if "after dealing extra attack" in tl or "extra attack damage" in tl or "추가 공격" in t:
-        dur = _parse_seconds(t)
-        out["cond"] = {"type": "after_extra", "dur": dur}
-
-    if "after dealing continuous damage" in tl or "continuous damage" in tl or "dot" in tl or "지속 피해" in t or "지속피해" in t or "도트" in t or "중독" in t or "화상" in t or "출혈" in t or "감전" in t or "동상" in t or "부식" in t:
-        dur = _parse_seconds(t)
-        out["cond"] = {"type": "after_dot", "dur": dur}
-
-    if "battle start" in tl or "전투 시작" in t:
-        out["cond"] = {"type": "battle_start", "dur": None}
-
-    # stacking
-    if "stacks up to" in tl or "stack" in tl or "중첩" in t:
-        m2 = re.search(r"stacks\s+up\s+to\s+(\d+)", tl)
-        if m2:
-            out["notes"].append(f"stack_max={m2.group(1)}")
-
-    # team target
-    if "team" in tl or "파티" in t or "아군" in t:
-        out["target"] = "team"
-
-    # --- stat/damage mods parsing ---
-    # Attack Power +8%
-    if "attack power" in tl or "atk" in tl or "공격력" in t:
-        p = _pct_from_text(t)
-        if p is not None and ("attack power" in tl or "공격력" in t):
-            out["mods"]["atk_pct"] = out["mods"].get("atk_pct", 0.0) + p
-
-    # HP +8%
-    if re.search(r"\bhp\b", tl) or "체력" in t or "생명력" in t:
-        p = _pct_from_text(t)
-        if p is not None and ("hp" in tl or "체력" in t or "생명력" in t):
-            out["mods"]["hp_pct"] = out["mods"].get("hp_pct", 0.0) + p
-
-    # Defense +12%
-    if "defense" in tl or "def" in tl or "방어력" in t:
-        p = _pct_from_text(t)
-        if p is not None and ("defense" in tl or "방어력" in t):
-            out["mods"]["def_pct"] = out["mods"].get("def_pct", 0.0) + p
-
-    # Crit rate +6%
-    if "critical hit rate" in tl or "crit rate" in tl or "치명타 확률" in t or "치명률" in t or "크리" in t:
-        p = _pct_from_text(t)
-        if p is not None:
-            out["mods"]["crit_rate"] = out["mods"].get("crit_rate", 0.0) + p
-
-    # Crit damage +24%
-    if "critical hit damage" in tl or "crit damage" in tl or "치명타 피해" in t or "치피" in t or "크리피해" in t:
-        p = _pct_from_text(t)
-        if p is not None:
-            out["mods"]["crit_dmg"] = out["mods"].get("crit_dmg", 0.0) + p
-
-    # Basic Attack Damage +30%
-    if "basic attack damage" in tl or "기본 공격" in t or "평타" in t:
-        p = _pct_from_text(t)
-        if p is not None and ("damage" in tl or "피해" in t):
-            out["mods"]["basic_dmg"] = out["mods"].get("basic_dmg", 0.0) + p
-
-    # Extra Attack damage +20%
-    if "extra attack" in tl or "추가 공격" in t:
-        p = _pct_from_text(t)
-        if p is not None and ("damage" in tl or "피해" in t):
-            out["mods"]["extra_dmg"] = out["mods"].get("extra_dmg", 0.0) + p
-
-    # Continuous damage +20% (DOT)
-    if "continuous damage" in tl or "dot" in tl or "지속 피해" in t or "지속피해" in t or "도트" in t or "중독" in t or "화상" in t or "출혈" in t or "감전" in t or "동상" in t or "부식" in t:
-        p = _pct_from_text(t)
-        if p is not None and ("damage" in tl or "피해" in t):
-            out["mods"]["dot_dmg"] = out["mods"].get("dot_dmg", 0.0) + p
-
-    # Team damage +10%
-    if ("team" in tl and "damage" in tl) or ("파티" in t and "피해" in t):
-        p = _pct_from_text(t)
-        if p is not None:
-            out["mods"]["team_dmg"] = out["mods"].get("team_dmg", 0.0) + p
-
-    # Healing Effectiveness +10%
-    if "healing effectiveness" in tl or "치유" in t or "회복" in t:
-        p = _pct_from_text(t)
-        if p is not None:
-            out["mods"]["heal_eff"] = out["mods"].get("heal_eff", 0.0) + p
-
-    # Shield Effectiveness +20%
-    if "shield effectiveness" in tl or "보호막" in t or "실드" in t:
-        p = _pct_from_text(t)
-        if p is not None:
-            out["mods"]["shield_eff"] = out["mods"].get("shield_eff", 0.0) + p
-
-    # Energy gain at battle start
-    if ("gain" in tl and "energy" in tl) or ("에너지" in t and ("획득" in t or "얻" in t)):
-        out["mods"]["energy_start"] = 1.0
-
-    return out
-
-def rune_effects_enriched(rune_db: dict) -> dict:
-    """
-    rune_db_by_name() 결과에 2pc/4pc 파싱 결과를 붙인 사전 반환
-    """
-    out = {}
-    for name, r in rune_db.items():
-        two = parse_rune_effect_text(str(r.get("twoPiece") or ""))
-        four = parse_rune_effect_text(str(r.get("fourPiece") or ""))
-        out[name] = {**r, "_two": two, "_four": four}
-    return out
 
 def _strip_js_comments(s: str) -> str:
     s = re.sub(r"//.*?$", "", s, flags=re.M)
@@ -581,7 +441,6 @@ FALLBACK_RUNES = [
 ]
 
 
-
 def load_runes_db(force: bool = False) -> list[dict]:
     if CACHE["runes_db"] is not None and not force:
         return CACHE["runes_db"]
@@ -731,7 +590,6 @@ def rune_db_by_name() -> dict[str, dict]:
     return {str(r.get("name")): r for r in db if isinstance(r, dict) and r.get("name")}
 
 
-
 # -------------------------
 # -------------------------
 # Rune recommendation logic — role-based objective + exhaustive 4+2 search
@@ -741,12 +599,10 @@ def rune_db_by_name() -> dict[str, dict]:
 _KW_HEAL = ["heal", "healing", "restore", "recovery", "회복", "치유", "힐"]
 _KW_SHIELD = ["shield", "barrier", "보호막", "실드"]
 _KW_DOT = ["continuous damage", "dot", "damage over time", "burn", "bleed", "poison", "지속 피해", "지속피해", "도트", "중독", "화상", "출혈", "감전", "동상 피해", "부식"]
-_KW_EXTRA = ["extra attack", "additional attack", "follow-up", "추가 공격", "추격", "추가타", "[extra attack]"]  # NOTE: '추가 피해'는 범용 추가데미지로 오탐이 많아 제외
 _KW_TEAM = ["team", "all allies", "allied", "party", "아군", "팀", "전체", "전원"]
 _KW_BUFF = ["increase", "increased", "buff", "up", "증가", "상승", "강화", "부여"]
 _KW_DEBUFF = ["decrease", "reduced", "debuff", "down", "감소", "약화", "깎", "감쇠", "취약", "받는 피해"]
 _KW_VULN = ["vulnerability", "take more damage", "damage taken", "받는 피해", "피해 증가", "취약"]
-_KW_ENERGY = ["energy", "에너지", "gain", "regen", "회복", "획득", "충전"]
 _KW_ULT = ["ultimate", "ult", "burst", "궁극기", "필살기", "궁"]
 _KW_CRIT_DISABLE = ["cannot crit", "can't crit", "no crit", "crit disabled", "치명타 불가", "크리티컬 불가", "치명타가 발생하지"]
 
@@ -882,8 +738,6 @@ def detect_no_crit(detail: dict) -> bool:
             return True
 
     return False
-
-
 
 
 def detect_crit_rate_zero_or_missing(detail: dict, base: dict | None = None) -> bool:
@@ -1032,7 +886,6 @@ def _infer_role_from_texts(texts: list[str]) -> str:
     if debuff >= max(heal_team, team_buff) and debuff >= 3:
         return "debuffer"
     return "dps"
-
 
 
 # -------------------------
@@ -1419,7 +1272,6 @@ def _rune_tags_from_effect(effect_text: str) -> set[str]:
         tags.add("ULT_TRIGGER")
 
     return tags
-
 
 
 # ---------- Exact-match guards (regex) ----------
@@ -2122,7 +1974,6 @@ def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> di
         b["notes"] = uniq_notes
 
     return {"mode": "auto", "profile": profile, "builds": builds}
-
 
 
 def recommend_runes_both(cid: str, base: dict, detail: dict) -> dict:
