@@ -1452,6 +1452,12 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
 
     role = profile["role"]
     scaling = profile["scaling"]
+
+    # ✅ DEF 세트는 기본적으로 Tank/DPS(또는 DEF 스케일/방어 키트)에서만 추천
+    has_def_kit = bool(profile.get("def_kit", 0.0) >= 0.15) or (scaling == "DEF")
+    if ("DEF" in tags) and (role not in ("tank", "dps")) and (not has_def_kit):
+        return -999.0  # 사실상 제외
+
     no_crit = profile["no_crit"]
 
     dot = profile["dot_share"]
@@ -1508,9 +1514,6 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
                 score += 0.0
 
     # role-specific (4pc dominates)
-    # DEF 세트는 '방어력 기반/방어력 관련 스킬(= DEF 스케일)'이 있을 때만 추천. 그 외 역할은 강감점.
-    if "DEF" in tags and role != "tank" and scaling != "DEF":
-        score -= 14.0
     if role == "buffer":
         if "TEAM_DMG" in tags:
             score += 18.0 * (0.6 + 0.4 * ult)
@@ -1540,41 +1543,144 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
             score += 2.5
 
     elif role == "healer":
-        # Healer is still a contributor (반딜러 성향) but primary scaling matters most.
-        # Rule: HP-scaling healer strongly prefers HP sets (Zane/Zahn) and strongly avoids DEF sets (Kappa/Poki),
-        # unless the kit actually scales with DEF.
         if "HEAL" in tags:
-            score += 10.0
+            score += 22.0 * (0.7 + 0.3 * max(heal, 0.2))
+        if "ENERGY_EFF" in tags:
+            score += 10.0 * (0.6 + 0.4 * ult)
+        if "START_ENERGY" in tags:
+            score += 10.0 * (0.6 + 0.4 * ult)
+        if "HP" in tags or "DEF" in tags:
+            score += 6.0
+        if "SHIELD" in tags:
+            # 보호막 세트는 "보호막/실드" 기믹이 실제로 존재할 때만 유효
+            if shield <= 0.05:
+                # 보호막 스킬이 사실상 없으면 4세트 채용을 억제
+                if pieces == 4:
+                    score -= 6.0
+            else:
+                score += 10.0 * min(1.0, shield)
+        if profile.get("healer_hybrid") and not no_crit:
+            if "CRIT_RATE" in tags or "CRIT_DMG" in tags:
+                score += 3.0
+            if "ATK" in tags and scaling == "ATK":
+                score += 4.0
 
+        # ✅ HP 기반 힐러: DEF 세트 강감점 / HP 세트 강가점
         if scaling == "HP":
-            if "HP" in tags:
-                score += 18.0
             if "DEF" in tags:
-                score -= 20.0  # strong penalty for Kappa/Poki on HP healers
-            if "ATK" in tags:
-                score += 4.0
-        elif scaling == "DEF":
-            if "DEF" in tags:
-                score += 14.0
+                score -= 25.0 if pieces >= 4 else 18.0
+            if set_name.lower() in ("zane", "zahn"):
+                score += 12.0 if pieces >= 4 else 6.0
             if "HP" in tags:
-                score += 4.0
-            if "ATK" in tags:
-                score += 2.0
-        else:  # ATK-scaling healer
-            if "ATK" in tags:
-                score += 10.0
-            if "HP" in tags:
-                score += 6.0
-            if "DEF" in tags:
-                score -= 6.0
+                score += 8.0 if pieces >= 4 else 4.0
 
+    elif role == "tank":
+        if "HP" in tags:
+            score += 16.0
+        if "DEF" in tags:
+            score += 16.0
+        if "SHIELD" in tags:
+            # 보호막 세트는 보호막 기믹이 있을 때만 가치가 큼
+            if shield <= 0.05:
+                if pieces == 4:
+                    score -= 6.0
+            else:
+                score += 14.0 * min(1.0, shield)
+        if "START_ENERGY" in tags:
+            score += 3.0
+        if "ENERGY_EFF" in tags:
+            score += 3.0
+
+    else:  # DPS
+        # NOTE: DPS는 "역할"보다 "스케일(ATK/DEF/HP)"을 우선 반영해야 함.
+        # 예: DEF 스케일 DPS(Apep 등)에게 ATK/기본공격 피해 중심 세트가 상위로 뜨는 회귀를 방지.
+
+        # 치명 세트: ATK 스케일 DPS는 높은 가중치, DEF/HP 스케일 DPS는 보조(가중치 하향)
+        if ("CRIT_RATE" in tags or "CRIT_DMG" in tags) and not no_crit:
+            if scaling == "ATK":
+                score += 16.0
+            else:
+                score += 8.0
+
+        # 기본공격 피해: 대부분 ATK 기반(평타 비중)에서만 의미가 큼.
+        # DEF/HP 스케일 DPS에는 오추천을 유발하므로 거의 가치를 주지 않는다.
+        if "BASIC_DMG" in tags:
+            ns = float(profile.get("normal_share") or 0.0)
+            if scaling != "ATK":
+                score += 0.0
+            else:
+                if ns < 0.10:
+                    score -= 6.0  # avoid Alpha 4p when basic-attack share is low
+                else:
+                    score += 10.0 * min(1.0, ns * 3.0)
+        if "EXTRA_DMG" in tags:
+            # Extra-attack 세트는 실제 'Extra attack/추가 공격' 기믹이 있을 때만 고가치
+            if extra < 0.12:
+                score -= 8.0  # 오탐 억제
+            else:
+                score += 18.0 * (0.3 + 0.7 * min(1.0, extra * 3.0))
+        if "DOT_DMG" in tags:
+            # DoT 세트는 실제 DoT 기믹이 있을 때만 고가치 ('지속' 오탐 방지)
+            if dot < 0.12:
+                score -= 8.0
+            else:
+                score += 18.0 * (0.3 + 0.7 * min(1.0, dot * 3.0))
+
+        # 스케일 매칭 보상: DEF/HP 스케일은 스탯 자체 기여도가 크므로 보상을 조금 더 줌
+        if "ATK" in tags:
+            if scaling == "ATK":
+                score += 8.0
+            else:
+                # DEF/HP 스케일 DPS에게 ATK 세트가 끼어드는 것을 강하게 억제
+                # (특히 4세트 ATK/평타 세트가 1순위로 뜨는 회귀 방지)
+                if role == "dps":
+                    score -= 12.0 if pieces == 4 else 8.0
+        if "DEF" in tags and scaling == "DEF":
+            score += 14.0
+        if "HP" in tags and scaling == "HP":
+            score += 14.0
+
+        if "ENERGY_EFF" in tags:
+            score += 4.0 * ult
+        if "START_ENERGY" in tags:
+            score += 3.0 * ult
+
+        if "TEAM_DMG" in tags:
+            score += 2.0
+
+        if "HP" in tags or "DEF" in tags:
+            score += 1.0
+
+    if no_crit and ("CRIT_RATE" in tags or "CRIT_DMG" in tags):
+        score -= 8.0
+
+    return score
+
+
+def _best_rune_builds(profile: dict, rune_db: dict[str, dict], mode: str = "pve") -> tuple[list[dict], list[str]]:
+    tag_idx = _rune_tag_index(rune_db)
+    sets = list(rune_db.keys())
+    md = (str(mode or "pve").strip().lower() or "pve")
+
+    role = profile.get("role") or "dps"
+    extra_attack_4_allowed = bool(profile.get("has_explicit_extra_attack"))
+
+    sets_all = list(sets)
+    allowed4 = set(sets_all)
+    allowed2 = set(sets_all)
+    forced4: str | None = None
+    forced2: str | None = None
+
+    # ---- Role-based rune pools (hard constraints) ----
+    if role == "tank":
+        allowed4 = {"Poki", "Zane"}
+        allowed2 = {"Poki", "Zane", "Kappa"}  # Kappa는 2세트만
+    elif role == "dps":
+        allowed4 = {"Alpha", "Beth", "Epsilon", "Het", "Gimel", "Iots"}
+        allowed2 = set(allowed4)
     elif role == "buffer":
         allowed4 = set(sets_all) - {"Daleth"}
         allowed2 = set(sets_all) - {"Daleth"}
-        # 버퍼는 DEF 세트(방어력+12%)가 핵심이 아닌 경우가 대부분. DEF 스케일일 때만 허용.
-        if scaling != "DEF":
-            allowed4 -= {"Kappa", "Poki"}
-            allowed2 -= {"Kappa", "Poki"}
     elif role == "debuffer":
         # (요청사항) Debuffer는 Iots 4세트 고정 + 2세트는 추천으로 구성
         forced4 = "Iots"
@@ -1585,20 +1691,6 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
         forced2 = None
         allowed4 = set(sets_all)
         allowed2 = set(sets_all)
-
-        # HP 기반 힐러: DEF 세트(Kappa/Poki)는 강감점/사실상 금지, HP 세트(Zane/Zahn)는 강가점.
-        # (방어력 관련 스킬/스케일링이 있는 경우에만 DEF 세트를 허용)
-        def_sets = {"Kappa", "Poki"}
-        hp_sets = {"Zane", "Zahn"}
-        if scaling == "HP":
-            allowed2 -= def_sets
-            allowed4 -= def_sets
-            allowed2 |= hp_sets
-            allowed4 |= hp_sets
-        elif scaling != "DEF":
-            # 힐러가 DEF 스케일이 아니면 DEF 세트는 기본적으로 제외
-            allowed2 -= def_sets
-            allowed4 -= def_sets
 
     # ---- Basic attack 기반 DPS(예: Freya): Alpha 4세트 고정 ----
     if role != "debuffer" and profile.get("basic_attack_based"):
@@ -1814,25 +1906,17 @@ def _substats_for(profile: dict) -> list[str]:
 
     primary = scaling_primary()
 
-    # Healer: scale-first (HP/DEF), then offensive stats; keep Defense LOW priority unless the kit actually scales with DEF.
+    # Healer: survivability first; add scaling stat; crit only if applicable.
     if role == "healer":
-        out = []
-        if scaling == "HP":
-            # HP-scaling healers: HP is mandatory; Defense is usually a trap (steals rolls from HP/ATK/crit).
-            out += ["HP", "Attack"]
-            if not no_crit:
-                out += ["Critical Rate", "Critical Damage"]
-            out += ["Penetration", "Defense"]
-        elif scaling == "DEF":
-            # Rare case: DEF-scaling healer/support (allow DEF).
-            out += ["Defense", "HP", "Attack", "Penetration"]
-            if not no_crit:
-                out += ["Critical Rate", "Critical Damage"]
-        else:  # ATK-scaling healer (uncommon)
-            out += ["Attack", "HP"]
-            if not no_crit:
-                out += ["Critical Rate", "Critical Damage"]
-            out += ["Penetration", "Defense"]
+        out = ["HP", "Defense"]
+        if primary == "Attack":
+            out.insert(0, "Attack")
+        else:
+            # HP/DEF scalers already covered; keep order stable
+            pass
+        out.append("Penetration")
+        if not no_crit:
+            out += ["Critical Rate", "Critical Damage"]
         return dedupe(out)
 
     # Tank: pure survivability, then minimal offense
@@ -2874,6 +2958,17 @@ def api_char_detail(cid: str):
             "class_icon": class_icon_url(cls),
             "runes": None,
         }
+
+
+    # ✅ Apply overrides to detail too (modal uses detail.name first)
+    try:
+        if isinstance(detail, dict) and isinstance(base, dict):
+            detail["name"] = base.get("name") or detail.get("name")
+            if base.get("faction"): detail["faction"] = base.get("faction")
+            if base.get("class"): detail["class"] = base.get("class")
+            if base.get("role"): detail["role"] = base.get("role")
+    except Exception:
+        pass
 
     try:
         # rune recommendation supports ?rune_mode=pve|pvp|both
