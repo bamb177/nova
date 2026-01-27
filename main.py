@@ -1184,12 +1184,16 @@ def classify_debuffer_subtype(texts: list[str], heal_strength: float, shield_str
 
 def _detect_profile(detail: dict, base: dict, cid: Optional[str] = None, debug: bool = False) -> dict:
     texts = _skill_texts(detail or {})
+    blob = "\n".join([t for t in texts if t]).lower()
 
     atk_hits, hp_hits, def_hits = [], [], []
     for t in texts:
         atk_hits += _pct_hits(t, ["attack power", "atk", "attack", "공격력"])
         hp_hits += _pct_hits(t, ["max hp", "hp", "health", "체력", "생명"])
         def_hits += _pct_hits(t, ["defense", "def", "방어력"])
+
+    # DEF scaling should only trigger when a DEF% coefficient exists (pct_hits) or explicit 'DEF 기반'
+    def_scaling = bool(def_hits) or ("방어력 기반" in blob) or ("def based" in blob) or ("based on def" in blob) or ("scaled by def" in blob) or bool(re.search(r"(방어력|def)\s*만큼", blob))
 
     atk_s = _score_hits(atk_hits)
     hp_s = _score_hits(hp_hits)
@@ -1313,6 +1317,7 @@ def _detect_profile(detail: dict, base: dict, cid: Optional[str] = None, debug: 
         "atk_score": atk_s,
         "hp_score": hp_s,
         "def_score": def_s,
+        "def_scaling": def_scaling,
         "dot_share": dot_share,
         "normal_share": normal_share,
         "extra_share": extra_share,
@@ -1449,14 +1454,18 @@ def _rune_tag_index(rune_db: dict[str, dict]) -> dict[str, dict]:
 
 def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dict], tag_idx: dict[str, dict], mode: str = "pve") -> float:
     tags = (tag_idx.get(set_name) or {}).get("tags4" if pieces == 4 else "tags2", set())
+    # HP 기반 힐러는 DEF 2세트(예: Kappa)를 강제 제외
+    if role == "healer" and scaling == "HP" and set_name == "Kappa":
+        return -999.0
+
 
     role = profile["role"]
     scaling = profile["scaling"]
 
     # ✅ DEF 세트는 기본적으로 Tank/DPS(또는 DEF 스케일/방어 키트)에서만 추천
-    has_def_kit = bool(profile.get("def_kit", 0.0) >= 0.15) or (scaling == "DEF")
-    if ("DEF" in tags) and (role not in ("tank", "dps")) and (not has_def_kit):
-        return -999.0  # 사실상 제외
+    has_def_kit = bool(signals.get("def_scaling", False)) or (scaling == "DEF")
+    if ("DEF" in tags) and (not has_def_kit):
+        return -999.0  # DEF 세트는 DEF 기반(계수)일 때만 추천
 
     no_crit = profile["no_crit"]
 
