@@ -737,21 +737,6 @@ _KW_HEAL = ["heal", "healing", "restore", "recovery", "회복", "치유", "힐"]
 _KW_SHIELD = ["shield", "barrier", "보호막", "실드"]
 _KW_DOT = ["continuous damage", "dot", "damage over time", "burn", "bleed", "poison", "지속 피해", "지속피해", "도트", "중독", "화상", "출혈", "감전", "동상", "부식"]
 _KW_EXTRA = ["extra attack", "additional attack", "follow-up", "추가 공격", "추격", "추가타", "[extra attack]"]  # NOTE: '추가 피해'는 범용 추가데미지로 오탐이 많아 제외
-
-_KW_BASIC_ATTACK = [
-    "basic attack", "normal attack", "auto attack",
-    "basic atk", "normal atk",
-    "기본 공격", "기본공격", "일반 공격", "일반공격",
-    "평타", "보통 공격",
-]
-_KW_COUNTS_AS_BASIC = [
-    "기본 공격으로 간주", "기본 공격으로 취급", "기본 공격으로 처리",
-    "기본공격으로 간주", "기본공격으로 취급", "기본공격으로 처리",
-    "counts as basic attack", "treated as basic attack", "considered as basic attack",
-    "counts as normal attack", "treated as normal attack", "considered as normal attack",
-    "regarded as basic attack", "regarded as normal attack",
-]
-
 _KW_TEAM = ["team", "all allies", "allied", "party", "아군", "팀", "전체", "전원"]
 _KW_BUFF = ["increase", "increased", "buff", "up", "증가", "상승", "강화", "부여"]
 _KW_DEBUFF = ["decrease", "reduced", "debuff", "down", "감소", "약화", "깎", "감쇠", "취약", "받는 피해"]
@@ -931,35 +916,48 @@ def _role_from_base(base: dict) -> tuple[str, bool]:
     """Return (base_role, strict).
     - strict=True only when explicit 'role' field is present.
     - class is treated as a hint (strict=False), because some data uses 'class' for category/memory compatibility.
+
+    중요: 'debuffer' 문자열에 'buffer'가 포함되어 단순 포함검사로는 오분류가 발생할 수 있어,
+    항상 debuffer를 먼저 판정하고, 공백/기호를 제거한 정규화 문자열로 판정한다.
     """
     role_raw = str((base or {}).get("role") or "").strip().lower()
     cls_raw = str((base or {}).get("class") or "").strip().lower()
 
-    if role_raw:
-        if "tank" in role_raw:
-            return "tank", True
-        if "dps" in role_raw:
-            return "dps", True
-        if "healer" in role_raw:
-            return "healer", True
-        if "buffer" in role_raw:
-            return "buffer", True
-        if "debuffer" in role_raw:
+    def _norm(s: str) -> str:
+        # keep only letters for robust matching: "De-buffer", "DEBUFFER", etc.
+        return re.sub(r"[^a-z]+", "", (s or "").lower())
+
+    role_norm = _norm(role_raw)
+    cls_norm = _norm(cls_raw)
+
+    # explicit role (strict)
+    if role_norm:
+        if "debuffer" in role_norm:
             return "debuffer", True
+        if "buffer" in role_norm:
+            return "buffer", True
+        if "healer" in role_norm:
+            return "healer", True
+        if "tank" in role_norm or "guardian" in role_norm:
+            return "tank", True
+        if "dps" in role_norm:
+            return "dps", True
 
     # class-only hint (not strict)
-    if "guardian" in cls_raw:
-        return "tank", False
-    if "healer" in cls_raw:
-        return "healer", False
-    if "buffer" in cls_raw:
-        return "buffer", False
-    if "debuffer" in cls_raw:
-        return "debuffer", False
-    if cls_raw in ("warrior", "rogue", "mage"):
-        return "dps", False
+    if cls_norm:
+        if "debuffer" in cls_norm:
+            return "debuffer", False
+        if "buffer" in cls_norm:
+            return "buffer", False
+        if "healer" in cls_norm:
+            return "healer", False
+        if "guardian" in cls_norm or "tank" in cls_norm:
+            return "tank", False
+        if cls_norm in ("warrior", "rogue", "mage"):
+            return "dps", False
 
     return "dps", False
+
 
 
 def _infer_role_from_texts(texts: list[str]) -> str:
@@ -1026,7 +1024,6 @@ def _detect_profile(detail: dict, base: dict) -> dict:
 
     dot_cnt = extra_cnt = ult_cnt = 0
     normal_cnt = 0
-    counts_as_basic_cnt = 0
     team_buff_cnt = debuff_cnt = heal_cnt = shield_cnt = 0
 
     for t in texts:
@@ -1038,10 +1035,8 @@ def _detect_profile(detail: dict, base: dict) -> dict:
             extra_cnt += 1
         if any(k in tl for k in _KW_ULT):
             ult_cnt += 1
-        if any((kw in tl) or (kw in t) for kw in _KW_BASIC_ATTACK):
+        if ("basic attack" in tl) or ("normal attack" in tl) or ("기본 공격" in t) or ("기본공격" in t) or ("평타" in t):
             normal_cnt += 1
-        if any((kw in tl) or (kw in t) for kw in _KW_COUNTS_AS_BASIC):
-            counts_as_basic_cnt += 1
         if any(k in tl for k in _KW_HEAL):
             heal_cnt += 1
         if any(k in tl for k in _KW_SHIELD):
@@ -1053,10 +1048,7 @@ def _detect_profile(detail: dict, base: dict) -> dict:
 
     total = max(1, len(texts))
     dot_share = dot_cnt / total
-    counts_as_basic_attack = counts_as_basic_cnt > 0
-    normal_share = (normal_cnt + counts_as_basic_cnt) / total
-    if counts_as_basic_attack:
-        normal_share = max(normal_share, 0.35)
+    normal_share = normal_cnt / total
     extra_share = extra_cnt / total
     ult_importance = min(1.0, ult_cnt / total * 2.0)
     team_buff_strength = min(1.0, team_buff_cnt / total * 2.0)
@@ -1106,7 +1098,7 @@ def _detect_profile(detail: dict, base: dict) -> dict:
     healer_hybrid = bool(role == "healer" and atk_s >= 15.0 and heal_strength < 0.45)
 
     crit_rate_zero_or_missing = detect_crit_rate_zero_or_missing(detail or {}, base or {})
-    basic_attack_based = bool(role == "dps" and scaling == "ATK" and (counts_as_basic_attack or normal_share >= 0.20 or normal_cnt >= 2))
+    basic_attack_based = bool(role == "dps" and scaling == "ATK" and (normal_share >= 0.20 or normal_cnt >= 2))
 
     sample_text = None
     if scaling == "ATK":
@@ -1124,7 +1116,6 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         "def_score": def_s,
         "dot_share": dot_share,
         "normal_share": normal_share,
-            "counts_as_basic_attack": counts_as_basic_attack,
         "extra_share": extra_share,
         "has_explicit_extra_attack": has_explicit_extra_attack,
         "ult_importance": ult_importance,
@@ -1136,7 +1127,6 @@ def _detect_profile(detail: dict, base: dict) -> dict:
         "no_crit": no_crit,
         "crit_rate_zero_or_missing": crit_rate_zero_or_missing,
         "basic_attack_based": basic_attack_based,
-        "counts_as_basic_attack": counts_as_basic_attack,
         "sample_text": sample_text,
     }
 
@@ -1694,61 +1684,6 @@ def _substats_for(profile: dict) -> list[str]:
     return ["Critical Rate (%)", "Critical Damage (%)", scaling_pct, "Attack Penetration (%)", "Flat Attack", "HP (%) / Defense (%) (생존)"]
 
 
-
-def _normalize_substats_allowed6(raw_substats: list[str], profile: dict[str, Any]) -> list[str]:
-    """Force substat recommendations into the 6 in-game categories only:
-    Attack / HP / Defense / Critical Rate / Critical Damage / Penetration.
-    """
-    scaling = (profile.get("scaling") or "ATK").upper()
-    no_crit = bool(profile.get("no_crit"))
-
-    def _map_one(s: str) -> Optional[str]:
-        sl = (s or "").lower()
-        # Penetration first (avoid mapping to Attack)
-        if "penetr" in sl or "관통" in sl:
-            return "Penetration"
-        if "crit rate" in sl or "critical rate" in sl or ("치명" in sl and ("확률" in sl or "rate" in sl)):
-            return "Critical Rate"
-        if "crit dmg" in sl or "critical damage" in sl or ("치명" in sl and ("피해" in sl or "dmg" in sl)):
-            return "Critical Damage"
-        if "hp" in sl or "체력" in sl:
-            return "HP"
-        if "def" in sl or "defense" in sl or "방어" in sl:
-            return "Defense"
-        if "atk" in sl or "attack" in sl or "공격" in sl:
-            return "Attack"
-        return None
-
-    mapped: list[str] = []
-    for s in raw_substats or []:
-        cat = _map_one(s)
-        if cat and cat not in mapped:
-            mapped.append(cat)
-
-    # Base ordering by scaling (and suppress crit when crit is unusable)
-    if scaling == "HP":
-        order = ["HP", "Attack", "Defense", "Critical Rate", "Critical Damage", "Penetration"]
-    elif scaling == "DEF":
-        order = ["Defense", "HP", "Attack", "Critical Rate", "Critical Damage", "Penetration"]
-    else:
-        order = ["Attack", "Critical Rate", "Critical Damage", "Penetration", "HP", "Defense"]
-
-    if no_crit:
-        order = [x for x in order if x not in ("Critical Rate", "Critical Damage")]
-
-    # Keep any mapped categories first (in order), then fill missing from order.
-    out: list[str] = []
-    for x in order:
-        if x in mapped and x not in out:
-            out.append(x)
-    for x in order:
-        if x not in out:
-            out.append(x)
-    return out
-
-def _substats_for_allowed6(profile: dict[str, Any]) -> list[str]:
-    return _normalize_substats_allowed6(_substats_for(profile), profile)
-
 def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> dict:
     overrides = load_rune_overrides()
     rune_db = rune_db_by_name()
@@ -1830,7 +1765,7 @@ def recommend_runes(cid: str, base: dict, detail: dict, mode: str = "pve") -> di
             "title": b.get("title") or "추천(자동)",
             "setPlan": setplan,
             "slots": _slot_plan_for(profile, base.get("element")),
-            "substats": _substats_for_allowed6(profile),
+            "substats": _substats_for(profile),
             "notes": [],
             "rationale": rationale + [f"조합 점수(상대 비교용): {b.get('_score')}"],
         })
@@ -2687,6 +2622,28 @@ def api_char_detail(cid: str):
             "class_icon": class_icon_url(cls),
             "runes": None,
         }
+
+    # 항상 메인 목록/상세에서 이름이 동일하게 보이도록 (오버라이드 강제 적용)
+    overrides_names, overrides_factions = load_overrides()
+    canonical_raw_name = normalize_char_name(
+        (base or {}).get('raw_name')
+        or (base or {}).get('name')
+        or detail.get('raw_name')
+        or detail.get('name')
+        or cid2
+    )
+    canonical_display_name = overrides_names.get(canonical_raw_name, canonical_raw_name)
+    # detail에 우선 적용 (모달/상세 페이지 타이틀이 detail.name을 사용하는 경우가 많음)
+    detail['raw_name'] = canonical_raw_name
+    detail['name'] = canonical_display_name
+    df = str(detail.get('faction') or '-').strip() or '-'
+    detail['faction'] = overrides_factions.get(df, df)
+    # base에도 동일 적용 (메인 목록/추천룬 헤더 등)
+    if isinstance(base, dict):
+        base['raw_name'] = canonical_raw_name
+        base['name'] = canonical_display_name
+        bf = str(base.get('faction') or '-').strip() or '-'
+        base['faction'] = overrides_factions.get(bf, bf)
 
     try:
         # rune recommendation supports ?rune_mode=pve|pvp|both
