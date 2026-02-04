@@ -72,3 +72,24 @@
     {
       "level": 6,
       "effect": "모든 속성 저항이 20% 증가하고, 혼돈 저항이 추가로 20%
+     ],
+  "memoryCard": {
+    "name": "Pride or Tsundere?",
+    "image": "lucifercard",
+    "stats": {
+      "hp": "6,600",
+      "attack": "480",
+      "defense": "690"
+    },
+    "effects": [
+      "HP가 32% 증가하고, 방어력이 60% 증가합니다. 캐릭터가 기본 공격을 받을 때, 받는 피해가 30% 감소합니다."
+    ]
+  },
+  "tags": [
+    "Range",
+    "AOE",
+    "Crit Rate",
+    "Normal Attack",
+    "Speed Attack"
+  ]
+}
