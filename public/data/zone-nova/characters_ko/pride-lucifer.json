@@ -71,8 +71,9 @@
     },
     {
       "level": 6,
-      "effect": "모든 속성 저항이 20% 증가하고, 혼돈 저항이 추가로 20%
-     ],
+      "effect": "모든 속성 저항이 20% 증가하고, 혼돈 저항이 추가로 20% 증가합니다."
+    }
+  ],
   "memoryCard": {
     "name": "Pride or Tsundere?",
     "image": "lucifercard",
@@ -86,10 +87,12 @@
     ]
   },
   "tags": [
-    "Range",
-    "AOE",
-    "Crit Rate",
-    "Normal Attack",
-    "Speed Attack"
+    "Chaos",
+    "Shield",
+    "Defense Scaling",
+    "Team Buff",
+    "Enhanced Ultimate",
+    "Warrior",
+    "SSR"
   ]
 }
