@@ -1483,6 +1483,10 @@ def _score_set(profile: dict, set_name: str, pieces: int, rune_db: dict[str, dic
 
     dot = profile["dot_share"]
     extra = profile["extra_share"]
+    normal_share = profile.get("normal_share", 0.0)
+    # Backward-compatible aliases
+    dot_share = dot
+    extra_share = extra
     ult = profile["ult_importance"]
     debuff = profile["debuff_strength"]
     heal = profile["heal_strength"]
